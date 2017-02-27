@@ -42,6 +42,13 @@ func (r *Request) Header(k, v string) *Request {
 	return r
 }
 
+func (r *Request) Headers(params P) *Request {
+	for k, v := range params {
+		r.req.Header.Set(k, v)
+	}
+	return r
+}
+
 // Body set the request body,support string and []byte.
 func (r *Request) Body(body interface{}) *Request {
 	switch v := body.(type) {
