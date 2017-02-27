@@ -83,6 +83,14 @@ func (r *Request) Bytes() (data []byte, err error) {
 	return
 }
 
+func (r *Request) MustBytes() []byte {
+	data, err := r.Bytes()
+	if err != nil {
+		panic(err)
+	}
+	return data
+}
+
 // String execute the request and get the response body as string.
 func (r *Request) String() (s string, err error) {
 	data, err := r.Bytes()
@@ -91,6 +99,14 @@ func (r *Request) String() (s string, err error) {
 	}
 	s = string(data)
 	return
+}
+
+func (r *Request) MustString() string {
+	s, err := r.String()
+	if err != nil {
+		panic(err)
+	}
+	return s
 }
 
 // String execute the request and get the response body unmarshal to json.
@@ -150,6 +166,14 @@ func (r *Request) Response() (resp *http.Response, err error) {
 	r.req.URL = u
 	resp, err = http.DefaultClient.Do(r.req)
 	return
+}
+
+func (r *Request) MustResponse() *http.Response {
+	resp, err := r.Response()
+	if err != nil {
+		panic(err)
+	}
+	return resp
 }
 
 // Get returns *Request with GET method.
