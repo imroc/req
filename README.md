@@ -33,7 +33,7 @@ func main() {
 	data, err :=
 		req.Get("https://www.baidu.com").
 			Param("ie", "UTF-8"). // single param
-			Params(req.P{         // multiple params
+			Params(req.M{         // multiple params
 				"f":      "8",
 				"rsv_bp": "1",
 				"wd":     "go",

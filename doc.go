@@ -6,7 +6,7 @@ import "github.com/imroc/req"
 s, err :=
 	req.Get("https://imroc.github.io").
 		Param("ie", "UTF-8").
-		Params(req.P{
+		Params(req.M{
 			"category": "tech",
 			"wd":       "go",
 		}).

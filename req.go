@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-// P represents the request params.
-type P map[string]string
+// M represents the request params.
+type M map[string]string
 
 // Request provides much easier useage than http.Request
 type Request struct {
 	url    string
-	params P
+	params M
 	req    *http.Request
 	resp   *http.Response
 	body   []byte
@@ -29,7 +29,7 @@ func (r *Request) Param(k, v string) *Request {
 }
 
 // Params set multiple params to the request.
-func (r *Request) Params(params P) *Request {
+func (r *Request) Params(params M) *Request {
 	for k, v := range params {
 		r.params[k] = v
 	}
@@ -42,7 +42,7 @@ func (r *Request) Header(k, v string) *Request {
 	return r
 }
 
-func (r *Request) Headers(params P) *Request {
+func (r *Request) Headers(params M) *Request {
 	for k, v := range params {
 		r.req.Header.Set(k, v)
 	}
@@ -165,7 +165,7 @@ func Post(url string) *Request {
 func newRequest(url, method string) *Request {
 	return &Request{
 		url:    url,
-		params: P{},
+		params: M{},
 		req: &http.Request{
 			Method:     method,
 			Header:     make(http.Header),
