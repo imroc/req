@@ -15,11 +15,13 @@ type M map[string]string
 
 // Request provides much easier useage than http.Request
 type Request struct {
-	url    string
-	params M
-	req    *http.Request
-	resp   *http.Response
-	body   []byte
+	url      string
+	params   M
+	req      *http.Request
+	resp     *http.Response
+	done     bool
+	respBody []byte
+	reqBody  []byte
 }
 
 // Param set single param to the request.
@@ -56,18 +58,28 @@ func (r *Request) Body(body interface{}) *Request {
 		bf := bytes.NewBufferString(v)
 		r.req.Body = ioutil.NopCloser(bf)
 		r.req.ContentLength = int64(len(v))
+		r.reqBody = []byte(v)
 	case []byte:
 		bf := bytes.NewBuffer(v)
 		r.req.Body = ioutil.NopCloser(bf)
 		r.req.ContentLength = int64(len(v))
+		r.reqBody = v
 	}
 	return r
 }
 
+func (r *Request) BodyBytes() []byte {
+	return r.reqBody
+}
+
+func (r *Request) BodyString() string {
+	return string(r.reqBody)
+}
+
 // Bytes execute the request and get the response body as []byte.
 func (r *Request) Bytes() (data []byte, err error) {
-	if r.body != nil { // in case multiple call
-		data = r.body
+	if r.respBody != nil { // in case multiple call
+		data = r.respBody
 		return
 	}
 	resp, err := r.Response()
@@ -75,11 +87,11 @@ func (r *Request) Bytes() (data []byte, err error) {
 		return
 	}
 	defer resp.Body.Close()
-	r.body, err = ioutil.ReadAll(resp.Body)
+	r.respBody, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return
 	}
-	data = r.body
+	data = r.respBody
 	return
 }
 
@@ -115,7 +127,8 @@ func (r *Request) ToJson(v interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(data, v)
+	err = json.Unmarshal(data, v)
+	return
 }
 
 // String execute the request and get the response body unmarshal to xml.
@@ -124,7 +137,44 @@ func (r *Request) ToXml(v interface{}) (err error) {
 	if err != nil {
 		return err
 	}
-	return xml.Unmarshal(data, v)
+	err = xml.Unmarshal(data, v)
+	return
+}
+
+func (r *Request) getParamBody() string {
+	var buf bytes.Buffer
+	for k, v := range r.params {
+		buf.WriteString(url.QueryEscape(k))
+		buf.WriteByte('=')
+		buf.WriteString(url.QueryEscape(v))
+		buf.WriteByte('&')
+	}
+	p := buf.String()
+	p = p[0 : len(p)-1]
+	return p
+}
+
+func (r *Request) buildGetUrl() string {
+	ret := r.url
+	p := r.getParamBody()
+	if strings.Index(r.url, "?") != -1 {
+		ret += "&" + p
+	} else {
+		ret += "?" + p
+	}
+	return ret
+}
+
+func (r *Request) setParamBody() {
+	r.Header("Content-Type", "application/x-www-form-urlencoded")
+	r.Body(r.getParamBody())
+}
+
+func (r *Request) Url() string {
+	if r.req.Method != "GET" || r.done {
+		return r.url
+	}
+	return r.buildGetUrl() //GET method and did not send request yet.
 }
 
 // Response execute the request and get the response.
@@ -135,26 +185,12 @@ func (r *Request) Response() (resp *http.Response, err error) {
 	}
 	// handle request params
 	if len(r.params) > 0 {
-		var buf bytes.Buffer
-		for k, v := range r.params {
-			buf.WriteString(url.QueryEscape(k))
-			buf.WriteByte('=')
-			buf.WriteString(url.QueryEscape(v))
-			buf.WriteByte('&')
-		}
-		p := buf.String()
-		p = p[0 : len(p)-1]
 		switch r.req.Method {
 		case "GET":
-			if strings.Index(r.url, "?") != -1 {
-				r.url += "&" + p
-			} else {
-				r.url += "?" + p
-			}
+			r.url = r.buildGetUrl()
 		case "POST":
 			if r.req.Body == nil {
-				r.Header("Content-Type", "application/x-www-form-urlencoded")
-				r.Body(p)
+				r.setParamBody()
 			}
 		}
 	}
@@ -165,6 +201,7 @@ func (r *Request) Response() (resp *http.Response, err error) {
 	}
 	r.req.URL = u
 	resp, err = http.DefaultClient.Do(r.req)
+	r.done = true
 	return
 }
 
