@@ -15,13 +15,14 @@ type M map[string]string
 
 // Request provides much easier useage than http.Request
 type Request struct {
-	url      string
-	params   M
-	req      *http.Request
-	resp     *http.Response
-	done     bool
-	respBody []byte
-	reqBody  []byte
+	url       string
+	urlEncode bool
+	params    M
+	req       *http.Request
+	resp      *http.Response
+	done      bool
+	respBody  []byte
+	reqBody   []byte
 }
 
 // Param set single param to the request.
@@ -141,12 +142,21 @@ func (r *Request) ToXml(v interface{}) (err error) {
 	return
 }
 
+func (r *Request) UrlEncode(urlEncode bool) *Request {
+	r.urlEncode = urlEncode
+	return r
+}
+
 func (r *Request) getParamBody() string {
 	var buf bytes.Buffer
 	for k, v := range r.params {
-		buf.WriteString(url.QueryEscape(k))
+		if r.urlEncode {
+			k = url.QueryEscape(k)
+			v = url.QueryEscape(v)
+		}
+		buf.WriteString(k)
 		buf.WriteByte('=')
-		buf.WriteString(url.QueryEscape(v))
+		buf.WriteString(v)
 		buf.WriteByte('&')
 	}
 	p := buf.String()
@@ -225,8 +235,9 @@ func Post(url string) *Request {
 
 func newRequest(url, method string) *Request {
 	return &Request{
-		url:    url,
-		params: M{},
+		url:       url,
+		urlEncode: true,
+		params:    M{},
 		req: &http.Request{
 			Method:     method,
 			Header:     make(http.Header),
