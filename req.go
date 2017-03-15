@@ -176,7 +176,9 @@ func (r *Request) buildGetUrl() string {
 }
 
 func (r *Request) setParamBody() {
-	r.Header("Content-Type", "application/x-www-form-urlencoded")
+	if r.urlEncode {
+		r.Header("Content-Type", "application/x-www-form-urlencoded")
+	}
 	r.Body(r.getParamBody())
 }
 
