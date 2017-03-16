@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -19,10 +20,9 @@ type Request struct {
 	urlEncode bool
 	params    M
 	req       *http.Request
-	resp      *http.Response
+	Resp      Response
 	done      bool
-	respBody  []byte
-	reqBody   []byte
+	body      []byte
 }
 
 // Param set single param to the request.
@@ -59,67 +59,32 @@ func (r *Request) Body(body interface{}) *Request {
 		bf := bytes.NewBufferString(v)
 		r.req.Body = ioutil.NopCloser(bf)
 		r.req.ContentLength = int64(len(v))
-		r.reqBody = []byte(v)
+		r.body = []byte(v)
 	case []byte:
 		bf := bytes.NewBuffer(v)
 		r.req.Body = ioutil.NopCloser(bf)
 		r.req.ContentLength = int64(len(v))
-		r.reqBody = v
+		r.body = v
 	}
 	return r
 }
 
-func (r *Request) BodyBytes() []byte {
-	return r.reqBody
-}
-
-func (r *Request) BodyString() string {
-	return string(r.reqBody)
+func (r *Request) GetBody() []byte {
+	return r.body
 }
 
 // Bytes execute the request and get the response body as []byte.
 func (r *Request) Bytes() (data []byte, err error) {
-	if r.respBody != nil { // in case multiple call
-		data = r.respBody
-		return
-	}
-	resp, err := r.Response()
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-	r.respBody, err = ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return
-	}
-	data = r.respBody
+	err = r.Resp.Receive()
+	data = r.Resp.Body
 	return
-}
-
-func (r *Request) MustBytes() []byte {
-	data, err := r.Bytes()
-	if err != nil {
-		panic(err)
-	}
-	return data
 }
 
 // String execute the request and get the response body as string.
 func (r *Request) String() (s string, err error) {
-	data, err := r.Bytes()
-	if err != nil {
-		return
-	}
-	s = string(data)
+	err = r.Resp.Receive()
+	s = string(r.Resp.Body)
 	return
-}
-
-func (r *Request) MustString() string {
-	s, err := r.String()
-	if err != nil {
-		panic(err)
-	}
-	return s
 }
 
 // String execute the request and get the response body unmarshal to json.
@@ -190,9 +155,9 @@ func (r *Request) Url() string {
 }
 
 // Response execute the request and get the response.
-func (r *Request) Response() (resp *http.Response, err error) {
-	if r.resp != nil { // provent multiple call
-		resp = r.resp
+func (r *Request) Response() (resp Response, err error) {
+	if r.Resp.Raw != nil { // provent multiple call
+		resp = r.Resp
 		return
 	}
 	// handle request params
@@ -212,17 +177,17 @@ func (r *Request) Response() (resp *http.Response, err error) {
 		return
 	}
 	r.req.URL = u
-	resp, err = http.DefaultClient.Do(r.req)
+	r.Resp.Raw, err = http.DefaultClient.Do(r.req)
+	if err != nil {
+		return
+	}
+	err = r.Resp.Receive()
+	if err != nil {
+		return
+	}
+	resp = r.Resp
 	r.done = true
 	return
-}
-
-func (r *Request) MustResponse() *http.Response {
-	resp, err := r.Response()
-	if err != nil {
-		panic(err)
-	}
-	return resp
 }
 
 // Get returns *Request with GET method.
@@ -233,6 +198,15 @@ func Get(url string) *Request {
 // Get returns *Request with POST method.
 func Post(url string) *Request {
 	return newRequest(url, "POST")
+}
+func Wrap(url string, req *http.Request) *Request {
+	return &Request{
+		url:       url,
+		urlEncode: true,
+		params:    M{},
+		req:       req,
+		Resp:      Response{},
+	}
 }
 
 func newRequest(url, method string) *Request {
@@ -247,5 +221,35 @@ func newRequest(url, method string) *Request {
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 		},
+		Resp: Response{},
+	}
+}
+
+func (r *Request) Format(s fmt.State, verb rune) {
+
+	if s.Flag('+') { // include header and format pretty.
+		fmt.Fprint(s, r.req.Method, " ", r.Url(), " ", r.req.Proto)
+		for name, values := range r.req.Header {
+			for _, value := range values {
+				fmt.Fprint(s, "\n", name, ":", value)
+			}
+		}
+		if r.body != nil {
+			fmt.Fprint(s, "\n\n", string(r.body))
+		}
+		if r.Resp.Raw != nil {
+			fmt.Fprint(s, "\n\n")
+			r.Resp.Format(s, verb)
+		}
+		return
+	}
+
+	fmt.Fprint(s, r.req.Method, " ", r.Url())
+	if r.body != nil {
+		fmt.Fprint(s, " ", string(r.body))
+	}
+	if r.Resp.Raw != nil { // request has been sent.
+		fmt.Fprint(s, " ")
+		r.Resp.Format(s, verb)
 	}
 }
