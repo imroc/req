@@ -2,8 +2,6 @@ package req
 
 import (
 	"bytes"
-	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -75,35 +73,41 @@ func (r *Request) GetBody() []byte {
 
 // Bytes execute the request and get the response body as []byte.
 func (r *Request) Bytes() (data []byte, err error) {
-	err = r.Resp.Receive()
-	data = r.Resp.Body
+	resp, err := r.Response()
+	if err != nil {
+		return
+	}
+	data = resp.Body
 	return
 }
 
 // String execute the request and get the response body as string.
 func (r *Request) String() (s string, err error) {
-	err = r.Resp.Receive()
-	s = string(r.Resp.Body)
+	resp, err := r.Response()
+	if err != nil {
+		return
+	}
+	s = string(resp.Body)
 	return
 }
 
 // String execute the request and get the response body unmarshal to json.
 func (r *Request) ToJson(v interface{}) (err error) {
-	data, err := r.Bytes()
+	resp, err := r.Response()
 	if err != nil {
-		return err
+		return
 	}
-	err = json.Unmarshal(data, v)
+	err = resp.ToJson(v)
 	return
 }
 
 // String execute the request and get the response body unmarshal to xml.
 func (r *Request) ToXml(v interface{}) (err error) {
-	data, err := r.Bytes()
+	resp, err := r.Response()
 	if err != nil {
-		return err
+		return
 	}
-	err = xml.Unmarshal(data, v)
+	err = resp.ToXml(v)
 	return
 }
 
@@ -245,11 +249,25 @@ func (r *Request) Format(s fmt.State, verb rune) {
 	}
 
 	fmt.Fprint(s, r.req.Method, " ", r.Url())
+
+	pretty := false
+	if (r.body != nil && bytes.IndexByte(r.body, '\n') != -1) || (r.Resp.Body != nil && bytes.IndexByte(r.Resp.Body, '\n') != -1) {
+		pretty = true
+	}
+	if pretty {
+		fmt.Fprint(s, "\n")
+		if r.body != nil {
+			fmt.Fprint(s, string(r.body))
+		}
+		if r.Resp.Body != nil {
+			fmt.Fprint(s, "\n", string(r.Resp.Body))
+		}
+		return
+	}
 	if r.body != nil {
 		fmt.Fprint(s, " ", string(r.body))
 	}
-	if r.Resp.Raw != nil { // request has been sent.
-		fmt.Fprint(s, " ")
-		r.Resp.Format(s, verb)
+	if r.Resp.Body != nil { // request has been sent.
+		fmt.Fprint(s, " ", string(r.Resp.Body))
 	}
 }

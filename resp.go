@@ -1,6 +1,10 @@
 package req
 
 import (
+	"bytes"
+	"encoding/json"
+	"encoding/xml"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -18,12 +22,36 @@ func WrapResponse(raw *http.Response) (r Response) {
 	return
 }
 
+var ErrNilResponse = errors.New("nil response")
+
 func (r *Response) Receive() (err error) {
 	if r.Body != nil {
 		return
 	}
+	if r.Raw == nil {
+		err = ErrNilResponse
+		return
+	}
 	defer r.Raw.Body.Close()
 	r.Body, err = ioutil.ReadAll(r.Raw.Body)
+	return
+}
+
+func (r *Response) ToJson(v interface{}) (err error) {
+	err = r.Receive()
+	if err != nil {
+		return
+	}
+	err = json.Unmarshal(r.Body, v)
+	return
+}
+
+func (r *Response) ToXml(v interface{}) (err error) {
+	err = r.Receive()
+	if err != nil {
+		return
+	}
+	err = xml.Unmarshal(r.Body, v)
 	return
 }
 
@@ -50,6 +78,9 @@ func (r Response) Format(s fmt.State, verb rune) {
 		}
 		fmt.Fprint(s, string(r.Body))
 		return
+	}
+	if bytes.IndexByte(r.Body, '\n') != -1 {
+		fmt.Fprint(s, "\n")
 	}
 	fmt.Fprint(s, string(r.Body))
 }
