@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,6 +22,15 @@ type Request struct {
 	Resp      Response
 	done      bool
 	body      []byte
+	Client    http.Client
+}
+
+// InsecureTLS insecure the https.
+func (r *Request) InsecureTLS() *Request {
+	r.Client.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	return r
 }
 
 // Param set single param to the request.
@@ -181,7 +191,7 @@ func (r *Request) Response() (resp Response, err error) {
 		return
 	}
 	r.req.URL = u
-	r.Resp.Raw, err = http.DefaultClient.Do(r.req)
+	r.Resp.Raw, err = r.Client.Do(r.req)
 	if err != nil {
 		return
 	}
