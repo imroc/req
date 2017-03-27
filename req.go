@@ -91,11 +91,31 @@ func (r *Request) Bytes() (data []byte, err error) {
 	return
 }
 
+// MustBytes execute the request and get the response body as []byte.panic if error happens.
+func (r *Request) MustBytes() (data []byte) {
+	resp, err := r.Response()
+	if err != nil {
+		panic(err)
+	}
+	data = resp.Body
+	return
+}
+
 // String execute the request and get the response body as string.
 func (r *Request) String() (s string, err error) {
 	resp, err := r.Response()
 	if err != nil {
 		return
+	}
+	s = string(resp.Body)
+	return
+}
+
+// MustString execute the request and get the response body as string.panic if error happens.
+func (r *Request) MustString() (s string) {
+	resp, err := r.Response()
+	if err != nil {
+		panic(err)
 	}
 	s = string(resp.Body)
 	return
@@ -201,6 +221,15 @@ func (r *Request) Response() (resp Response, err error) {
 	}
 	resp = r.Resp
 	r.done = true
+	return
+}
+
+// MustResponse execute the request and get the response.panic if error happens.
+func (r *Request) MustResponse(resp Response) {
+	resp, err := r.Response()
+	if err != nil {
+		panic(err)
+	}
 	return
 }
 
