@@ -7,8 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 )
+
+var regBlank = regexp.MustCompile(`\s+`)
 
 // M represents the request params.
 type M map[string]string
@@ -19,15 +22,19 @@ type Request struct {
 	urlEncode bool
 	params    M
 	req       *http.Request
-	Resp      Response
-	done      bool
+	resp      *Response
 	body      []byte
-	Client    http.Client
+	client    http.Client
+}
+
+// Request return the raw *http.Request.
+func (r *Request) Request() *http.Request {
+	return r.req
 }
 
 // InsecureTLS insecure the https.
 func (r *Request) InsecureTLS() *Request {
-	r.Client.Transport = &http.Transport{
+	r.client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	return r
@@ -53,6 +60,7 @@ func (r *Request) Header(k, v string) *Request {
 	return r
 }
 
+// Headers set multiple headers.
 func (r *Request) Headers(params M) *Request {
 	for k, v := range params {
 		r.req.Header.Set(k, v)
@@ -77,53 +85,46 @@ func (r *Request) Body(body interface{}) *Request {
 	return r
 }
 
+// GetBody return the request body.
 func (r *Request) GetBody() []byte {
 	return r.body
 }
 
 // Bytes execute the request and get the response body as []byte.
-func (r *Request) Bytes() (data []byte, err error) {
-	resp, err := r.Response()
+func (r *Request) ReceiveBytes() (data []byte, err error) {
+	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
 	}
-	data = resp.Body
+	data, err = resp.ReceiveBytes()
 	return
 }
 
 // MustBytes execute the request and get the response body as []byte.panic if error happens.
-func (r *Request) MustBytes() (data []byte) {
-	resp, err := r.Response()
-	if err != nil {
-		panic(err)
-	}
-	data = resp.Body
+func (r *Request) Bytes() (data []byte) {
+	data, _ = r.ReceiveBytes()
 	return
 }
 
 // String execute the request and get the response body as string.
-func (r *Request) String() (s string, err error) {
-	resp, err := r.Response()
+func (r *Request) ReceiveString() (s string, err error) {
+	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
 	}
-	s = string(resp.Body)
+	s, err = resp.ReceiveString()
 	return
 }
 
 // MustString execute the request and get the response body as string.panic if error happens.
-func (r *Request) MustString() (s string) {
-	resp, err := r.Response()
-	if err != nil {
-		panic(err)
-	}
-	s = string(resp.Body)
+func (r *Request) String() (s string) {
+	s, _ = r.ReceiveString()
 	return
 }
 
 // String execute the request and get the response body unmarshal to json.
 func (r *Request) ToJson(v interface{}) (err error) {
-	resp, err := r.Response()
+	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
 	}
@@ -133,7 +134,7 @@ func (r *Request) ToJson(v interface{}) (err error) {
 
 // String execute the request and get the response body unmarshal to xml.
 func (r *Request) ToXml(v interface{}) (err error) {
-	resp, err := r.Response()
+	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
 	}
@@ -141,12 +142,16 @@ func (r *Request) ToXml(v interface{}) (err error) {
 	return
 }
 
+// UrlEncode set weighter urlencode the params or not.default to true.
 func (r *Request) UrlEncode(urlEncode bool) *Request {
 	r.urlEncode = urlEncode
 	return r
 }
 
 func (r *Request) getParamBody() string {
+	if len(r.params) == 0 {
+		return ""
+	}
 	var buf bytes.Buffer
 	for k, v := range r.params {
 		if r.urlEncode {
@@ -165,11 +170,12 @@ func (r *Request) getParamBody() string {
 
 func (r *Request) buildGetUrl() string {
 	ret := r.url
-	p := r.getParamBody()
-	if strings.Index(r.url, "?") != -1 {
-		ret += "&" + p
-	} else {
-		ret += "?" + p
+	if p := r.getParamBody(); p != "" {
+		if strings.Index(r.url, "?") != -1 {
+			ret += "&" + p
+		} else {
+			ret += "?" + p
+		}
 	}
 	return ret
 }
@@ -181,19 +187,36 @@ func (r *Request) setParamBody() {
 	r.Body(r.getParamBody())
 }
 
-func (r *Request) Url() string {
-	if r.req.Method != "GET" || r.done {
+// GetUrl return the url of the request.
+func (r *Request) GetUrl() string {
+	if r.req.Method != "GET" || r.resp != nil {
 		return r.url
 	}
 	return r.buildGetUrl() //GET method and did not send request yet.
 }
 
-// Response execute the request and get the response.
-func (r *Request) Response() (resp Response, err error) {
-	if r.Resp.Raw != nil { // provent multiple call
-		resp = r.Resp
+// Url set the request's url.
+func (r *Request) Url(urlStr string) *Request {
+	r.url = urlStr
+	return r
+}
+
+// ReceiveResponse execute the request and get the response, return error if error happens.
+func (r *Request) ReceiveResponse() (resp *Response, err error) {
+	if r.resp != nil { // provent multiple call
+		resp = r.resp
 		return
 	}
+	err = r.Do()
+	if err != nil {
+		return
+	}
+	resp = r.resp
+	return
+}
+
+// Do just execute the request. return error if error happens.
+func (r *Request) Do() (err error) {
 	// handle request params
 	if len(r.params) > 0 {
 		switch r.req.Method {
@@ -211,25 +234,22 @@ func (r *Request) Response() (resp Response, err error) {
 		return
 	}
 	r.req.URL = u
-	r.Resp.Raw, err = r.Client.Do(r.req)
+	respRaw, err := r.client.Do(r.req)
 	if err != nil {
 		return
 	}
-	err = r.Resp.Receive()
+	resp := NewResponse(respRaw)
+	err = resp.Receive()
 	if err != nil {
 		return
 	}
-	resp = r.Resp
-	r.done = true
+	r.resp = resp
 	return
 }
 
-// MustResponse execute the request and get the response.panic if error happens.
-func (r *Request) MustResponse(resp Response) {
-	resp, err := r.Response()
-	if err != nil {
-		panic(err)
-	}
+// Response execute the request and get the response.panic if error happens.
+func (r *Request) Response() (resp *Response) {
+	resp, _ = r.ReceiveResponse()
 	return
 }
 
@@ -238,17 +258,17 @@ func Get(url string) *Request {
 	return newRequest(url, "GET")
 }
 
-// Get returns *Request with POST method.
+// Post returns *Request with POST method.
 func Post(url string) *Request {
 	return newRequest(url, "POST")
 }
-func Wrap(url string, req *http.Request) *Request {
+
+// New return a Request with the underlying *http.Request.
+func New(req *http.Request) *Request {
 	return &Request{
-		url:       url,
 		urlEncode: true,
 		params:    M{},
 		req:       req,
-		Resp:      Response{},
 	}
 }
 
@@ -264,49 +284,64 @@ func newRequest(url, method string) *Request {
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 		},
-		Resp: Response{},
 	}
 }
 
+// Format implements fmt.Formatter, format the request's infomation.
 func (r *Request) Format(s fmt.State, verb rune) {
-
 	if s.Flag('+') { // include header and format pretty.
-		fmt.Fprint(s, r.req.Method, " ", r.Url(), " ", r.req.Proto)
+		fmt.Fprint(s, r.req.Method, " ", r.GetUrl(), " ", r.req.Proto)
 		for name, values := range r.req.Header {
 			for _, value := range values {
 				fmt.Fprint(s, "\n", name, ":", value)
 			}
 		}
-		if r.body != nil {
+		if len(r.body) > 0 {
 			fmt.Fprint(s, "\n\n", string(r.body))
 		}
-		if r.Resp.Raw != nil {
-			fmt.Fprint(s, "\n\n")
-			r.Resp.Format(s, verb)
+		if verb != 'r' {
+			if resp := r.Response(); resp != nil {
+				fmt.Fprint(s, "\n\n")
+				resp.Format(s, verb)
+			}
 		}
-		return
+	} else if s.Flag('-') { // keep all infomations in one line.
+		fmt.Fprint(s, r.req.Method, " ", r.GetUrl())
+		if len(r.body) > 0 {
+			str := regBlank.ReplaceAllString(string(r.body), "")
+			fmt.Fprint(s, str)
+		}
+		if str := r.String(); str != "" {
+			str = regBlank.ReplaceAllString(str, "")
+			fmt.Fprint(s, " ", str)
+		}
+	} else { // auto
+		fmt.Fprint(s, r.req.Method, " ", r.GetUrl())
+		if verb == 'r' {
+			if len(r.body) > 0 {
+				if bytes.IndexByte(r.body, '\n') != -1 && r.body[0] != '\n' {
+					fmt.Fprint(s, "\n")
+				}
+				fmt.Fprint(s, string(r.body))
+			}
+		} else {
+			respBody := r.Bytes()
+			if (len(r.body) > 0 && bytes.IndexByte(r.body, '\n') != -1) || (len(respBody) > 0 && bytes.IndexByte(respBody, '\n') != -1) { // pretty format
+				if len(r.body) > 0 {
+					fmt.Fprint(s, "\n", string(r.body))
+				}
+				if len(respBody) > 0 {
+					fmt.Fprint(s, "\n", string(respBody))
+				}
+			} else {
+				if len(r.body) > 0 {
+					fmt.Fprint(s, " ", string(r.body))
+				}
+				if len(respBody) > 0 {
+					fmt.Fprint(s, " ", string(respBody))
+				}
+			}
+		}
 	}
 
-	fmt.Fprint(s, r.req.Method, " ", r.Url())
-
-	pretty := false
-	if (r.body != nil && bytes.IndexByte(r.body, '\n') != -1) || (r.Resp.Body != nil && bytes.IndexByte(r.Resp.Body, '\n') != -1) {
-		pretty = true
-	}
-	if pretty {
-		fmt.Fprint(s, "\n")
-		if r.body != nil {
-			fmt.Fprint(s, string(r.body))
-		}
-		if r.Resp.Body != nil {
-			fmt.Fprint(s, "\n", string(r.Resp.Body))
-		}
-		return
-	}
-	if r.body != nil {
-		fmt.Fprint(s, " ", string(r.body))
-	}
-	if r.Resp.Body != nil { // request has been sent.
-		fmt.Fprint(s, " ", string(r.Resp.Body))
-	}
 }

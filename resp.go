@@ -1,7 +1,6 @@
 package req
 
 import (
-	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -11,55 +10,117 @@ import (
 )
 
 type Response struct {
-	Raw  *http.Response
-	Body []byte
+	resp *http.Response
+	body []byte
 }
 
-func WrapResponse(raw *http.Response) (r Response) {
-	r = Response{
-		Raw: raw,
+func NewResponse(resp *http.Response) (r *Response) {
+	r = &Response{
+		resp: resp,
 	}
 	return
 }
 
 var ErrNilResponse = errors.New("nil response")
 
-func (r *Response) Receive() (err error) {
-	if r.Body != nil {
-		return
+func (r *Response) Response() *http.Response {
+	if r == nil {
+		return nil
 	}
-	if r.Raw == nil {
+	return r.resp
+}
+
+func (r *Response) Receive() (err error) {
+	if r == nil {
 		err = ErrNilResponse
 		return
 	}
-	defer r.Raw.Body.Close()
-	r.Body, err = ioutil.ReadAll(r.Raw.Body)
+	if r.body != nil {
+		return
+	}
+	defer r.resp.Body.Close()
+	r.body, err = ioutil.ReadAll(r.resp.Body)
+	return
+}
+
+func (r *Response) ReceiveBytes() (body []byte, err error) {
+	if r == nil {
+		err = ErrNilResponse
+		return
+	}
+	if r.body == nil {
+		if err = r.Receive(); err != nil {
+			return
+		}
+	}
+	body = r.body
+	return
+}
+
+func (r *Response) Bytes() (body []byte) {
+	body, _ = r.ReceiveBytes()
+	return
+}
+
+func (r *Response) ReceiveString() (s string, err error) {
+	if r == nil {
+		err = ErrNilResponse
+		return
+	}
+	if r.body == nil {
+		if err = r.Receive(); err != nil {
+			return
+		}
+	}
+	s = string(r.body)
+	return
+}
+
+func (r *Response) String() (s string) {
+	s, _ = r.ReceiveString()
 	return
 }
 
 func (r *Response) ToJson(v interface{}) (err error) {
-	err = r.Receive()
-	if err != nil {
+	if r == nil {
+		err = ErrNilResponse
 		return
 	}
-	err = json.Unmarshal(r.Body, v)
+	if r.body == nil {
+		if err = r.Receive(); err != nil {
+			return
+		}
+	}
+	err = json.Unmarshal(r.body, v)
 	return
 }
 
 func (r *Response) ToXml(v interface{}) (err error) {
-	err = r.Receive()
-	if err != nil {
+	if r == nil {
+		err = ErrNilResponse
 		return
 	}
-	err = xml.Unmarshal(r.Body, v)
+	if r.body == nil {
+		if err = r.Receive(); err != nil {
+			return
+		}
+	}
+	err = xml.Unmarshal(r.body, v)
 	return
 }
 
-func (r Response) Format(s fmt.State, verb rune) {
-	if r.Raw == nil {
+func (r *Response) Format(s fmt.State, verb rune) {
+	if r == nil {
 		return
 	}
-	resp := r.Raw
+	if r.resp == nil {
+		return
+	}
+	str := r.String()
+	if str == "" {
+		return
+	}
+	resp := r.resp
 	if s.Flag('+') {
 		fmt.Fprint(s, resp.Proto, " ", resp.Status) // e.g. HTTP/1.1 200 OK
 		//header
@@ -70,17 +131,14 @@ func (r Response) Format(s fmt.State, verb rune) {
 				}
 			}
 		}
-		fmt.Fprint(s, "\n\n")
 		//body
-		r.Receive() // ensure body has received
-		if r.Body == nil {
-			return
-		}
-		fmt.Fprint(s, string(r.Body))
+		fmt.Fprint(s, "\n\n", str)
+		return
+	} else if s.Flag('-') {
+		str = regBlank.ReplaceAllString(str, "")
+		fmt.Fprint(s, str)
 		return
 	}
-	if bytes.IndexByte(r.Body, '\n') != -1 {
-		fmt.Fprint(s, "\n")
-	}
-	fmt.Fprint(s, string(r.Body))
+	fmt.Fprint(s, str)
+	return
 }
