@@ -12,14 +12,12 @@ go get github.com/imroc/req
 ``` go
 r := req.Get("http://api.xxx.com/get")
 fmt.Printf("resp:%s\n",r.String()) // resp:{"success":true,"data":"hello roc"}
-fmt.Println(r) 
 ```
 
 ## POST
 ``` go
 r := req.Post("http://api.xxx.com/post").Body(`{"uid":"1"}`)
 fmt.Printf("resp:%s\n",r.String()) // resp:{"success":true,"data":{"name":"roc"}}
-fmt.Println(r) 
 ```
 
 ## Param
