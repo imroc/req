@@ -2,70 +2,22 @@ req
 ==============
 req is a super light weight and super easy-to-use  http request library.
 
-## Useage
+# Quick Start
+## Install
 ``` sh
 go get github.com/imroc/req
 ```
 
-##### Simple GET
+## GET
 ``` go
-import (
-	"fmt"
-	"github.com/imroc/req"
-)
-func main() {
-	s, err := req.Get("https://imroc.github.io").String()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(s)
-}
+r := req.Get("http://api.xxx.com/get")
+fmt.Printf("resp:%s\n",r.String()) // resp:{"success":true,"data":"hello roc"}
+fmt.Println(r) // GET http://api.xxx.com/get {"success":true,"data":"hello roc"}
 ```
 
-##### More Control
+## POST
 ``` go
-import (
-	"fmt"
-	"github.com/imroc/req"
-)
-func main() {
-	data, err :=
-		req.Get("https://www.baidu.com").
-			Param("ie", "UTF-8"). // single param
-			Params(req.M{         // multiple params
-				"f":      "8",
-				"rsv_bp": "1",
-				"wd":     "go",
-			}).
-			Header("Accept-Encoding", "gzip"). // set header
-			Bytes()
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Printf("%s", data)
-}
-```
-
-##### Post
-``` go
-import (
-	"fmt"
-	"github.com/imroc/req"
-)
-func main() {
-	var data Data
-	err :=
-		req.Post("http://blabla.com").
-			Body("abcdefg").
-			ToJson(&data)
-
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Printf("%+v", data)
-}
+r := req.Post("http://api.xxx.com/post").Body(`{"uid":"1"}`)
+fmt.Printf("resp:%s\n",r.String()) // resp:{"success":true,"data":{"name":"roc"}}
+fmt.Println(r) // POST http://api.xxx.com/post {"uid":"1"} {"success":true,"data":{"name":"roc"}}
 ```
