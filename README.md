@@ -2,11 +2,13 @@ req
 ==============
 req is a super light weight and super easy-to-use  http request library.
 
+
 # Quick Start
 ## Install
 ``` sh
 go get github.com/imroc/req
 ```
+
 
 ## GET
 ``` go
@@ -14,11 +16,13 @@ r := req.Get("http://api.xxx.com/get")
 fmt.Printf("resp:%s\n",r.String()) // resp:{"success":true,"data":"hello roc"}
 ```
 
+
 ## POST
 ``` go
 r := req.Post("http://api.xxx.com/post").Body(`{"uid":"1"}`)
 fmt.Printf("resp:%s\n",r.String()) // resp:{"success":true,"data":{"name":"roc"}}
 ```
+
 
 ## Param
 ``` go
@@ -37,6 +41,7 @@ r = req.Post("http://api.xxx.com").Params(req.M{
 fmt.Println(string(r.GetBody())) // p1=1&p2=2
 ```
 
+
 ## Header
 ``` go
 r := req.Get("http://api.xxx.com/something").Headers(req.M{
@@ -44,6 +49,10 @@ r := req.Get("http://api.xxx.com/something").Headers(req.M{
 	"User-Agent": "custom client",
 })
 ```
+
+## Timeout
+TODO
+
 
 ## Response
 ```go
@@ -75,19 +84,23 @@ fmt.Println("resp:", resp.String())
 ```
 
 ## Formatted Infomation
-Sometimes you may want to output the detail about the http request for debug or logging reasons. 
-There are several ways to output the detail.
-### Default Format
-By default, the output format is: Method URL \[Reqeust Body\] \[Response Body\]
+Sometimes you might want to output the detail about the http request for debug or logging reasons. 
+There are several ways to output these detail infomation.
+
+
+#### Default Format
+Use `%v` or `%s` to get the default infomation.
 ``` go
 r := req.Get("http://api.xxx.com/get")
-fmt.Println(r) // GET http://api.xxx.com/get {"success":true,"data":"hello roc"}
+fmt.Printf("%v", r) // GET http://api.xxx.com/get {"success":true,"data":"hello roc"}
 r = req.Post("http://api.xxx.com/post").Body(`{"uid":"1"}`)
-fmt.Println(r) // // POST http://api.xxx.com/post {"uid":"1"} {"success":true,"data":{"name":"roc"}}
+fmt.Println(r) // POST http://api.xxx.com/post {"uid":"1"} {"success":true,"data":{"name":"roc"}}
 ```
-NOTE: it will execute the reqeust to get response if the reqeust is not executed(disable this by use %r,%+r or %-r format, only output the request itself), and it will add newline if possible, keep the output looks pretty.
-### Maximum Infomation Format
-Use %+v or %+s to get the maximum detail infomation.
+By default, the output format is: Method URL \[Reqeust Body\] \[Response Body\] and it will add newline if possible, keep the output looks pretty. 
+
+
+#### Maximal Format
+Use `%+v` or %+s to get the maximal detail infomation.
 ``` go
 r := req.Post("http://api.xxx.com/post").Headers(req.M{
 	"Referer": "http://api.xxx.com",
@@ -104,29 +117,51 @@ r := req.Post("http://api.xxx.com/post").Headers(req.M{
 	p1=1&p2=2
 
 	HTTP/1.1 200 OK
-	Etag:"2bd1-52ce6b6c4bc00"
-	Server:bfe/1.0.8.18
-	Set-Cookie:BAIDUID=EEED32735E8B09B97A3D3871392F82C5:FG=1; expires=Thu, 29-Mar-18 09:18:13 GMT; max-age=31536000; path=/; domain=.baidu.com; version=1
-	Set-Cookie:__bsi=3154899087195606076_00_0_I_R_2_0303_C02F_N_I_I_0; expires=Wed, 29-Mar-17 09:18:18 GMT; domain=www.baidu.com; path=/
+	Server:nginx
+	Set-Cookie:bla=3154899087195606076; expires=Wed, 29-Mar-17 09:18:18 GMT; domain=api.xxx.com; path=/
 	Expires:Thu, 30 Mar 2017 09:18:13 GMT
-	Last-Modified:Mon, 29 Feb 2016 11:11:44 GMT
 	Cache-Control:max-age=86400
 	Date:Wed, 29 Mar 2017 09:18:13 GMT
 	Connection:keep-alive
-	P3p:CP=" OTI DSP COR IVA OUR IND COM "
 	Accept-Ranges:bytes
-	Vary:Accept-Encoding,User-Agent
-	Content-Type:text/html
+	Content-Type:application/json
 
 	{"success":true,"data":{"name":"roc"}}
 */
 fmt.Printf("%+v\n", r)
 ```
 As you can see, it will output the request Method,URL,Proto,[Request Header],[Request Body],[Response Header],[Response Body]
-### One Line Format
-Sometimes you want to keep all of infomation in one line(delete all blank character), it is useful when logging(you can easily find the infomation use the cammand like grep). Just use %-v or %-s.
+
+
+#### Minimal Format
+Sometimes you might want to keep all infomation in one line (delete all blank character if possible), it is useful while logging (you can easily find the infomation using the cammand like grep). Try `%-v` or `%-s`.
 ``` go
 r := req.Get("http://api.xxx.com/get")
 // it output every thing in one line, even if '\n' exsist in reqeust body or response body.
-fmt.Printf("%-v\n",r) // GET http://api.xxx.com/get {"success":true,"data":"hello roc"}
+log.Printf("%-v\n",r) // GET http://api.xxx.com/get {"success":false,"msg":"system busy"}
 ```
+now if you want to find out which ones is not success of that particular url, and because it's one line per request, so you can use cammand like `more log.log | grep "http://api.xxx.com/get" | grep "\"success\":false"` to get the answer.
+
+
+#### Request Only Format (No Response Info)
+It will execute the request to get response if the request is not executed yet by default, you can disable this by using `%r`, `%+r` or `%-r` format, only output the request itself.
+``` go
+r := req.Get("https://www.baidu.com")
+fmt.Printf("%r", r) // GET https://www.baidu.com HTTP/1.1
+```
+
+
+## Reuse Request
+By default, when calling methods like `r.String()` `r.ReceiveBytes()` to get the result, it will execute the request if it's not been executed yet, and do not execute it next time. But, sometings we need to reuse the request, maybe just retry, maybe change a param and retry.
+
+For example, some api need access token, and the token is expired, if you call that api you will got error, then you need to refresh token and try again.
+``` go
+r := req.Get("http://api.xxx.com").Param("access_token", token)
+fmt.Println(r) // GET http://api.xxx.com?access_token=HJKJ354HK67FGHJ75 {"errcode":42001,"errmsg":"access token expired"}
+token = RefreshToken()
+r.Param("access_token", token)
+fmt.Println(r) // GET http://api.xxx.com?access_token=G7GJ6DFH546H86F6G {"errcode":0,"errmsg":"OK"}
+```
+
+## Proxy
+TODO
