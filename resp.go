@@ -31,7 +31,7 @@ func (r *Response) Response() *http.Response {
 }
 
 func (r *Response) Receive() (err error) {
-	if r == nil {
+	if r == nil || r.resp == nil {
 		err = ErrNilResponse
 		return
 	}
