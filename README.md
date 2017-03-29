@@ -60,3 +60,16 @@ var result struct {
 r.ToJson(&result) // json
 //r.ToXml(&result)  // xml
 ```
+
+## Error
+This library will never panic, it returns error when you need to handle it. When you call methods like r.String() or r.Bytes(), it will ignore the error and return zero value if error happens. And when you call methods like r.ReceiveString() which start with Receive it will return error if error happens.
+
+```go
+r := req.Get("http://api.xxx.com")
+resp, err := r.ReceiveResponse()
+if err != nil {
+	fmt.Println("error:", err)
+	return
+}
+fmt.Println("resp:", resp.String())
+```
