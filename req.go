@@ -87,6 +87,9 @@ func (r *Request) Body(body interface{}) *Request {
 
 // GetBody return the request body.
 func (r *Request) GetBody() []byte {
+	if r.body == nil && r.req.Method == "POST" {
+		return []byte(r.getParamBody())
+	}
 	return r.body
 }
 
