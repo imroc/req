@@ -299,6 +299,10 @@ func newRequest(url, method string) *Request {
 func (r *Request) Format(s fmt.State, verb rune) {
 	if s.Flag('+') { // include header and format pretty.
 		fmt.Fprint(s, r.req.Method, " ", r.GetUrl(), " ", r.req.Proto)
+		var resp *Response
+		if verb != 'r' {
+			resp = r.Response()
+		}
 		for name, values := range r.req.Header {
 			for _, value := range values {
 				fmt.Fprint(s, "\n", name, ":", value)
@@ -307,11 +311,9 @@ func (r *Request) Format(s fmt.State, verb rune) {
 		if len(r.body) > 0 {
 			fmt.Fprint(s, "\n\n", string(r.body))
 		}
-		if verb != 'r' {
-			if resp := r.Response(); resp != nil {
-				fmt.Fprint(s, "\n\n")
-				resp.Format(s, verb)
-			}
+		if resp != nil {
+			fmt.Fprint(s, "\n\n")
+			resp.Format(s, verb)
 		}
 	} else if s.Flag('-') { // keep all infomations in one line.
 		fmt.Fprint(s, r.req.Method, " ", r.GetUrl())
