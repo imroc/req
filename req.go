@@ -189,10 +189,10 @@ func (r *Request) setParamBody() {
 
 // GetUrl return the url of the request.
 func (r *Request) GetUrl() string {
-	if r.req.Method != "GET" || r.resp != nil {
-		return r.url
+	if r.req.Method == "GET" {
+		return r.buildGetUrl() //GET method and did not send request yet.
 	}
-	return r.buildGetUrl() //GET method and did not send request yet.
+	return r.url
 }
 
 // Url set the request's url.
@@ -215,21 +215,26 @@ func (r *Request) ReceiveResponse() (resp *Response, err error) {
 	return
 }
 
+// Undo let the request could be executed again.
+func (r *Request) Undo() *Request {
+	r.resp = nil
+	return r
+}
+
 // Do just execute the request. return error if error happens.
 func (r *Request) Do() (err error) {
 	// handle request params
+	destUrl := r.url
 	if len(r.params) > 0 {
 		switch r.req.Method {
 		case "GET":
-			r.url = r.buildGetUrl()
+			destUrl = r.buildGetUrl()
 		case "POST":
-			if r.req.Body == nil {
-				r.setParamBody()
-			}
+			r.setParamBody()
 		}
 	}
 	// set url
-	u, err := url.Parse(r.url)
+	u, err := url.Parse(destUrl)
 	if err != nil {
 		return
 	}
