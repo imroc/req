@@ -146,7 +146,7 @@ req.Get("http://api.io").
 
 #### Set Insecure TLS (Skip Verify Certificate Chain And Host Name)
 ``` go
-req.Get("https://api.io").SetInsecureTLS().String()
+req.Get("https://api.io").SetInsecureTLS(true).String()
 ```
 
 TODO
