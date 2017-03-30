@@ -346,6 +346,21 @@ func Post(url string) *Request {
 	return newRequest(url, "POST")
 }
 
+// Put create a new  *Request with PUT method.
+func Put(url string) *Request {
+	return newRequest(url, "PUT")
+}
+
+// Delete create a new  *Request with DELETE method.
+func Delete(url string) *Request {
+	return newRequest(url, "DELETE")
+}
+
+// Head create a new  *Request with HEAD method.
+func Head(url string) *Request {
+	return newRequest(url, "HEAD")
+}
+
 // New create a new Request with the underlying *http.Request.
 func New(req *http.Request) *Request {
 	return &Request{
