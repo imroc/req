@@ -11,8 +11,8 @@ go get github.com/imroc/req
 
 ## Basic 
 ``` go
-req.Get("http://api.xxx.com/get").String() // {"success":true,"data":"hello roc"}
-req.Post("http://api.xxx.com/post").Body(`{"uid":"1"}`).String() // {"success":true,"data":{"name":"roc"}}
+req.Get("http://api.io/get").String() // {"success":true,"data":"hello roc"}
+req.Post("http://api.io/post").Body(`{"uid":"1"}`).String() // {"success":true,"data":{"name":"roc"}}
 ```
 
 ## Set Params And Headers
@@ -82,7 +82,7 @@ r := req.Post("http://api.io/post").Header("Referer": "http://api.io").Params(re
 
 	HTTP/1.1 200 OK
 	Server:nginx
-	Set-Cookie:bla=3154899087195606076; expires=Wed, 29-Mar-17 09:18:18 GMT; domain=api.xxx.com; path=/
+	Set-Cookie:bla=3154899087195606076; expires=Wed, 29-Mar-17 09:18:18 GMT; domain=api.io; path=/
 	Expires:Thu, 30 Mar 2017 09:18:13 GMT
 	Cache-Control:max-age=86400
 	Date:Wed, 29 Mar 2017 09:18:13 GMT
