@@ -9,11 +9,13 @@ import (
 	"net/http"
 )
 
+// Response wraps *http.Response, makes it much easier to handle reponse.
 type Response struct {
 	resp *http.Response
 	body []byte
 }
 
+// NewResponse create a Response which wraps *http.Response
 func NewResponse(resp *http.Response) (r *Response) {
 	r = &Response{
 		resp: resp,
@@ -23,6 +25,7 @@ func NewResponse(resp *http.Response) (r *Response) {
 
 var ErrNilResponse = errors.New("nil response")
 
+// Reponse return the raw *http.Response inside the Response.
 func (r *Response) Response() *http.Response {
 	if r == nil {
 		return nil
@@ -30,6 +33,8 @@ func (r *Response) Response() *http.Response {
 	return r.resp
 }
 
+// Receive accept the body of http response if haven't been accepted yet,
+// err is not nil if error happens during read the response body.
 func (r *Response) Receive() (err error) {
 	if r == nil || r.resp == nil {
 		err = ErrNilResponse
@@ -43,6 +48,8 @@ func (r *Response) Receive() (err error) {
 	return
 }
 
+// ReceiveBytes accept the body of http response if haven't been accepted yet,
+// return the response body as []byte, err is not nil if error happens during read the response body.
 func (r *Response) ReceiveBytes() (body []byte, err error) {
 	if r == nil {
 		err = ErrNilResponse
@@ -57,11 +64,15 @@ func (r *Response) ReceiveBytes() (body []byte, err error) {
 	return
 }
 
+// Bytes accept the body of http response if haven't been accepted yet,
+// return the response body as []byte, body is nil if error happens.
 func (r *Response) Bytes() (body []byte) {
 	body, _ = r.ReceiveBytes()
 	return
 }
 
+// ReceiveString accept the body of http response if haven't been accepted yet,
+// return the response body as string, err is not nil if error happens during read the response body.
 func (r *Response) ReceiveString() (s string, err error) {
 	if r == nil {
 		err = ErrNilResponse
@@ -76,11 +87,15 @@ func (r *Response) ReceiveString() (s string, err error) {
 	return
 }
 
+// String accept the body of http response if haven't been accepted yet,
+// return the response body as string, if error happens, s is "".
 func (r *Response) String() (s string) {
 	s, _ = r.ReceiveString()
 	return
 }
 
+// ToJson accept the body of http response if haven't been acceptted yet, v is the address
+// of the struct you want to unmarshal, err is not nil when error happens.
 func (r *Response) ToJson(v interface{}) (err error) {
 	if r == nil {
 		err = ErrNilResponse
@@ -95,6 +110,8 @@ func (r *Response) ToJson(v interface{}) (err error) {
 	return
 }
 
+// ToXml accept the body of http response if haven't been acceptted yet, v is the address
+// of the struct you want to unmarshal, err is not nil when error happens.
 func (r *Response) ToXml(v interface{}) (err error) {
 	if r == nil {
 		err = ErrNilResponse

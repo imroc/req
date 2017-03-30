@@ -3,6 +3,7 @@ package req
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -27,41 +28,61 @@ type Request struct {
 	client    http.Client
 }
 
-// Request return the raw *http.Request.
+var ErrNilReqeust = errors.New("nil request")
+
+// Request return the raw *http.Request inside the Request.
 func (r *Request) Request() *http.Request {
+	if r == nil {
+		return nil
+	}
 	return r.req
 }
 
 // InsecureTLS insecure the https.
 func (r *Request) InsecureTLS() *Request {
+	if r == nil {
+		return nil
+	}
 	r.client.Transport = &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	return r
 }
 
-// Param set single param to the request.
+// Param set one single param to the request.
 func (r *Request) Param(k, v string) *Request {
+	if r == nil {
+		return nil
+	}
 	r.params[k] = v
 	return r
 }
 
 // Params set multiple params to the request.
 func (r *Request) Params(params M) *Request {
+	if r == nil {
+		return nil
+	}
 	for k, v := range params {
 		r.params[k] = v
 	}
 	return r
 }
 
-// Header set the request header.
+// Header set one single header to the  request.
 func (r *Request) Header(k, v string) *Request {
+	if r == nil || r.req == nil {
+		return nil
+	}
 	r.req.Header.Set(k, v)
 	return r
 }
 
-// Headers set multiple headers.
+// Headers set multiple headers to the request.
 func (r *Request) Headers(params M) *Request {
+	if r == nil || r.req == nil {
+		return nil
+	}
 	for k, v := range params {
 		r.req.Header.Set(k, v)
 	}
@@ -70,6 +91,9 @@ func (r *Request) Headers(params M) *Request {
 
 // Body set the request body,support string and []byte.
 func (r *Request) Body(body interface{}) *Request {
+	if r == nil || r.req == nil {
+		return nil
+	}
 	switch v := body.(type) {
 	case string:
 		bf := bytes.NewBufferString(v)
@@ -87,14 +111,22 @@ func (r *Request) Body(body interface{}) *Request {
 
 // GetBody return the request body.
 func (r *Request) GetBody() []byte {
-	if r.body == nil && r.req.Method == "POST" {
+	if r == nil {
+		return nil
+	}
+	if r.body == nil && r.req != nil && r.req.Method == "POST" {
 		return []byte(r.getParamBody())
 	}
 	return r.body
 }
 
-// Bytes execute the request and get the response body as []byte.
+// ReceiveBytes execute the request and get the response body as []byte.
+// err is not nil if error happens during the reqeust been executed.
 func (r *Request) ReceiveBytes() (data []byte, err error) {
+	if r == nil {
+		err = ErrNilReqeust
+		return
+	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -103,14 +135,20 @@ func (r *Request) ReceiveBytes() (data []byte, err error) {
 	return
 }
 
-// MustBytes execute the request and get the response body as []byte.panic if error happens.
+// Bytes execute the request and get the response body as []byte.
+// data is nil if error happens if error happens during the reqeust been executed.
 func (r *Request) Bytes() (data []byte) {
 	data, _ = r.ReceiveBytes()
 	return
 }
 
-// String execute the request and get the response body as string.
+// ReceiveString execute the request and get the response body as string.
+// err is not nil if error happens during the reqeust been executed.
 func (r *Request) ReceiveString() (s string, err error) {
+	if r == nil {
+		err = ErrNilReqeust
+		return
+	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -119,14 +157,19 @@ func (r *Request) ReceiveString() (s string, err error) {
 	return
 }
 
-// MustString execute the request and get the response body as string.panic if error happens.
+// String execute the request and get the response body as string,
+// s equals "" if error happens.
 func (r *Request) String() (s string) {
 	s, _ = r.ReceiveString()
 	return
 }
 
-// String execute the request and get the response body unmarshal to json.
+// ToJson execute the request and get the response body unmarshal to json.
 func (r *Request) ToJson(v interface{}) (err error) {
+	if r == nil {
+		err = ErrNilReqeust
+		return
+	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -135,8 +178,12 @@ func (r *Request) ToJson(v interface{}) (err error) {
 	return
 }
 
-// String execute the request and get the response body unmarshal to xml.
+// ToXml execute the request and get the response body unmarshal to xml.
 func (r *Request) ToXml(v interface{}) (err error) {
+	if r == nil {
+		err = ErrNilReqeust
+		return
+	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -145,8 +192,11 @@ func (r *Request) ToXml(v interface{}) (err error) {
 	return
 }
 
-// UrlEncode set weighter urlencode the params or not.default to true.
+// UrlEncode set weighter the params should be url encoded or not, default to true.
 func (r *Request) UrlEncode(urlEncode bool) *Request {
+	if r == nil {
+		return nil
+	}
 	r.urlEncode = urlEncode
 	return r
 }
@@ -192,7 +242,10 @@ func (r *Request) setParamBody() {
 
 // GetUrl return the url of the request.
 func (r *Request) GetUrl() string {
-	if r.req.Method == "GET" {
+	if r == nil {
+		return ""
+	}
+	if r.req != nil && r.req.Method == "GET" {
 		return r.buildGetUrl() //GET method and did not send request yet.
 	}
 	return r.url
@@ -200,12 +253,20 @@ func (r *Request) GetUrl() string {
 
 // Url set the request's url.
 func (r *Request) Url(urlStr string) *Request {
+	if r == nil {
+		return nil
+	}
 	r.url = urlStr
 	return r
 }
 
-// ReceiveResponse execute the request and get the response, return error if error happens.
+// ReceiveResponse execute the request and get the response body as *Response,
+// err is not nil if error happens during the reqeust been executed.
 func (r *Request) ReceiveResponse() (resp *Response, err error) {
+	if r == nil {
+		err = ErrNilReqeust
+		return
+	}
 	if r.resp != nil { // provent multiple call
 		resp = r.resp
 		return
@@ -218,14 +279,24 @@ func (r *Request) ReceiveResponse() (resp *Response, err error) {
 	return
 }
 
-// Undo let the request could be executed again.
+// Undo let the request could be executed again. The request will only been
+// executed only once by default, if you want to reuse the request, making it
+// could be executed again, even change some params or headers, you can Undo
+// the request and try again..
 func (r *Request) Undo() *Request {
+	if r == nil {
+		return nil
+	}
 	r.resp = nil
 	return r
 }
 
-// Do just execute the request. return error if error happens.
+// Do execute the request. return error if error happens. note, it will always
+// execute the request. even it has been executed before.
 func (r *Request) Do() (err error) {
+	if r == nil {
+		err = ErrNilReqeust
+	}
 	// handle request params
 	destUrl := r.url
 	if len(r.params) > 0 {
@@ -255,23 +326,27 @@ func (r *Request) Do() (err error) {
 	return
 }
 
-// Response execute the request and get the response.panic if error happens.
+// Response execute the request and get the response body as *Response,
+// resp equals nil if error happens.
 func (r *Request) Response() (resp *Response) {
+	if r == nil {
+		return nil
+	}
 	resp, _ = r.ReceiveResponse()
 	return
 }
 
-// Get returns *Request with GET method.
+// Get create a new  *Request with GET method.
 func Get(url string) *Request {
 	return newRequest(url, "GET")
 }
 
-// Post returns *Request with POST method.
+// Post create a new  *Request with POST method.
 func Post(url string) *Request {
 	return newRequest(url, "POST")
 }
 
-// New return a Request with the underlying *http.Request.
+// New create a new Request with the underlying *http.Request.
 func New(req *http.Request) *Request {
 	return &Request{
 		urlEncode: true,
