@@ -15,8 +15,8 @@ type Response struct {
 	body []byte
 }
 
-// NewResponse create a Response which wraps *http.Response
-func NewResponse(resp *http.Response) (r *Response) {
+// WrapResponse create a Response which wraps *http.Response
+func WrapResponse(resp *http.Response) (r *Response) {
 	r = &Response{
 		resp: resp,
 	}
@@ -25,8 +25,8 @@ func NewResponse(resp *http.Response) (r *Response) {
 
 var ErrNilResponse = errors.New("nil response")
 
-// Reponse return the raw *http.Response inside the Response.
-func (r *Response) Response() *http.Response {
+// GetReponse return the raw *http.Response inside the Response.
+func (r *Response) GetResponse() *http.Response {
 	if r == nil {
 		return nil
 	}

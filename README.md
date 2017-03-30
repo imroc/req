@@ -100,7 +100,7 @@ By default, the output format is: Method URL \[Reqeust Body\] \[Response Body\] 
 
 
 #### Maximal Format
-Use `%+v` or %+s to get the maximal detail infomation.
+Use `%+v` or `%+s` to get the maximal detail infomation.
 ``` go
 r := req.Post("http://api.xxx.com/post").Headers(req.M{
 	"Referer": "http://api.xxx.com",

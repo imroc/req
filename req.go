@@ -6,10 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var regBlank = regexp.MustCompile(`\s+`)
@@ -19,34 +21,41 @@ type M map[string]string
 
 // Request provides much easier useage than http.Request
 type Request struct {
-	url       string
-	urlEncode bool
-	params    M
-	req       *http.Request
-	resp      *Response
-	body      []byte
-	client    http.Client
+	url     string
+	params  M
+	req     *http.Request
+	resp    *Response
+	body    []byte
+	setting *Setting
 }
 
 var ErrNilReqeust = errors.New("nil request")
 
-// Request return the raw *http.Request inside the Request.
-func (r *Request) Request() *http.Request {
+// GetRequest return the raw *http.Request inside the Request.
+func (r *Request) GetRequest() *http.Request {
 	if r == nil {
 		return nil
 	}
 	return r.req
 }
 
-// InsecureTLS insecure the https.
-func (r *Request) InsecureTLS() *Request {
+// Setting sets the Request's settings.
+func (r *Request) Setting(setting *Setting) *Request {
 	if r == nil {
 		return nil
 	}
-	r.client.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	if setting != nil {
+		r.setting = setting
 	}
 	return r
+}
+
+// GetSetting gets the Request's settings.
+func (r *Request) GetSetting() *Setting {
+	if r == nil {
+		return nil
+	}
+	return r.setting
 }
 
 // Param set one single param to the request.
@@ -192,25 +201,14 @@ func (r *Request) ToXml(v interface{}) (err error) {
 	return
 }
 
-// UrlEncode set weighter the params should be url encoded or not, default to true.
-func (r *Request) UrlEncode(urlEncode bool) *Request {
-	if r == nil {
-		return nil
-	}
-	r.urlEncode = urlEncode
-	return r
-}
-
 func (r *Request) getParamBody() string {
 	if len(r.params) == 0 {
 		return ""
 	}
 	var buf bytes.Buffer
 	for k, v := range r.params {
-		if r.urlEncode {
-			k = url.QueryEscape(k)
-			v = url.QueryEscape(v)
-		}
+		k = url.QueryEscape(k)
+		v = url.QueryEscape(v)
 		buf.WriteString(k)
 		buf.WriteByte('=')
 		buf.WriteString(v)
@@ -234,9 +232,7 @@ func (r *Request) buildGetUrl() string {
 }
 
 func (r *Request) setParamBody() {
-	if r.urlEncode {
-		r.Header("Content-Type", "application/x-www-form-urlencoded")
-	}
+	r.Header("Content-Type", "application/x-www-form-urlencoded")
 	r.Body(r.getParamBody())
 }
 
@@ -252,11 +248,11 @@ func (r *Request) GetUrl() string {
 }
 
 // Url set the request's url.
-func (r *Request) Url(urlStr string) *Request {
+func (r *Request) Url(url string) *Request {
 	if r == nil {
 		return nil
 	}
-	r.url = urlStr
+	r.url = url
 	return r
 }
 
@@ -303,7 +299,7 @@ func (r *Request) Do() (err error) {
 		switch r.req.Method {
 		case "GET":
 			destUrl = r.buildGetUrl()
-		case "POST":
+		case "POST", "PUT":
 			r.setParamBody()
 		}
 	}
@@ -313,11 +309,11 @@ func (r *Request) Do() (err error) {
 		return
 	}
 	r.req.URL = u
-	respRaw, err := r.client.Do(r.req)
+	respRaw, err := r.GetClient().Do(r.req)
 	if err != nil {
 		return
 	}
-	resp := NewResponse(respRaw)
+	resp := WrapResponse(respRaw)
 	err = resp.Receive()
 	if err != nil {
 		return
@@ -336,53 +332,23 @@ func (r *Request) Response() (resp *Response) {
 	return
 }
 
-// Get create a new  *Request with GET method.
-func Get(url string) *Request {
-	return newRequest(url, "GET")
-}
-
-// Post create a new  *Request with POST method.
-func Post(url string) *Request {
-	return newRequest(url, "POST")
-}
-
-// Put create a new  *Request with PUT method.
-func Put(url string) *Request {
-	return newRequest(url, "PUT")
-}
-
-// Delete create a new  *Request with DELETE method.
-func Delete(url string) *Request {
-	return newRequest(url, "DELETE")
-}
-
-// Head create a new  *Request with HEAD method.
-func Head(url string) *Request {
-	return newRequest(url, "HEAD")
-}
-
-// New create a new Request with the underlying *http.Request.
-func New(req *http.Request) *Request {
-	return &Request{
-		urlEncode: true,
-		params:    M{},
-		req:       req,
+// Method set the method for the request.
+func (r *Request) Method(method string) *Request {
+	if r == nil {
+		return nil
 	}
-}
-
-func newRequest(url, method string) *Request {
-	return &Request{
-		url:       url,
-		urlEncode: true,
-		params:    M{},
-		req: &http.Request{
+	if r.req == nil {
+		r.req = &http.Request{
 			Method:     method,
 			Header:     make(http.Header),
 			Proto:      "HTTP/1.1",
 			ProtoMajor: 1,
 			ProtoMinor: 1,
-		},
+		}
+	} else {
+		r.req.Method = method
 	}
+	return r
 }
 
 // Format implements fmt.Formatter, format the request's infomation.
@@ -444,4 +410,128 @@ func (r *Request) Format(s fmt.State, verb rune) {
 		}
 	}
 
+}
+
+// Get create a new  *Request with GET method.
+func Get(url string) *Request {
+	return newRequest(url, "GET")
+}
+
+// Post create a new  *Request with POST method.
+func Post(url string) *Request {
+	return newRequest(url, "POST")
+}
+
+// Put create a new  *Request with PUT method.
+func Put(url string) *Request {
+	return newRequest(url, "PUT")
+}
+
+// Delete create a new  *Request with DELETE method.
+func Delete(url string) *Request {
+	return newRequest(url, "DELETE")
+}
+
+// Head create a new  *Request with HEAD method.
+func Head(url string) *Request {
+	return newRequest(url, "HEAD")
+}
+
+// New create a new Request with the underlying *http.Request.
+func New() *Request {
+	return &Request{
+		params:  M{},
+		setting: &Setting{},
+		req: &http.Request{
+			Header:     make(http.Header),
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+		},
+	}
+}
+
+// WrapRequest wraps the *http.Request to the *req.Request.
+func WrapRequest(req *http.Request) *Request {
+	return &Request{
+		params:  M{},
+		req:     req,
+		setting: &Setting{},
+	}
+}
+
+func newRequest(url, method string) *Request {
+	return &Request{
+		url:     url,
+		params:  M{},
+		setting: &Setting{},
+		req: &http.Request{
+			Method:     method,
+			Header:     make(http.Header),
+			Proto:      "HTTP/1.1",
+			ProtoMajor: 1,
+			ProtoMinor: 1,
+		},
+	}
+}
+
+// getClient returns the http.Client according to the setting.
+func (r *Request) GetClient() *http.Client {
+	if r == nil {
+		return http.DefaultClient
+	}
+	c := &http.Client{
+		Transport: r.GetTransport(),
+	}
+	if r.setting != nil && r.setting.Timeout > 0 {
+		c.Timeout = r.setting.Timeout
+	}
+	return c
+}
+
+// getRoundTripper returns http.RoundTripper according to the request setting.
+func (r *Request) GetTransport() http.RoundTripper {
+	if r == nil || r.setting == nil {
+		return nil
+	}
+	setting := r.setting
+	if setting.Transport != nil {
+		return setting.Transport
+	}
+	trans := &http.Transport{}
+	dial := func(network, address string) (conn net.Conn, err error) {
+		if setting.DialTimeout > 0 {
+			conn, err = net.DialTimeout(network, address, setting.DialTimeout)
+			if err != nil {
+				return
+			}
+		} else {
+			conn, err = net.Dial(network, address)
+			if err != nil {
+				return
+			}
+		}
+		if setting.ReadTimeout > 0 {
+			conn.SetReadDeadline(time.Now().Add(setting.ReadTimeout))
+		}
+		if setting.WriteTimeout > 0 {
+			conn.SetWriteDeadline(time.Now().Add(setting.WriteTimeout))
+		}
+		return
+	}
+	trans.Dial = dial
+	if setting.TlsClientConfig != nil {
+		trans.TLSClientConfig = setting.TlsClientConfig
+	}
+	if setting.InsecureTLS {
+		if trans.TLSClientConfig != nil {
+			trans.TLSClientConfig.InsecureSkipVerify = true
+		} else {
+			trans.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		}
+	}
+	if setting.Proxy != nil {
+		trans.Proxy = setting.Proxy
+	}
+	return trans
 }
