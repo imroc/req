@@ -192,13 +192,13 @@ req.Get(url).
 	}).String()
 ```
 
-#### Enable Insecure TLS (Skip Verify Certificate Chain And Host Name)
+#### Allow Insecure Https (Skip Verify Certificate Chain And Host Name)
 ``` go
 req.Get(url).EnableInsecureTLS(true).String()
 ```
 
 #### Reuse Setting
-if you care about performance very much, you can reuse the setting. (the internal http.Client will be created only once)
+if you care about performance very much, you can reuse the setting. (the internal `http.Client` will be created only once)
 
 create a Setting:
 ``` go
@@ -216,4 +216,14 @@ then call Setting method to set the settings:
 req.Get(url).Setting(setting).Bytes()
 ```
 
-TODO
+#### More Setting
+req uses `http.Client` and `http.Transport` internally, and you can easily modify it, making it has much more potential. You can call `GetClient` or `GetTransport` to get the generated `*http.Client` and `*http.Transport`
+``` go
+setting := &req.Setting{
+	InsecureTLS: true,
+	Timeout:     20 * time.Second,
+}
+setting.GetTransport().MaxIdleConns = 100
+setting.GetClient().Jar = cookiejar.New(nil) // manage cookie
+req.Get(url).Setting(setting).Bytes()
+```
