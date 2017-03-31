@@ -194,7 +194,7 @@ req.Get(url).
 
 #### Set Insecure TLS (Skip Verify Certificate Chain And Host Name)
 ``` go
-req.Get(url).SetInsecureTLS(true).String()
+req.Get(url).EnableInsecureTLS(true).String()
 ```
 
 TODO
