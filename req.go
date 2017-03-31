@@ -241,6 +241,15 @@ func (r *Request) Url(url string) *Request {
 	return r
 }
 
+// Host set the request's Host.
+func (r *Request) Host(host string) *Request {
+	if r == nil || r.req == nil {
+		return nil
+	}
+	r.req.Host = host
+	return r
+}
+
 // ReceiveResponse execute the request and get the response body as *Response,
 // err is not nil if error happens during the reqeust been executed.
 func (r *Request) ReceiveResponse() (resp *Response, err error) {
