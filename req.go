@@ -21,6 +21,7 @@ type M map[string]string
 
 // Request provides much easier useage than http.Request
 type Request struct {
+	err     error
 	url     string
 	params  M
 	req     *http.Request
@@ -123,7 +124,7 @@ func (r *Request) GetBody() []byte {
 	if r == nil {
 		return nil
 	}
-	if r.body == nil && r.req != nil && r.req.Method == "POST" {
+	if r.body == nil && r.req != nil && (r.req.Method == "POST" || r.req.Method == "PUT") {
 		return []byte(r.getParamBody())
 	}
 	return r.body
@@ -132,10 +133,6 @@ func (r *Request) GetBody() []byte {
 // ReceiveBytes execute the request and get the response body as []byte.
 // err is not nil if error happens during the reqeust been executed.
 func (r *Request) ReceiveBytes() (data []byte, err error) {
-	if r == nil {
-		err = ErrNilReqeust
-		return
-	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -154,10 +151,6 @@ func (r *Request) Bytes() (data []byte) {
 // ReceiveString execute the request and get the response body as string.
 // err is not nil if error happens during the reqeust been executed.
 func (r *Request) ReceiveString() (s string, err error) {
-	if r == nil {
-		err = ErrNilReqeust
-		return
-	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -175,10 +168,6 @@ func (r *Request) String() (s string) {
 
 // ToJson execute the request and get the response body unmarshal to json.
 func (r *Request) ToJson(v interface{}) (err error) {
-	if r == nil {
-		err = ErrNilReqeust
-		return
-	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -189,10 +178,6 @@ func (r *Request) ToJson(v interface{}) (err error) {
 
 // ToXml execute the request and get the response body unmarshal to xml.
 func (r *Request) ToXml(v interface{}) (err error) {
-	if r == nil {
-		err = ErrNilReqeust
-		return
-	}
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
@@ -263,12 +248,16 @@ func (r *Request) ReceiveResponse() (resp *Response, err error) {
 		err = ErrNilReqeust
 		return
 	}
+	if r.err != nil {
+		err = r.err
+	}
 	if r.resp != nil { // provent multiple call
 		resp = r.resp
 		return
 	}
 	err = r.Do()
 	if err != nil {
+		r.err = err
 		return
 	}
 	resp = r.resp
@@ -284,6 +273,7 @@ func (r *Request) Undo() *Request {
 		return nil
 	}
 	r.resp = nil
+	r.err = nil
 	return r
 }
 
@@ -325,9 +315,6 @@ func (r *Request) Do() (err error) {
 // Response execute the request and get the response body as *Response,
 // resp equals nil if error happens.
 func (r *Request) Response() (resp *Response) {
-	if r == nil {
-		return nil
-	}
 	resp, _ = r.ReceiveResponse()
 	return
 }
@@ -353,6 +340,9 @@ func (r *Request) Method(method string) *Request {
 
 // Format implements fmt.Formatter, format the request's infomation.
 func (r *Request) Format(s fmt.State, verb rune) {
+	if r == nil || r.req == nil {
+		return
+	}
 	if s.Flag('+') { // include header and format pretty.
 		fmt.Fprint(s, r.req.Method, " ", r.GetUrl(), " ", r.req.Proto)
 		var resp *Response
