@@ -36,7 +36,10 @@ fmt.Printf("%+v",req.Post("http://api.foo").Param("id","1").Header("User-Agent",
 ## Set Body, Params, Headers
 #### Body
 ``` go
-r := req.Post(url).BodyJson(&struct { // it could also could be string or []byte
+r := req.Post(url).Body(`hello req`)
+r.GetBody() // hello req
+
+r.BodyJson(&struct { // it could also could be string or []byte
 	Usename  string `json:"usename"`
 	Password string `json:"password"`
 }{
@@ -46,7 +49,6 @@ r := req.Post(url).BodyJson(&struct { // it could also could be string or []byte
 r.GetBody() // {"username":"req","password","req"}
 
 r.BodyXml(&foo)
-r.Body(`hello req`)
 ```
 
 #### Params
