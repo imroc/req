@@ -173,7 +173,7 @@ log.Printf("%+s", resp)
 ```
 
 ## Setting
-**NOTE** All settings methods is prefixed with Set
+**NOTE** All settings methods is prefixed with Set or Enable
 #### Set Timeout
 ``` go
 req.Get(url).
