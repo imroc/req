@@ -3,6 +3,8 @@ package req
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -115,6 +117,70 @@ func (r *Request) Body(body interface{}) *Request {
 		r.req.Body = ioutil.NopCloser(bf)
 		r.req.ContentLength = int64(len(v))
 		r.body = v
+	}
+	return r
+}
+
+// BodyJson set the request body as json, support string, []byte or pointer of struct which has json tag.
+// it set the Content-Type header to application/json.
+func (r *Request) BodyJson(body interface{}) *Request {
+	if r == nil || r.req == nil {
+		return nil
+	}
+	switch v := body.(type) {
+	case string:
+		bf := bytes.NewBufferString(v)
+		r.req.Body = ioutil.NopCloser(bf)
+		r.req.ContentLength = int64(len(v))
+		r.req.Header.Set("Content-Type", "application/json")
+		r.body = []byte(v)
+	case []byte:
+		bf := bytes.NewBuffer(v)
+		r.req.Body = ioutil.NopCloser(bf)
+		r.req.ContentLength = int64(len(v))
+		r.req.Header.Set("Content-Type", "application/json")
+		r.body = v
+	default:
+		bs, err := json.Marshal(body)
+		if err == nil {
+			bf := bytes.NewBuffer(bs)
+			r.req.Body = ioutil.NopCloser(bf)
+			r.req.ContentLength = int64(len(bs))
+			r.req.Header.Set("Content-Type", "application/json")
+			r.body = bs
+		}
+	}
+	return r
+}
+
+// BodyXml set the request body as xml, support string, []byte or pointer of struct which has xml tag.
+// it set the Content-Type header to text/xml
+func (r *Request) BodyXml(body interface{}) *Request {
+	if r == nil || r.req == nil {
+		return nil
+	}
+	switch v := body.(type) {
+	case string:
+		bf := bytes.NewBufferString(v)
+		r.req.Body = ioutil.NopCloser(bf)
+		r.req.ContentLength = int64(len(v))
+		r.req.Header.Set("Content-Type", "text/xml")
+		r.body = []byte(v)
+	case []byte:
+		bf := bytes.NewBuffer(v)
+		r.req.Body = ioutil.NopCloser(bf)
+		r.req.ContentLength = int64(len(v))
+		r.req.Header.Set("Content-Type", "text/xml")
+		r.body = v
+	default:
+		bs, err := xml.Marshal(body)
+		if err == nil {
+			bf := bytes.NewBuffer(bs)
+			r.req.Body = ioutil.NopCloser(bf)
+			r.req.ContentLength = int64(len(bs))
+			r.req.Header.Set("Content-Type", "text/xml")
+			r.body = bs
+		}
 	}
 	return r
 }
