@@ -130,8 +130,8 @@ log.Printf("%+s", resp)
 ``` go
 req.Get("http://api.io").
 	SetReadTimeout(40 * time.Second). // read timeout
-	SetWriteTimeot(30 * time.Second). // write timeout
-	SetDialTimeot(20 * time.Second).  // dial timeout
+	SetWriteTimeout(30 * time.Second). // write timeout
+	SetDialTimeout(20 * time.Second).  // dial timeout
 	SetTimeout(60 * time.Second).     // total timeout
 	String()
 ```
