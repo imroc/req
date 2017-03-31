@@ -2,18 +2,15 @@ package req
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
-	"time"
 )
 
 var regBlank = regexp.MustCompile(`\s+`)
@@ -545,58 +542,14 @@ func (r *Request) GetClient() *http.Client {
 	if r == nil {
 		return http.DefaultClient
 	}
-	c := &http.Client{
-		Transport: r.GetTransport(),
-	}
-	if r.setting != nil && r.setting.Timeout > 0 {
-		c.Timeout = r.setting.Timeout
-	}
-	return c
+	return r.setting.GetClient()
 }
 
 // getRoundTripper returns http.RoundTripper according to the request setting.
-func (r *Request) GetTransport() http.RoundTripper {
-	if r == nil || r.setting == nil {
-		return nil
+func (r *Request) GetTransport() *http.Transport {
+	if r == nil {
+		trans, _ := http.DefaultTransport.(*http.Transport)
+		return trans
 	}
-	setting := r.setting
-	if setting.Transport != nil {
-		return setting.Transport
-	}
-	trans := &http.Transport{}
-	dial := func(network, address string) (conn net.Conn, err error) {
-		if setting.DialTimeout > 0 {
-			conn, err = net.DialTimeout(network, address, setting.DialTimeout)
-			if err != nil {
-				return
-			}
-		} else {
-			conn, err = net.Dial(network, address)
-			if err != nil {
-				return
-			}
-		}
-		if setting.ReadTimeout > 0 {
-			conn.SetReadDeadline(time.Now().Add(setting.ReadTimeout))
-		}
-		if setting.WriteTimeout > 0 {
-			conn.SetWriteDeadline(time.Now().Add(setting.WriteTimeout))
-		}
-		return
-	}
-	trans.Dial = dial
-	if setting.TlsClientConfig != nil {
-		trans.TLSClientConfig = setting.TlsClientConfig
-	}
-	if setting.InsecureTLS {
-		if trans.TLSClientConfig != nil {
-			trans.TLSClientConfig.InsecureSkipVerify = true
-		} else {
-			trans.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		}
-	}
-	if setting.Proxy != nil {
-		trans.Proxy = setting.Proxy
-	}
-	return trans
+	return r.setting.GetTransport()
 }
