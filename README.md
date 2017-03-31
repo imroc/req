@@ -192,9 +192,28 @@ req.Get(url).
 	}).String()
 ```
 
-#### Set Insecure TLS (Skip Verify Certificate Chain And Host Name)
+#### Enable Insecure TLS (Skip Verify Certificate Chain And Host Name)
 ``` go
 req.Get(url).EnableInsecureTLS(true).String()
+```
+
+#### Reuse Setting
+if you care about performance very much, you can reuse the setting. (the internal http.Client will be created only once)
+
+create a Setting:
+``` go
+setting := &req.Setting{
+	InsecureTLS: true,
+	Timeout:     20 * time.Second,
+}
+```
+this is same as:
+``` go
+setting := req.New().SetTimeout(20 * time.Second).EnableInsecureTLS(true).GetSetting()
+```
+then call Setting method to set the settings:
+``` go
+req.Get(url).Setting(setting).Bytes()
 ```
 
 TODO
