@@ -33,21 +33,48 @@ fmt.Println(req.Get("http://api.foo")) // GET http://api.foo {"code":0,"msg":"su
 fmt.Printf("%+v",req.Post("http://api.foo").Param("id","1").Header("User-Agent","Chrome/57.0.2987.110"))
 ```
 
-## Set Params And Headers
+## Set Body, Params, Headers
+#### Body
 ``` go
-r := req.Get("http://api.foo/get")
-r.Params(req.M{
-	"p1": "1",
-	"p2": "2",
+r := req.Post(url).BodyJson(&struct { // it could also could be string or []byte
+	Usename  string `json:"usename"`
+	Password string `json:"password"`
+}{
+	Username: "req",
+	Password: "req",
 })
+r.GetBody() // {"username":"req","password","req"}
+
+r.BodyXml(&foo)
+r.Body(`hello req`)
+```
+
+#### Params
+**note** it will url encode your params automatically.
+``` go
+r := req.Get("http://api.foo").Params(req.M{
+	"username": "req",
+	"password": "req",
+})
+r.GetUrl() // http://api.foo?username=req&password=req
+
+r = req.Post(url).Param("username", "req")
+r.GetBody() // username=req
+```
+
+#### Headers
+``` go
+r := req.Get("https://api.foo/get")
 r.Headers(req.M{
 	"Referer":    "http://api.foo",
 	"User-Agent": "Chrome/57.0.2987.110",
 })
-r.GetUrl() // http://api.foo/get?p1=1&p2=2
-
-r = req.Post("http://api.foo/post").Param("p3", "3").Header("Referer", "http://api.foo")
-r.GetBody() // p3=3
+/*
+	GET https://api.foo/get HTTP/1.1
+	Referer:http://api.foo
+	User-Agent:Chrome/57.0.2987.110
+*/
+fmt.Printf("%+r", r)
 ```
 
 ## Get Response
@@ -139,7 +166,7 @@ fmt.Printf("%r", r) // POST https://api.foo name=req
 #### Response Only
 You need get the *req.Response, use `%v`,`%s`,`%+v`,`%+s`,`%-v`,`%-s` to output formatted response info.
 ``` go
-resp := req.Get("http://api.foo").Response()
+resp := req.Get(url).Response()
 log.Println(resp)
 log.Printf("%-s", resp)
 log.Printf("%+s", resp)
@@ -149,7 +176,7 @@ log.Printf("%+s", resp)
 **NOTE** All settings methods is prefixed with Set
 #### Set Timeout
 ``` go
-req.Get("http://api.foo").
+req.Get(url).
 	SetReadTimeout(40 * time.Second). // read timeout
 	SetWriteTimeout(30 * time.Second). // write timeout
 	SetDialTimeout(20 * time.Second).  // dial timeout
@@ -159,7 +186,7 @@ req.Get("http://api.foo").
 
 #### Set Proxy
 ``` go
-req.Get("http://api.foo").
+req.Get(url).
 	SetProxy(func(r *http.Request) (*url.URL, error) {
 		return url.Parse("http://localhost:40012")
 	}).String()
@@ -167,7 +194,7 @@ req.Get("http://api.foo").
 
 #### Set Insecure TLS (Skip Verify Certificate Chain And Host Name)
 ``` go
-req.Get("https://api.foo").SetInsecureTLS(true).String()
+req.Get(url).SetInsecureTLS(true).String()
 ```
 
 TODO
