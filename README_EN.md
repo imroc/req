@@ -1,21 +1,18 @@
 req
 ==============
-req is a super light weight and super easy-to-use golang http request library.
-
-# Document
-[中文](README_EN.md)
+req 是一个非常轻量级、简单易用的go语言http请求库
 
 
-# Quick Start
-## Install
+# 快速开始
+## 安装
 ``` sh
 go get github.com/imroc/req
 ```
 
-## Basic 
+## 基础用法 
 ``` go
-req.Get(url).String() // get response as string
-req.Post(url).Body(body).ToJson(&foo) // set request body as string or []byte, get response unmarshal to struct.
+req.Get(url).String() // 获取响应返回string
+req.Post(url).Body(body).ToJson(&foo) // 设置请求体(可以是string或[]byte)，获取响应并将相应体转成struct
 fmt.Println(req.Get("http://api.foo")) // GET http://api.foo {"code":0,"msg":"success"}
 /*
 	POST http://api.foo HTTP/1.1
@@ -36,13 +33,13 @@ fmt.Println(req.Get("http://api.foo")) // GET http://api.foo {"code":0,"msg":"su
 fmt.Printf("%+v",req.Post("http://api.foo").Param("id","1").Header("User-Agent","Chrome/57.0.2987.110"))
 ```
 
-## Set Body, Params, Headers
-#### Body
+## 设置 请求体, 请求参数, 请求头
+#### 请求体
 ``` go
 r := req.Post(url).Body(`hello req`)
 r.GetBody() // hello req
 
-r.BodyJson(&struct { // it could also could be string or []byte
+r.BodyJson(&struct { // 也可以是string或[]byte
 	Usename  string `json:"usename"`
 	Password string `json:"password"`
 }{
@@ -54,8 +51,8 @@ r.GetBody() // {"username":"req","password","req"}
 r.BodyXml(&foo)
 ```
 
-#### Params
-**note** it will url encode your params automatically.
+#### 请求参数
+**注意** 会默认自动加Content-Type的请求头
 ``` go
 r := req.Get("http://api.foo").Params(req.M{
 	"username": "req",
@@ -67,7 +64,7 @@ r = req.Post(url).Param("username", "req")
 r.GetBody() // username=req
 ```
 
-#### Headers
+#### 请求头
 ``` go
 r := req.Get("https://api.foo/get")
 r.Headers(req.M{
@@ -79,10 +76,10 @@ r.Headers(req.M{
 	Referer:http://api.foo
 	User-Agent:Chrome/57.0.2987.110
 */
-fmt.Printf("%+r", r)
+fmt.Printf("%+r", r) // 不懂"%r"? 别急，后面会讲
 ```
 
-## Get Response
+## 获取响应
 ```go
 r := req.Get(url)
 r.Response()   // *req.Response
@@ -91,33 +88,30 @@ r.Bytes()      // []byte
 r.ToJson(&foo) // json->struct
 r.ToXml(&bar)  // xml->struct
 
-// ReceiveXXX will return error if error happens during
-// the request been executed.
+// Receive开头的函数，如果请求出错会返回错误
 _, err = r.ReceiveResponse()
 _, err = r.ReceiveString()
 _, err = r.ReceiveBytes()
 ```
-**NOTE:** By default, the underlying request will be executed only once when you call methods to get response like above.
-You can retry the request by calling `Do` method, which will always execute the request, or you can call `Undo`, making the request could be executed again when calling methods to get the response next time.
+**注意:** 当你调用上面的方法获取响应的时候，底层的请求默认只会发起一次，响应结果缓存在req.Request内部。如果想要再次发起请求，可以调用`Do`强制发起请求。或者调用`Undo`，当下次获取响应的时候不再返回缓存，而是真正发起请求并返回响应。
 
-## Print Detail
-Sometimes you might want to dump the detail about the http request and response for debug or logging reasons. 
-There are several format to print these detail infomation.
+## 打印详情
+再调试接口或打印日志的时候我们可能需要输出请求的一些详细信息，req提供了几种格式帮助你打印请求详情
 
 
-#### Default Print
-Use `%v` or `%s` to get the info in default format.
+#### 默认格式
+使用 `%v` 或 `%s` 格式打印默认格式的请求详情
 ``` go
 r := req.Get("http://api.foo/get")
 log.Printf("%v", r) // GET http://api.foo/get {"success":true,"data":"hello req"}
 r = req.Post("http://api.foo/post").Body(`{"uid":"1"}`)
 log.Println(r) // POST http://api.foo/post {"uid":"1"} {"success":true,"data":{"name":"req"}}
 ```
-**NOTE** it will add newline if possible, keep it looks pretty. 
+**注意** 为了让输出好看，有时会智能的新增空行。
 
 
-#### Print All Infomation
-Use `%+v` or `%+s` to get the maximal detail infomation.
+#### 打印所有信息
+使用 `%+v` 或 `%+s` 输出所有请求相关的信息
 ``` go
 r := req.Post("http://api.foo/post")
 r.Header("Referer": "http://api.foo")
@@ -147,29 +141,27 @@ r.Params(req.M{
 */
 log.Printf("%+v", r)
 ```
-As you can see, it will print the request Method,URL,Proto,[Request Header],[Request Body],[Response Header],[Response Body]
+从上面可以看到，`%+v`格式输出会尽可能打印所有信息，包括请求方法、请求地址、请求协议版本、请求头、请求体、响应头、响应体
 
-
-#### Print In Oneline
-Use `%-v` or `%-s` keeps info in one line (delete all blank characters if possible), this is useful while logging.
+#### 打印在一行
+使用 `%-v` 或 `%-s` 格式只输出必要的信息并保持信息打印在一行(删除请求体和响应体所有空白字符)，这在日志记录的时候非常有用
 ``` go
 r := req.Get("http://api.foo/get")
-// it print every thing in one line, even if '\n' exsist in reqeust body or response body.
 log.Printf("%-v\n",r) // GET http://api.foo/get {"code":3019,"msg":"system busy"}
 ```
 
 
-#### Print Request Only (No Response Info)
-Use `%r`, `%+r` or `%-r` only print the request itself, no response.
+#### 只打印请求本身(不要响应)
+使用 `%r`、 `%+r` 或 `%-r` 格式。
 ``` go
 r := req.Post("https://api.foo").Body(`name=req`)
 fmt.Printf("%r", r) // POST https://api.foo name=req
 ```
-**NOTE** in other format above, it will execute the underlying request to get response if the request is not executed yet, you can disable that by using this format.
+**注意** 使用之前其它打印请求的格式，因为要输出响应，所以如果内部的请求还没有发起的话，它会先发起请求并获取响应。如果你只想打印请求本生的话，可以使用上面这种格式，它不会发起请求
 
 
-#### Print Response Only
-You need get the *req.Response, use `%v`,`%s`,`%+v`,`%+s`,`%-v`,`%-s` to print formatted response info.
+#### 只打印响应
+如果只要响应信息，你需要调用`Response`或`ReceiveResponse`获取响应，返回`*req.Response`，然后用 `%v`、`%s`、`%+v`、`%+s`、`%-v`或`%-s`格式输出想要的信息
 ``` go
 resp := req.Get(url).Response()
 log.Println(resp)
@@ -177,19 +169,19 @@ log.Printf("%-s", resp)
 log.Printf("%+s", resp)
 ```
 
-## Setting
-**NOTE** All settings methods is prefixed with Set or Enable
-#### Set Timeout
+## 设置
+**注意** 所有设置方法均以`Set`或`Enable`开头
+#### 设置超时限制
 ``` go
 req.Get(url).
-	SetReadTimeout(40 * time.Second). // read timeout
-	SetWriteTimeout(30 * time.Second). // write timeout
-	SetDialTimeout(20 * time.Second).  // dial timeout
-	SetTimeout(60 * time.Second).     // total timeout
+	SetReadTimeout(40 * time.Second). // 读取超时
+	SetWriteTimeout(30 * time.Second). // 写入超时
+	SetDialTimeout(20 * time.Second).  // 建立连接超时
+	SetTimeout(60 * time.Second).     // 总超时时间限制
 	String()
 ```
 
-#### Set Proxy
+#### 设置代理
 ``` go
 req.Get(url).
 	SetProxy(func(r *http.Request) (*url.URL, error) {
@@ -197,38 +189,38 @@ req.Get(url).
 	}).String()
 ```
 
-#### Allow Insecure Https (Skip Verify Certificate Chain And Host Name)
+#### 允许不安全的https(忽略校验证书和域名)
 ``` go
 req.Get(url).EnableInsecureTLS(true).String()
 ```
 
-#### Reuse Setting
-if you care about performance very much, you can reuse the setting. (the internal `http.Client` will be created only once)
+#### 复用设置
+如果你对性能很敏感，不想要每次链式调用的时候都生成新的`http.Client`，那么你可以复用设置，每次请求都会使用相同的`http.Client`，它是根据你的设置生成的。
 
-create a Setting:
+创建设置:
 ``` go
 setting := &req.Setting{
 	InsecureTLS: true,
 	Timeout:     20 * time.Second,
 }
 ```
-this is same as:
+和下面方式结果相同:
 ``` go
 setting := req.New().SetTimeout(20 * time.Second).EnableInsecureTLS(true).GetSetting()
 ```
-then call Setting method to set the settings:
+每次请求通过`Setting`方法传入:
 ``` go
 req.Get(url).Setting(setting).Bytes()
 ```
 
-#### More Setting
-req uses `http.Client` and `http.Transport` internally, and you can easily modify it, making it has much more potential. You can call `GetClient` or `GetTransport` to get the generated `*http.Client` and `*http.Transport`
+#### 更多设置
+req 内部使用标准库的`http.Client`和`http.Transport`，你可以获取出来任意进行修改，非常灵活。调用`GetClient`和 `GetTransport`分别可以获取根据设置生成的`*http.Client`和`*http.Transport`。
 ``` go
 setting := &req.Setting{
 	InsecureTLS: true,
 	Timeout:     20 * time.Second,
 }
 setting.GetTransport().MaxIdleConns = 100
-setting.GetClient().Jar = cookiejar.New(nil) // manage cookie
+setting.GetClient().Jar = cookiejar.New(nil) // 管理cookie
 req.Get(url).Setting(setting).Bytes()
 ```
