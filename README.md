@@ -229,6 +229,6 @@ setting := &req.Setting{
 	Timeout:     20 * time.Second,
 }
 setting.GetTransport().MaxIdleConns = 100
-setting.GetClient().Jar = cookiejar.New(nil) // manage cookie
+setting.GetClient().Jar, _ = cookiejar.New(nil) // manage cookie
 req.Get(url).Setting(setting).Bytes()
 ```
