@@ -1,5 +1,7 @@
 req
 ==============
+[![GoDoc](https://godoc.org/github.com/imroc/req?status.svg)](https://godoc.org/github.com/imroc/req)
+
 req 是一个非常轻量级、简单易用的go语言http请求库
 
 

@@ -1,5 +1,7 @@
 req
 ==============
+[![GoDoc](https://godoc.org/github.com/imroc/req?status.svg)](https://godoc.org/github.com/imroc/req)
+
 req is a super light weight and super easy-to-use golang http request library.
 
 # Document
