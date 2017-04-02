@@ -21,7 +21,7 @@ type Setting struct {
 	Client              *http.Client
 }
 
-// GetClient returns the http.Client according to the setting.
+// GetClient returns the *http.Client according to the setting.
 func (s *Setting) GetClient() *http.Client {
 	if s == nil {
 		return http.DefaultClient

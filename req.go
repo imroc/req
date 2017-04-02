@@ -15,7 +15,7 @@ import (
 
 var regBlank = regexp.MustCompile(`\s+`)
 
-// M represents the request params.
+// M represents the request params or headers.
 type M map[string]string
 
 // Request provides much easier useage than http.Request
@@ -510,7 +510,7 @@ func basicRequest() *http.Request {
 	}
 }
 
-// GetClient returns the http.Client according to the setting.
+// GetClient returns the *http.Client according to the setting.
 func (r *Request) GetClient() *http.Client {
 	if r == nil {
 		return http.DefaultClient
@@ -518,7 +518,7 @@ func (r *Request) GetClient() *http.Client {
 	return r.setting.GetClient()
 }
 
-// getRoundTripper returns http.RoundTripper according to the request setting.
+// GetTransport returns *http.Transport according to the request setting.
 func (r *Request) GetTransport() *http.Transport {
 	if r == nil {
 		trans, _ := http.DefaultTransport.(*http.Transport)
