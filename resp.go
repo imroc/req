@@ -94,7 +94,7 @@ func (r *Response) String() (s string) {
 	return
 }
 
-// ToJson accept the body of http response if haven't been acceptted yet, v is the address
+// ToXML accept the body of http response if haven't been acceptted yet, v is the address
 // of the struct you want to unmarshal, err is not nil when error happens.
 func (r *Response) ToJSON(v interface{}) (err error) {
 	if r == nil {
@@ -110,7 +110,7 @@ func (r *Response) ToJSON(v interface{}) (err error) {
 	return
 }
 
-// ToXml accept the body of http response if haven't been acceptted yet, v is the address
+// ToXML accept the body of http response if haven't been acceptted yet, v is the address
 // of the struct you want to unmarshal, err is not nil when error happens.
 func (r *Response) ToXML(v interface{}) (err error) {
 	if r == nil {

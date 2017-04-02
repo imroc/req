@@ -14,7 +14,7 @@ go get github.com/imroc/req
 ## 基础用法 
 ``` go
 req.Get(url).String() // 获取响应返回string
-req.Post(url).Body(body).ToJson(&foo) // 设置请求体(可以是string或[]byte)，获取响应并将相应体转成struct
+req.Post(url).Body(body).ToJSON(&foo) // 设置请求体(可以是string或[]byte)，获取响应并将相应体转成struct
 fmt.Println(req.Get("http://api.foo")) // GET http://api.foo {"code":0,"msg":"success"}
 /*
 	POST http://api.foo HTTP/1.1
@@ -41,7 +41,7 @@ fmt.Printf("%+v",req.Post("http://api.foo").Param("id","1").Header("User-Agent",
 r := req.Post(url).Body(`hello req`)
 r.GetBody() // hello req
 
-r.BodyJson(&struct { // 也可以是string或[]byte
+r.BodyJSON(&struct { // 也可以是string或[]byte
 	Usename  string `json:"usename"`
 	Password string `json:"password"`
 }{
@@ -50,7 +50,7 @@ r.BodyJson(&struct { // 也可以是string或[]byte
 })
 r.GetBody() // {"username":"req","password","req"}
 
-r.BodyXml(&foo)
+r.BodyXML(&foo)
 ```
 
 #### 请求参数
@@ -87,8 +87,8 @@ r := req.Get(url)
 r.Response()   // *req.Response
 r.String()     // string
 r.Bytes()      // []byte
-r.ToJson(&foo) // json->struct
-r.ToXml(&bar)  // xml->struct
+r.ToJSON(&foo) // json->struct
+r.ToXML(&bar)  // xml->struct
 
 // Receive开头的函数，如果请求出错会返回错误
 _, err = r.ReceiveResponse()

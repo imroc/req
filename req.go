@@ -99,9 +99,9 @@ func (r *Request) Body(body interface{}) *Request {
 	return r
 }
 
-// BodyJson set the request body as json, support string, []byte or pointer of struct which has json tag.
+// BodyJSON set the request body as json, support string, []byte or pointer of struct which has json tag.
 // it set the Content-Type header to application/json.
-func (r *Request) BodyJson(body interface{}) *Request {
+func (r *Request) BodyJSON(body interface{}) *Request {
 	if r == nil || r.req == nil {
 		return nil
 	}
@@ -131,9 +131,9 @@ func (r *Request) BodyJson(body interface{}) *Request {
 	return r
 }
 
-// BodyXml set the request body as xml, support string, []byte or pointer of struct which has xml tag.
+// BodyXML set the request body as xml, support string, []byte or pointer of struct which has xml tag.
 // it set the Content-Type header to text/xml
-func (r *Request) BodyXml(body interface{}) *Request {
+func (r *Request) BodyXML(body interface{}) *Request {
 	if r == nil || r.req == nil {
 		return nil
 	}
@@ -210,7 +210,7 @@ func (r *Request) String() (s string) {
 	return
 }
 
-// ToJson execute the request and get the response body unmarshal to json.
+// ToJSON execute the request and get the response body unmarshal to json.
 func (r *Request) ToJSON(v interface{}) (err error) {
 	resp, err := r.ReceiveResponse()
 	if err != nil {
@@ -220,7 +220,7 @@ func (r *Request) ToJSON(v interface{}) (err error) {
 	return
 }
 
-// ToXml execute the request and get the response body unmarshal to xml.
+// ToXML execute the request and get the response body unmarshal to xml.
 func (r *Request) ToXML(v interface{}) (err error) {
 	resp, err := r.ReceiveResponse()
 	if err != nil {

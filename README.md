@@ -17,7 +17,7 @@ go get github.com/imroc/req
 ## Basic 
 ``` go
 req.Get(url).String() // get response as string
-req.Post(url).Body(body).ToJson(&foo) // set request body as string or []byte, get response unmarshal to struct.
+req.Post(url).Body(body).ToJSON(&foo) // set request body as string or []byte, get response unmarshal to struct.
 fmt.Println(req.Get("http://api.foo")) // GET http://api.foo {"code":0,"msg":"success"}
 /*
 	POST http://api.foo HTTP/1.1
@@ -44,7 +44,7 @@ fmt.Printf("%+v",req.Post("http://api.foo").Param("id","1").Header("User-Agent",
 r := req.Post(url).Body(`hello req`)
 r.GetBody() // hello req
 
-r.BodyJson(&struct { // it could also could be string or []byte
+r.BodyJSON(&struct { // it could also could be string or []byte
 	Usename  string `json:"usename"`
 	Password string `json:"password"`
 }{
@@ -53,7 +53,7 @@ r.BodyJson(&struct { // it could also could be string or []byte
 })
 r.GetBody() // {"username":"req","password","req"}
 
-r.BodyXml(&foo)
+r.BodyXML(&foo)
 ```
 
 #### Params
@@ -90,8 +90,8 @@ r := req.Get(url)
 r.Response()   // *req.Response
 r.String()     // string
 r.Bytes()      // []byte
-r.ToJson(&foo) // json->struct
-r.ToXml(&bar)  // xml->struct
+r.ToJSON(&foo) // json->struct
+r.ToXML(&bar)  // xml->struct
 
 // ReceiveXXX will return error if error happens during
 // the request been executed.
