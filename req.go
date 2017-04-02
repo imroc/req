@@ -39,25 +39,6 @@ func (r *Request) GetRequest() *http.Request {
 	return r.req
 }
 
-// Setting sets the Request's settings.
-func (r *Request) Setting(setting *Setting) *Request {
-	if r == nil {
-		return nil
-	}
-	if setting != nil {
-		r.setting = setting
-	}
-	return r
-}
-
-// GetSetting gets the Request's settings.
-func (r *Request) GetSetting() *Setting {
-	if r == nil {
-		return nil
-	}
-	return r.setting
-}
-
 // Param set one single param to the request.
 func (r *Request) Param(k, v string) *Request {
 	if r == nil {
@@ -397,13 +378,8 @@ func (r *Request) Method(method string) *Request {
 		return nil
 	}
 	if r.req == nil {
-		r.req = &http.Request{
-			Method:     method,
-			Header:     make(http.Header),
-			Proto:      "HTTP/1.1",
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-		}
+		r.req = basicRequest()
+		r.req.Method = method
 	} else {
 		r.req.Method = method
 	}
@@ -502,42 +478,39 @@ func Head(url string) *Request {
 // New create a new Request with the underlying *http.Request.
 func New() *Request {
 	return &Request{
-		params:  M{},
-		setting: &Setting{},
-		req: &http.Request{
-			Header:     make(http.Header),
-			Proto:      "HTTP/1.1",
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-		},
+		params: M{},
+		req:    basicRequest(),
 	}
 }
 
 // WrapRequest wraps the *http.Request to the *req.Request.
 func WrapRequest(req *http.Request) *Request {
 	return &Request{
-		params:  M{},
-		req:     req,
-		setting: &Setting{},
+		params: M{},
+		req:    req,
 	}
 }
 
 func newRequest(url, method string) *Request {
+	req := basicRequest()
+	req.Method = method
 	return &Request{
-		url:     url,
-		params:  M{},
-		setting: &Setting{},
-		req: &http.Request{
-			Method:     method,
-			Header:     make(http.Header),
-			Proto:      "HTTP/1.1",
-			ProtoMajor: 1,
-			ProtoMinor: 1,
-		},
+		url:    url,
+		params: M{},
+		req:    req,
 	}
 }
 
-// getClient returns the http.Client according to the setting.
+func basicRequest() *http.Request {
+	return &http.Request{
+		Header:     make(http.Header),
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+	}
+}
+
+// GetClient returns the http.Client according to the setting.
 func (r *Request) GetClient() *http.Client {
 	if r == nil {
 		return http.DefaultClient

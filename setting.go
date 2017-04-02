@@ -63,6 +63,9 @@ func (s *Setting) createTransport() *http.Transport {
 	if s.TlsClientConfig != nil {
 		trans.TLSClientConfig = s.TlsClientConfig
 	}
+	if s.TLSHandshakeTimeout > 0 {
+		trans.TLSHandshakeTimeout = s.TLSHandshakeTimeout
+	}
 	if s.InsecureTLS {
 		if trans.TLSClientConfig != nil {
 			trans.TLSClientConfig.InsecureSkipVerify = true
@@ -90,7 +93,8 @@ func (s *Setting) GetTransport() *http.Transport {
 	return s.Transport
 }
 
-func (r *Request) SetClient(client *http.Client) *Request {
+// Client set the http.Client for the request
+func (r *Request) Client(client *http.Client) *Request {
 	if r == nil {
 		return nil
 	}
@@ -101,8 +105,8 @@ func (r *Request) SetClient(client *http.Client) *Request {
 	return r
 }
 
-// SetTransport set the http.Transport for request
-func (r *Request) SetTransport(trans *http.Transport) *Request {
+// Transport set the http.Transport for request
+func (r *Request) Transport(trans *http.Transport) *Request {
 	if r == nil {
 		return nil
 	}
@@ -110,11 +114,12 @@ func (r *Request) SetTransport(trans *http.Transport) *Request {
 		r.setting = &Setting{}
 	}
 	r.setting.Transport = trans
+	r.setting.Client = nil
 	return r
 }
 
-// SetProxy set the proxy for request
-func (r *Request) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Request {
+// Proxy set the proxy for request
+func (r *Request) Proxy(proxy func(*http.Request) (*url.URL, error)) *Request {
 	if r == nil {
 		return nil
 	}
@@ -122,12 +127,14 @@ func (r *Request) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Request
 		r.setting = &Setting{}
 	}
 	r.setting.Proxy = proxy
+	r.setting.Client = nil
+	r.setting.Transport = nil
 	return r
 }
 
-// SetTimeout set the total timeout for request,
+// Timeout set the total timeout for request,
 // once timeout reached, request will be canceled.
-func (r *Request) SetTimeout(d time.Duration) *Request {
+func (r *Request) Timeout(d time.Duration) *Request {
 	if r == nil {
 		return nil
 	}
@@ -135,11 +142,13 @@ func (r *Request) SetTimeout(d time.Duration) *Request {
 		r.setting = &Setting{}
 	}
 	r.setting.Timeout = d
+	r.setting.Client = nil
+	r.setting.Transport = nil
 	return r
 }
 
-// SetDialTimeout sets the timeout for dial connection.
-func (r *Request) SetDialTimeout(d time.Duration) *Request {
+// TimeoutDial sets the timeout for dial connection.
+func (r *Request) TimeoutDial(d time.Duration) *Request {
 	if r == nil {
 		return nil
 	}
@@ -147,11 +156,13 @@ func (r *Request) SetDialTimeout(d time.Duration) *Request {
 		r.setting = &Setting{}
 	}
 	r.setting.DialTimeout = d
+	r.setting.Client = nil
+	r.setting.Transport = nil
 	return r
 }
 
-// SetReadTimeout sets the timeout for read operation.
-func (r *Request) SetReadTimeout(d time.Duration) *Request {
+// TimeoutRead sets the timeout for read operation.
+func (r *Request) TimeoutRead(d time.Duration) *Request {
 	if r == nil {
 		return nil
 	}
@@ -159,11 +170,13 @@ func (r *Request) SetReadTimeout(d time.Duration) *Request {
 		r.setting = &Setting{}
 	}
 	r.setting.ReadTimeout = d
+	r.setting.Client = nil
+	r.setting.Transport = nil
 	return r
 }
 
-// SetWriteTimeout sets the timeout for write operation.
-func (r *Request) SetWriteTimeout(d time.Duration) *Request {
+// TimeoutWrite sets the timeout for write operation.
+func (r *Request) TimeoutWrite(d time.Duration) *Request {
 	if r == nil {
 		return nil
 	}
@@ -171,11 +184,28 @@ func (r *Request) SetWriteTimeout(d time.Duration) *Request {
 		r.setting = &Setting{}
 	}
 	r.setting.WriteTimeout = d
+	r.setting.Client = nil
+	r.setting.Transport = nil
 	return r
 }
 
-// EnableInsecureTLS insecure the https.
-func (r *Request) EnableInsecureTLS(ins bool) *Request {
+// TimeoutTLSHandshake specifies the maximum amount of time waiting to
+// wait for a TLS handshake. Zero means no timeout.
+func (r *Request) TimeoutTLSHandshake(d time.Duration) *Request {
+	if r == nil {
+		return nil
+	}
+	if r.setting == nil {
+		r.setting = &Setting{}
+	}
+	r.setting.TLSHandshakeTimeout = d
+	r.setting.Client = nil
+	r.setting.Transport = nil
+	return r
+}
+
+// InsecureTLS allows to access the insecure https server.
+func (r *Request) InsecureTLS(ins bool) *Request {
 	if r == nil {
 		return nil
 	}
@@ -183,5 +213,44 @@ func (r *Request) EnableInsecureTLS(ins bool) *Request {
 		r.setting = &Setting{}
 	}
 	r.setting.InsecureTLS = ins
+	r.setting.Client = nil
+	r.setting.Transport = nil
+	return r
+}
+
+// Merge clone some properties of another Request into this.
+func (r *Request) Merge(rr *Request) *Request {
+	if r == nil || rr == nil {
+		return nil
+	}
+	if len(rr.params) > 0 { // merge params
+		for name, value := range rr.params {
+			if _, ok := r.params[name]; !ok {
+				r.params[name] = value
+			}
+		}
+	}
+	if rr.req != nil { // merge internal http.Request
+		if r.req == nil {
+			r.req = basicRequest()
+		}
+		if r.req.Method == "" && rr.req.Method != "" {
+			r.req.Method = rr.req.Method
+		}
+		if r.req.Host == "" && rr.req.Host != "" {
+			r.req.Host = rr.req.Host
+		}
+		for name, value := range rr.req.Header {
+			if _, ok := r.req.Header[name]; !ok {
+				r.req.Header[name] = value
+			}
+		}
+	}
+	if rr.setting != nil { // merge setting
+		rr.setting.GetClient() // ensure client has been created. prevent creating client every request.
+		setting := *rr.setting
+		r.setting = &setting
+	}
+
 	return r
 }

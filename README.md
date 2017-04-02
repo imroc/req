@@ -3,7 +3,7 @@ req
 req is a super light weight and super easy-to-use golang http request library.
 
 # Document
-[中文](README_EN.md)
+[中文](README_ZH.md)
 
 
 # Quick Start
@@ -178,57 +178,49 @@ log.Printf("%+s", resp)
 ```
 
 ## Setting
-**NOTE** All settings methods is prefixed with Set or Enable
 #### Set Timeout
 ``` go
 req.Get(url).
-	SetReadTimeout(40 * time.Second). // read timeout
-	SetWriteTimeout(30 * time.Second). // write timeout
-	SetDialTimeout(20 * time.Second).  // dial timeout
-	SetTimeout(60 * time.Second).     // total timeout
+	Timeout(60 * time.Second).             // total timeout
+	TimeoutRead(40 * time.Second).         // read timeout
+	TimeoutWrite(30 * time.Second).        // write timeout
+	TimeoutDial(20 * time.Second).         // dial timeout
+	TimeoutTLSHandshake(10 * time.Second). // https handshake timeout
 	String()
 ```
 
 #### Set Proxy
 ``` go
 req.Get(url).
-	SetProxy(func(r *http.Request) (*url.URL, error) {
+	Proxy(func(r *http.Request) (*url.URL, error) {
 		return url.Parse("http://localhost:40012")
 	}).String()
 ```
 
 #### Allow Insecure Https (Skip Verify Certificate Chain And Host Name)
 ``` go
-req.Get(url).EnableInsecureTLS(true).String()
-```
-
-#### Reuse Setting
-if you care about performance very much, you can reuse the setting. (the internal `http.Client` will be created only once)
-
-create a Setting:
-``` go
-setting := &req.Setting{
-	InsecureTLS: true,
-	Timeout:     20 * time.Second,
-}
-```
-this is same as:
-``` go
-setting := req.New().SetTimeout(20 * time.Second).EnableInsecureTLS(true).GetSetting()
-```
-then call Setting method to set the settings:
-``` go
-req.Get(url).Setting(setting).Bytes()
+req.Get(url).InsecureTLS(true).String()
 ```
 
 #### More Setting
 req uses `http.Client` and `http.Transport` internally, and you can easily modify it, making it has much more potential. You can call `GetClient` or `GetTransport` to get the generated `*http.Client` and `*http.Transport`
 ``` go
-setting := &req.Setting{
-	InsecureTLS: true,
-	Timeout:     20 * time.Second,
-}
-setting.GetTransport().MaxIdleConns = 100
-setting.GetClient().Jar, _ = cookiejar.New(nil) // manage cookie
-req.Get(url).Setting(setting).Bytes()
+r := req.Get(url)
+r.GetTransport().MaxIdleConns = 100
+r.GetClient().Jar, _ = cookiejar.New(nil) // manage cookie
+```
+
+## Share Attributes In Different Requests.
+the `Merge` method can merge another request's attributes into current request.
+``` go
+// create shared attributes.
+attr := req.New()
+attr.Header("User-Agent", "V1.1.1")
+attr.Timeout(10 * time.Second)
+attr.Param("access_token", token)
+attr.InsecureTLS(true)
+
+// merge shared attributes into each requests.
+req.Get(api1).Merge(attr).String()
+req.Get(api2).Merge(attr).String()
 ```

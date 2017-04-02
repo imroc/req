@@ -170,57 +170,51 @@ log.Printf("%+s", resp)
 ```
 
 ## 设置
-**注意** 所有设置方法均以`Set`或`Enable`开头
 #### 设置超时限制
 ``` go
 req.Get(url).
-	SetReadTimeout(40 * time.Second). // 读取超时
-	SetWriteTimeout(30 * time.Second). // 写入超时
-	SetDialTimeout(20 * time.Second).  // 建立连接超时
-	SetTimeout(60 * time.Second).     // 总超时时间限制
+	Timeout(60 * time.Second).             // 总超时时间限制
+	TimeoutRead(40 * time.Second).         // 读取超时
+	TimeoutWrite(30 * time.Second).        // 写入超时
+	TimeoutDial(20 * time.Second).         // 建立连接超时
+	TimeoutTLSHandshake(10 * time.Second). // https握手超时
 	String()
 ```
 
 #### 设置代理
 ``` go
 req.Get(url).
-	SetProxy(func(r *http.Request) (*url.URL, error) {
+	Proxy(func(r *http.Request) (*url.URL, error) {
 		return url.Parse("http://localhost:40012")
 	}).String()
 ```
 
 #### 允许不安全的https(忽略校验证书和域名)
 ``` go
-req.Get(url).EnableInsecureTLS(true).String()
+req.Get(url).InsecureTLS(true).String()
 ```
 
-#### 复用设置
-如果你对性能很敏感，不想要每次链式调用的时候都生成新的`http.Client`，那么你可以复用设置，每次请求都会使用相同的`http.Client`，它是根据你的设置生成的。
-
-创建设置:
-``` go
-setting := &req.Setting{
-	InsecureTLS: true,
-	Timeout:     20 * time.Second,
-}
-```
-和下面方式结果相同:
-``` go
-setting := req.New().SetTimeout(20 * time.Second).EnableInsecureTLS(true).GetSetting()
-```
-每次请求通过`Setting`方法传入:
-``` go
-req.Get(url).Setting(setting).Bytes()
-```
 
 #### 更多设置
 req 内部使用标准库的`http.Client`和`http.Transport`，你可以获取出来任意进行修改，非常灵活。调用`GetClient`和 `GetTransport`分别可以获取根据设置生成的`*http.Client`和`*http.Transport`。
 ``` go
-setting := &req.Setting{
-	InsecureTLS: true,
-	Timeout:     20 * time.Second,
-}
-setting.GetTransport().MaxIdleConns = 100
-setting.GetClient().Jar, _ = cookiejar.New(nil) // 管理cookie
-req.Get(url).Setting(setting).Bytes()
+r := req.Get(url)
+r.GetTransport().MaxIdleConns = 100
+r.GetClient().Jar, _ = cookiejar.New(nil) // 管理cookie
+```
+
+
+## 不同请求共享相同属性
+`Merge` 函数可以将另外一个请求的一些属性合并进当前的请求
+``` go
+// 创建需要共享的属性
+attr := req.New()
+attr.Header("User-Agent", "V1.1.1")
+attr.Timeout(10 * time.Second)
+attr.Param("access_token", token)
+attr.InsecureTLS(true)
+
+// 合并属性并发起请求
+req.Get(api1).Merge(attr).String()
+req.Get(api2).Merge(attr).String()
 ```
