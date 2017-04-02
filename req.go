@@ -211,22 +211,22 @@ func (r *Request) String() (s string) {
 }
 
 // ToJson execute the request and get the response body unmarshal to json.
-func (r *Request) ToJson(v interface{}) (err error) {
+func (r *Request) ToJSON(v interface{}) (err error) {
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
 	}
-	err = resp.ToJson(v)
+	err = resp.ToJSON(v)
 	return
 }
 
 // ToXml execute the request and get the response body unmarshal to xml.
-func (r *Request) ToXml(v interface{}) (err error) {
+func (r *Request) ToXML(v interface{}) (err error) {
 	resp, err := r.ReceiveResponse()
 	if err != nil {
 		return
 	}
-	err = resp.ToXml(v)
+	err = resp.ToXML(v)
 	return
 }
 
