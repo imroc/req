@@ -113,6 +113,18 @@ func (r *Request) Cookie(cookie *http.Cookie) *Request {
 	return r
 }
 
+// BasicAuth sets the request's Authorization header to use HTTP Basic Authentication with the provided username and password.
+func (r *Request) BasicAuth(username, password string) *Request {
+	if r == nil {
+		return nil
+	}
+	if r.req == nil {
+		r.req = basicRequest()
+	}
+	r.req.SetBasicAuth(username, password)
+	return r
+}
+
 // Body set the request body,support string and []byte.
 func (r *Request) Body(body interface{}) *Request {
 	if r == nil || r.req == nil {

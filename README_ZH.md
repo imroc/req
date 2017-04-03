@@ -216,6 +216,7 @@ attr.Timeout(10 * time.Second)
 attr.Param("access_token", token)
 attr.Proto("HTTP/2")
 attr.Cookie(&http.Cookie{Name: "sessionid", Value: "FHJ67GHJ67G8G65HJJ", Path: "/", MaxAge: 86400})
+attr.BasicAuth("roc", "req")
 attr.InsecureTLS(true)
 
 // 合并属性并发起请求
