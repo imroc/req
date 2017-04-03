@@ -228,6 +228,6 @@ req.Get(api2).Merge(r).InsecureTLS(false).String()
 ## 文件上传
 使用 `File` 函数上传文件
 ``` go
-resp, err := req.Post(url).File("avatar", "avatar.png") // 表单名和文件名
+resp, err := req.Post(url).File("avatar", "avatar.png").ReceiveResponse() // 表单名和文件名
 fmt.Println(resp)
 ```
