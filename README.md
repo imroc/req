@@ -213,7 +213,7 @@ r.GetClient().Jar, _ = cookiejar.New(nil) // manage cookie
 ```
 
 ## Share Attributes In Different Requests.
-the `Merge` method can merge another request's attributes into current request.
+The `Merge` method can merge another request's attributes into current request.
 ``` go
 // create shared attributes.
 r := req.New()
@@ -229,4 +229,11 @@ r.InsecureTLS(true)
 // merge shared attributes into each requests.
 req.Get(api1).Merge(r).String()
 req.Get(api2).Merge(r).InsecureTLS(false).String()
+```
+
+## Upload File
+Use `File` method to upload file.
+``` go
+resp, err := req.Post(url).File("avatar", "avatar.png") // formname and filename
+fmt.Println(resp)
 ```

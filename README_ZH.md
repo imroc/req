@@ -198,7 +198,7 @@ req.Get(url).InsecureTLS(true).String()
 
 
 #### 更多设置
-req 内部使用标准库的`http.Client`和`http.Transport`，你可以获取出来任意进行修改，非常灵活。调用`GetClient`和 `GetTransport`分别可以获取根据设置生成的`*http.Client`和`*http.Transport`。
+req 内部使用标准库的`http.Client`和`http.Transport`，你可以获取出来任意进行修改，非常灵活。调用`GetClient`和 `GetTransport`分别可以获取根据设置生成的`*http.Client`和`*http.Transport`
 ``` go
 r := req.Get(url)
 r.GetTransport().MaxIdleConns = 100
@@ -223,4 +223,11 @@ r.InsecureTLS(true)
 // 合并属性并发起请求
 req.Get(api1).Merge(r).String()
 req.Get(api2).Merge(r).InsecureTLS(false).String()
+```
+
+## 文件上传
+使用 `File` 函数上传文件
+``` go
+resp, err := req.Post(url).File("avatar", "avatar.png") // 表单名和文件名
+fmt.Println(resp)
 ```

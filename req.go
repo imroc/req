@@ -6,9 +6,12 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -23,6 +26,7 @@ type Request struct {
 	err     error
 	url     string
 	params  M
+	files   map[string]string
 	req     *http.Request
 	resp    *Response
 	body    []byte
@@ -98,6 +102,18 @@ func (r *Request) Headers(params M) *Request {
 	for k, v := range params {
 		r.req.Header.Set(k, v)
 	}
+	return r
+}
+
+// File upload the file with specified form name and file name.
+func (r *Request) File(formname, filename string) *Request {
+	if r == nil {
+		return nil
+	}
+	if r.files == nil {
+		r.files = make(map[string]string)
+	}
+	r.files[formname] = filename
 	return r
 }
 
@@ -389,7 +405,43 @@ func (r *Request) Do() (err error) {
 		case "GET":
 			destUrl = r.buildGetUrl()
 		case "POST", "PUT":
-			r.setParamBody()
+			if len(r.files) > 0 { // upload file
+				pr, pw := io.Pipe()
+				bodyWriter := multipart.NewWriter(pw)
+				go func() {
+					for formname, filename := range r.files {
+						fileWriter, err := bodyWriter.CreateFormFile(formname, filename)
+						if err != nil {
+							r.err = err
+							return
+						}
+
+						file, err := os.Open(filename)
+						if err != nil {
+							r.err = err
+							return
+						}
+						//iocopy
+						_, err = io.Copy(fileWriter, file)
+						file.Close()
+						if err != nil {
+							r.err = err
+							return
+						}
+					}
+					for k, v := range r.params {
+						bodyWriter.WriteField(k, v)
+					}
+					bodyWriter.Close()
+					pw.Close()
+				}()
+
+				r.Header("Content-Type", bodyWriter.FormDataContentType())
+				r.req.Body = ioutil.NopCloser(pr)
+			} else { // set params to body
+				r.Header("Content-Type", "application/x-www-form-urlencoded")
+				r.Body(r.getParamBody())
+			}
 		}
 	}
 	// set url
