@@ -26,7 +26,7 @@ type Request struct {
 	req     *http.Request
 	resp    *Response
 	body    []byte
-	setting *Setting
+	setting *setting
 }
 
 var ErrNilReqeust = errors.New("nil request")
@@ -554,21 +554,4 @@ func basicRequest() *http.Request {
 		ProtoMajor: 1,
 		ProtoMinor: 1,
 	}
-}
-
-// GetClient returns the *http.Client according to the setting.
-func (r *Request) GetClient() *http.Client {
-	if r == nil {
-		return http.DefaultClient
-	}
-	return r.setting.GetClient()
-}
-
-// GetTransport returns *http.Transport according to the request setting.
-func (r *Request) GetTransport() *http.Transport {
-	if r == nil {
-		trans, _ := http.DefaultTransport.(*http.Transport)
-		return trans
-	}
-	return r.setting.GetTransport()
 }

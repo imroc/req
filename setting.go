@@ -4,31 +4,53 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"time"
 )
 
-type Setting struct {
+var defaultCookieJar http.CookieJar
+
+func init() {
+	defaultCookieJar, _ = cookiejar.New(nil)
+}
+
+type setting struct {
 	Timeout             time.Duration // total timeout
 	DialTimeout         time.Duration
 	ReadTimeout         time.Duration
 	WriteTimeout        time.Duration
 	TLSHandshakeTimeout time.Duration
 	InsecureTLS         bool
+	Jar                 http.CookieJar
 	Proxy               func(*http.Request) (*url.URL, error)
 	TlsClientConfig     *tls.Config
 	Transport           *http.Transport
 	Client              *http.Client
 }
 
+func (r *Request) prepareSetting() bool {
+	if r == nil {
+		return false
+	}
+	if r.setting == nil {
+		r.setting = &setting{}
+	}
+	return true
+}
+
 // GetClient returns the *http.Client according to the setting.
-func (s *Setting) GetClient() *http.Client {
-	if s == nil {
+func (r *Request) GetClient() *http.Client {
+	if !r.prepareSetting() {
 		return http.DefaultClient
 	}
+	s := r.setting
 	if s.Client == nil {
 		c := &http.Client{
-			Transport: s.GetTransport(),
+			Transport: r.GetTransport(),
+		}
+		if s.Jar != nil {
+			c.Jar = s.Jar
 		}
 		if s.Timeout > 0 {
 			c.Timeout = s.Timeout
@@ -38,7 +60,8 @@ func (s *Setting) GetClient() *http.Client {
 	return s.Client
 }
 
-func (s *Setting) createTransport() *http.Transport {
+func (r *Request) createTransport() *http.Transport {
+	s := r.setting
 	trans := &http.Transport{}
 	trans.Dial = func(network, address string) (conn net.Conn, err error) {
 		if s.DialTimeout > 0 {
@@ -82,24 +105,22 @@ func (s *Setting) createTransport() *http.Transport {
 }
 
 // GetTransport return the http.Transport according to the setting.
-func (s *Setting) GetTransport() *http.Transport {
-	if s == nil {
+func (r *Request) GetTransport() *http.Transport {
+	if !r.prepareSetting() {
 		trans, _ := http.DefaultTransport.(*http.Transport)
 		return trans
 	}
+	s := r.setting
 	if s.Transport == nil {
-		s.Transport = s.createTransport()
+		s.Transport = r.createTransport()
 	}
 	return s.Transport
 }
 
 // Client set the http.Client for the request
 func (r *Request) Client(client *http.Client) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.Client = client
 	return r
@@ -107,11 +128,8 @@ func (r *Request) Client(client *http.Client) *Request {
 
 // Transport set the http.Transport for request
 func (r *Request) Transport(trans *http.Transport) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.Transport = trans
 	r.setting.Client = nil
@@ -120,11 +138,8 @@ func (r *Request) Transport(trans *http.Transport) *Request {
 
 // Proxy set the proxy for request
 func (r *Request) Proxy(proxy func(*http.Request) (*url.URL, error)) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.Proxy = proxy
 	r.setting.Client = nil
@@ -135,11 +150,8 @@ func (r *Request) Proxy(proxy func(*http.Request) (*url.URL, error)) *Request {
 // Timeout set the total timeout for request,
 // once timeout reached, request will be canceled.
 func (r *Request) Timeout(d time.Duration) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.Timeout = d
 	r.setting.Client = nil
@@ -149,11 +161,8 @@ func (r *Request) Timeout(d time.Duration) *Request {
 
 // TimeoutDial sets the timeout for dial connection.
 func (r *Request) TimeoutDial(d time.Duration) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.DialTimeout = d
 	r.setting.Client = nil
@@ -163,11 +172,8 @@ func (r *Request) TimeoutDial(d time.Duration) *Request {
 
 // TimeoutRead sets the timeout for read operation.
 func (r *Request) TimeoutRead(d time.Duration) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.ReadTimeout = d
 	r.setting.Client = nil
@@ -177,11 +183,8 @@ func (r *Request) TimeoutRead(d time.Duration) *Request {
 
 // TimeoutWrite sets the timeout for write operation.
 func (r *Request) TimeoutWrite(d time.Duration) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.WriteTimeout = d
 	r.setting.Client = nil
@@ -192,11 +195,8 @@ func (r *Request) TimeoutWrite(d time.Duration) *Request {
 // TimeoutTLSHandshake specifies the maximum amount of time waiting to
 // wait for a TLS handshake. Zero means no timeout.
 func (r *Request) TimeoutTLSHandshake(d time.Duration) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.TLSHandshakeTimeout = d
 	r.setting.Client = nil
@@ -206,15 +206,36 @@ func (r *Request) TimeoutTLSHandshake(d time.Duration) *Request {
 
 // InsecureTLS allows to access the insecure https server.
 func (r *Request) InsecureTLS(ins bool) *Request {
-	if r == nil {
+	if !r.prepareSetting() {
 		return nil
-	}
-	if r.setting == nil {
-		r.setting = &Setting{}
 	}
 	r.setting.InsecureTLS = ins
 	r.setting.Client = nil
 	r.setting.Transport = nil
+	return r
+}
+
+// EnableCookie set the default CookieJar to the request if enable==true, otherwise set to nil.
+func (r *Request) EnableCookie(enable bool) *Request {
+	if !r.prepareSetting() {
+		return nil
+	}
+	if enable {
+		r.setting.Jar = defaultCookieJar
+	} else {
+		r.setting.Jar = nil
+	}
+	r.setting.Client = nil
+	return r
+}
+
+// EnableCookieWithJar set the specified *http.CookieJar to the request.
+func (r *Request) EnableCookieWithJar(jar http.CookieJar) *Request {
+	if !r.prepareSetting() {
+		return nil
+	}
+	r.setting.Jar = jar
+	r.setting.Client = nil
 	return r
 }
 
@@ -252,9 +273,9 @@ func (r *Request) Merge(rr *Request) *Request {
 		}
 	}
 	if rr.setting != nil { // merge setting
-		rr.setting.GetClient() // ensure client has been created. prevent creating client every request.
-		setting := *rr.setting
-		r.setting = &setting
+		rr.GetClient() // ensure client has been created. prevent creating client every request.
+		s := *rr.setting
+		r.setting = &s
 	}
 
 	return r
