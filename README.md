@@ -2,7 +2,7 @@ req
 ==============
 [![GoDoc](https://godoc.org/github.com/imroc/req?status.svg)](https://godoc.org/github.com/imroc/req)
 
-req is a super light weight and super easy-to-use golang http request library.
+req is a light weight golang http request library, and simple to the extreme.
 
 # Document
 [中文](README_ZH.md)
