@@ -240,6 +240,11 @@ func (r *Request) Merge(rr *Request) *Request {
 		if r.req.Host == "" && rr.req.Host != "" {
 			r.req.Host = rr.req.Host
 		}
+		if r.req.Proto != rr.req.Proto {
+			r.req.Proto = rr.req.Proto
+			r.req.ProtoMajor = rr.req.ProtoMajor
+			r.req.ProtoMinor = rr.req.ProtoMinor
+		}
 		for name, value := range rr.req.Header {
 			if _, ok := r.req.Header[name]; !ok {
 				r.req.Header[name] = value

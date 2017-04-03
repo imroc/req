@@ -220,9 +220,11 @@ attr := req.New()
 attr.Header("User-Agent", "V1.1.1")
 attr.Timeout(10 * time.Second)
 attr.Param("access_token", token)
+attr.Proto("HTTP/2")
+attr.Cookie(&http.Cookie{Name: "sessionid", Value: "FHJ67GHJ67G8G65HJJ", Path: "/", MaxAge: 86400})
 attr.InsecureTLS(true)
 
 // merge shared attributes into each requests.
 req.Get(api1).Merge(attr).String()
-req.Get(api2).Merge(attr).String()
+req.Get(api2).Merge(attr).InsecureTLS(false).String()
 ```

@@ -39,6 +39,28 @@ func (r *Request) GetRequest() *http.Request {
 	return r.req
 }
 
+// Proto set the protocol version to the request.
+func (r *Request) Proto(vers string) *Request {
+	if r == nil {
+		return nil
+	}
+	if r.req == nil {
+		r.req = basicRequest()
+	}
+
+	if len(vers) == 0 {
+		vers = "HTTP/1.1"
+	}
+	major, minor, ok := http.ParseHTTPVersion(vers)
+	if ok {
+		r.req.Proto = vers
+		r.req.ProtoMajor = major
+		r.req.ProtoMinor = minor
+	}
+
+	return r
+}
+
 // Param set one single param to the request.
 func (r *Request) Param(k, v string) *Request {
 	if r == nil {
@@ -76,6 +98,18 @@ func (r *Request) Headers(params M) *Request {
 	for k, v := range params {
 		r.req.Header.Set(k, v)
 	}
+	return r
+}
+
+// Cookie set the cookie for to the request.
+func (r *Request) Cookie(cookie *http.Cookie) *Request {
+	if r == nil {
+		return nil
+	}
+	if r.req == nil {
+		r.req = basicRequest()
+	}
+	r.req.Header.Add("Cookie", cookie.String())
 	return r
 }
 
