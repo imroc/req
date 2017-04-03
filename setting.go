@@ -24,7 +24,7 @@ type setting struct {
 	InsecureTLS         bool
 	Jar                 http.CookieJar
 	Proxy               func(*http.Request) (*url.URL, error)
-	TlsClientConfig     *tls.Config
+	TLSClientConfig     *tls.Config
 	Transport           *http.Transport
 	Client              *http.Client
 }
@@ -83,8 +83,8 @@ func (r *Request) createTransport() *http.Transport {
 		}
 		return
 	}
-	if s.TlsClientConfig != nil {
-		trans.TLSClientConfig = s.TlsClientConfig
+	if s.TLSClientConfig != nil {
+		trans.TLSClientConfig = s.TLSClientConfig
 	}
 	if s.TLSHandshakeTimeout > 0 {
 		trans.TLSHandshakeTimeout = s.TLSHandshakeTimeout
@@ -132,6 +132,17 @@ func (r *Request) Transport(trans *http.Transport) *Request {
 		return nil
 	}
 	r.setting.Transport = trans
+	r.setting.Client = nil
+	return r
+}
+
+// TLSClientConfig set the tls config to the request
+func (r *Request) TLSClientConfig(config *tls.Config) *Request {
+	if !r.prepareSetting() {
+		return nil
+	}
+	r.setting.TLSClientConfig = config
+	r.setting.Transport = nil
 	r.setting.Client = nil
 	return r
 }
