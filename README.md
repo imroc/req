@@ -216,16 +216,17 @@ r.GetClient().Jar, _ = cookiejar.New(nil) // manage cookie
 the `Merge` method can merge another request's attributes into current request.
 ``` go
 // create shared attributes.
-attr := req.New()
-attr.Header("User-Agent", "V1.1.1")
-attr.Timeout(10 * time.Second)
-attr.Param("access_token", token)
-attr.Proto("HTTP/2")
-attr.Cookie(&http.Cookie{Name: "sessionid", Value: "FHJ67GHJ67G8G65HJJ", Path: "/", MaxAge: 86400})
-attr.BasicAuth("roc", "req")
-attr.InsecureTLS(true)
+r := req.New()
+r.Header("User-Agent", "V1.1.1")
+r.Timeout(10 * time.Second)
+r.Param("access_token", token)
+r.Proto("HTTP/2")
+r.EnableCookie(true)
+r.Cookie(&http.Cookie{Name: "sessionid", Value: "FHJ67GHJ67G8G65HJJ", Path: "/", MaxAge: 86400})
+r.BasicAuth("roc", "req")
+r.InsecureTLS(true)
 
 // merge shared attributes into each requests.
-req.Get(api1).Merge(attr).String()
-req.Get(api2).Merge(attr).InsecureTLS(false).String()
+req.Get(api1).Merge(r).String()
+req.Get(api2).Merge(r).InsecureTLS(false).String()
 ```
