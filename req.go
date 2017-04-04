@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -110,20 +111,20 @@ func (r *Request) Headers(params M) *Request {
 }
 
 // File upload the file with specified form name and file name,
-// and the file is come from disk with the given file name.
-func (r *Request) File(formname, filepath string) *Request {
+// and the file is come from disk with the given file name(relative path or absolute path).
+func (r *Request) File(formname, name string) *Request {
 	if r == nil {
 		return nil
 	}
 	if r.files == nil {
 		r.files = make(map[string]formFile)
 	}
-	file, err := os.Open(filepath)
+	file, err := os.Open(name)
 	if err != nil {
 		r.err = err
 		return r
 	}
-	r.files[formname] = formFile{file.Name(), file}
+	r.files[formname] = formFile{filepath.Base(name), file}
 	return r
 }
 
@@ -423,47 +424,49 @@ func (r *Request) Do() (err error) {
 	}
 	// handle request params
 	destUrl := r.url
-	if len(r.params) > 0 {
-		switch r.req.Method {
-		case "GET":
+
+	switch r.req.Method {
+	case "GET":
+		if len(r.params) > 0 {
 			destUrl = r.buildGetUrl()
-		case "POST", "PUT":
-			if len(r.files) > 0 { // upload file
-				pr, pw := io.Pipe()
-				bodyWriter := multipart.NewWriter(pw)
-				go func() {
-					for formname, form := range r.files {
-						fileWriter, err := bodyWriter.CreateFormFile(formname, form.filename)
-						if err != nil {
-							r.err = err
-							return
-						}
-
-						//iocopy
-						_, err = io.Copy(fileWriter, form.file)
-						if closer, ok := form.file.(io.Closer); ok {
-							closer.Close()
-						}
-						if err != nil {
-							r.err = err
-							return
-						}
+		}
+	case "POST", "PUT":
+		if len(r.files) > 0 { // upload file
+			pr, pw := io.Pipe()
+			bodyWriter := multipart.NewWriter(pw)
+			go func() {
+				for formname, form := range r.files {
+					fileWriter, err := bodyWriter.CreateFormFile(formname, form.filename)
+					if err != nil {
+						r.err = err
+						return
 					}
-					for k, v := range r.params {
-						bodyWriter.WriteField(k, v)
+					//iocopy
+					_, err = io.Copy(fileWriter, form.file)
+					if closer, ok := form.file.(io.Closer); ok {
+						closer.Close()
 					}
-					bodyWriter.Close()
-					pw.Close()
-				}()
-
-				r.Header("Content-Type", bodyWriter.FormDataContentType())
-				r.req.Body = ioutil.NopCloser(pr)
-			} else { // set params to body
+					if err != nil {
+						r.err = err
+						return
+					}
+				}
+				for k, v := range r.params {
+					bodyWriter.WriteField(k, v)
+				}
+				bodyWriter.Close()
+				pw.Close()
+			}()
+			r.Header("Content-Type", bodyWriter.FormDataContentType())
+			r.req.Body = ioutil.NopCloser(pr)
+		} else { // set params to body
+			if len(r.params) > 0 {
 				r.Header("Content-Type", "application/x-www-form-urlencoded")
 				r.Body(r.getParamBody())
 			}
 		}
 	}
+
 	// set url
 	u, err := url.Parse(destUrl)
 	if err != nil {
