@@ -111,19 +111,19 @@ func (r *Request) Headers(params M) *Request {
 
 // File upload the file with specified form name and file name,
 // and the file is come from disk with the given file name.
-func (r *Request) File(formname, filename string) *Request {
+func (r *Request) File(formname, filepath string) *Request {
 	if r == nil {
 		return nil
 	}
 	if r.files == nil {
 		r.files = make(map[string]formFile)
 	}
-	file, err := os.Open(filename)
+	file, err := os.Open(filepath)
 	if err != nil {
 		r.err = err
 		return r
 	}
-	r.files[formname] = formFile{filename, file}
+	r.files[formname] = formFile{file.Name(), file}
 	return r
 }
 
@@ -448,7 +448,6 @@ func (r *Request) Do() (err error) {
 							r.err = err
 							return
 						}
-
 					}
 					for k, v := range r.params {
 						bodyWriter.WriteField(k, v)
