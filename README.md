@@ -236,8 +236,10 @@ Use `File` method to upload file.
 ``` go
 resp, err := req.Post(url).File("avatar", "/Users/roc/Pictures/avatar.png").ReceiveResponse() // formname and filename
 fmt.Println(resp)
-
-file, _ = os.Open("/Users/roc/Pictures/avatar.png")
-resp, err = req.Post(url).FileReader("avatar", "myavatar", file).ReceiveResponse() // forname, filename in form and file.
+```
+Use `FileReader` method to upload file.
+``` go
+file, _ := os.Open("/Users/roc/Pictures/avatar.png")
+resp, err := req.Post(url).FileReader("avatar", "myavatar", file).ReceiveResponse() // forname, filename in form and file.
 fmt.Println(resp)
 ```
