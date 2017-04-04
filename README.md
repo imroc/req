@@ -234,6 +234,10 @@ req.Get(api2).Merge(r).InsecureTLS(false).String()
 ## Upload File
 Use `File` method to upload file.
 ``` go
-resp, err := req.Post(url).File("avatar", "avatar.png").ReceiveResponse() // formname and filename
+resp, err := req.Post(url).File("avatar", "/Users/roc/Pictures/avatar.png").ReceiveResponse() // formname and filename
+fmt.Println(resp)
+
+file, _ = os.Open("/Users/roc/Pictures/avatar.png")
+resp, err = req.Post(url).FileReader("avatar", "myavatar", file).ReceiveResponse() // forname, filename in form and file.
 fmt.Println(resp)
 ```
