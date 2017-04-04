@@ -20,13 +20,17 @@ var regBlank = regexp.MustCompile(`\s+`)
 
 // M represents the request params or headers.
 type M map[string]string
+type formFile struct {
+	filename string
+	file     io.Reader
+}
 
 // Request provides much easier useage than http.Request
 type Request struct {
 	err     error
 	url     string
 	params  M
-	files   map[string]string
+	files   map[string]formFile
 	req     *http.Request
 	resp    *Response
 	body    []byte
@@ -105,15 +109,34 @@ func (r *Request) Headers(params M) *Request {
 	return r
 }
 
-// File upload the file with specified form name and file name.
+// File upload the file with specified form name and file name,
+// and the file is come from disk with the given file name.
 func (r *Request) File(formname, filename string) *Request {
 	if r == nil {
 		return nil
 	}
 	if r.files == nil {
-		r.files = make(map[string]string)
+		r.files = make(map[string]formFile)
 	}
-	r.files[formname] = filename
+	file, err := os.Open(filename)
+	if err != nil {
+		r.err = err
+		return r
+	}
+	r.files[formname] = formFile{filename, file}
+	return r
+}
+
+// FileReader upload the file with specified form name and file name,
+// and the file is come from io.Reader.
+func (r *Request) FileReader(formname, filename string, file io.Reader) *Request {
+	if r == nil {
+		return nil
+	}
+	if r.files == nil {
+		r.files = make(map[string]formFile)
+	}
+	r.files[formname] = formFile{filename, file}
 	return r
 }
 
@@ -409,25 +432,23 @@ func (r *Request) Do() (err error) {
 				pr, pw := io.Pipe()
 				bodyWriter := multipart.NewWriter(pw)
 				go func() {
-					for formname, filename := range r.files {
-						fileWriter, err := bodyWriter.CreateFormFile(formname, filename)
+					for formname, form := range r.files {
+						fileWriter, err := bodyWriter.CreateFormFile(formname, form.filename)
 						if err != nil {
 							r.err = err
 							return
 						}
 
-						file, err := os.Open(filename)
-						if err != nil {
-							r.err = err
-							return
-						}
 						//iocopy
-						_, err = io.Copy(fileWriter, file)
-						file.Close()
+						_, err = io.Copy(fileWriter, form.file)
+						if closer, ok := form.file.(io.Closer); ok {
+							closer.Close()
+						}
 						if err != nil {
 							r.err = err
 							return
 						}
+
 					}
 					for k, v := range r.params {
 						bodyWriter.WriteField(k, v)
