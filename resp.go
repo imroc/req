@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-// Response wraps *http.Response, makes it much easier to handle reponse.
+// Response wraps *http.Response, makes it much easier to handle response.
 type Response struct {
 	resp *http.Response
 	body []byte
@@ -25,7 +25,7 @@ func WrapResponse(resp *http.Response) (r *Response) {
 
 var ErrNilResponse = errors.New("nil response")
 
-// GetReponse return the raw *http.Response inside the Response.
+// GetResponse return the raw *http.Response inside the Response.
 func (r *Response) GetResponse() *http.Response {
 	if r == nil {
 		return nil
