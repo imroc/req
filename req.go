@@ -26,7 +26,7 @@ type formFile struct {
 	file     io.Reader
 }
 
-// Request provides much easier useage than http.Request
+// Request provides much easier usage than http.Request
 type Request struct {
 	err     error
 	url     string
@@ -507,7 +507,7 @@ func (r *Request) Method(method string) *Request {
 	return r
 }
 
-// Format implements fmt.Formatter, format the request's infomation.
+// Format implements fmt.Formatter, format the request's information.
 func (r *Request) Format(s fmt.State, verb rune) {
 	if r == nil || r.req == nil {
 		return
@@ -530,7 +530,7 @@ func (r *Request) Format(s fmt.State, verb rune) {
 			fmt.Fprint(s, "\n\n")
 			resp.Format(s, verb)
 		}
-	} else if s.Flag('-') { // keep all infomations in one line.
+	} else if s.Flag('-') { // keep all informations in one line.
 		fmt.Fprint(s, r.req.Method, " ", r.GetUrl())
 		if len(r.body) > 0 {
 			str := regBlank.ReplaceAllString(string(r.body), "")
