@@ -27,6 +27,7 @@ type setting struct {
 	TLSClientConfig     *tls.Config
 	Transport           *http.Transport
 	Client              *http.Client
+	EnableKeepAlive     bool
 }
 
 func (r *Request) prepareSetting() bool {
@@ -63,6 +64,9 @@ func (r *Request) GetClient() *http.Client {
 func (r *Request) createTransport() *http.Transport {
 	s := r.setting
 	trans := &http.Transport{}
+	if !s.EnableKeepAlive {
+		trans.DisableKeepAlives = true
+	}
 	trans.Dial = func(network, address string) (conn net.Conn, err error) {
 		if s.DialTimeout > 0 {
 			conn, err = net.DialTimeout(network, address, s.DialTimeout)
@@ -132,7 +136,9 @@ func (r *Request) Transport(trans *http.Transport) *Request {
 		return nil
 	}
 	r.setting.Transport = trans
-	r.setting.Client = nil
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -142,8 +148,12 @@ func (r *Request) TLSClientConfig(config *tls.Config) *Request {
 		return nil
 	}
 	r.setting.TLSClientConfig = config
-	r.setting.Transport = nil
-	r.setting.Client = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -153,8 +163,12 @@ func (r *Request) Proxy(proxy func(*http.Request) (*url.URL, error)) *Request {
 		return nil
 	}
 	r.setting.Proxy = proxy
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -165,8 +179,12 @@ func (r *Request) Timeout(d time.Duration) *Request {
 		return nil
 	}
 	r.setting.Timeout = d
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -176,8 +194,12 @@ func (r *Request) TimeoutDial(d time.Duration) *Request {
 		return nil
 	}
 	r.setting.DialTimeout = d
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -187,8 +209,12 @@ func (r *Request) TimeoutRead(d time.Duration) *Request {
 		return nil
 	}
 	r.setting.ReadTimeout = d
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -198,8 +224,12 @@ func (r *Request) TimeoutWrite(d time.Duration) *Request {
 		return nil
 	}
 	r.setting.WriteTimeout = d
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -210,8 +240,12 @@ func (r *Request) TimeoutTLSHandshake(d time.Duration) *Request {
 		return nil
 	}
 	r.setting.TLSHandshakeTimeout = d
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -221,8 +255,27 @@ func (r *Request) InsecureTLS(ins bool) *Request {
 		return nil
 	}
 	r.setting.InsecureTLS = ins
-	r.setting.Client = nil
-	r.setting.Transport = nil
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
+	return r
+}
+
+// EnableKeepAlive set the default CookieJar to the request if enable==true, otherwise set to nil.
+func (r *Request) EnableKeepAlive(enable bool) *Request {
+	if !r.prepareSetting() {
+		return nil
+	}
+	r.setting.EnableKeepAlive = enable
+	if r.setting.Transport != nil {
+		r.setting.Transport = nil
+	}
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
@@ -236,7 +289,9 @@ func (r *Request) EnableCookie(enable bool) *Request {
 	} else {
 		r.setting.Jar = nil
 	}
-	r.setting.Client = nil
+	if r.setting.Client != nil {
+		r.setting.Client = nil
+	}
 	return r
 }
 
