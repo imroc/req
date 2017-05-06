@@ -1,245 +1,159 @@
-req
-==============
-[![GoDoc](https://godoc.org/github.com/imroc/req?status.svg)](https://godoc.org/github.com/imroc/req)
-
-req is a light weight golang http request library, and simple to the extreme.
-
-# Document
-[中文](README_ZH.md)
+# req
+A golang http request library.
 
 
-# Quick Start
-## Install
+Features
+========
+
+- light weight
+- simple
+- useful optional params (header,param,file...)
+- easy result converting (ToXML,ToJSON,ToFile)
+- easy debugging and logging (print info)
+
+Install
+=======
 ``` sh
 go get github.com/imroc/req
 ```
 
-## Basic 
+Quick Start
+=======
+request = method + url [+ options]  
+the options can be headers, params, files or body etc
 ``` go
-req.Get(url).String() // get response as string
-req.Post(url).Body(body).ToJSON(&foo) // set request body as string or []byte, get response unmarshal to struct.
-fmt.Println(req.Get("http://api.foo")) // GET http://api.foo {"code":0,"msg":"success"}
-/*
-	POST http://api.foo HTTP/1.1
-
-	Content-Type:application/x-www-form-urlencoded
-	User-Agent:Chrome/57.0.2987.110
-
-	id=1
-
-	HTTP/1.1 200 OK
-	Server:nginx
-	Set-Cookie:bla=3154899087195606076; expires=Wed, 29-Mar-17 09:18:18 GMT; domain=api.foo; path=/
-	Connection:keep-alive
-	Content-Type:application/json
-
-	{"code":0,"data":{"name":"req"}}
-*/
-fmt.Printf("%+v",req.Post("http://api.foo").Param("id","1").Header("User-Agent","Chrome/57.0.2987.110"))
+// execute a request
+func Do(method, url string, v ...interface{}) (*Req, error)
+// wraps Do
+func Get(url string, v ...interface{}) (*Req, error)
+func Post(url string, v ...interface{}) (*Req, error)
+......
 ```
 
-## Set Body, Params, Headers
-#### Body
+Examples
+=======
+[Basic](#Basic)  
+[Set Header](#Set-Header)  
+[Set Param](#Set-Param)  
+[Set Body](#Set-Body)  
+[Debug / Logging](#Debug-Logging)  
+[ToJSON / ToXML](#ToJSON-ToXML)  
+[Upload](#Upload)  
+[Download](#Download)  
+
+## <a name="Basic">Basic</a>
 ``` go
-r := req.Post(url).Body(`hello req`)
-r.GetBody() // hello req
-
-r.BodyJSON(&struct { // it could also could be string or []byte
-	Usename  string `json:"usename"`
-	Password string `json:"password"`
-}{
-	Username: "req",
-	Password: "req",
-})
-r.GetBody() // {"username":"req","password","req"}
-
-r.BodyXML(&foo)
+header := req.Header{
+	"Accept":        "application/json",
+	"Authorization": "Basic YWRtaW46YWRtaW4=",
+}
+param := req.Param{
+	"name": "imroc",
+	"cmd":  "add",
+}
+// only url is required, others are optional.
+r, err = req.Post("http://foo.bar/api", header, param)
+if err != nil {
+	log.Fatal(err)
+}
+r.ToJSON(&foo)       // response => struct/map
+log.Printf("%+v", r) // print info (try it, you may surprise) 
 ```
 
-#### Params
-**note** it will url encode your params automatically.
+## <a name="Set-Header">Set Header</a>
+use `req.Header`
 ``` go
-r := req.Get("http://api.foo").Params(req.M{
-	"username": "req",
-	"password": "req",
-})
-r.GetUrl() // http://api.foo?username=req&password=req
-
-r = req.Post(url).Param("username", "req")
-r.GetBody() // username=req
+authHeader := req.Header{
+	"Accept":        "application/json",
+	"Authorization": "Basic YWRtaW46YWRtaW4=",
+}
+req.Get("https://www.baidu.com", authHeader, req.Header{"User-Agent": "V1.1"})
+```
+use `http.Header`
+``` go
+header := make(http.Header)
+header.Set("Accept", "application/json")
+r, err := req.Get("https://www.baidu.com", header)
 ```
 
-#### Headers
+## <a name="Set-Param">Set Param</a>
+use `req.Param`
 ``` go
-r := req.Get("https://api.foo/get")
-r.Headers(req.M{
-	"Referer":    "http://api.foo",
-	"User-Agent": "Chrome/57.0.2987.110",
-})
-/*
-	GET https://api.foo/get HTTP/1.1
-	Referer:http://api.foo
-	User-Agent:Chrome/57.0.2987.110
-*/
-fmt.Printf("%+r", r)
+param := req.Param{
+	"id":  "imroc",
+	"pwd": "roc",
+}
+req.Get("http://foo.bar/api", param) // http://foo.bar/api?id=imroc&pwd=roc
+req.Post(url, param)                  // body => id=imroc&pwd=roc
 ```
 
-## Get Response
-```go
-r := req.Get(url)
-r.Response()   // *req.Response
-r.String()     // string
-r.Bytes()      // []byte
-r.ToJSON(&foo) // json->struct
-r.ToXML(&bar)  // xml->struct
-
-// ReceiveXXX will return error if error happens during
-// the request been executed.
-_, err = r.ReceiveResponse()
-_, err = r.ReceiveString()
-_, err = r.ReceiveBytes()
-```
-**NOTE:** By default, the underlying request will be executed only once when you call methods to get response like above.
-You can retry the request by calling `Do` method, which will always execute the request, or you can call `Undo`, making the request could be executed again when calling methods to get the response next time.
-
-## Print Detail
-Sometimes you might want to dump the detail about the http request and response for debug or logging reasons. 
-There are several format to print these detail infomation.
-
-
-#### Default Print
-Use `%v` or `%s` to get the info in default format.
+## <a name="Set-Body">Set Body</a>
+put `string`, `[]byte` and `io.Reader` as body directly.
 ``` go
-r := req.Get("http://api.foo/get")
-log.Printf("%v", r) // GET http://api.foo/get {"success":true,"data":"hello req"}
-r = req.Post("http://api.foo/post").Body(`{"uid":"1"}`)
-log.Println(r) // POST http://api.foo/post {"uid":"1"} {"success":true,"data":{"name":"req"}}
+req.Post(url, "id=roc&cmd=query")
 ```
-**NOTE** it will add newline if possible, keep it looks pretty. 
-
-
-#### Print All Infomation
-Use `%+v` or `%+s` to get the maximal detail infomation.
+put xml and json body
 ``` go
-r := req.Post("http://api.foo/post")
-r.Header("Referer": "http://api.foo")
-r.Params(req.M{
-	"p1": "1",
-	"p2": "2",
-})
-/*
-	POST http://api.foo/post HTTP/1.1
+req.Post(url, req.BodyJSON(&foo))
+req.Post(url, req.BodyXML(&bar))
+```
 
-	Referer:http://api.foo
-	Content-Type:application/x-www-form-urlencoded
-
-	p1=1&p2=2
-
-	HTTP/1.1 200 OK
-	Server:nginx
-	Set-Cookie:bla=3154899087195606076; expires=Wed, 29-Mar-17 09:18:18 GMT; domain=api.foo; path=/
-	Expires:Thu, 30 Mar 2017 09:18:13 GMT
-	Cache-Control:max-age=86400
-	Date:Wed, 29 Mar 2017 09:18:13 GMT
-	Connection:keep-alive
-	Accept-Ranges:bytes
-	Content-Type:application/json
-
-	{"code":0,"data":{"name":"req"}}
-*/
+## <a name="Debug-Logging">Debug / Logging</a>
+use `%+v` format to print info in detail
+``` go
+r, _ := req.Post(url, header, param)
 log.Printf("%+v", r)
+/*
+	POST http://foo.bar/api HTTP/1.1
+	Authorization:Basic YWRtaW46YWRtaW4=
+	Accept:application/json
+	Content-Type:application/x-www-form-urlencoded
+
+	city=Chengdu&cmd=list_gopher
+
+	HTTP/1.1 200 OK
+	Content-Type:application/json; charset=UTF-8
+	Date:Wed, 03 May 2017 09:39:27 GMT
+	Content-Length:39
+
+	{"code":0,"name":["imroc","yulibaozi"]}
+*/
 ```
-As you can see, it will print the request Method,URL,Proto,[Request Header],[Request Body],[Response Header],[Response Body]
-
-
-#### Print In Oneline
-Use `%-v` or `%-s` keeps info in one line (delete all blank characters if possible), this is useful while logging.
+use `%v` format to print info simple
 ``` go
-r := req.Get("http://api.foo/get")
-// it print every thing in one line, even if '\n' exsist in reqeust body or response body.
-log.Printf("%-v\n",r) // GET http://api.foo/get {"code":3019,"msg":"system busy"}
+r, _ := req.Get(url, param)
+log.Printf("%v", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg":"success"}
 ```
+and the `%-v` format is similar to `%v`, the only difference is that it removes all blank characters, keep content minimal and in one line, it is useful while logging.
 
-
-#### Print Request Only (No Response Info)
-Use `%r`, `%+r` or `%-r` only print the request itself, no response.
+## <a name="ToJSON-ToXML">ToJSON / ToXML</a>
 ``` go
-r := req.Post("https://api.foo").Body(`name=req`)
-fmt.Printf("%r", r) // POST https://api.foo name=req
-```
-**NOTE** in other format above, it will execute the underlying request to get response if the request is not executed yet, you can disable that by using this format.
-
-
-#### Print Response Only
-You need get the *req.Response, use `%v`,`%s`,`%+v`,`%+s`,`%-v`,`%-s` to print formatted response info.
-``` go
-resp := req.Get(url).Response()
-log.Println(resp)
-log.Printf("%-s", resp)
-log.Printf("%+s", resp)
-```
-
-## Setting
-#### Set Timeout
-``` go
-req.Get(url).
-	Timeout(60 * time.Second).             // total timeout
-	TimeoutRead(40 * time.Second).         // read timeout
-	TimeoutWrite(30 * time.Second).        // write timeout
-	TimeoutDial(20 * time.Second).         // dial timeout
-	TimeoutTLSHandshake(10 * time.Second). // https handshake timeout
-	String()
+r, _ := req.Get(url)
+r.ToJSON(&foo)
+r, _ = req.Post(url, req.BodyXML(&bar))
+r.ToXML(&baz)
 ```
 
-#### Set Proxy
+## <a name="Upload">Upload</a>
+specify filename
 ``` go
-req.Get(url).
-	Proxy(func(r *http.Request) (*url.URL, error) {
-		return url.Parse("http://localhost:40012")
-	}).String()
+req.Post(url, req.File("imroc.png"), req.File("/bin/sh"))
 ```
-
-#### Allow Insecure Https (Skip Verify Certificate Chain And Host Name)
+match pattern
 ``` go
-req.Get(url).InsecureTLS(true).String()
+req.Post(url, req.FileGlob("/usr/*/bin/go*"))
 ```
-
-#### More Setting
-req uses `http.Client` and `http.Transport` internally, and you can easily modify it, making it has much more potential. You can call `GetClient` or `GetTransport` to get the generated `*http.Client` and `*http.Transport`
+use `req.FileUpload`
 ``` go
-r := req.Get(url)
-r.GetTransport().MaxIdleConns = 100
-r.GetClient().Jar, _ = cookiejar.New(nil) // manage cookie
+file, _ := os.Open("imroc.png")
+req.Post(url, req.FileUpload{
+	File:      file,
+	FieldName: "file",
+	FileName:  "avatar.png",
+})
 ```
-
-## Share Attributes In Different Requests.
-The `Merge` method can merge another request's attributes into current request.
+## <a name="Download">Download</a>
 ``` go
-// create shared attributes.
-r := req.New()
-r.Header("User-Agent", "V1.1.1")
-r.Timeout(10 * time.Second)
-r.Param("access_token", token)
-r.Proto("HTTP/2")
-r.EnableCookie(true)
-r.Cookie(&http.Cookie{Name: "sessionid", Value: "FHJ67GHJ67G8G65HJJ", Path: "/", MaxAge: 86400})
-r.BasicAuth("roc", "req")
-r.InsecureTLS(true)
-
-// merge shared attributes into each requests.
-req.Get(api1).Merge(r).String()
-req.Get(api2).Merge(r).InsecureTLS(false).String()
-```
-
-## Upload File
-Use `File` method to upload file.
-``` go
-resp, err := req.Post(url).File("avatar", "/Users/roc/Pictures/avatar.png").ReceiveResponse() // formname and filename
-fmt.Println(resp)
-```
-Use `FileReader` method to upload file.
-``` go
-file, _ := os.Open("/Users/roc/Pictures/avatar.png")
-resp, err := req.Post(url).FileReader("avatar", "myavatar", file).ReceiveResponse() // forname, filename in form and file.
-fmt.Println(resp)
+r, _ := req.Get(url)
+r.ToFile("imroc.png")
 ```
