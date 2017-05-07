@@ -65,10 +65,8 @@ func init() {
 
 // Req represents a request with it's response
 type Req struct {
-	req  *http.Request
-	resp *http.Response
-	//client *http.Client
-	//getBody  func() io.ReadCloser
+	req      *http.Request
+	resp     *http.Response
 	reqBody  []byte
 	respBody []byte
 }
