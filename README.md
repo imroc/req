@@ -163,6 +163,7 @@ req.Post(url, req.FileUpload{
 	FileName:  "avatar.png",
 })
 ```
+
 ## <a name="Download">Download</a>
 ``` go
 r, _ := req.Get(url)

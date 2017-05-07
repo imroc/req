@@ -148,6 +148,11 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		pr, pw := io.Pipe()
 		bodyWriter := multipart.NewWriter(pw)
 		go func() {
+			for _, p := range param {
+				for key, value := range p {
+					bodyWriter.WriteField(key, value)
+				}
+			}
 			i := 0
 			for _, f := range file {
 				if f.FieldName == "" {
@@ -166,11 +171,6 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 					return
 				}
 				f.File.Close()
-			}
-			for _, p := range param {
-				for key, value := range p {
-					bodyWriter.WriteField(key, value)
-				}
 			}
 			bodyWriter.Close()
 			pw.Close()
