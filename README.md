@@ -45,6 +45,7 @@ Examples
 [Download](#Download)  
 [Cookie](#Cookie)  
 [Set Timeout](#Set-Timeout)  
+[Set Proxy](#Set-Proxy)  
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -178,4 +179,19 @@ req.Get(url, cookie)
 ## <a name="Set-Timeout">Set Timeout</a>
 ``` go
 req.SetTimeout(50 * time.Second)
+```
+
+## <a name="Set-Proxy">Set Proxy</a>
+By default, req use proxy from system environment if `http_proxy` or `https_proxy` is specified, you can set a custom proxy or disable it by set `nil`
+``` go
+req.SetProxy(func(r *http.Request) (*url.URL, error) {
+	if strings.Contains(r.URL.Hostname(), "google") {
+		return url.Parse("http://my.vpn.com:23456")
+	}
+	return nil, nil
+})
+```
+Set a simple proxy (use fixed proxy url for every request)
+``` go
+req.SetProxyUrl("http://my.proxy.com:23456")
 ```

@@ -2,8 +2,10 @@ package req
 
 import (
 	"crypto/tls"
+	"errors"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"time"
 )
 
@@ -44,4 +46,28 @@ func EnableCookie(enable bool) {
 // SetTimeout sets the timeout for every request
 func SetTimeout(d time.Duration) {
 	getClient().Timeout = d
+}
+
+// SetProxyUrl set the simple proxy with fixed proxy url
+func SetProxyUrl(rawurl string) error {
+	trans := getTransport()
+	if trans == nil {
+		return errors.New("req: no transport")
+	}
+	u, err := url.Parse(rawurl)
+	if err != nil {
+		return err
+	}
+	trans.Proxy = http.ProxyURL(u)
+	return nil
+}
+
+// SetProxy sets the proxy for every request
+func SetProxy(proxy func(*http.Request) (*url.URL, error)) error {
+	trans := getTransport()
+	if trans == nil {
+		return errors.New("req: no transport")
+	}
+	trans.Proxy = proxy
+	return nil
 }
