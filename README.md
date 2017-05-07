@@ -177,5 +177,5 @@ req.Get(url, cookie)
 
 ## <a name="Set-Timeout">Set Timeout</a>
 ``` go
-req.SetTimeout(1 * time.Second)
+req.SetTimeout(50 * time.Second)
 ```
