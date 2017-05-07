@@ -1,5 +1,8 @@
 # req
+[![GoDoc](https://godoc.org/github.com/imroc/req?status.svg)](https://godoc.org/github.com/imroc/req)
+
 A golang http request library.
+
 
 
 Features
