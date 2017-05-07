@@ -363,7 +363,7 @@ func (r *Req) ToFile(name string) error {
 	return nil
 }
 
-var regBlank = regexp.MustCompile(`\s+`)
+var regNewline = regexp.MustCompile(`\n|\r`)
 
 func (r *Req) Format(s fmt.State, verb rune) {
 	if r == nil || r.req == nil {
@@ -398,11 +398,11 @@ func (r *Req) Format(s fmt.State, verb rune) {
 	} else if s.Flag('-') { // keep all informations in one line.
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
 		if len(r.reqBody) > 0 {
-			str := regBlank.ReplaceAllString(string(r.reqBody), "")
+			str := regNewline.ReplaceAllString(string(r.reqBody), "")
 			fmt.Fprint(s, str)
 		}
-		if str := string(r.reqBody); str != "" {
-			str = regBlank.ReplaceAllString(str, "")
+		if str := string(r.respBody); str != "" {
+			str = regNewline.ReplaceAllString(str, "")
 			fmt.Fprint(s, " ", str)
 		}
 	} else { // auto
