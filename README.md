@@ -39,7 +39,8 @@ Examples
 [Debug / Logging](#Debug-Logging)  
 [ToJSON / ToXML](#ToJSON-ToXML)  
 [Upload](#Upload)  
-[Download](#Download)  
+[Download](#Download) 
+[Cookie](#Cookie)
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -156,4 +157,16 @@ req.Post(url, req.FileUpload{
 ``` go
 r, _ := req.Get(url)
 r.ToFile("imroc.png")
+```
+
+## <a name="Cookie">Cookie</a>
+By default, the underlying `*http.Client` will manage your cookie(send cookie header to server automatically if server has set a cookie for you), you can disable it by calling this function :
+``` go
+req.EnableCookie(false)
+```
+and you can set cookie in request just using `*http.Cookie`
+``` go
+cookie := new(http.Cookie)
+......
+req.Get(url, cookie)
 ```

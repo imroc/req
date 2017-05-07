@@ -98,6 +98,16 @@ func EnableInsecureTLS(enable bool) {
 	trans.TLSClientConfig.InsecureSkipVerify = enable
 }
 
+// enable or disable cookie manager
+func EnableCookie(enable bool) {
+	if enable {
+		jar, _ := cookiejar.New(nil)
+		getClient().Jar = jar
+	} else {
+		getClient().Jar = nil
+	}
+}
+
 // Do execute request.
 func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	if rawurl == "" {
@@ -164,6 +174,8 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 				file = make([]FileUpload, len(t))
 			}
 			copy(file, t)
+		case *http.Cookie:
+			req.AddCookie(t)
 		case error:
 			err = t
 			return
