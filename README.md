@@ -43,7 +43,8 @@ Examples
 [ToJSON / ToXML](#ToJSON-ToXML)  
 [Upload](#Upload)  
 [Download](#Download)  
-[Cookie](#Cookie)
+[Cookie](#Cookie)  
+[Set Timeout](#Set-Timeout)  
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -128,7 +129,7 @@ use `%v` format to print info simple
 r, _ := req.Get(url, param)
 log.Printf("%v", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg":"success"}
 ```
-and the `%-v` format is similar to `%v`, the only difference is that it removes all blank characters, keep content minimal and in one line, it is useful while logging.
+and the `%-v` format is similar to `%v`, the only difference is that it removes all blank characters, keep content minimal and in one line, it is useful while logging.
 
 ## <a name="ToJSON-ToXML">ToJSON / ToXML</a>
 ``` go
@@ -172,4 +173,9 @@ and you can set cookie in request just using `*http.Cookie`
 cookie := new(http.Cookie)
 ......
 req.Get(url, cookie)
+```
+
+## <a name="Set-Timeout">Set Timeout</a>
+``` go
+req.SetTimeout(1 * time.Second)
 ```
