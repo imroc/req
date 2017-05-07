@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+// Client return the default underlying http client
+func Client() *http.Client {
+	return defaultClient
+}
+
 // SetClient sets the default http.Client for requests.
 func SetClient(client *http.Client) {
 	if client != nil {

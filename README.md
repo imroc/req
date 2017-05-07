@@ -17,6 +17,7 @@ Features
 - easy to manage cookie
 - easy to set up proxy
 - easy to set timeout
+- easy to customize http client
 
 Install
 =======
@@ -50,7 +51,7 @@ Examples
 [Cookie](#Cookie)  
 [Set Timeout](#Set-Timeout)  
 [Set Proxy](#Set-Proxy)  
-[Set Client](#Set-Client)  
+[Client](#Client)  
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -202,8 +203,22 @@ Set a simple proxy (use fixed proxy url for every request)
 req.SetProxyUrl("http://my.proxy.com:23456")
 ```
 
-## <a name="Set-Client">Set Client</a>
+## <a name="Client">Client</a>
 Use `req.SetClient` to change the default underlying `*http.Client`
 ``` go
 req.SetClient(client)
+```
+Only specify client for some request
+``` go
+client := &http.Client{Timeout: 30 * time.Second}
+req.Get(url, client)
+```
+Change some properties of default client you want
+``` go
+req.Client().Jar, _ = cookiejar.New(nil)
+trans, _ := req.Client().Transport.(*http.Transport)
+trans.MaxIdleConns = 20
+trans.TLSHandshakeTimeout = 20 * time.Second
+trans.DisableKeepAlives = true
+trans.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 ```
