@@ -111,27 +111,17 @@ req.Post(url, req.BodyXML(&bar))
 ```
 
 ## <a name="Debug-Logging">Debug / Logging</a>
-use `%+v` format to print info in detail
+Enable debug mode
+``` go
+req.Debug = true
+req.Get(url) // it will print the debug info, try it :)
+```
+Use `%+v` format to print debug info
 ``` go
 r, _ := req.Post(url, header, param)
 log.Printf("%+v", r)
-/*
-	POST http://foo.bar/api HTTP/1.1
-	Authorization:Basic YWRtaW46YWRtaW4=
-	Accept:application/json
-	Content-Type:application/x-www-form-urlencoded
-
-	city=Chengdu&cmd=list_gopher
-
-	HTTP/1.1 200 OK
-	Content-Type:application/json; charset=UTF-8
-	Date:Wed, 03 May 2017 09:39:27 GMT
-	Content-Length:39
-
-	{"code":0,"name":["imroc","yulibaozi"]}
-*/
 ```
-use `%v` format to print info simple
+Use `%v` format to print info simple
 ``` go
 r, _ := req.Get(url, param)
 log.Printf("%v", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg":"success"}
@@ -147,15 +137,11 @@ r.ToXML(&baz)
 ```
 
 ## <a name="Upload">Upload</a>
-specify filename
+Use `req.File` to match files
 ``` go
-req.Post(url, req.File("imroc.png"), req.File("/bin/sh"))
+req.Post(url, req.File("imroc.png"), req.File("/Users/roc/Pictures/*.png"))
 ```
-match pattern
-``` go
-req.Post(url, req.FileGlob("/usr/*/bin/go*"))
-```
-use `req.FileUpload`
+Use `req.FileUpload` to fully control
 ``` go
 file, _ := os.Open("imroc.png")
 req.Post(url, req.FileUpload{

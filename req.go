@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -37,6 +38,7 @@ type FileUpload struct {
 	File io.ReadCloser
 }
 
+var Debug bool
 var defaultClient *http.Client
 var regTextContentType = regexp.MustCompile("xml|json|text")
 
@@ -63,11 +65,19 @@ func init() {
 
 // Req represents a request with it's response
 type Req struct {
-	req      *http.Request
-	resp     *http.Response
-	client   *http.Client
+	req  *http.Request
+	resp *http.Response
+	//client *http.Client
+	//getBody  func() io.ReadCloser
 	reqBody  []byte
 	respBody []byte
+}
+
+func (r *Req) getReqBody() io.ReadCloser {
+	if r.reqBody == nil {
+		return nil
+	}
+	return ioutil.NopCloser(bytes.NewReader(r.reqBody))
 }
 
 // Do execute request.
@@ -87,24 +97,17 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		if b == nil {
 			return
 		}
-		if b.Content == nil {
-			if b.Data == nil {
-				return
-			}
-			b.Content = ioutil.NopCloser(bytes.NewReader(b.Data))
-		}
-		req.Body = b.Content
+		r.reqBody = b.Data
+		req.Body = r.getReqBody()
+		req.ContentLength = int64(len(r.reqBody))
 		if b.ContentType != "" && req.Header.Get("Content-Type") == "" {
 			req.Header.Set("Content-Type", b.ContentType)
-		}
-		if b.Data != nil {
-			r.reqBody = b.Data
-			req.ContentLength = int64(len(b.Data))
 		}
 	}
 
 	var param []Param
 	var file []FileUpload
+	var client *http.Client
 	for _, p := range v {
 		switch t := p.(type) {
 		case Header:
@@ -114,28 +117,31 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		case http.Header:
 			req.Header = t
 		case io.Reader:
+			bs, err := ioutil.ReadAll(t)
+			if err != nil {
+				return nil, err
+			}
+			handleBody(&body{Data: bs})
 			if rc, ok := t.(io.ReadCloser); ok {
-				req.Body = rc
-			} else {
-				req.Body = ioutil.NopCloser(t)
+				rc.Close()
 			}
 		case *body:
 			handleBody(t)
 		case Param:
 			param = append(param, t)
 		case string:
-			handleBody(&body{Content: ioutil.NopCloser(strings.NewReader(t)), Data: []byte(t)})
+			handleBody(&body{Data: []byte(t)})
 		case []byte:
-			handleBody(&body{Content: ioutil.NopCloser(bytes.NewReader(t)), Data: t})
+			handleBody(&body{Data: []byte(t)})
 		case *http.Client:
-			r.client = t
+			client = t
 		case FileUpload:
 			file = append(file, t)
 		case []FileUpload:
 			if file == nil {
-				file = make([]FileUpload, len(t))
+				file = make([]FileUpload, 0)
 			}
-			copy(file, t)
+			file = append(file, t...)
 		case *http.Cookie:
 			req.AddCookie(t)
 		case error:
@@ -154,6 +160,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 				}
 			}
 			i := 0
+			fmt.Println(file)
 			for _, f := range file {
 				if f.FieldName == "" {
 					i++
@@ -192,10 +199,12 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 				rawurl = rawurl + "&" + paramStr
 			}
 		} else {
+			if req.Body != nil {
+				return nil, errors.New("req: can not set both body and params")
+			}
 			body := &body{
 				ContentType: "application/x-www-form-urlencoded",
 				Data:        []byte(paramStr),
-				Content:     ioutil.NopCloser(strings.NewReader(paramStr)),
 			}
 			handleBody(body)
 		}
@@ -207,11 +216,11 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	}
 	req.URL = u
 
-	if r.client == nil {
-		r.client = defaultClient
+	if client == nil {
+		client = defaultClient
 	}
 
-	resp, errDo := r.client.Do(req)
+	resp, errDo := client.Do(req)
 	if err != nil {
 		return r, err
 	}
@@ -227,13 +236,41 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		}
 		r.respBody = respBody
 	}
+	if Debug {
+		fmt.Println(r.dump())
+	}
 	return
+}
+
+func (r *Req) dump() string {
+	var rreq *http.Request
+	if body := r.getReqBody(); body != nil {
+		copy := *r.req
+		rreq = &copy
+		rreq.Body = body
+	} else {
+		rreq = r.req
+	}
+	dump, err := httputil.DumpRequestOut(rreq, true)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println(string(dump))
+	fmt.Println()
+
+	if r.respBody != nil {
+		r.resp.Body = ioutil.NopCloser(bytes.NewReader(r.respBody))
+	}
+	dump, err = httputil.DumpResponse(r.resp, true)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	return string(dump)
 }
 
 // Body represents request's body
 type body struct {
 	ContentType string
-	Content     io.ReadCloser
 	Data        []byte
 }
 
@@ -242,20 +279,14 @@ func BodyXML(v interface{}) interface{} {
 	b := new(body)
 	switch t := v.(type) {
 	case string:
-		bf := bytes.NewBufferString(t)
-		b.Content = ioutil.NopCloser(bf)
 		b.Data = []byte(t)
 	case []byte:
-		bf := bytes.NewBuffer(t)
-		b.Content = ioutil.NopCloser(bf)
 		b.Data = t
 	default:
 		bs, err := xml.Marshal(v)
 		if err != nil {
 			return err
 		}
-		bf := bytes.NewBuffer(bs)
-		b.Content = ioutil.NopCloser(bf)
 		b.Data = bs
 	}
 	b.ContentType = "text/xml"
@@ -267,47 +298,33 @@ func BodyJSON(v interface{}) interface{} {
 	b := new(body)
 	switch t := v.(type) {
 	case string:
-		bf := bytes.NewBufferString(t)
-		b.Content = ioutil.NopCloser(bf)
 		b.Data = []byte(t)
 	case []byte:
-		bf := bytes.NewBuffer(t)
-		b.Content = ioutil.NopCloser(bf)
 		b.Data = t
 	default:
 		bs, err := json.Marshal(v)
 		if err != nil {
 			return err
 		}
-		bf := bytes.NewBuffer(bs)
-		b.Content = ioutil.NopCloser(bf)
 		b.Data = bs
 	}
 	b.ContentType = "text/json"
 	return b
 }
 
-// File upload file of the specified filename.
-func File(filename string) interface{} {
-	file, err := os.Open(filename)
-	if err != nil {
-		return err
-	}
-	return FileUpload{
-		File:     file,
-		FileName: filepath.Base(filename),
-	}
-}
-
-// FileGlob upload files matching the name pattern such as
+// File upload files matching the name pattern such as
 // /usr/*/bin/go* (assuming the Separator is '/')
-func FileGlob(pattern string) interface{} {
-	matches, err := filepath.Glob(pattern)
-	if err != nil {
-		return err
+func File(patterns ...string) interface{} {
+	matches := []string{}
+	for _, pattern := range patterns {
+		m, err := filepath.Glob(pattern)
+		if err != nil {
+			return err
+		}
+		matches = append(matches, m...)
 	}
 	if len(matches) == 0 {
-		return errors.New("req: No files have been matched")
+		return errors.New("req: No file have been matched")
 	}
 	uploads := []FileUpload{}
 	for _, match := range matches {
@@ -317,6 +334,7 @@ func FileGlob(pattern string) interface{} {
 		file, _ := os.Open(match)
 		uploads = append(uploads, FileUpload{File: file, FileName: filepath.Base(match)})
 	}
+
 	return uploads
 }
 
@@ -371,44 +389,21 @@ func (r *Req) Format(s fmt.State, verb rune) {
 	}
 	req := r.req
 	if s.Flag('+') { // include header and format pretty.
-		fmt.Fprint(s, req.Method, " ", req.URL.String(), " ", req.Proto)
-		for name, values := range req.Header {
-			for _, value := range values {
-				fmt.Fprint(s, "\n", name, ":", value)
-			}
-		}
-		if len(r.reqBody) > 0 {
-			fmt.Fprint(s, "\n\n", string(r.reqBody))
-		}
-		if r.resp != nil {
-			resp := r.resp
-			fmt.Fprint(s, "\n\n")
-			fmt.Fprint(s, resp.Proto, " ", resp.Status) // e.g. HTTP/1.1 200 OK
-			//header
-			if len(resp.Header) > 0 {
-				for name, values := range resp.Header {
-					for _, value := range values {
-						fmt.Fprintf(s, "\n%s:%s", name, value)
-					}
-				}
-			}
-			//body
-			fmt.Fprint(s, "\n\n", string(r.respBody))
-		}
+		fmt.Fprint(s, r.dump())
 	} else if s.Flag('-') { // keep all informations in one line.
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
 		if len(r.reqBody) > 0 {
-			str := regNewline.ReplaceAllString(string(r.reqBody), "")
-			fmt.Fprint(s, str)
+			str := regNewline.ReplaceAllString(string(r.reqBody), " ")
+			fmt.Fprint(s, " ", str)
 		}
 		if str := string(r.respBody); str != "" {
-			str = regNewline.ReplaceAllString(str, "")
+			str = regNewline.ReplaceAllString(str, " ")
 			fmt.Fprint(s, " ", str)
 		}
 	} else { // auto
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
 		respBody := r.respBody
-		if (len(r.reqBody) > 0 && bytes.IndexByte(r.reqBody, '\n') != -1) || (len(respBody) > 0 && bytes.IndexByte(respBody, '\n') != -1) { // pretty format
+		if (len(r.reqBody) > 0 && regNewline.Match(r.reqBody)) || (len(respBody) > 0 && regNewline.Match(respBody)) { // pretty format
 			if len(r.reqBody) > 0 {
 				fmt.Fprint(s, "\n", string(r.reqBody))
 			}
