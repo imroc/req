@@ -51,7 +51,7 @@ Examples
 [Cookie](#Cookie)  
 [Set Timeout](#Set-Timeout)  
 [Set Proxy](#Set-Proxy)  
-[Client](#Client)  
+[Customize Client](#Customize-Client)  
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -203,7 +203,7 @@ Set a simple proxy (use fixed proxy url for every request)
 req.SetProxyUrl("http://my.proxy.com:23456")
 ```
 
-## <a name="Client">Client</a>
+## <a name="Customize-Client">Customize Client</a>
 Use `req.SetClient` to change the default underlying `*http.Client`
 ``` go
 req.SetClient(client)
