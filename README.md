@@ -42,7 +42,7 @@ Examples
 [Debug / Logging](#Debug-Logging)  
 [ToJSON / ToXML](#ToJSON-ToXML)  
 [Upload](#Upload)  
-[Download](#Download) 
+[Download](#Download)  
 [Cookie](#Cookie)
 
 ## <a name="Basic">Basic</a>
