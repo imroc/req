@@ -26,8 +26,8 @@ go get github.com/imroc/req
 
 Quick Start
 =======
-request = method + url [+ options]  
-the options can be headers, params, files or body etc
+`Request = Method + Url [+ Options]`  
+the "`Options`" can be headers, params, files or body etc
 ``` go
 // execute a request
 func Do(method, url string, v ...interface{}) (*Req, error)
@@ -50,6 +50,7 @@ Examples
 [Cookie](#Cookie)  
 [Set Timeout](#Set-Timeout)  
 [Set Proxy](#Set-Proxy)  
+[Set Client](#Set-Client)  
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -198,4 +199,10 @@ req.SetProxy(func(r *http.Request) (*url.URL, error) {
 Set a simple proxy (use fixed proxy url for every request)
 ``` go
 req.SetProxyUrl("http://my.proxy.com:23456")
+```
+
+## <a name="Set-Client">Set Client</a>
+Use `req.SetClient` to change the default underlying `*http.Client`
+``` go
+req.SetClient(client)
 ```

@@ -37,9 +37,6 @@ type FileUpload struct {
 	File io.ReadCloser
 }
 
-// custom http client
-var Client *http.Client
-
 var defaultClient *http.Client
 var regTextContentType = regexp.MustCompile("xml|json|text")
 
@@ -211,11 +208,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	req.URL = u
 
 	if r.client == nil {
-		if Client != nil {
-			r.client = Client
-		} else {
-			r.client = defaultClient
-		}
+		r.client = defaultClient
 	}
 
 	resp, errDo := r.client.Do(req)

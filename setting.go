@@ -9,15 +9,15 @@ import (
 	"time"
 )
 
-func getClient() *http.Client {
-	if Client != nil {
-		return Client
+// SetClient sets the default http.Client for requests.
+func SetClient(client *http.Client) {
+	if client != nil {
+		defaultClient = client
 	}
-	return defaultClient
 }
 
 func getTransport() *http.Transport {
-	trans, _ := getClient().Transport.(*http.Transport)
+	trans, _ := defaultClient.Transport.(*http.Transport)
 	return trans
 }
 
@@ -37,15 +37,15 @@ func EnableInsecureTLS(enable bool) {
 func EnableCookie(enable bool) {
 	if enable {
 		jar, _ := cookiejar.New(nil)
-		getClient().Jar = jar
+		defaultClient.Jar = jar
 	} else {
-		getClient().Jar = nil
+		defaultClient.Jar = nil
 	}
 }
 
 // SetTimeout sets the timeout for every request
 func SetTimeout(d time.Duration) {
-	getClient().Timeout = d
+	defaultClient.Timeout = d
 }
 
 // SetProxyUrl set the simple proxy with fixed proxy url
