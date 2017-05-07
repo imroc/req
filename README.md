@@ -10,10 +10,11 @@ Features
 
 - light weight
 - simple
-- easy to set headers and params (`req.Header`, `req.Param`)
+- easy to set headers and params
 - easy to deserialize response ([`ToJSON`, `ToXML`](#ToJSON-ToXML))
 - easy to debug and logging ([print info](#Debug-Logging))
 - easy to upload and download
+- easy to manage cookie
 - easy to set up proxy
 - easy to set timeout
 
