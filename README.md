@@ -26,16 +26,13 @@ go get github.com/imroc/req
 
 Quick Start
 =======
-`Request = Method + Url [+ Options]`  
-the "`Options`" can be headers, params, files or body etc
+Only url is required, others are optional, like headers, params, files or body etc
 ``` go
-// execute a request
-func Do(method, url string, v ...interface{}) (*Req, error)
-// wraps Do
 func Get(url string, v ...interface{}) (*Req, error)
 func Post(url string, v ...interface{}) (*Req, error)
 ......
 ```
+The struct `Req` hold both request and response infomation.
 
 Examples
 =======
