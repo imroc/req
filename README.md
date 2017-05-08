@@ -8,16 +8,15 @@ A golang http request library for human
 Features
 ========
 
-- light weight
-- simple
-- easy to set headers and params
-- easy to deserialize response ([`ToJSON`, `ToXML`](#ToJSON-ToXML))
-- easy to debug and logging ([print info](#Debug-Logging))
-- easy to upload and download
-- easy to manage cookie
-- easy to set up proxy
-- easy to set timeout
-- easy to customize http client
+- Light weight
+- Simple
+- Easy play with JSON and XML
+- Easy for debug and logging
+- Easy file uploads and downloads
+- Easy manage cookie
+- Easy set up proxy
+- Easy set timeout
+- Easy customize http client
 
 Install
 =======
@@ -44,8 +43,9 @@ Examples
 [Set Header](#Set-Header)  
 [Set Param](#Set-Param)  
 [Set Body](#Set-Body)  
-[Debug / Logging](#Debug-Logging)  
-[ToJSON / ToXML](#ToJSON-ToXML)  
+[Debug & Logging](#Debug-Logging)  
+[ToJSON & ToXML](#ToJSON-ToXML)  
+[Get *http.Response](#Response)  
 [Upload](#Upload)  
 [Download](#Download)  
 [Cookie](#Cookie)  
@@ -110,7 +110,7 @@ req.Post(url, req.BodyJSON(&foo))
 req.Post(url, req.BodyXML(&bar))
 ```
 
-## <a name="Debug-Logging">Debug / Logging</a>
+## <a name="Debug-Logging">Debug & Logging</a>
 Enable debug mode
 ``` go
 req.Debug = true
@@ -128,12 +128,20 @@ log.Printf("%v", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg"
 ```
 and the `%-v` format is similar to `%v`, the only difference is that it always keep the content in one line, it is useful while logging.
 
-## <a name="ToJSON-ToXML">ToJSON / ToXML</a>
+## <a name="ToJSON-ToXML">ToJSON & ToXML</a>
 ``` go
 r, _ := req.Get(url)
 r.ToJSON(&foo)
 r, _ = req.Post(url, req.BodyXML(&bar))
 r.ToXML(&baz)
+```
+
+## <a name="Response">Get *http.Response</a>
+```go
+// func (r *Req) Response() *http.Response
+r, _ := req.Get(url)
+resp := r.Response()
+fmt.Println(resp.StatusCode)
 ```
 
 ## <a name="Upload">Upload</a>
