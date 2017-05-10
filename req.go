@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
-	"net/http/httputil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -38,7 +37,12 @@ type FileUpload struct {
 	File io.ReadCloser
 }
 
+// Debug enable debug mode if set to true
 var Debug bool
+
+// ShowCost show the time spent by the request if set to true
+var ShowCost bool
+
 var defaultClient *http.Client
 var regTextContentType = regexp.MustCompile("xml|json|text")
 
@@ -67,8 +71,10 @@ func init() {
 type Req struct {
 	req      *http.Request
 	resp     *http.Response
+	client   *http.Client
 	reqBody  []byte
 	respBody []byte
+	cost     time.Duration
 }
 
 func (r *Req) getReqBody() io.ReadCloser {
@@ -105,7 +111,6 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 
 	var param []Param
 	var file []FileUpload
-	var client *http.Client
 	for _, p := range v {
 		switch t := p.(type) {
 		case Header:
@@ -132,7 +137,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		case []byte:
 			handleBody(&body{Data: []byte(t)})
 		case *http.Client:
-			client = t
+			r.client = t
 		case FileUpload:
 			file = append(file, t)
 		case []FileUpload:
@@ -158,7 +163,6 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 				}
 			}
 			i := 0
-			fmt.Println(file)
 			for _, f := range file {
 				if f.FieldName == "" {
 					i++
@@ -214,11 +218,13 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	}
 	req.URL = u
 
-	if client == nil {
-		client = defaultClient
+	if r.client == nil {
+		r.client = defaultClient
 	}
 
-	resp, errDo := client.Do(req)
+	now := time.Now()
+	resp, errDo := r.client.Do(req)
+	r.cost = time.Since(now)
 	if err != nil {
 		return r, err
 	}
@@ -240,30 +246,9 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	return
 }
 
-func (r *Req) dump() string {
-	var rreq *http.Request
-	if body := r.getReqBody(); body != nil {
-		copy := *r.req
-		rreq = &copy
-		rreq.Body = body
-	} else {
-		rreq = r.req
-	}
-	dump, err := httputil.DumpRequestOut(rreq, true)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	fmt.Println(string(dump))
-	fmt.Println()
-
-	if r.respBody != nil {
-		r.resp.Body = ioutil.NopCloser(bytes.NewReader(r.respBody))
-	}
-	dump, err = httputil.DumpResponse(r.resp, true)
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	return string(dump)
+// Cost returns time spent by the request
+func (r *Req) Cost() time.Duration {
+	return r.cost
 }
 
 // Body represents request's body
@@ -390,6 +375,9 @@ func (r *Req) Format(s fmt.State, verb rune) {
 		fmt.Fprint(s, r.dump())
 	} else if s.Flag('-') { // keep all informations in one line.
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
+		if ShowCost {
+			fmt.Fprint(s, " ", r.cost.String())
+		}
 		if len(r.reqBody) > 0 {
 			str := regNewline.ReplaceAllString(string(r.reqBody), " ")
 			fmt.Fprint(s, " ", str)
@@ -400,6 +388,9 @@ func (r *Req) Format(s fmt.State, verb rune) {
 		}
 	} else { // auto
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
+		if ShowCost {
+			fmt.Fprint(s, " ", r.cost.String())
+		}
 		respBody := r.respBody
 		if (len(r.reqBody) > 0 && regNewline.Match(r.reqBody)) || (len(respBody) > 0 && regNewline.Match(respBody)) { // pretty format
 			if len(r.reqBody) > 0 {
