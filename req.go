@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -67,6 +68,24 @@ func init() {
 	}
 }
 
+type bodyWrapper struct {
+	io.ReadCloser
+	buf   bytes.Buffer
+	limit int
+}
+
+func (b bodyWrapper) Read(p []byte) (n int, err error) {
+	n, err = b.ReadCloser.Read(p)
+	if left := b.limit - b.buf.Len(); left > 0 && n > 0 {
+		if n <= left {
+			b.buf.Write(p[:n])
+		} else {
+			b.buf.Write(p[:left])
+		}
+	}
+	return
+}
+
 // Req represents a request with it's response
 type Req struct {
 	req      *http.Request
@@ -83,6 +102,8 @@ func (r *Req) getReqBody() io.ReadCloser {
 	}
 	return ioutil.NopCloser(bytes.NewReader(r.reqBody))
 }
+
+//var requestBodyLimit = 1024
 
 // Do execute request.
 func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
@@ -120,6 +141,16 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		case http.Header:
 			req.Header = t
 		case io.Reader:
+			var rc io.ReadCloser
+			if trc, ok := t.(io.ReadCloser); ok {
+				rc = trc
+			} else {
+				rc = ioutil.NopCloser(t)
+			}
+			req.Body = bodyWrapper{
+				ReadCloser: rc,
+				limit:      102400,
+			}
 			bs, err := ioutil.ReadAll(t)
 			if err != nil {
 				return nil, err
@@ -154,38 +185,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	}
 
 	if len(file) > 0 && (req.Method == "POST" || req.Method == "PUT") {
-		pr, pw := io.Pipe()
-		bodyWriter := multipart.NewWriter(pw)
-		go func() {
-			for _, p := range param {
-				for key, value := range p {
-					bodyWriter.WriteField(key, value)
-				}
-			}
-			i := 0
-			for _, f := range file {
-				if f.FieldName == "" {
-					i++
-					f.FieldName = "file" + strconv.Itoa(i)
-				}
-				fileWriter, e := bodyWriter.CreateFormFile(f.FieldName, f.FileName)
-				if e != nil {
-					err = e
-					return
-				}
-				//iocopy
-				_, e = io.Copy(fileWriter, f.File)
-				if e != nil {
-					err = e
-					return
-				}
-				f.File.Close()
-			}
-			bodyWriter.Close()
-			pw.Close()
-		}()
-		req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
-		req.Body = ioutil.NopCloser(pr)
+		r.upload(file, param)
 	} else if len(param) > 0 {
 		params := make(url.Values)
 		for _, p := range param {
@@ -244,6 +244,80 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		fmt.Println(r.dump())
 	}
 	return
+}
+
+type dummyMultipart struct {
+	buf bytes.Buffer
+	w   *multipart.Writer
+}
+
+func (d *dummyMultipart) WriteField(fieldname, value string) error {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"`, fieldname))
+	p, err := d.w.CreatePart(h)
+	if err != nil {
+		return err
+	}
+	_, err = p.Write([]byte(value))
+	return err
+}
+
+func (d *dummyMultipart) WriteFile(fieldname, filename string) error {
+	h := make(textproto.MIMEHeader)
+	h.Set("Content-Disposition",
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			fieldname, filename))
+	h.Set("Content-Type", "application/octet-stream")
+	p, err := d.w.CreatePart(h)
+	if err != nil {
+		return err
+	}
+	_, err = p.Write([]byte("******"))
+	return err
+}
+
+func newDummyMultipart() *dummyMultipart {
+	d := new(dummyMultipart)
+	d.w = multipart.NewWriter(&d.buf)
+	return d
+}
+
+func (r *Req) upload(file []FileUpload, param []Param) {
+	pr, pw := io.Pipe()
+	bodyWriter := multipart.NewWriter(pw)
+	d := newDummyMultipart()
+	go func() {
+		for _, p := range param {
+			for key, value := range p {
+				bodyWriter.WriteField(key, value)
+				d.WriteField(key, value)
+			}
+		}
+		i := 0
+		for _, f := range file {
+			if f.FieldName == "" {
+				i++
+				f.FieldName = "file" + strconv.Itoa(i)
+			}
+			fileWriter, err := bodyWriter.CreateFormFile(f.FieldName, f.FileName)
+			if err != nil {
+				return
+			}
+			//iocopy
+			_, err = io.Copy(fileWriter, f.File)
+			if err != nil {
+				return
+			}
+			f.File.Close()
+			d.WriteFile(f.FieldName, f.FileName)
+		}
+		bodyWriter.Close()
+		pw.Close()
+		r.reqBody = d.buf.Bytes()
+	}()
+	r.req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
+	r.req.Body = ioutil.NopCloser(pr)
 }
 
 // Cost returns time spent by the request

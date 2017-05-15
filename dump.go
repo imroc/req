@@ -40,7 +40,43 @@ func (r *delegateReader) Read(p []byte) (int, error) {
 	return r.r.Read(p)
 }
 
-func (r *Req) dumpRequest() ([]byte, error) {
+type dummyBody struct {
+	N   int
+	off int
+}
+
+func (d *dummyBody) Read(p []byte) (n int, err error) {
+	if d.N <= 0 {
+		err = io.EOF
+		return
+	}
+	left := d.N - d.off
+	if left <= 0 {
+		err = io.EOF
+		return
+	}
+
+	if l := len(p); l > 0 {
+		if l >= left {
+			n = left
+			err = io.EOF
+		} else {
+			n = l
+		}
+		d.off += n
+		for i := 0; i < n; i++ {
+			p[i] = '*'
+		}
+	}
+
+	return
+}
+
+func (d *dummyBody) Close() error {
+	return nil
+}
+
+func (r *Req) dumpRequest(body bool) ([]byte, error) {
 	reqSend := new(http.Request)
 	*reqSend = *r.req
 	if reqSend.URL.Scheme == "https" {
@@ -49,10 +85,10 @@ func (r *Req) dumpRequest() ([]byte, error) {
 		reqSend.URL.Scheme = "http"
 	}
 
-	if reqSend.ContentLength > 0 && reqSend.ContentLength == int64(len(r.reqBody)) {
-		reqSend.Body = ioutil.NopCloser(bytes.NewReader(r.reqBody))
+	if reqSend.ContentLength > 0 {
+		reqSend.Body = &dummyBody{N: int(reqSend.ContentLength)}
 	} else {
-		reqSend.Body = nil
+		reqSend.Body = &dummyBody{N: 1}
 	}
 
 	// Use the actual Transport code to record what we would send
@@ -62,7 +98,6 @@ func (r *Req) dumpRequest() ([]byte, error) {
 	// with a dummy response.
 	var buf bytes.Buffer // records the output
 	pr, pw := io.Pipe()
-	defer pr.Close()
 	defer pw.Close()
 	dr := &delegateReader{c: make(chan io.Reader)}
 
@@ -86,7 +121,9 @@ func (r *Req) dumpRequest() ([]byte, error) {
 			io.Copy(ioutil.Discard, req.Body)
 			req.Body.Close()
 		}
+
 		dr.c <- strings.NewReader("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
+		pr.Close()
 	}()
 
 	_, err := clientDo.Do(reqSend)
@@ -101,33 +138,49 @@ func (r *Req) dumpRequest() ([]byte, error) {
 		b.WriteString(" " + r.cost.String())
 	}
 	b.WriteString("\r\n")
-	b.Write(buf.Bytes())
+	reqDump := buf.Bytes()
+	if i := bytes.Index(reqDump, []byte("\r\n\r\n")); i >= 0 {
+		reqDump = reqDump[:i]
+	}
+	b.Write(reqDump)
+	if body {
+		b.WriteString("\r\n\r\n")
+		b.Write(r.reqBody)
+	}
 
 	return b.Bytes(), nil
 }
 
-func (r *Req) dump() string {
+func (r *Req) dumpResponse(body bool) []byte {
 	var buf bytes.Buffer
-	reqDump, err := r.dumpRequest()
-	if err != nil {
-		buf.WriteString(err.Error())
-	}
-	if len(reqDump) > 0 {
-		buf.Write(reqDump)
-		if len(r.reqBody) > 0 {
-			buf.WriteString("\r\n\r\n")
-		}
-		buf.WriteString("=================================")
-	}
-
 	respDump, err := httputil.DumpResponse(r.resp, false)
 	if err != nil {
 		buf.WriteString(err.Error())
 	}
-	if len(respDump) > 0 {
-		buf.WriteString("\r\n\r\n")
-		buf.Write(respDump)
+	buf.Write(respDump)
+	if body {
 		buf.Write(r.respBody)
 	}
+	return buf.Bytes()
+}
+
+func (r *Req) dump() string {
+	var buf bytes.Buffer
+	reqDump, err := r.dumpRequest(true)
+	if err != nil {
+		buf.WriteString("\r\n\r\n")
+		buf.WriteString(err.Error())
+	}
+	if len(reqDump) > 0 {
+		buf.Write(reqDump)
+		buf.WriteString("\r\n\r\n")
+		buf.WriteString("=================================")
+		buf.WriteString("\r\n\r\n")
+	}
+	respDump := r.dumpResponse(true)
+	if len(respDump) > 0 {
+		buf.Write(respDump)
+	}
+
 	return buf.String()
 }
