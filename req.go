@@ -346,7 +346,7 @@ func BodyXML(v interface{}) interface{} {
 		}
 		b.Data = bs
 	}
-	b.ContentType = "text/xml"
+	b.ContentType = "application/xml;charset=UTF-8"
 	return b
 }
 
@@ -365,7 +365,7 @@ func BodyJSON(v interface{}) interface{} {
 		}
 		b.Data = bs
 	}
-	b.ContentType = "text/json"
+	b.ContentType = "application/json;charset=UTF-8"
 	return b
 }
 
