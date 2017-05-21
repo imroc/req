@@ -28,6 +28,9 @@ type Header map[string]string
 // http request param
 type Param map[string]string
 
+// used for set request's Host
+type Host string
+
 // represents a file to upload
 type FileUpload struct {
 	// filename in multipart form.
@@ -178,6 +181,8 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 			file = append(file, t...)
 		case *http.Cookie:
 			req.AddCookie(t)
+		case Host:
+			req.Host = string(t)
 		case error:
 			err = t
 			return
