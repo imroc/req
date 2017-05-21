@@ -130,20 +130,14 @@ func (r *Req) dumpRequest(body bool) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	buf.ReadBytes('\n')
 
 	var b bytes.Buffer
-	b.WriteString(strings.Join([]string{reqSend.Method, reqSend.URL.String(), reqSend.Proto}, " "))
-	if ShowCost {
-		b.WriteString(" " + r.cost.String())
-	}
-	b.WriteString("\r\n")
 	reqDump := buf.Bytes()
 	if i := bytes.Index(reqDump, []byte("\r\n\r\n")); i >= 0 {
 		reqDump = reqDump[:i]
 	}
 	b.Write(reqDump)
-	if body {
+	if body && len(r.reqBody) > 0 {
 		b.WriteString("\r\n\r\n")
 		b.Write(r.reqBody)
 	}
@@ -157,8 +151,12 @@ func (r *Req) dumpResponse(body bool) []byte {
 	if err != nil {
 		buf.WriteString(err.Error())
 	}
+	if i := bytes.Index(respDump, []byte("\r\n\r\n")); i >= 0 {
+		respDump = respDump[:i]
+	}
 	buf.Write(respDump)
-	if body {
+	if body && len(r.respBody) > 0 {
+		buf.WriteString("\r\n\r\n")
 		buf.Write(r.respBody)
 	}
 	return buf.Bytes()
@@ -173,13 +171,20 @@ func (r *Req) dump() string {
 	}
 	if len(reqDump) > 0 {
 		buf.Write(reqDump)
-		buf.WriteString("\r\n\r\n")
-		buf.WriteString("=================================")
-		buf.WriteString("\r\n\r\n")
 	}
 	respDump := r.dumpResponse(true)
 	if len(respDump) > 0 {
+		buf.WriteString("\r\n\r\n")
+		buf.WriteString("=================================")
+		buf.WriteString("\r\n\r\n")
 		buf.Write(respDump)
+	}
+
+	if ShowCost {
+		buf.WriteString("\r\n\r\n")
+		buf.WriteString("=================================")
+		buf.WriteString("\r\n\r\n")
+		buf.WriteString("cost: " + r.cost.String())
 	}
 
 	return buf.String()
