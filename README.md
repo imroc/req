@@ -95,6 +95,20 @@ param := req.Param{
 req.Get("http://foo.bar/api", param) // http://foo.bar/api?id=imroc&pwd=roc
 req.Post(url, param)                  // body => id=imroc&pwd=roc
 ```
+use `req.QueryParam` force to append params to the url
+``` go
+req.Post("http://foo.bar/api", req.Param{"name": "roc", "age": "22"}, req.QueryParam{"access_token": "fedledGF9Hg9ehTU"})
+/*
+POST /api?access_token=fedledGF9Hg9ehTU HTTP/1.1
+Host: foo.bar
+User-Agent: Go-http-client/1.1
+Content-Length: 15
+Content-Type: application/x-www-form-urlencoded;charset=UTF-8
+Accept-Encoding: gzip
+
+age=22&name=roc
+*/
+```
 
 ## <a name="Set-Body">Set Body</a>
 put `string`, `[]byte` and `io.Reader` as body directly.

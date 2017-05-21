@@ -28,6 +28,9 @@ type Header map[string]string
 // http request param
 type Param map[string]string
 
+// used to force append http request param to the uri
+type QueryParam map[string]string
+
 // used for set request's Host
 type Host string
 
@@ -133,7 +136,8 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		}
 	}
 
-	var param []Param
+	var formParam []Param
+	var queryParam []QueryParam
 	var file []FileUpload
 	for _, p := range v {
 		switch t := p.(type) {
@@ -165,7 +169,13 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		case *body:
 			handleBody(t)
 		case Param:
-			param = append(param, t)
+			if method == "GET" {
+				queryParam = append(queryParam, QueryParam(t))
+			} else {
+				formParam = append(formParam, t)
+			}
+		case QueryParam:
+			queryParam = append(queryParam, t)
 		case string:
 			handleBody(&body{Data: []byte(t)})
 		case []byte:
@@ -190,10 +200,12 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	}
 
 	if len(file) > 0 && (req.Method == "POST" || req.Method == "PUT") {
-		r.upload(file, param)
-	} else if len(param) > 0 {
+		r.upload(file, formParam)
+	}
+
+	if len(formParam) > 0 {
 		params := make(url.Values)
-		for _, p := range param {
+		for _, p := range formParam {
 			for key, value := range p {
 				params.Add(key, value)
 			}
@@ -214,6 +226,21 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 				Data:        []byte(paramStr),
 			}
 			handleBody(body)
+		}
+	}
+
+	if len(queryParam) > 0 {
+		params := make(url.Values)
+		for _, p := range queryParam {
+			for key, value := range p {
+				params.Add(key, value)
+			}
+		}
+		paramStr := params.Encode()
+		if strings.IndexByte(rawurl, '?') == -1 {
+			rawurl = rawurl + "?" + paramStr
+		} else {
+			rawurl = rawurl + "&" + paramStr
 		}
 	}
 
