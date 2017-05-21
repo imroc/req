@@ -222,7 +222,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 				return nil, errors.New("req: can not set both body and params")
 			}
 			body := &body{
-				ContentType: "application/x-www-form-urlencoded;charset=UTF-8",
+				ContentType: "application/x-www-form-urlencoded; charset=UTF-8",
 				Data:        []byte(paramStr),
 			}
 			handleBody(body)
@@ -378,7 +378,7 @@ func BodyXML(v interface{}) interface{} {
 		}
 		b.Data = bs
 	}
-	b.ContentType = "application/xml;charset=UTF-8"
+	b.ContentType = "application/xml; charset=UTF-8"
 	return b
 }
 
@@ -397,7 +397,7 @@ func BodyJSON(v interface{}) interface{} {
 		}
 		b.Data = bs
 	}
-	b.ContentType = "application/json;charset=UTF-8"
+	b.ContentType = "application/json; charset=UTF-8"
 	return b
 }
 
