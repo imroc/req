@@ -127,6 +127,15 @@ Enable debug mode
 req.Debug = true
 req.Get(url) // it will print the debug info, try it :)
 ```
+Monitor speed
+``` go
+req.ShowCost = true // show how many time costed by every request if you print it or debug mode is enabled
+r,_ := req.Get(url)
+log.Println(r) // http://foo.bar/api 3.260802ms {"code":0 "msg":"success"}
+if r.Cost() > 3 * time.Second { // check cost
+	log.Println("WARN: slow request:",r)
+}
+```
 Use `%+v` format to print debug info
 ``` go
 r, _ := req.Post(url, header, param)
