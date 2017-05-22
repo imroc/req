@@ -201,9 +201,10 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 
 	if len(file) > 0 && (req.Method == "POST" || req.Method == "PUT") {
 		r.upload(file, formParam)
-	}
-
-	if len(formParam) > 0 {
+	} else if len(formParam) > 0 {
+		if req.Body != nil {
+			return nil, errors.New("req: can not set both body and params")
+		}
 		params := make(url.Values)
 		for _, p := range formParam {
 			for key, value := range p {
@@ -211,22 +212,11 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 			}
 		}
 		paramStr := params.Encode()
-		if method == "GET" {
-			if strings.IndexByte(rawurl, '?') == -1 {
-				rawurl = rawurl + "?" + paramStr
-			} else {
-				rawurl = rawurl + "&" + paramStr
-			}
-		} else {
-			if req.Body != nil {
-				return nil, errors.New("req: can not set both body and params")
-			}
-			body := &body{
-				ContentType: "application/x-www-form-urlencoded; charset=UTF-8",
-				Data:        []byte(paramStr),
-			}
-			handleBody(body)
+		body := &body{
+			ContentType: "application/x-www-form-urlencoded; charset=UTF-8",
+			Data:        []byte(paramStr),
 		}
+		handleBody(body)
 	}
 
 	if len(queryParam) > 0 {
