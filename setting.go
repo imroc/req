@@ -11,6 +11,9 @@ import (
 
 // Client return the default underlying http client
 func (r *Req) Client() *http.Client {
+	if r.client == nil {
+		r.client = newClient()
+	}
 	return r.client
 }
 
@@ -21,9 +24,7 @@ func Client() *http.Client {
 
 // SetClient sets the underlying http.Client.
 func (r *Req) SetClient(client *http.Client) {
-	if client != nil {
-		r.client = client
-	}
+	r.client = client // use default if client == nil
 }
 
 // SetClient sets the default http.Client for requests.

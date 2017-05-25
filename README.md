@@ -277,9 +277,9 @@ trans.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 ```
 
 ## <a name="Multiple-Client">Multiple Client</a>
-Use `New(*http.Client)` method to create a new `*Req`, it has all of the method exported by the package
+Use `New()` method to create a new `*Req`, it has all of the method exported by the package
 ``` go
-r := req.New(nil) // create *Req with default client config
+r := req.New() // create *Req with default client and flag config
 r.SetTimeout(2 * time.Second)
 r.Post(url, header, body)
 ```

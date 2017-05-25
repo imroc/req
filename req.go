@@ -49,7 +49,7 @@ var Debug bool
 
 var regTextContentType = regexp.MustCompile("xml|json|text")
 
-var std = New(nil)
+var std = New()
 
 type bodyWrapper struct {
 	io.ReadCloser
@@ -101,28 +101,29 @@ type Req struct {
 	flag   int
 }
 
-func New(client *http.Client) *Req {
-	if client == nil {
-		jar, _ := cookiejar.New(nil)
-		transport := &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-				DualStack: true,
-			}).DialContext,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		}
-		client = &http.Client{
-			Jar:       jar,
-			Transport: transport,
-			Timeout:   2 * time.Minute,
-		}
+func newClient() *http.Client {
+	jar, _ := cookiejar.New(nil)
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
 	}
-	return &Req{client: client, flag: LstdFlags}
+	return &http.Client{
+		Jar:       jar,
+		Transport: transport,
+		Timeout:   2 * time.Minute,
+	}
+}
+
+func New() *Req {
+	return &Req{flag: LstdFlags}
 }
 
 // Do execute request.
@@ -255,7 +256,7 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 	req.URL = u
 
 	if resp.client == nil {
-		resp.client = r.client
+		resp.client = r.Client()
 	}
 
 	now := time.Now()
