@@ -47,32 +47,9 @@ type FileUpload struct {
 // Debug enable debug mode if set to true
 var Debug bool
 
-// ShowCost show the time spent by the request if set to true
-var ShowCost bool
-
-var defaultClient *http.Client
 var regTextContentType = regexp.MustCompile("xml|json|text")
 
-func init() {
-	jar, _ := cookiejar.New(nil)
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-			DualStack: true,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-	defaultClient = &http.Client{
-		Jar:       jar,
-		Transport: transport,
-		Timeout:   2 * time.Minute,
-	}
-}
+var std = New(nil)
 
 type bodyWrapper struct {
 	io.ReadCloser
@@ -93,7 +70,8 @@ func (b bodyWrapper) Read(p []byte) (n int, err error) {
 }
 
 // Req represents a request with it's response
-type Req struct {
+type Resp struct {
+	r        *Req
 	req      *http.Request
 	resp     *http.Response
 	client   *http.Client
@@ -102,17 +80,53 @@ type Req struct {
 	cost     time.Duration
 }
 
-func (r *Req) getReqBody() io.ReadCloser {
+func (r *Resp) getReqBody() io.ReadCloser {
 	if r.reqBody == nil {
 		return nil
 	}
 	return ioutil.NopCloser(bytes.NewReader(r.reqBody))
 }
 
-//var requestBodyLimit = 1024
+const (
+	LreqHead = 1 << iota
+	LreqBody
+	LrespHead
+	LrespBody
+	Lcost
+	LstdFlags = LreqHead | LreqBody | LrespHead | LrespBody
+)
+
+type Req struct {
+	client *http.Client
+	flag   int
+}
+
+func New(client *http.Client) *Req {
+	if client == nil {
+		jar, _ := cookiejar.New(nil)
+		transport := &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+				DualStack: true,
+			}).DialContext,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		}
+		client = &http.Client{
+			Jar:       jar,
+			Transport: transport,
+			Timeout:   2 * time.Minute,
+		}
+	}
+	return &Req{client: client, flag: LstdFlags}
+}
 
 // Do execute request.
-func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
+func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error) {
 	if rawurl == "" {
 		return nil, errors.New("req: url not specified")
 	}
@@ -123,14 +137,14 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		ProtoMajor: 1,
 		ProtoMinor: 1,
 	}
-	r = &Req{req: req}
+	resp = &Resp{req: req, r: r}
 	handleBody := func(b *body) {
 		if b == nil {
 			return
 		}
-		r.reqBody = b.Data
-		req.Body = r.getReqBody()
-		req.ContentLength = int64(len(r.reqBody))
+		resp.reqBody = b.Data
+		req.Body = resp.getReqBody()
+		req.ContentLength = int64(len(resp.reqBody))
 		if b.ContentType != "" && req.Header.Get("Content-Type") == "" {
 			req.Header.Set("Content-Type", b.ContentType)
 		}
@@ -181,7 +195,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 		case []byte:
 			handleBody(&body{Data: []byte(t)})
 		case *http.Client:
-			r.client = t
+			resp.client = t
 		case FileUpload:
 			file = append(file, t)
 		case []FileUpload:
@@ -200,7 +214,7 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	}
 
 	if len(file) > 0 && (req.Method == "POST" || req.Method == "PUT") {
-		r.upload(file, formParam)
+		r.upload(resp, file, formParam)
 	} else if len(formParam) > 0 {
 		if req.Body != nil {
 			return nil, errors.New("req: can not set both body and params")
@@ -240,30 +254,28 @@ func Do(method, rawurl string, v ...interface{}) (r *Req, err error) {
 	}
 	req.URL = u
 
-	if r.client == nil {
-		r.client = defaultClient
+	if resp.client == nil {
+		resp.client = r.client
 	}
 
 	now := time.Now()
-	resp, errDo := r.client.Do(req)
-	r.cost = time.Since(now)
+	response, err := resp.client.Do(req)
+	resp.cost = time.Since(now)
 	if err != nil {
-		return r, err
+		return
 	}
-	if errDo != nil {
-		return r, errDo
-	}
-	r.resp = resp
-	ct := resp.Header.Get("Content-Type")
+
+	resp.resp = response
+	ct := response.Header.Get("Content-Type")
 	if ct == "" || regTextContentType.MatchString(ct) {
-		respBody, err := ioutil.ReadAll(resp.Body)
+		respBody, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return r, err
+			return resp, err
 		}
-		r.respBody = respBody
+		resp.respBody = respBody
 	}
 	if Debug {
-		fmt.Println(r.dump())
+		fmt.Println(resp.dump())
 	}
 	return
 }
@@ -305,7 +317,7 @@ func newDummyMultipart() *dummyMultipart {
 	return d
 }
 
-func (r *Req) upload(file []FileUpload, param []Param) {
+func (r *Req) upload(resp *Resp, file []FileUpload, param []Param) {
 	pr, pw := io.Pipe()
 	bodyWriter := multipart.NewWriter(pw)
 	d := newDummyMultipart()
@@ -336,14 +348,14 @@ func (r *Req) upload(file []FileUpload, param []Param) {
 		}
 		bodyWriter.Close()
 		pw.Close()
-		r.reqBody = d.buf.Bytes()
+		resp.reqBody = d.buf.Bytes()
 	}()
-	r.req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
-	r.req.Body = ioutil.NopCloser(pr)
+	resp.req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
+	resp.req.Body = ioutil.NopCloser(pr)
 }
 
 // Cost returns time spent by the request
-func (r *Req) Cost() time.Duration {
+func (r *Resp) Cost() time.Duration {
 	return r.cost
 }
 
@@ -418,37 +430,37 @@ func File(patterns ...string) interface{} {
 }
 
 // Request returns *http.Request
-func (r *Req) Request() *http.Request {
+func (r *Resp) Request() *http.Request {
 	return r.req
 }
 
 // Response returns *http.Response
-func (r *Req) Response() *http.Response {
+func (r *Resp) Response() *http.Response {
 	return r.resp
 }
 
 // Bytes returns response body as []byte
-func (r *Req) Bytes() []byte {
+func (r *Resp) Bytes() []byte {
 	return r.respBody
 }
 
 // String returns response body as string
-func (r *Req) String() string {
+func (r *Resp) String() string {
 	return string(r.respBody)
 }
 
 // ToJSON convert json response body to struct or map
-func (r *Req) ToJSON(v interface{}) error {
+func (r *Resp) ToJSON(v interface{}) error {
 	return json.Unmarshal(r.respBody, v)
 }
 
 // ToXML convert xml response body to struct or map
-func (r *Req) ToXML(v interface{}) error {
+func (r *Resp) ToXML(v interface{}) error {
 	return xml.Unmarshal(r.respBody, v)
 }
 
 // ToFile download the response body to file
-func (r *Req) ToFile(name string) error {
+func (r *Resp) ToFile(name string) error {
 	file, err := os.Create(name)
 	if err != nil {
 		return err
@@ -462,7 +474,7 @@ func (r *Req) ToFile(name string) error {
 
 var regNewline = regexp.MustCompile(`\n|\r`)
 
-func (r *Req) Format(s fmt.State, verb rune) {
+func (r *Resp) Format(s fmt.State, verb rune) {
 	if r == nil || r.req == nil {
 		return
 	}
@@ -471,20 +483,28 @@ func (r *Req) Format(s fmt.State, verb rune) {
 		fmt.Fprint(s, r.dump())
 	} else if s.Flag('-') { // keep all informations in one line.
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
-		if ShowCost {
+		if r.r.flag&Lcost != 0 {
 			fmt.Fprint(s, " ", r.cost.String())
 		}
-		if len(r.reqBody) > 0 {
-			str := regNewline.ReplaceAllString(string(r.reqBody), " ")
-			fmt.Fprint(s, " ", str)
+		if r.r.flag&LreqBody != 0 {
+			if len(r.reqBody) > 0 {
+				str := regNewline.ReplaceAllString(string(r.reqBody), " ")
+				fmt.Fprint(s, " ", str)
+			} else {
+				fmt.Fprint(s, " ******")
+			}
 		}
-		if str := string(r.respBody); str != "" {
-			str = regNewline.ReplaceAllString(str, " ")
-			fmt.Fprint(s, " ", str)
+		if r.r.flag&LrespBody != 0 {
+			if len(r.respBody) > 0 {
+				str := regNewline.ReplaceAllString(string(r.respBody), " ")
+				fmt.Fprint(s, " ", str)
+			} else {
+				fmt.Fprint(s, " ******")
+			}
 		}
 	} else { // auto
 		fmt.Fprint(s, req.Method, " ", req.URL.String())
-		if ShowCost {
+		if r.r.flag&Lcost != 0 {
 			fmt.Fprint(s, " ", r.cost.String())
 		}
 		respBody := r.respBody
@@ -508,36 +528,71 @@ func (r *Req) Format(s fmt.State, verb rune) {
 }
 
 // Get execute a http GET request
-func Get(url string, v ...interface{}) (*Req, error) {
-	return Do("GET", url, v...)
+func (r *Req) Get(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("GET", url, v...)
+}
+
+// Get execute a http GET request
+func Get(url string, v ...interface{}) (*Resp, error) {
+	return std.Get(url, v...)
 }
 
 // Post execute a http POST request
-func Post(url string, v ...interface{}) (*Req, error) {
-	return Do("POST", url, v...)
+func (r *Req) Post(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("POST", url, v...)
+}
+
+// Post execute a http POST request
+func Post(url string, v ...interface{}) (*Resp, error) {
+	return std.Post(url, v...)
 }
 
 // Put execute a http PUT request
-func Put(url string, v ...interface{}) (*Req, error) {
-	return Do("PUT", url, v...)
+func (r *Req) Put(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("PUT", url, v...)
+}
+
+// Put execute a http PUT request
+func Put(url string, v ...interface{}) (*Resp, error) {
+	return std.Put(url, v...)
 }
 
 // Patch execute a http PATCH request
-func Patch(url string, v ...interface{}) (*Req, error) {
-	return Do("PATCH", url, v...)
+func (r *Req) Patch(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("PATCH", url, v...)
+}
+
+// Patch execute a http PATCH request
+func Patch(url string, v ...interface{}) (*Resp, error) {
+	return std.Patch(url, v...)
 }
 
 // Delete execute a http DELETE request
-func Delete(url string, v ...interface{}) (*Req, error) {
-	return Do("DELETE", url, v...)
+func (r *Req) Delete(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("DELETE", url, v...)
+}
+
+// Delete execute a http DELETE request
+func Delete(url string, v ...interface{}) (*Resp, error) {
+	return std.Delete(url, v...)
 }
 
 // Head execute a http HEAD request
-func Head(url string, v ...interface{}) (*Req, error) {
-	return Do("HEAD", url, v...)
+func (r *Req) Head(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("HEAD", url, v...)
+}
+
+// Head execute a http HEAD request
+func Head(url string, v ...interface{}) (*Resp, error) {
+	return std.Head(url, v...)
 }
 
 // Options execute a http OPTIONS request
-func Options(url string, v ...interface{}) (*Req, error) {
-	return Do("OPTIONS", url, v...)
+func (r *Req) Options(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("OPTIONS", url, v...)
+}
+
+// Options execute a http OPTIONS request
+func Options(url string, v ...interface{}) (*Resp, error) {
+	return std.Options(url, v...)
 }

@@ -28,11 +28,10 @@ Quick Start
 =======
 Only url is required, others are optional, like headers, params, files or body etc
 ``` go
-func Get(url string, v ...interface{}) (*Req, error)
-func Post(url string, v ...interface{}) (*Req, error)
+func Get(url string, v ...interface{}) (*Resp, error)
+func Post(url string, v ...interface{}) (*Resp, error)
 ......
 ```
-The struct `Req` hold both request and response infomation.
 
 Examples
 =======
@@ -49,6 +48,7 @@ Examples
 [Set Timeout](#Set-Timeout)  
 [Set Proxy](#Set-Proxy)  
 [Customize Client](#Customize-Client)  
+[Multiple Client](#Multiple-Client) 
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -125,11 +125,50 @@ req.Post(url, req.BodyXML(&bar))
 Enable debug mode
 ``` go
 req.Debug = true
-req.Get(url) // it will print the debug info, try it :)
+req.Get(url)
+/*
+GET /test HTTP/1.1
+Host: localhost
+User-Agent: Go-http-client/1.1
+Transfer-Encoding: chunked
+Accept-Encoding: gzip
+
+=================================
+
+HTTP/1.1 200 OK
+Content-Length: 9
+Content-Type: text/plain; charset=UTF-8
+Date: Thu, 25 May 2017 14:55:58 GMT
+
+hello req
+*/
 ```
+Output format
+``` go
+req.SetFlags(req.LreqHead | req.LreqBody | req.LrespHead) // not output reponse body
+req.Debug = true
+req.Post(url, "hi roc")
+/*
+POST /test HTTP/1.1
+Host: localhost
+User-Agent: Go-http-client/1.1
+Content-Length: 6
+Accept-Encoding: gzip
+
+hi roc
+
+=================================
+
+HTTP/1.1 200 OK
+Content-Length: 9
+Content-Type: text/plain; charset=UTF-8
+Date: Thu, 25 May 2017 14:57:39 GMT
+*/
+```
+
 Monitor speed
 ``` go
-req.ShowCost = true // show how many time costed by every request if you print it or debug mode is enabled
+req.SetFlags(req.LstdFlags | req.Lcost) // output format add time costed by request
 r,_ := req.Get(url)
 log.Println(r) // http://foo.bar/api 3.260802ms {"code":0 "msg":"success"}
 if r.Cost() > 3 * time.Second { // check cost
@@ -218,7 +257,7 @@ req.SetProxyUrl("http://my.proxy.com:23456")
 ```
 
 ## <a name="Customize-Client">Customize Client</a>
-Use `req.SetClient` to change the default underlying `*http.Client`
+Use `SetClient` to change the default underlying `*http.Client`
 ``` go
 req.SetClient(client)
 ```
@@ -235,4 +274,12 @@ trans.MaxIdleConns = 20
 trans.TLSHandshakeTimeout = 20 * time.Second
 trans.DisableKeepAlives = true
 trans.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+```
+
+## <a name="Multiple-Client">Multiple Client</a>
+Use `New(*http.Client)` method to create a new `*Req`, it has all of the method exported by the package
+``` go
+r := req.New(nil) // create *Req with default client config
+r.SetTimeout(2 * time.Second)
+r.Post(url, header, body)
 ```

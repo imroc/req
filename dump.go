@@ -76,7 +76,44 @@ func (d *dummyBody) Close() error {
 	return nil
 }
 
-func (r *Req) dumpRequest(body bool) ([]byte, error) {
+type dumpBuffer struct {
+	bytes.Buffer
+	wrote bool
+}
+
+func (b *dumpBuffer) Write(p []byte) {
+	if b.wrote {
+		b.Buffer.WriteString("\r\n\r\n")
+		b.Buffer.Write(p)
+	} else {
+		b.Buffer.Write(p)
+		b.wrote = true
+	}
+}
+
+func (b *dumpBuffer) WriteString(s string) {
+	if b.wrote {
+		b.Buffer.WriteString("\r\n\r\n")
+		b.Buffer.WriteString(s)
+	} else {
+		b.Buffer.WriteString(s)
+		b.wrote = true
+	}
+}
+
+func (r *Resp) dumpRequest(dump *dumpBuffer) {
+	head := r.r.flag&LreqHead != 0
+	body := r.r.flag&LreqBody != 0
+
+	if head {
+		r.dumpReqHead(dump)
+	}
+	if body && len(r.reqBody) > 0 {
+		dump.Write(r.reqBody)
+	}
+}
+
+func (r *Resp) dumpReqHead(dump *dumpBuffer) {
 	reqSend := new(http.Request)
 	*reqSend = *r.req
 	if reqSend.URL.Scheme == "https" {
@@ -108,9 +145,9 @@ func (r *Req) dumpRequest(body bool) ([]byte, error) {
 	}
 	defer t.CloseIdleConnections()
 
-	clientDo := new(http.Client)
-	*clientDo = *r.client
-	clientDo.Transport = t
+	client := new(http.Client)
+	*client = *r.client
+	client.Transport = t
 
 	// Wait for the request before replying with a dummy response:
 	go func() {
@@ -126,66 +163,51 @@ func (r *Req) dumpRequest(body bool) ([]byte, error) {
 		pr.Close()
 	}()
 
-	_, err := clientDo.Do(reqSend)
+	_, err := client.Do(reqSend)
 	if err != nil {
-		return nil, err
+		dump.WriteString(err.Error())
+	} else {
+		reqDump := buf.Bytes()
+		if i := bytes.Index(reqDump, []byte("\r\n\r\n")); i >= 0 {
+			reqDump = reqDump[:i]
+		}
+		dump.Write(reqDump)
 	}
-
-	var b bytes.Buffer
-	reqDump := buf.Bytes()
-	if i := bytes.Index(reqDump, []byte("\r\n\r\n")); i >= 0 {
-		reqDump = reqDump[:i]
-	}
-	b.Write(reqDump)
-	if body && len(r.reqBody) > 0 {
-		b.WriteString("\r\n\r\n")
-		b.Write(r.reqBody)
-	}
-
-	return b.Bytes(), nil
 }
 
-func (r *Req) dumpResponse(body bool) []byte {
-	var buf bytes.Buffer
-	respDump, err := httputil.DumpResponse(r.resp, false)
-	if err != nil {
-		buf.WriteString(err.Error())
+func (r *Resp) dumpResponse(dump *dumpBuffer) {
+	head := r.r.flag&LrespHead != 0
+	body := r.r.flag&LrespBody != 0
+	if head {
+		respDump, err := httputil.DumpResponse(r.resp, false)
+		if err != nil {
+			dump.WriteString(err.Error())
+		} else {
+			if i := bytes.Index(respDump, []byte("\r\n\r\n")); i >= 0 {
+				respDump = respDump[:i]
+			}
+			dump.Write(respDump)
+		}
 	}
-	if i := bytes.Index(respDump, []byte("\r\n\r\n")); i >= 0 {
-		respDump = respDump[:i]
+	if body {
+		dump.Write(r.respBody)
 	}
-	buf.Write(respDump)
-	if body && len(r.respBody) > 0 {
-		buf.WriteString("\r\n\r\n")
-		buf.Write(r.respBody)
-	}
-	return buf.Bytes()
 }
 
-func (r *Req) dump() string {
-	var buf bytes.Buffer
-	reqDump, err := r.dumpRequest(true)
-	if err != nil {
-		buf.WriteString("\r\n\r\n")
-		buf.WriteString(err.Error())
+func (r *Resp) dump() string {
+	dump := new(dumpBuffer)
+	r.dumpRequest(dump)
+	if dump.Len() > 0 {
+		dump.WriteString("=================================")
 	}
-	if len(reqDump) > 0 {
-		buf.Write(reqDump)
-	}
-	respDump := r.dumpResponse(true)
-	if len(respDump) > 0 {
-		buf.WriteString("\r\n\r\n")
-		buf.WriteString("=================================")
-		buf.WriteString("\r\n\r\n")
-		buf.Write(respDump)
-	}
+	r.dumpResponse(dump)
 
-	if ShowCost {
-		buf.WriteString("\r\n\r\n")
-		buf.WriteString("=================================")
-		buf.WriteString("\r\n\r\n")
-		buf.WriteString("cost: " + r.cost.String())
+	cost := r.r.flag&Lcost != 0
+	if cost {
+		if dump.Len() > 0 {
+			dump.WriteString("=================================")
+		}
+		dump.WriteString("cost: " + r.cost.String())
 	}
-
-	return buf.String()
+	return dump.String()
 }
