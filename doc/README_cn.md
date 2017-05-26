@@ -40,7 +40,7 @@ func (r *Req) Post(url string, v ...interface{}) (*Resp, error)
 r := req.New()
 r.Get(url)
 
-// 直接食用req包发起请求
+// 直接使用req包发起请求
 req.Get(url)
 ```
 你可以使用 `req.New()` 方法来创建 `*Req` 作为一个单独的客户端
@@ -205,11 +205,11 @@ fmt.Println(resp.StatusCode)
 ```
 
 ## <a name="Upload">上传</a>
-Use `req.File` to match files
+使用 `req.File` 匹配文件
 ``` go
 req.Post(url, req.File("imroc.png"), req.File("/Users/roc/Pictures/*.png"))
 ```
-Use `req.FileUpload` to fully control
+使用 `req.FileUpload` 细粒度控制上传
 ``` go
 file, _ := os.Open("imroc.png")
 req.Post(url, req.FileUpload{
