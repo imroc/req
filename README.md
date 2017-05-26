@@ -24,14 +24,27 @@ Install
 go get github.com/imroc/req
 ```
 
-Quick Start
+Overview
 =======
-Only url is required, others are optional, like headers, params, files or body etc
+`req` implements a friendly API over Go's existing `net/http` library.  
+  
+`Req` and `Resp` are two most important struct, you can think of `Req` as a client that initiate HTTP requests, `Resp` as a information container for the request and response. They all provide great APIs that allows you to do a lot of things conveniently
 ``` go
-func Get(url string, v ...interface{}) (*Resp, error)
-func Post(url string, v ...interface{}) (*Resp, error)
-......
+func (r *Req) Post(url string, v ...interface{}) (*Resp, error)
+```  
+
+In most cases, only url is required, others are optional, like headers, params, files or body etc.
+
+There is a default `Req` object, all of its' public methods  are wrapped by the `req` package, so you can also think of `req` package as a `Req` object
+``` go
+// use Req object to initiate requests.
+r := req.New()
+r.Get(url)
+
+// use req package to initiate reqeust.
+req.Get(url)
 ```
+You can use `New()` to create lots of `*Req` as client with independent configuration
 
 Examples
 =======
@@ -48,7 +61,6 @@ Examples
 [Set Timeout](#Set-Timeout)  
 [Set Proxy](#Set-Proxy)  
 [Customize Client](#Customize-Client)  
-[Multiple Client](#Multiple-Client) 
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -274,12 +286,4 @@ trans.MaxIdleConns = 20
 trans.TLSHandshakeTimeout = 20 * time.Second
 trans.DisableKeepAlives = true
 trans.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-```
-
-## <a name="Multiple-Client">Multiple Client</a>
-Use `New()` method to create a new `*Req`, it has all of the method exported by the package
-``` go
-r := req.New() // create *Req with default client and flag config
-r.SetTimeout(2 * time.Second)
-r.Post(url, header, body)
 ```
