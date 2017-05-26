@@ -88,11 +88,11 @@ func (r *Resp) getReqBody() io.ReadCloser {
 }
 
 const (
-	LreqHead = 1 << iota
-	LreqBody
-	LrespHead
-	LrespBody
-	Lcost
+	LreqHead  = 1 << iota // output request head (request line and request header)
+	LreqBody              // output request body
+	LrespHead             // output response head (response line and response header)
+	LrespBody             // output response body
+	Lcost                 // output time costed by the request
 	LstdFlags = LreqHead | LreqBody | LrespHead | LrespBody
 )
 

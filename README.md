@@ -44,7 +44,7 @@ r.Get(url)
 // use req package to initiate reqeust.
 req.Get(url)
 ```
-You can use `New()` to create lots of `*Req` as client with independent configuration
+You can use `req.New()` to create lots of `*Req` as client with independent configuration
 
 Examples
 =======
@@ -52,7 +52,8 @@ Examples
 [Set Header](#Set-Header)  
 [Set Param](#Set-Param)  
 [Set Body](#Set-Body)  
-[Debug & Logging](#Debug-Logging)  
+[Debug](#Debug)  
+[Output Format](#Format)  
 [ToJSON & ToXML](#ToJSON-ToXML)  
 [Get *http.Response](#Response)  
 [Upload](#Upload)  
@@ -82,7 +83,7 @@ log.Printf("%+v", r) // print info (try it, you may surprise)
 ```
 
 ## <a name="Set-Header">Set Header</a>
-use `req.Header`
+Use `req.Header` (it is actually a `map[string]string`)
 ``` go
 authHeader := req.Header{
 	"Accept":        "application/json",
@@ -98,7 +99,7 @@ r, err := req.Get("https://www.baidu.com", header)
 ```
 
 ## <a name="Set-Param">Set Param</a>
-use `req.Param`
+Use `req.Param` (it is actually a `map[string]string`)
 ``` go
 param := req.Param{
 	"id":  "imroc",
@@ -107,7 +108,7 @@ param := req.Param{
 req.Get("http://foo.bar/api", param) // http://foo.bar/api?id=imroc&pwd=roc
 req.Post(url, param)                  // body => id=imroc&pwd=roc
 ```
-use `req.QueryParam` force to append params to the url
+use `req.QueryParam` force to append params to the url (it is also actually a `map[string]string`)
 ``` go
 req.Post("http://foo.bar/api", req.Param{"name": "roc", "age": "22"}, req.QueryParam{"access_token": "fedledGF9Hg9ehTU"})
 /*
@@ -123,81 +124,70 @@ age=22&name=roc
 ```
 
 ## <a name="Set-Body">Set Body</a>
-put `string`, `[]byte` and `io.Reader` as body directly.
+Put `string`, `[]byte` and `io.Reader` as body directly.
 ``` go
 req.Post(url, "id=roc&cmd=query")
 ```
-put xml and json body
+Put object as xml or json body (add `Content-Type` header automatically)
 ``` go
 req.Post(url, req.BodyJSON(&foo))
 req.Post(url, req.BodyXML(&bar))
 ```
 
-## <a name="Debug-Logging">Debug & Logging</a>
-Enable debug mode
+## <a name="Debug">Debug</a>
+Set global variable `req.Debug` to true, it will print detail infomation for every request.
 ``` go
 req.Debug = true
-req.Get(url)
-/*
-GET /test HTTP/1.1
-Host: localhost
-User-Agent: Go-http-client/1.1
-Transfer-Encoding: chunked
-Accept-Encoding: gzip
-
-=================================
-
-HTTP/1.1 200 OK
-Content-Length: 9
-Content-Type: text/plain; charset=UTF-8
-Date: Thu, 25 May 2017 14:55:58 GMT
-
-hello req
-*/
+req.Post("http://localhost/test" "hi")
 ```
-Output format
+![post](doc/post.png)
+
+## <a name="Format">Output Format</a>
+You can use different kind of output format to log the request and response infomation in your log file in defferent scenarios. For example, use `%+v` output format in the development phase, it allows you to observe the details. Use `%v` or `%-v` output format in production phase, just log the information necessarily.  
+
+### `%+v` or `%+s`
+Output in detail
 ``` go
-req.SetFlags(req.LreqHead | req.LreqBody | req.LrespHead) // not output reponse body
-req.Debug = true
-req.Post(url, "hi roc")
-/*
-POST /test HTTP/1.1
-Host: localhost
-User-Agent: Go-http-client/1.1
-Content-Length: 6
-Accept-Encoding: gzip
-
-hi roc
-
-=================================
-
-HTTP/1.1 200 OK
-Content-Length: 9
-Content-Type: text/plain; charset=UTF-8
-Date: Thu, 25 May 2017 14:57:39 GMT
-*/
+r, _ := req.Post(url, header, param)
+log.Printf("%+v", r) // output the same format as Debug is enabled
 ```
 
-Monitor speed
+### `%v` or `%s`
+Output in simple way (default format)
+``` go
+r, _ := req.Get(url, param)
+log.Printf("%v\n", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg":"success"}
+log.Prinln(r)         // smae as above
+```
+
+### `%-v` or `%-s`
+Output in simple way and keep all in one line (request body or response body may have multiple lines, this format will replace `"\r"` or `"\n"` with `" "`, it's useful when doing some search in your log file)
+
+### Flag
+You can call `SetFlags` to control the output content, decide which pieces can be output.
+``` go
+const (
+	LreqHead  = 1 << iota // output request head (request line and request header)
+	LreqBody              // output request body
+	LrespHead             // output response head (response line and response header)
+	LrespBody             // output response body
+	Lcost                 // output time costed by the request
+	LstdFlags = LreqHead | LreqBody | LrespHead | LrespBody
+)
+```
+``` go
+req.SetFlags(req.LreqHead | req.LreqBody | req.LrespHead)
+```
+
+### Monitoring time consuming
 ``` go
 req.SetFlags(req.LstdFlags | req.Lcost) // output format add time costed by request
 r,_ := req.Get(url)
 log.Println(r) // http://foo.bar/api 3.260802ms {"code":0 "msg":"success"}
 if r.Cost() > 3 * time.Second { // check cost
-	log.Println("WARN: slow request:",r)
+	log.Println("WARN: slow request:", r)
 }
 ```
-Use `%+v` format to print debug info
-``` go
-r, _ := req.Post(url, header, param)
-log.Printf("%+v", r)
-```
-Use `%v` format to print info simple
-``` go
-r, _ := req.Get(url, param)
-log.Printf("%v", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg":"success"}
-```
-and the `%-v` format is similar to `%v`, the only difference is that it always keep the content in one line, it is useful while logging.
 
 ## <a name="ToJSON-ToXML">ToJSON & ToXML</a>
 ``` go
@@ -225,8 +215,8 @@ Use `req.FileUpload` to fully control
 file, _ := os.Open("imroc.png")
 req.Post(url, req.FileUpload{
 	File:      file,
-	FieldName: "file",
-	FileName:  "avatar.png",
+	FieldName: "file",       // FieldName is form field name
+	FileName:  "avatar.png", //Filename is the name of the file that you wish to upload. We use this to guess the mimetype as well as pass it onto the server
 })
 ```
 
@@ -244,7 +234,7 @@ req.EnableCookie(false)
 and you can set cookie in request just using `*http.Cookie`
 ``` go
 cookie := new(http.Cookie)
-......
+// ......
 req.Get(url, cookie)
 ```
 
@@ -273,7 +263,7 @@ Use `SetClient` to change the default underlying `*http.Client`
 ``` go
 req.SetClient(client)
 ```
-Only specify client for some request
+Specify independent http client for some requests
 ``` go
 client := &http.Client{Timeout: 30 * time.Second}
 req.Get(url, client)
