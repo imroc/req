@@ -139,7 +139,7 @@ req.Post(url, req.BodyXML(&bar))
 req.Debug = true
 req.Post("http://localhost/test" "hi")
 ```
-![post](doc/post.png)
+![post](post.png)
 
 ## <a name="Format">输出格式</a>
 您可以使用指定类型的输出格式在日志文件中记录请求和响应的信息。例如，在开发阶段使用`％+v`格式，可以让你观察请求和响应的细节信息。 在生产阶段使用`％v`或`％-v`输出格式，只记录所需要的信息。
