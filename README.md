@@ -95,7 +95,7 @@ use `http.Header`
 ``` go
 header := make(http.Header)
 header.Set("Accept", "application/json")
-r, err := req.Get("https://www.baidu.com", header)
+req.Get("https://www.baidu.com", header)
 ```
 
 ## <a name="Set-Param">Set Param</a>
