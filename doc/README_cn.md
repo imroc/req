@@ -127,14 +127,14 @@ Put `string`, `[]byte` and `io.Reader` as body directly.
 ``` go
 req.Post(url, "id=roc&cmd=query")
 ```
-将对象作为JSON或XML请求体（自动添加 `Content-Type` 请求头）
+将对象作为JSON或XML请求体（自动添加 `Content-Type` 请求头）
 ``` go
 req.Post(url, req.BodyJSON(&foo))
 req.Post(url, req.BodyXML(&bar))
 ```
 
 ## <a name="Debug">调试</a>
-将全局变量 `req.Debug` 设置为`true`，将会把所有请求的详细信息打印在标准输出。
+将全局变量 `req.Debug` 设置为`true`，将会把所有请求的详细信息打印在标准输出。
 ``` go
 req.Debug = true
 req.Post("http://localhost/test" "hi")
@@ -144,11 +144,11 @@ req.Post("http://localhost/test" "hi")
 ## <a name="Format">输出格式</a>
 您可以使用指定类型的输出格式在日志文件中记录请求和响应的信息。例如，在开发阶段使用`％+v`格式，可以让你观察请求和响应的细节信息。 在生产阶段使用`％v`或`％-v`输出格式，只记录所需要的信息。
 
-### `%+v` 或 `%+s`
+### `%+v` 或 `%+s`
 详细输出
 ``` go
 r, _ := req.Post(url, header, param)
-log.Printf("%+v", r) // 输出格式和Debug开启时的格式一样
+log.Printf("%+v", r) // 输出格式和Debug开启时的格式一样
 ```
 
 ### `%v` or `%s`
@@ -163,7 +163,7 @@ log.Prinln(r)         // 和上面一样
 简单输出并保持所有内容在一行内（请求体或响应体可能包含多行，这种格式会将所有换行、回车替换成`" "`, 这在会让你在查日志的时候非常有用）
 
 ### Flag
-你可以调用 `SetFlags` 控制输出内容，决定哪些部分能够被输出。
+你可以调用 `SetFlags` 控制输出内容，决定哪些部分能够被输出。
 ``` go
 const (
 	LreqHead  = 1 << iota // 输出请求首部（包含请求行和请求头）
@@ -215,7 +215,7 @@ file, _ := os.Open("imroc.png")
 req.Post(url, req.FileUpload{
 	File:      file,
 	FieldName: "file",       // FieldName 是表单字段名
-	FileName:  "avatar.png", // Filename 是要上传的文件的名称，我们使用它来猜测mimetype，并将其上传到服务器上
+	FileName:  "avatar.png", // Filename 是要上传的文件的名称，我们使用它来猜测mimetype，并将其上传到服务器上
 })
 ```
 
@@ -226,7 +226,7 @@ r.ToFile("imroc.png")
 ```
 
 ## <a name="Cookie">Cookie</a>
-默认情况下，底层的 `*http.Client` 会自动管理你的cookie（如果服务器给你发了cookie，之后的请求它会自动带上cookie请求头给服务器）, 你可以调用这个方法取消自动管理：
+默认情况下，底层的 `*http.Client` 会自动管理你的cookie（如果服务器给你发了cookie，之后的请求它会自动带上cookie请求头给服务器）, 你可以调用这个方法取消自动管理：
 ``` go
 req.EnableCookie(false)
 ```
@@ -243,7 +243,7 @@ req.SetTimeout(50 * time.Second)
 ```
 
 ## <a name="Set-Proxy">设置代理</a>
-默认情况下，如果系统环境变量有 `http_proxy` 或 `https_proxy` ，req会讲对应的地址作为对应协议的代理，你也可以自定义设置代理，或者将其置为`nil`，即取消代理。
+默认情况下，如果系统环境变量有 `http_proxy` 或 `https_proxy` ，req会讲对应的地址作为对应协议的代理，你也可以自定义设置代理，或者将其置为`nil`，即取消代理。
 ``` go
 req.SetProxy(func(r *http.Request) (*url.URL, error) {
 	if strings.Contains(r.URL.Hostname(), "google") {
@@ -262,7 +262,7 @@ req.SetProxyUrl("http://my.proxy.com:23456")
 ``` go
 req.SetClient(client)
 ```
-给某个请求制定特定的 `*http.Client`
+给某个请求制定特定的 `*http.Client`
 ``` go
 client := &http.Client{Timeout: 30 * time.Second}
 req.Get(url, client)
