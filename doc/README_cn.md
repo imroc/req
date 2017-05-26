@@ -151,7 +151,7 @@ r, _ := req.Post(url, header, param)
 log.Printf("%+v", r) // 输出格式和Debug开启时的格式一样
 ```
 
-### `%v` or `%s`
+### `%v` 或 `%s`
 简单输出（默认格式）
 ``` go
 r, _ := req.Get(url, param)
@@ -159,7 +159,7 @@ log.Printf("%v\n", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","ms
 log.Prinln(r)         // 和上面一样
 ```
 
-### `%-v` or `%-s`
+### `%-v` 或 `%-s`
 简单输出并保持所有内容在一行内（请求体或响应体可能包含多行，这种格式会将所有换行、回车替换成`" "`, 这在会让你在查日志的时候非常有用）
 
 ### Flag
