@@ -1,7 +1,7 @@
 # req
 [![GoDoc](https://godoc.org/github.com/imroc/req?status.svg)](https://godoc.org/github.com/imroc/req)
 
-A golang http request library for human
+A golang http request library for humans
 
 
 
@@ -18,6 +18,12 @@ Features
 - Easy set timeout
 - Easy customize http client
 
+
+Document
+========
+[中文](doc/README_cn.md)
+
+
 Install
 =======
 ``` sh
@@ -28,7 +34,7 @@ Overview
 =======
 `req` implements a friendly API over Go's existing `net/http` library.  
   
-`Req` and `Resp` are two most important struct, you can think of `Req` as a client that initiate HTTP requests, `Resp` as a information container for the request and response. They all provide great APIs that allows you to do a lot of things conveniently
+`Req` and `Resp` are two most important struct, you can think of `Req` as a client that initiate HTTP requests, `Resp` as a information container for the request and response. They all provide simple and convenient APIs that allows you to do a lot of things.
 ``` go
 func (r *Req) Post(url string, v ...interface{}) (*Resp, error)
 ```  
