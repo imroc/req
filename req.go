@@ -47,7 +47,7 @@ type FileUpload struct {
 // Debug enable debug mode if set to true
 var Debug bool
 
-var regTextContentType = regexp.MustCompile("xml|json|text")
+var regTextContentType = regexp.MustCompile("text|xml|json|javascript|charset|java")
 
 var std = New()
 
