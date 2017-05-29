@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -268,8 +269,18 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 
 	resp.resp = response
 	ct := response.Header.Get("Content-Type")
-	if ct == "" || regTextContentType.MatchString(ct) {
-		respBody, err := ioutil.ReadAll(response.Body)
+	if ct == "" || regTextContentType.MatchString(ct) { // text
+		defer response.Body.Close()
+		var reader io.Reader
+		if _, ok := resp.client.Transport.(*http.Transport); ok && response.Header.Get("Content-Encoding") == "gzip" && req.Header.Get("Accept-Encoding") != "" {
+			reader, err = gzip.NewReader(response.Body)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			reader = response.Body
+		}
+		respBody, err := ioutil.ReadAll(reader)
 		if err != nil {
 			return resp, err
 		}
