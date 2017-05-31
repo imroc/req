@@ -45,6 +45,23 @@ type FileUpload struct {
 	File io.ReadCloser
 }
 
+// BodyJSON make the object be encoded in json format and set it to the request body
+type BodyJSON interface{}
+
+// BodyXML make the object be encoded in xml format and set it to the request body
+type BodyXML interface{}
+
+type jsonEncOpts struct {
+	indentPrefix string
+	indentValue  string
+	escapeHTML   bool
+}
+
+type xmlEncOpts struct {
+	prefix string
+	indent string
+}
+
 // Debug enable debug mode if set to true
 var Debug bool
 
@@ -98,8 +115,10 @@ const (
 )
 
 type Req struct {
-	client *http.Client
-	flag   int
+	client      *http.Client
+	jsonEncOpts *jsonEncOpts
+	xmlEncOpts  *xmlEncOpts
+	flag        int
 }
 
 func newClient() *http.Client {
@@ -140,15 +159,12 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 		ProtoMinor: 1,
 	}
 	resp = &Resp{req: req, r: r}
-	handleBody := func(b *body) {
-		if b == nil {
-			return
-		}
-		resp.reqBody = b.Data
+	handleBody := func(data []byte, contentType string) {
+		resp.reqBody = data
 		req.Body = resp.getReqBody()
 		req.ContentLength = int64(len(resp.reqBody))
-		if b.ContentType != "" && req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", b.ContentType)
+		if contentType != "" && req.Header.Get("Content-Type") == "" {
+			req.Header.Set("Content-Type", contentType)
 		}
 	}
 
@@ -178,12 +194,49 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 			if err != nil {
 				return nil, err
 			}
-			handleBody(&body{Data: bs})
+			handleBody(bs, "")
 			if rc, ok := t.(io.ReadCloser); ok {
 				rc.Close()
 			}
-		case *body:
-			handleBody(t)
+		case BodyJSON:
+			var data []byte
+			if r.jsonEncOpts != nil {
+				opts := r.jsonEncOpts
+				var buf bytes.Buffer
+				enc := json.NewEncoder(&buf)
+				enc.SetIndent(opts.indentPrefix, opts.indentValue)
+				enc.SetEscapeHTML(opts.escapeHTML)
+				err = enc.Encode(p)
+				if err != nil {
+					return nil, err
+				}
+				data = buf.Bytes()
+			} else {
+				data, err = json.Marshal(p)
+				if err != nil {
+					return nil, err
+				}
+			}
+			handleBody(data, "application/json; charset=UTF-8")
+		case BodyXML:
+			var data []byte
+			if r.xmlEncOpts != nil {
+				opts := r.xmlEncOpts
+				var buf bytes.Buffer
+				enc := xml.NewEncoder(&buf)
+				enc.Indent(opts.prefix, opts.indent)
+				err = enc.Encode(p)
+				if err != nil {
+					return nil, err
+				}
+				data = buf.Bytes()
+			} else {
+				data, err = xml.Marshal(p)
+				if err != nil {
+					return nil, err
+				}
+			}
+			handleBody(data, "application/xml; charset=UTF-8")
 		case Param:
 			if method == "GET" {
 				queryParam = append(queryParam, QueryParam(t))
@@ -193,9 +246,9 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 		case QueryParam:
 			queryParam = append(queryParam, t)
 		case string:
-			handleBody(&body{Data: []byte(t)})
+			handleBody([]byte(t), "")
 		case []byte:
-			handleBody(&body{Data: []byte(t)})
+			handleBody(t, "")
 		case *http.Client:
 			resp.client = t
 		case FileUpload:
@@ -228,11 +281,7 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 			}
 		}
 		paramStr := params.Encode()
-		body := &body{
-			ContentType: "application/x-www-form-urlencoded; charset=UTF-8",
-			Data:        []byte(paramStr),
-		}
-		handleBody(body)
+		handleBody([]byte(paramStr), "application/x-www-form-urlencoded; charset=UTF-8")
 	}
 
 	if len(queryParam) > 0 {
@@ -369,50 +418,6 @@ func (r *Req) upload(resp *Resp, file []FileUpload, param []Param) {
 // Cost returns time spent by the request
 func (r *Resp) Cost() time.Duration {
 	return r.cost
-}
-
-// Body represents request's body
-type body struct {
-	ContentType string
-	Data        []byte
-}
-
-// BodyXML get request's body as xml
-func BodyXML(v interface{}) interface{} {
-	b := new(body)
-	switch t := v.(type) {
-	case string:
-		b.Data = []byte(t)
-	case []byte:
-		b.Data = t
-	default:
-		bs, err := xml.Marshal(v)
-		if err != nil {
-			return err
-		}
-		b.Data = bs
-	}
-	b.ContentType = "application/xml; charset=UTF-8"
-	return b
-}
-
-// BodyJSON get request's body as json
-func BodyJSON(v interface{}) interface{} {
-	b := new(body)
-	switch t := v.(type) {
-	case string:
-		b.Data = []byte(t)
-	case []byte:
-		b.Data = t
-	default:
-		bs, err := json.Marshal(v)
-		if err != nil {
-			return err
-		}
-		b.Data = bs
-	}
-	b.ContentType = "application/json; charset=UTF-8"
-	return b
 }
 
 // File upload files matching the name pattern such as

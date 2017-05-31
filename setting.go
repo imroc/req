@@ -131,3 +131,72 @@ func (r *Req) SetProxy(proxy func(*http.Request) (*url.URL, error)) error {
 func SetProxy(proxy func(*http.Request) (*url.URL, error)) error {
 	return std.SetProxy(proxy)
 }
+
+// SetJSONEscapeHTML specifies whether problematic HTML characters
+// should be escaped inside JSON quoted strings.
+// The default behavior is to escape &, <, and > to \u0026, \u003c, and \u003e
+// to avoid certain safety problems that can arise when embedding JSON in HTML.
+//
+// In non-HTML settings where the escaping interferes with the readability
+// of the output, SetEscapeHTML(false) disables this behavior.
+func (r *Req) SetJSONEscapeHTML(escape bool) {
+	opts := r.getJSONEncOpts()
+	opts.escapeHTML = escape
+}
+
+// SetJSONEscapeHTML specifies whether problematic HTML characters
+// should be escaped inside JSON quoted strings.
+// The default behavior is to escape &, <, and > to \u0026, \u003c, and \u003e
+// to avoid certain safety problems that can arise when embedding JSON in HTML.
+//
+// In non-HTML settings where the escaping interferes with the readability
+// of the output, SetEscapeHTML(false) disables this behavior.
+func SetJSONEscapeHTML(escape bool) {
+	std.SetJSONEscapeHTML(escape)
+}
+
+// SetJSONIndent instructs the encoder to format each subsequent encoded
+// value as if indented by the package-level function Indent(dst, src, prefix, indent).
+// Calling SetIndent("", "") disables indentation.
+func (r *Req) SetJSONIndent(prefix, indent string) {
+	opts := r.getJSONEncOpts()
+	opts.indentPrefix = prefix
+	opts.indentValue = indent
+}
+
+// SetJSONIndent instructs the encoder to format each subsequent encoded
+// value as if indented by the package-level function Indent(dst, src, prefix, indent).
+// Calling SetIndent("", "") disables indentation.
+func SetJSONIndent(prefix, indent string) {
+	std.SetJSONIndent(prefix, indent)
+}
+
+// SetXMLIndent sets the encoder to generate XML in which each element
+// begins on a new indented line that starts with prefix and is followed by
+// one or more copies of indent according to the nesting depth.
+func (r *Req) SetXMLIndent(prefix, indent string) {
+	opts := r.getXMLEncOpts()
+	opts.prefix = prefix
+	opts.indent = indent
+}
+
+// SetXMLIndent sets the encoder to generate XML in which each element
+// begins on a new indented line that starts with prefix and is followed by
+// one or more copies of indent according to the nesting depth.
+func SetXMLIndent(prefix, indent string) {
+	std.SetXMLIndent(prefix, indent)
+}
+
+func (r *Req) getJSONEncOpts() *jsonEncOpts {
+	if r.jsonEncOpts == nil {
+		r.jsonEncOpts = &jsonEncOpts{escapeHTML: true}
+	}
+	return r.jsonEncOpts
+}
+
+func (r *Req) getXMLEncOpts() *xmlEncOpts {
+	if r.xmlEncOpts == nil {
+		r.xmlEncOpts = &xmlEncOpts{}
+	}
+	return r.xmlEncOpts
+}
