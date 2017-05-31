@@ -539,6 +539,11 @@ func (r *Resp) Format(s fmt.State, verb rune) {
 
 }
 
+// Do execute request.
+func Do(method, url string, v ...interface{}) (*Resp, error) {
+	return std.Do(method, url, v...)
+}
+
 // Get execute a http GET request
 func (r *Req) Get(url string, v ...interface{}) (*Resp, error) {
 	return r.Do("GET", url, v...)
