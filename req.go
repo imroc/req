@@ -45,11 +45,23 @@ type FileUpload struct {
 	File io.ReadCloser
 }
 
-// BodyJSON make the object be encoded in json format and set it to the request body
-type BodyJSON interface{}
+type bodyJson struct {
+	v interface{}
+}
+
+type bodyXml struct {
+	v interface{}
+}
 
 // BodyXML make the object be encoded in xml format and set it to the request body
-type BodyXML interface{}
+func BodyXML(v interface{}) *bodyXml {
+	return &bodyXml{v: v}
+}
+
+// BodyJSON make the object be encoded in json format and set it to the request body
+func BodyJSON(v interface{}) *bodyJson {
+	return &bodyJson{v: v}
+}
 
 type jsonEncOpts struct {
 	indentPrefix string
@@ -198,7 +210,7 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 			if rc, ok := t.(io.ReadCloser); ok {
 				rc.Close()
 			}
-		case BodyJSON:
+		case bodyJson:
 			var data []byte
 			if r.jsonEncOpts != nil {
 				opts := r.jsonEncOpts
@@ -206,7 +218,7 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 				enc := json.NewEncoder(&buf)
 				enc.SetIndent(opts.indentPrefix, opts.indentValue)
 				enc.SetEscapeHTML(opts.escapeHTML)
-				err = enc.Encode(p)
+				err = enc.Encode(t.v)
 				if err != nil {
 					return nil, err
 				}
@@ -218,14 +230,14 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 				}
 			}
 			handleBody(data, "application/json; charset=UTF-8")
-		case BodyXML:
+		case bodyXml:
 			var data []byte
 			if r.xmlEncOpts != nil {
 				opts := r.xmlEncOpts
 				var buf bytes.Buffer
 				enc := xml.NewEncoder(&buf)
 				enc.Indent(opts.prefix, opts.indent)
-				err = enc.Encode(p)
+				err = enc.Encode(t.v)
 				if err != nil {
 					return nil, err
 				}
