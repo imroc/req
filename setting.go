@@ -53,7 +53,7 @@ func Flags() int {
 }
 
 func (r *Req) getTransport() *http.Transport {
-	trans, _ := r.client.Transport.(*http.Transport)
+	trans, _ := r.Client().Transport.(*http.Transport)
 	return trans
 }
 
@@ -77,9 +77,9 @@ func EnableInsecureTLS(enable bool) {
 func (r *Req) EnableCookie(enable bool) {
 	if enable {
 		jar, _ := cookiejar.New(nil)
-		r.client.Jar = jar
+		r.Client().Jar = jar
 	} else {
-		r.client.Jar = nil
+		r.Client().Jar = nil
 	}
 }
 
@@ -90,7 +90,7 @@ func EnableCookie(enable bool) {
 
 // SetTimeout sets the timeout for every request
 func (r *Req) SetTimeout(d time.Duration) {
-	r.client.Timeout = d
+	r.Client().Timeout = d
 }
 
 // SetTimeout sets the timeout for every request
