@@ -3,11 +3,34 @@ package req
 import (
 	"crypto/tls"
 	"errors"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"time"
 )
+
+// create a default client
+func newClient() *http.Client {
+	jar, _ := cookiejar.New(nil)
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+			DualStack: true,
+		}).DialContext,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	return &http.Client{
+		Jar:       jar,
+		Transport: transport,
+		Timeout:   2 * time.Minute,
+	}
+}
 
 // Client return the default underlying http client
 func (r *Req) Client() *http.Client {
@@ -132,6 +155,19 @@ func SetProxy(proxy func(*http.Request) (*url.URL, error)) error {
 	return std.SetProxy(proxy)
 }
 
+type jsonEncOpts struct {
+	indentPrefix string
+	indentValue  string
+	escapeHTML   bool
+}
+
+func (r *Req) getJSONEncOpts() *jsonEncOpts {
+	if r.jsonEncOpts == nil {
+		r.jsonEncOpts = &jsonEncOpts{escapeHTML: true}
+	}
+	return r.jsonEncOpts
+}
+
 // SetJSONEscapeHTML specifies whether problematic HTML characters
 // should be escaped inside JSON quoted strings.
 // The default behavior is to escape &, <, and > to \u0026, \u003c, and \u003e
@@ -171,6 +207,18 @@ func SetJSONIndent(prefix, indent string) {
 	std.SetJSONIndent(prefix, indent)
 }
 
+type xmlEncOpts struct {
+	prefix string
+	indent string
+}
+
+func (r *Req) getXMLEncOpts() *xmlEncOpts {
+	if r.xmlEncOpts == nil {
+		r.xmlEncOpts = &xmlEncOpts{}
+	}
+	return r.xmlEncOpts
+}
+
 // SetXMLIndent sets the encoder to generate XML in which each element
 // begins on a new indented line that starts with prefix and is followed by
 // one or more copies of indent according to the nesting depth.
@@ -185,18 +233,4 @@ func (r *Req) SetXMLIndent(prefix, indent string) {
 // one or more copies of indent according to the nesting depth.
 func SetXMLIndent(prefix, indent string) {
 	std.SetXMLIndent(prefix, indent)
-}
-
-func (r *Req) getJSONEncOpts() *jsonEncOpts {
-	if r.jsonEncOpts == nil {
-		r.jsonEncOpts = &jsonEncOpts{escapeHTML: true}
-	}
-	return r.jsonEncOpts
-}
-
-func (r *Req) getXMLEncOpts() *xmlEncOpts {
-	if r.xmlEncOpts == nil {
-		r.xmlEncOpts = &xmlEncOpts{}
-	}
-	return r.xmlEncOpts
 }

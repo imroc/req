@@ -10,113 +10,19 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
-	"net"
 	"net/http"
-	"net/http/cookiejar"
 	"net/textproto"
 	"net/url"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
-// http request header param
-type Header map[string]string
-
-// http request param
-type Param map[string]string
-
-// used to force append http request param to the uri
-type QueryParam map[string]string
-
-// used for set request's Host
-type Host string
-
-// represents a file to upload
-type FileUpload struct {
-	// filename in multipart form.
-	FileName string
-	// form field name
-	FieldName string
-	// file to uplaod, required
-	File io.ReadCloser
-}
-
-type bodyJson struct {
-	v interface{}
-}
-
-type bodyXml struct {
-	v interface{}
-}
-
-// BodyXML make the object be encoded in xml format and set it to the request body
-func BodyXML(v interface{}) *bodyXml {
-	return &bodyXml{v: v}
-}
-
-// BodyJSON make the object be encoded in json format and set it to the request body
-func BodyJSON(v interface{}) *bodyJson {
-	return &bodyJson{v: v}
-}
-
-type jsonEncOpts struct {
-	indentPrefix string
-	indentValue  string
-	escapeHTML   bool
-}
-
-type xmlEncOpts struct {
-	prefix string
-	indent string
-}
-
-// Debug enable debug mode if set to true
-var Debug bool
-
-var regTextContentType = regexp.MustCompile("text|xml|json|javascript|charset|java")
-
+// default *Req
 var std = New()
 
-type bodyWrapper struct {
-	io.ReadCloser
-	buf   bytes.Buffer
-	limit int
-}
-
-func (b bodyWrapper) Read(p []byte) (n int, err error) {
-	n, err = b.ReadCloser.Read(p)
-	if left := b.limit - b.buf.Len(); left > 0 && n > 0 {
-		if n <= left {
-			b.buf.Write(p[:n])
-		} else {
-			b.buf.Write(p[:left])
-		}
-	}
-	return
-}
-
-// Req represents a request with it's response
-type Resp struct {
-	r        *Req
-	req      *http.Request
-	resp     *http.Response
-	client   *http.Client
-	reqBody  []byte
-	respBody []byte
-	cost     time.Duration
-}
-
-func (r *Resp) getReqBody() io.ReadCloser {
-	if r.reqBody == nil {
-		return nil
-	}
-	return ioutil.NopCloser(bytes.NewReader(r.reqBody))
-}
-
+// flags to decide which part can be outputed
 const (
 	LreqHead  = 1 << iota // output request head (request line and request header)
 	LreqBody              // output request body
@@ -126,6 +32,7 @@ const (
 	LstdFlags = LreqHead | LreqBody | LrespHead | LrespBody
 )
 
+// Req is a convenient client for initiating requests
 type Req struct {
 	client      *http.Client
 	jsonEncOpts *jsonEncOpts
@@ -133,32 +40,15 @@ type Req struct {
 	flag        int
 }
 
-func newClient() *http.Client {
-	jar, _ := cookiejar.New(nil)
-	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
-		DialContext: (&net.Dialer{
-			Timeout:   30 * time.Second,
-			KeepAlive: 30 * time.Second,
-			DualStack: true,
-		}).DialContext,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-	}
-	return &http.Client{
-		Jar:       jar,
-		Transport: transport,
-		Timeout:   2 * time.Minute,
-	}
-}
-
+// New create a new *Req
 func New() *Req {
 	return &Req{flag: LstdFlags}
 }
 
-// Do execute request.
+var regTextContentType = regexp.MustCompile("text|xml|json|javascript|charset|java")
+
+// Do execute a http request with sepecify method and url,
+// and it can also have some optional params, depending on your needs.
 func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error) {
 	if rawurl == "" {
 		return nil, errors.New("req: url not specified")
@@ -210,7 +100,7 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 			if rc, ok := t.(io.ReadCloser); ok {
 				rc.Close()
 			}
-		case bodyJson:
+		case *bodyJson:
 			var data []byte
 			if r.jsonEncOpts != nil {
 				opts := r.jsonEncOpts
@@ -224,13 +114,13 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 				}
 				data = buf.Bytes()
 			} else {
-				data, err = json.Marshal(p)
+				data, err = json.Marshal(t.v)
 				if err != nil {
 					return nil, err
 				}
 			}
 			handleBody(data, "application/json; charset=UTF-8")
-		case bodyXml:
+		case *bodyXml:
 			var data []byte
 			if r.xmlEncOpts != nil {
 				opts := r.xmlEncOpts
@@ -243,7 +133,7 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 				}
 				data = buf.Bytes()
 			} else {
-				data, err = xml.Marshal(p)
+				data, err = xml.Marshal(t.v)
 				if err != nil {
 					return nil, err
 				}
@@ -353,6 +243,24 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 	return
 }
 
+type bodyWrapper struct {
+	io.ReadCloser
+	buf   bytes.Buffer
+	limit int
+}
+
+func (b bodyWrapper) Read(p []byte) (n int, err error) {
+	n, err = b.ReadCloser.Read(p)
+	if left := b.limit - b.buf.Len(); left > 0 && n > 0 {
+		if n <= left {
+			b.buf.Write(p[:n])
+		} else {
+			b.buf.Write(p[:left])
+		}
+	}
+	return
+}
+
 type dummyMultipart struct {
 	buf bytes.Buffer
 	w   *multipart.Writer
@@ -427,143 +335,39 @@ func (r *Req) upload(resp *Resp, file []FileUpload, param []Param) {
 	resp.req.Body = ioutil.NopCloser(pr)
 }
 
-// Cost returns time spent by the request
-func (r *Resp) Cost() time.Duration {
-	return r.cost
-}
-
-// File upload files matching the name pattern such as
-// /usr/*/bin/go* (assuming the Separator is '/')
-func File(patterns ...string) interface{} {
-	matches := []string{}
-	for _, pattern := range patterns {
-		m, err := filepath.Glob(pattern)
-		if err != nil {
-			return err
-		}
-		matches = append(matches, m...)
-	}
-	if len(matches) == 0 {
-		return errors.New("req: No file have been matched")
-	}
-	uploads := []FileUpload{}
-	for _, match := range matches {
-		if s, e := os.Stat(match); e != nil || s.IsDir() {
-			continue
-		}
-		file, _ := os.Open(match)
-		uploads = append(uploads, FileUpload{File: file, FileName: filepath.Base(match)})
-	}
-
-	return uploads
-}
-
-// Request returns *http.Request
-func (r *Resp) Request() *http.Request {
-	return r.req
-}
-
-// Response returns *http.Response
-func (r *Resp) Response() *http.Response {
-	return r.resp
-}
-
-// Bytes returns response body as []byte
-func (r *Resp) Bytes() []byte {
-	return r.respBody
-}
-
-// String returns response body as string
-func (r *Resp) String() string {
-	return string(r.respBody)
-}
-
-// ToJSON convert json response body to struct or map
-func (r *Resp) ToJSON(v interface{}) error {
-	return json.Unmarshal(r.respBody, v)
-}
-
-// ToXML convert xml response body to struct or map
-func (r *Resp) ToXML(v interface{}) error {
-	return xml.Unmarshal(r.respBody, v)
-}
-
-// ToFile download the response body to file
-func (r *Resp) ToFile(name string) error {
-	file, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(file, r.resp.Body)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-var regNewline = regexp.MustCompile(`\n|\r`)
-
-func (r *Resp) Format(s fmt.State, verb rune) {
-	if r == nil || r.req == nil {
-		return
-	}
-	req := r.req
-	if s.Flag('+') { // include header and format pretty.
-		fmt.Fprint(s, r.dump())
-	} else if s.Flag('-') { // keep all informations in one line.
-		fmt.Fprint(s, req.Method, " ", req.URL.String())
-		if r.r.flag&Lcost != 0 {
-			fmt.Fprint(s, " ", r.cost.String())
-		}
-		if r.r.flag&LreqBody != 0 {
-			if len(r.reqBody) > 0 {
-				str := regNewline.ReplaceAllString(string(r.reqBody), " ")
-				fmt.Fprint(s, " ", str)
-			} else {
-				fmt.Fprint(s, " ******")
-			}
-		}
-		if r.r.flag&LrespBody != 0 {
-			if len(r.respBody) > 0 {
-				str := regNewline.ReplaceAllString(string(r.respBody), " ")
-				fmt.Fprint(s, " ", str)
-			} else {
-				fmt.Fprint(s, " ******")
-			}
-		}
-	} else { // auto
-		fmt.Fprint(s, req.Method, " ", req.URL.String())
-		if r.r.flag&Lcost != 0 {
-			fmt.Fprint(s, " ", r.cost.String())
-		}
-		respBody := r.respBody
-		if (len(r.reqBody) > 0 && regNewline.Match(r.reqBody)) || (len(respBody) > 0 && regNewline.Match(respBody)) { // pretty format
-			if len(r.reqBody) > 0 {
-				fmt.Fprint(s, "\n", string(r.reqBody))
-			}
-			if len(respBody) > 0 {
-				fmt.Fprint(s, "\n", string(respBody))
-			}
-		} else {
-			if len(r.reqBody) > 0 {
-				fmt.Fprint(s, " ", string(r.reqBody))
-			}
-			if len(respBody) > 0 {
-				fmt.Fprint(s, " ", string(respBody))
-			}
-		}
-	}
-
-}
-
-// Do execute request.
-func Do(method, url string, v ...interface{}) (*Resp, error) {
-	return std.Do(method, url, v...)
-}
-
 // Get execute a http GET request
 func (r *Req) Get(url string, v ...interface{}) (*Resp, error) {
 	return r.Do("GET", url, v...)
+}
+
+// Post execute a http POST request
+func (r *Req) Post(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("POST", url, v...)
+}
+
+// Put execute a http PUT request
+func (r *Req) Put(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("PUT", url, v...)
+}
+
+// Patch execute a http PATCH request
+func (r *Req) Patch(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("PATCH", url, v...)
+}
+
+// Delete execute a http DELETE request
+func (r *Req) Delete(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("DELETE", url, v...)
+}
+
+// Head execute a http HEAD request
+func (r *Req) Head(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("HEAD", url, v...)
+}
+
+// Options execute a http OPTIONS request
+func (r *Req) Options(url string, v ...interface{}) (*Resp, error) {
+	return r.Do("OPTIONS", url, v...)
 }
 
 // Get execute a http GET request
@@ -572,48 +376,13 @@ func Get(url string, v ...interface{}) (*Resp, error) {
 }
 
 // Post execute a http POST request
-func (r *Req) Post(url string, v ...interface{}) (*Resp, error) {
-	return r.Do("POST", url, v...)
-}
-
-// Post execute a http POST request
 func Post(url string, v ...interface{}) (*Resp, error) {
 	return std.Post(url, v...)
 }
 
 // Put execute a http PUT request
-func (r *Req) Put(url string, v ...interface{}) (*Resp, error) {
-	return r.Do("PUT", url, v...)
-}
-
-// Put execute a http PUT request
 func Put(url string, v ...interface{}) (*Resp, error) {
 	return std.Put(url, v...)
-}
-
-// Patch execute a http PATCH request
-func (r *Req) Patch(url string, v ...interface{}) (*Resp, error) {
-	return r.Do("PATCH", url, v...)
-}
-
-// Patch execute a http PATCH request
-func Patch(url string, v ...interface{}) (*Resp, error) {
-	return std.Patch(url, v...)
-}
-
-// Delete execute a http DELETE request
-func (r *Req) Delete(url string, v ...interface{}) (*Resp, error) {
-	return r.Do("DELETE", url, v...)
-}
-
-// Delete execute a http DELETE request
-func Delete(url string, v ...interface{}) (*Resp, error) {
-	return std.Delete(url, v...)
-}
-
-// Head execute a http HEAD request
-func (r *Req) Head(url string, v ...interface{}) (*Resp, error) {
-	return r.Do("HEAD", url, v...)
 }
 
 // Head execute a http HEAD request
@@ -622,11 +391,21 @@ func Head(url string, v ...interface{}) (*Resp, error) {
 }
 
 // Options execute a http OPTIONS request
-func (r *Req) Options(url string, v ...interface{}) (*Resp, error) {
-	return r.Do("OPTIONS", url, v...)
-}
-
-// Options execute a http OPTIONS request
 func Options(url string, v ...interface{}) (*Resp, error) {
 	return std.Options(url, v...)
+}
+
+// Delete execute a http DELETE request
+func Delete(url string, v ...interface{}) (*Resp, error) {
+	return std.Delete(url, v...)
+}
+
+// Patch execute a http PATCH request
+func Patch(url string, v ...interface{}) (*Resp, error) {
+	return std.Patch(url, v...)
+}
+
+// Do execute request.
+func Do(method, url string, v ...interface{}) (*Resp, error) {
+	return std.Do(method, url, v...)
 }

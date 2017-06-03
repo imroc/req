@@ -13,6 +13,9 @@ import (
 	"time"
 )
 
+// Debug enable debug mode if set to true
+var Debug bool
+
 // dumpConn is a net.Conn which writes to Writer and reads from Reader
 type dumpConn struct {
 	io.Writer
