@@ -61,6 +61,7 @@ func (r *Resp) ToXML(v interface{}) error {
 // ToFile download the response body to file
 func (r *Resp) ToFile(name string) error {
 	file, err := os.Create(name)
+	defer file.Close()
 	if err != nil {
 		return err
 	}
