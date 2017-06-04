@@ -1,12 +1,10 @@
 package req
 
 import (
-	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -23,13 +21,6 @@ type Resp struct {
 	reqBody  []byte
 	respBody []byte
 	cost     time.Duration
-}
-
-func (r *Resp) getReqBody() io.ReadCloser {
-	if r.reqBody == nil {
-		return nil
-	}
-	return ioutil.NopCloser(bytes.NewReader(r.reqBody))
 }
 
 // Cost returns time spent by the request

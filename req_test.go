@@ -1,6 +1,7 @@
 package req
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"io/ioutil"
@@ -61,6 +62,26 @@ func TestFormParam(t *testing.T) {
 	}
 }
 
+func TestParamWithBody(t *testing.T) {
+	reqBody := "request body"
+	p := Param{
+		"name": "roc",
+		"job":  "programmer",
+	}
+	buf := bytes.NewBufferString(reqBody)
+	ts := newDefaultTestServer()
+	r, err := Post(ts.URL, p, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Request().URL.Query().Get("name") != "roc" {
+		t.Error("param should in the url when set body manually")
+	}
+	if string(r.reqBody) != reqBody {
+		t.Error("request body not equal")
+	}
+}
+
 func TestParamBoth(t *testing.T) {
 	urlParam := QueryParam{
 		"access_token": "123abc",
@@ -91,6 +112,46 @@ func TestParamBoth(t *testing.T) {
 		t.Fatal(err)
 	}
 
+}
+
+func TestBody(t *testing.T) {
+	body := "request body"
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		bs, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(bs) != body {
+			t.Errorf("body = %s; want = %s", bs, body)
+		}
+	}
+	ts := httptest.NewServer(http.HandlerFunc(handler))
+
+	// string
+	_, err := Post(ts.URL, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// []byte
+	_, err = Post(ts.URL, []byte(body))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// *bytes.Buffer
+	var buf bytes.Buffer
+	buf.WriteString(body)
+	_, err = Post(ts.URL, &buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// io.Reader
+	_, err = Post(ts.URL, strings.NewReader(body))
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestBodyJSON(t *testing.T) {
@@ -195,6 +256,15 @@ func TestHeader(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	httpHeader := make(http.Header)
+	for key, value := range header {
+		httpHeader.Add(key, value)
+	}
+	_, err = Head(ts.URL, httpHeader)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestUpload(t *testing.T) {
@@ -232,6 +302,11 @@ func TestUpload(t *testing.T) {
 	}
 	ts := httptest.NewServer(http.HandlerFunc(handler))
 	_, err := Post(ts.URL, upload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ts = newDefaultTestServer()
+	_, err = Post(ts.URL, File("*.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
