@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-// Req represents a request with it's response
+// Resp represents a request with it's response
 type Resp struct {
 	r        *Req
 	req      *http.Request
