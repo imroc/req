@@ -13,6 +13,8 @@ import (
 	"net/http"
 	"net/textproto"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -32,6 +34,76 @@ const (
 	LstdFlags = LreqHead | LreqBody | LrespHead | LrespBody
 )
 
+// Header represents http request header
+type Header map[string]string
+
+// Param represents  http request param
+type Param map[string]string
+
+// QueryParam is used to force append http request param to the uri
+type QueryParam map[string]string
+
+// Host is used for set request's Host
+type Host string
+
+// FileUpload represents a file to upload
+type FileUpload struct {
+	// filename in multipart form.
+	FileName string
+	// form field name
+	FieldName string
+	// file to uplaod, required
+	File io.ReadCloser
+}
+
+// File upload files matching the name pattern such as
+// /usr/*/bin/go* (assuming the Separator is '/')
+func File(patterns ...string) interface{} {
+	matches := []string{}
+	for _, pattern := range patterns {
+		m, err := filepath.Glob(pattern)
+		if err != nil {
+			return err
+		}
+		matches = append(matches, m...)
+	}
+	if len(matches) == 0 {
+		return errors.New("req: no file have been matched")
+	}
+	uploads := []FileUpload{}
+	for _, match := range matches {
+		if s, e := os.Stat(match); e != nil || s.IsDir() {
+			continue
+		}
+		file, _ := os.Open(match)
+		uploads = append(uploads, FileUpload{
+			File:      file,
+			FileName:  filepath.Base(match),
+			FieldName: "media",
+		})
+	}
+
+	return uploads
+}
+
+type bodyJson struct {
+	v interface{}
+}
+
+type bodyXml struct {
+	v interface{}
+}
+
+// BodyJSON make the object be encoded in json format and set it to the request body
+func BodyJSON(v interface{}) *bodyJson {
+	return &bodyJson{v: v}
+}
+
+// BodyXML make the object be encoded in xml format and set it to the request body
+func BodyXML(v interface{}) *bodyXml {
+	return &bodyXml{v: v}
+}
+
 // Req is a convenient client for initiating requests
 type Req struct {
 	client      *http.Client
@@ -45,11 +117,47 @@ func New() *Req {
 	return &Req{flag: LstdFlags}
 }
 
+type param struct {
+	url.Values
+}
+
+func (p *param) getValues() url.Values {
+	if p.Values == nil {
+		p.Values = make(url.Values)
+	}
+	return p.Values
+}
+
+func (p *param) Copy(pp param) {
+	if pp.Values == nil {
+		return
+	}
+	vs := p.getValues()
+	for key, values := range pp.Values {
+		for _, value := range values {
+			vs.Add(key, value)
+		}
+	}
+}
+func (p *param) Adds(m map[string]string) {
+	if len(m) == 0 {
+		return
+	}
+	vs := p.getValues()
+	for k, v := range m {
+		vs.Add(k, v)
+	}
+}
+
+func (p *param) Empty() bool {
+	return p.Values == nil
+}
+
 var regTextContentType = regexp.MustCompile("text|xml|json|javascript|charset|java")
 
 // Do execute a http request with sepecify method and url,
 // and it can also have some optional params, depending on your needs.
-func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error) {
+func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err error) {
 	if rawurl == "" {
 		return nil, errors.New("req: url not specified")
 	}
@@ -61,139 +169,84 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 		ProtoMinor: 1,
 	}
 	resp = &Resp{req: req, r: r}
-	handleBody := func(data []byte, contentType string) {
-		resp.reqBody = data
-		req.Body = resp.getReqBody()
-		req.ContentLength = int64(len(resp.reqBody))
-		if contentType != "" && req.Header.Get("Content-Type") == "" {
-			req.Header.Set("Content-Type", contentType)
-		}
-	}
 
-	var formParam []Param
-	var queryParam []QueryParam
-	var file []FileUpload
-	for _, p := range v {
-		switch t := p.(type) {
+	var queryParam param
+	var formParam param
+	var uploads []FileUpload
+	var delayedFunc []func()
+	var lastFunc []func()
+
+	for _, v := range vs {
+		switch vv := v.(type) {
 		case Header:
-			for key, value := range t {
+			for key, value := range vv {
 				req.Header.Add(key, value)
 			}
 		case http.Header:
-			req.Header = t
-		case io.Reader:
-			var rc io.ReadCloser
-			if trc, ok := t.(io.ReadCloser); ok {
-				rc = trc
-			} else {
-				rc = ioutil.NopCloser(t)
+			for key, values := range vv {
+				for _, value := range values {
+					req.Header.Add(key, value)
+				}
 			}
-			req.Body = bodyWrapper{
-				ReadCloser: rc,
-				limit:      102400,
-			}
-			bs, err := ioutil.ReadAll(t)
+		case *bodyJson:
+			fn, err := setBodyJson(req, resp, r.jsonEncOpts, vv.v)
 			if err != nil {
 				return nil, err
 			}
-			handleBody(bs, "")
-			if rc, ok := t.(io.ReadCloser); ok {
-				rc.Close()
-			}
-		case *bodyJson:
-			var data []byte
-			if r.jsonEncOpts != nil {
-				opts := r.jsonEncOpts
-				var buf bytes.Buffer
-				enc := json.NewEncoder(&buf)
-				enc.SetIndent(opts.indentPrefix, opts.indentValue)
-				enc.SetEscapeHTML(opts.escapeHTML)
-				err = enc.Encode(t.v)
-				if err != nil {
-					return nil, err
-				}
-				data = buf.Bytes()
-			} else {
-				data, err = json.Marshal(t.v)
-				if err != nil {
-					return nil, err
-				}
-			}
-			handleBody(data, "application/json; charset=UTF-8")
+			delayedFunc = append(delayedFunc, fn)
 		case *bodyXml:
-			var data []byte
-			if r.xmlEncOpts != nil {
-				opts := r.xmlEncOpts
-				var buf bytes.Buffer
-				enc := xml.NewEncoder(&buf)
-				enc.Indent(opts.prefix, opts.indent)
-				err = enc.Encode(t.v)
-				if err != nil {
-					return nil, err
-				}
-				data = buf.Bytes()
-			} else {
-				data, err = xml.Marshal(t.v)
-				if err != nil {
-					return nil, err
-				}
+			fn, err := setBodyXml(req, resp, r.xmlEncOpts, vv.v)
+			if err != nil {
+				return nil, err
 			}
-			handleBody(data, "application/xml; charset=UTF-8")
+			delayedFunc = append(delayedFunc, fn)
 		case Param:
-			if method == "GET" {
-				queryParam = append(queryParam, QueryParam(t))
+			if method == "GET" || method == "HEAD" {
+				queryParam.Adds(vv)
 			} else {
-				formParam = append(formParam, t)
+				formParam.Adds(vv)
 			}
 		case QueryParam:
-			queryParam = append(queryParam, t)
+			queryParam.Adds(vv)
 		case string:
-			handleBody([]byte(t), "")
+			setBodyBytes(req, resp, []byte(vv))
 		case []byte:
-			handleBody(t, "")
+			setBodyBytes(req, resp, vv)
+		case bytes.Buffer:
+			setBodyBytes(req, resp, vv.Bytes())
 		case *http.Client:
-			resp.client = t
+			resp.client = vv
 		case FileUpload:
-			file = append(file, t)
+			uploads = append(uploads, vv)
 		case []FileUpload:
-			if file == nil {
-				file = make([]FileUpload, 0)
-			}
-			file = append(file, t...)
+			uploads = append(uploads, vv...)
 		case *http.Cookie:
-			req.AddCookie(t)
+			req.AddCookie(vv)
 		case Host:
-			req.Host = string(t)
+			req.Host = string(vv)
+		case io.Reader:
+			fn := setBodyReader(req, resp, vv)
+			lastFunc = append(lastFunc, fn)
 		case error:
-			err = t
-			return
+			return nil, vv
 		}
 	}
 
-	if len(file) > 0 && (req.Method == "POST" || req.Method == "PUT") {
-		r.upload(resp, file, formParam)
-	} else if len(formParam) > 0 {
+	if len(uploads) > 0 && (req.Method == "POST" || req.Method == "PUT") { // multipart
+		multipartHelper := &multipartHelper{form: formParam.Values, uploads: uploads}
+		multipartHelper.Upload(req)
+		resp.multipartHelper = multipartHelper
+	} else if !formParam.Empty() {
 		if req.Body != nil {
-			return nil, errors.New("req: can not set both body and params")
+			queryParam.Copy(formParam)
+		} else {
+			setBodyBytes(req, resp, []byte(formParam.Encode()))
+			setContentType(req, "application/x-www-form-urlencoded; charset=UTF-8")
 		}
-		params := make(url.Values)
-		for _, p := range formParam {
-			for key, value := range p {
-				params.Add(key, value)
-			}
-		}
-		paramStr := params.Encode()
-		handleBody([]byte(paramStr), "application/x-www-form-urlencoded; charset=UTF-8")
 	}
 
-	if len(queryParam) > 0 {
-		params := make(url.Values)
-		for _, p := range queryParam {
-			for key, value := range p {
-				params.Add(key, value)
-			}
-		}
-		paramStr := params.Encode()
+	if !queryParam.Empty() {
+		paramStr := queryParam.Encode()
 		if strings.IndexByte(rawurl, '?') == -1 {
 			rawurl = rawurl + "?" + paramStr
 		} else {
@@ -207,6 +260,10 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 	}
 	req.URL = u
 
+	for _, fn := range delayedFunc {
+		fn()
+	}
+
 	if resp.client == nil {
 		resp.client = r.Client()
 	}
@@ -215,7 +272,11 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 	response, err := resp.client.Do(req)
 	resp.cost = time.Since(now)
 	if err != nil {
-		return
+		return nil, err
+	}
+
+	for _, fn := range lastFunc {
+		fn()
 	}
 
 	resp.resp = response
@@ -243,13 +304,112 @@ func (r *Req) Do(method, rawurl string, v ...interface{}) (resp *Resp, err error
 	return
 }
 
+func setBodyBytes(req *http.Request, resp *Resp, data []byte) {
+	resp.reqBody = data
+	req.Body = ioutil.NopCloser(bytes.NewReader(data))
+	req.ContentLength = int64(len(data))
+}
+
+func setBodyJson(req *http.Request, resp *Resp, opts *jsonEncOpts, v interface{}) (func(), error) {
+	var data []byte
+	switch vv := v.(type) {
+	case string:
+		data = []byte(vv)
+	case []byte:
+		data = vv
+	case *bytes.Buffer:
+		data = vv.Bytes()
+	default:
+		if opts != nil {
+			var buf bytes.Buffer
+			enc := json.NewEncoder(&buf)
+			enc.SetIndent(opts.indentPrefix, opts.indentValue)
+			enc.SetEscapeHTML(opts.escapeHTML)
+			err := enc.Encode(v)
+			if err != nil {
+				return nil, err
+			}
+			data = buf.Bytes()
+		} else {
+			var err error
+			data, err = json.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	setBodyBytes(req, resp, data)
+	delayedFunc := func() {
+		setContentType(req, "application/json; charset=UTF-8")
+	}
+	return delayedFunc, nil
+}
+
+func setBodyXml(req *http.Request, resp *Resp, opts *xmlEncOpts, v interface{}) (func(), error) {
+	var data []byte
+	switch vv := v.(type) {
+	case string:
+		data = []byte(vv)
+	case []byte:
+		data = vv
+	case *bytes.Buffer:
+		data = vv.Bytes()
+	default:
+		if opts != nil {
+			var buf bytes.Buffer
+			enc := xml.NewEncoder(&buf)
+			enc.Indent(opts.prefix, opts.indent)
+			err := enc.Encode(v)
+			if err != nil {
+				return nil, err
+			}
+			data = buf.Bytes()
+		} else {
+			var err error
+			data, err = xml.Marshal(v)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	setBodyBytes(req, resp, data)
+	delayedFunc := func() {
+		setContentType(req, "application/xml; charset=UTF-8")
+	}
+	return delayedFunc, nil
+}
+
+func setContentType(req *http.Request, contentType string) {
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", contentType)
+	}
+}
+
+func setBodyReader(req *http.Request, resp *Resp, rd io.Reader) func() {
+	var rc io.ReadCloser
+	if trc, ok := rd.(io.ReadCloser); ok {
+		rc = trc
+	} else {
+		rc = ioutil.NopCloser(rd)
+	}
+	bw := &bodyWrapper{
+		ReadCloser: rc,
+		limit:      102400,
+	}
+	req.Body = bw
+	lastFunc := func() {
+		resp.reqBody = bw.buf.Bytes()
+	}
+	return lastFunc
+}
+
 type bodyWrapper struct {
 	io.ReadCloser
 	buf   bytes.Buffer
 	limit int
 }
 
-func (b bodyWrapper) Read(p []byte) (n int, err error) {
+func (b *bodyWrapper) Read(p []byte) (n int, err error) {
 	n, err = b.ReadCloser.Read(p)
 	if left := b.limit - b.buf.Len(); left > 0 && n > 0 {
 		if n <= left {
@@ -261,16 +421,69 @@ func (b bodyWrapper) Read(p []byte) (n int, err error) {
 	return
 }
 
-type dummyMultipart struct {
-	buf bytes.Buffer
-	w   *multipart.Writer
+type multipartHelper struct {
+	form    url.Values
+	uploads []FileUpload
+	dump    []byte
 }
 
-func (d *dummyMultipart) WriteField(fieldname, value string) error {
+func (m *multipartHelper) Upload(req *http.Request) {
+	pr, pw := io.Pipe()
+	bodyWriter := multipart.NewWriter(pw)
+	go func() {
+		for key, values := range m.form {
+			for _, value := range values {
+				bodyWriter.WriteField(key, value)
+			}
+		}
+		i := 0
+		for _, up := range m.uploads {
+			if up.FieldName == "" {
+				i++
+				up.FieldName = "file" + strconv.Itoa(i)
+			}
+			fileWriter, err := bodyWriter.CreateFormFile(up.FieldName, up.FileName)
+			if err != nil {
+				continue
+			}
+			//iocopy
+			_, err = io.Copy(fileWriter, up.File)
+			if err != nil {
+				continue
+			}
+			up.File.Close()
+		}
+		bodyWriter.Close()
+		pw.Close()
+	}()
+	req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
+	req.Body = ioutil.NopCloser(pr)
+}
+
+func (m *multipartHelper) Dump() []byte {
+	if m.dump != nil {
+		return m.dump
+	}
+	var buf bytes.Buffer
+	bodyWriter := multipart.NewWriter(&buf)
+	for key, values := range m.form {
+		for _, value := range values {
+			m.writeField(bodyWriter, key, value)
+		}
+	}
+	for _, up := range m.uploads {
+		m.writeFile(bodyWriter, up.FieldName, up.FileName)
+	}
+	bodyWriter.Close()
+	m.dump = buf.Bytes()
+	return m.dump
+}
+
+func (m *multipartHelper) writeField(w *multipart.Writer, fieldname, value string) error {
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"`, fieldname))
-	p, err := d.w.CreatePart(h)
+	p, err := w.CreatePart(h)
 	if err != nil {
 		return err
 	}
@@ -278,61 +491,18 @@ func (d *dummyMultipart) WriteField(fieldname, value string) error {
 	return err
 }
 
-func (d *dummyMultipart) WriteFile(fieldname, filename string) error {
+func (m *multipartHelper) writeFile(w *multipart.Writer, fieldname, filename string) error {
 	h := make(textproto.MIMEHeader)
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
 			fieldname, filename))
 	h.Set("Content-Type", "application/octet-stream")
-	p, err := d.w.CreatePart(h)
+	p, err := w.CreatePart(h)
 	if err != nil {
 		return err
 	}
 	_, err = p.Write([]byte("******"))
 	return err
-}
-
-func newDummyMultipart() *dummyMultipart {
-	d := new(dummyMultipart)
-	d.w = multipart.NewWriter(&d.buf)
-	return d
-}
-
-func (r *Req) upload(resp *Resp, file []FileUpload, param []Param) {
-	pr, pw := io.Pipe()
-	bodyWriter := multipart.NewWriter(pw)
-	d := newDummyMultipart()
-	go func() {
-		for _, p := range param {
-			for key, value := range p {
-				bodyWriter.WriteField(key, value)
-				d.WriteField(key, value)
-			}
-		}
-		i := 0
-		for _, f := range file {
-			if f.FieldName == "" {
-				i++
-				f.FieldName = "file" + strconv.Itoa(i)
-			}
-			fileWriter, err := bodyWriter.CreateFormFile(f.FieldName, f.FileName)
-			if err != nil {
-				return
-			}
-			//iocopy
-			_, err = io.Copy(fileWriter, f.File)
-			if err != nil {
-				return
-			}
-			f.File.Close()
-			d.WriteFile(f.FieldName, f.FileName)
-		}
-		bodyWriter.Close()
-		pw.Close()
-		resp.reqBody = d.buf.Bytes()
-	}()
-	resp.req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
-	resp.req.Body = ioutil.NopCloser(pr)
 }
 
 // Get execute a http GET request

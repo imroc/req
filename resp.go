@@ -15,10 +15,11 @@ import (
 
 // Resp represents a request with it's response
 type Resp struct {
-	r        *Req
-	req      *http.Request
-	resp     *http.Response
-	client   *http.Client
+	r      *Req
+	req    *http.Request
+	resp   *http.Response
+	client *http.Client
+	*multipartHelper
 	reqBody  []byte
 	respBody []byte
 	cost     time.Duration

@@ -111,8 +111,12 @@ func (r *Resp) dumpRequest(dump *dumpBuffer) {
 	if head {
 		r.dumpReqHead(dump)
 	}
-	if body && len(r.reqBody) > 0 {
-		dump.Write(r.reqBody)
+	if body {
+		if r.multipartHelper != nil {
+			dump.Write(r.multipartHelper.Dump())
+		} else if len(r.reqBody) > 0 {
+			dump.Write(r.reqBody)
+		}
 	}
 }
 
