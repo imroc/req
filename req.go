@@ -280,13 +280,16 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 	}
 
 	resp.resp = response
-	ct := response.Header.Get("Content-Type")
-	if ct == "" || regTextContentType.MatchString(ct) { // text
+
+	// auto download text response body if flag includes LrespBody
+	// and the body content may be text.
+	if r.flag&LrespBody != 0 && (response.Header.Get("Content-Type") == "" || regTextContentType.MatchString(response.Header.Get("Content-Type"))) {
 		defer response.Body.Close()
 		var reader io.Reader
 		if _, ok := resp.client.Transport.(*http.Transport); ok && response.Header.Get("Content-Encoding") == "gzip" && req.Header.Get("Accept-Encoding") != "" {
 			reader, err = gzip.NewReader(response.Body)
 			if err != nil {
+				resp.respBody = make([]byte, 0) // let *Resp do not read body again
 				return nil, err
 			}
 		} else {
@@ -294,10 +297,13 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 		}
 		respBody, err := ioutil.ReadAll(reader)
 		if err != nil {
+			resp.respBody = make([]byte, 0)
 			return resp, err
 		}
 		resp.respBody = respBody
 	}
+
+	// output detail if Debug is enabled
 	if Debug {
 		fmt.Println(resp.dump())
 	}

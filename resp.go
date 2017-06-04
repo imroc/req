@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"regexp"
@@ -21,6 +22,17 @@ type Resp struct {
 	reqBody  []byte
 	respBody []byte
 	cost     time.Duration
+}
+
+func (r *Resp) getRespBody() []byte {
+	if r.respBody == nil {
+		respBody, _ := ioutil.ReadAll(r.resp.Body)
+		if respBody == nil {
+			respBody = make([]byte, 0)
+		}
+		r.respBody = respBody
+	}
+	return r.respBody
 }
 
 // Cost returns time spent by the request
@@ -40,22 +52,22 @@ func (r *Resp) Response() *http.Response {
 
 // Bytes returns response body as []byte
 func (r *Resp) Bytes() []byte {
-	return r.respBody
+	return r.getRespBody()
 }
 
 // String returns response body as string
 func (r *Resp) String() string {
-	return string(r.respBody)
+	return string(r.getRespBody())
 }
 
 // ToJSON convert json response body to struct or map
 func (r *Resp) ToJSON(v interface{}) error {
-	return json.Unmarshal(r.respBody, v)
+	return json.Unmarshal(r.getRespBody(), v)
 }
 
 // ToXML convert xml response body to struct or map
 func (r *Resp) ToXML(v interface{}) error {
-	return xml.Unmarshal(r.respBody, v)
+	return xml.Unmarshal(r.getRespBody(), v)
 }
 
 // ToFile download the response body to file
@@ -102,8 +114,8 @@ func (r *Resp) Format(s fmt.State, verb rune) {
 			}
 		}
 		if r.r.flag&LrespBody != 0 {
-			if len(r.respBody) > 0 {
-				str := regNewline.ReplaceAllString(string(r.respBody), " ")
+			if respBody := r.String(); len(respBody) > 0 {
+				str := regNewline.ReplaceAllString(respBody, " ")
 				fmt.Fprint(s, " ", str)
 			} else {
 				fmt.Fprint(s, " ******")
@@ -114,20 +126,26 @@ func (r *Resp) Format(s fmt.State, verb rune) {
 		if r.r.flag&Lcost != 0 {
 			fmt.Fprint(s, " ", r.cost.String())
 		}
-		respBody := r.respBody
-		if (len(r.reqBody) > 0 && regNewline.Match(r.reqBody)) || (len(respBody) > 0 && regNewline.Match(respBody)) { // pretty format
+		var pretty bool
+		if r.r.flag&LreqBody != 0 && len(r.reqBody) > 0 && regNewline.Match(r.reqBody) {
+			pretty = true
+		}
+		if r.r.flag&LrespBody != 0 && len(r.getRespBody()) > 0 && regNewline.Match(r.getRespBody()) {
+			pretty = true
+		}
+		if pretty {
 			if len(r.reqBody) > 0 {
 				fmt.Fprint(s, "\n", string(r.reqBody))
 			}
-			if len(respBody) > 0 {
-				fmt.Fprint(s, "\n", string(respBody))
+			if len(r.respBody) > 0 {
+				fmt.Fprint(s, "\n", string(r.respBody))
 			}
 		} else {
 			if len(r.reqBody) > 0 {
 				fmt.Fprint(s, " ", string(r.reqBody))
 			}
-			if len(respBody) > 0 {
-				fmt.Fprint(s, " ", string(respBody))
+			if len(r.respBody) > 0 {
+				fmt.Fprint(s, " ", string(r.respBody))
 			}
 		}
 	}
