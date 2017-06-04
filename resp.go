@@ -64,9 +64,16 @@ func (r *Resp) ToFile(name string) error {
 	if err != nil {
 		return err
 	}
-	_, err = io.Copy(file, r.resp.Body)
-	if err != nil {
-		return err
+	if r.respBody != nil {
+		_, err = file.Write(r.respBody)
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err = io.Copy(file, r.resp.Body)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
