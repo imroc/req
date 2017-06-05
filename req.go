@@ -15,7 +15,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -153,8 +152,6 @@ func (p *param) Empty() bool {
 	return p.Values == nil
 }
 
-var regTextContentType = regexp.MustCompile("text|xml|json|javascript|charset|java")
-
 // Do execute a http request with sepecify method and url,
 // and it can also have some optional params, depending on your needs.
 func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err error) {
@@ -281,26 +278,12 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 
 	resp.resp = response
 
-	// auto download text response body if flag includes LrespBody
-	// and the body content may be text.
-	if r.flag&LrespBody != 0 && (response.Header.Get("Content-Type") == "" || regTextContentType.MatchString(response.Header.Get("Content-Type"))) {
-		defer response.Body.Close()
-		var reader io.Reader
-		if _, ok := resp.client.Transport.(*http.Transport); ok && response.Header.Get("Content-Encoding") == "gzip" && req.Header.Get("Accept-Encoding") != "" {
-			reader, err = gzip.NewReader(response.Body)
-			if err != nil {
-				resp.respBody = make([]byte, 0) // let *Resp do not read body again
-				return nil, err
-			}
-		} else {
-			reader = response.Body
-		}
-		respBody, err := ioutil.ReadAll(reader)
+	if _, ok := resp.client.Transport.(*http.Transport); ok && response.Header.Get("Content-Encoding") == "gzip" && req.Header.Get("Accept-Encoding") != "" {
+		body, err := gzip.NewReader(response.Body)
 		if err != nil {
-			resp.respBody = make([]byte, 0)
-			return resp, err
+			return nil, err
 		}
-		resp.respBody = respBody
+		response.Body = body
 	}
 
 	// output detail if Debug is enabled

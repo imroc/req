@@ -81,27 +81,15 @@ func (d *dummyBody) Close() error {
 
 type dumpBuffer struct {
 	bytes.Buffer
-	wrote bool
 }
 
 func (b *dumpBuffer) Write(p []byte) {
-	if b.wrote {
-		b.Buffer.WriteString("\r\n\r\n")
-		b.Buffer.Write(p)
-	} else {
-		b.Buffer.Write(p)
-		b.wrote = true
-	}
+	b.Buffer.Write(p)
+	b.Buffer.WriteString("\r\n\r\n")
 }
 
 func (b *dumpBuffer) WriteString(s string) {
-	if b.wrote {
-		b.Buffer.WriteString("\r\n\r\n")
-		b.Buffer.WriteString(s)
-	} else {
-		b.Buffer.WriteString(s)
-		b.wrote = true
-	}
+	b.Write([]byte(s))
 }
 
 func (r *Resp) dumpRequest(dump *dumpBuffer) {
@@ -196,22 +184,25 @@ func (r *Resp) dumpResponse(dump *dumpBuffer) {
 			dump.Write(respDump)
 		}
 	}
-	if body {
-		dump.Write(r.respBody)
+	if body && len(r.Bytes()) > 0 {
+		dump.Write(r.Bytes())
 	}
 }
 
 func (r *Resp) dump() string {
 	dump := new(dumpBuffer)
 	r.dumpRequest(dump)
-	if dump.Len() > 0 {
+	l := dump.Len()
+	if l > 0 {
 		dump.WriteString("=================================")
+		l = dump.Len()
 	}
+
 	r.dumpResponse(dump)
 
 	cost := r.r.flag&Lcost != 0
 	if cost {
-		if dump.Len() > 0 {
+		if dump.Len() > l {
 			dump.WriteString("=================================")
 		}
 		dump.WriteString("cost: " + r.cost.String())
