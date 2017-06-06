@@ -257,6 +257,10 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 	}
 	req.URL = u
 
+	if host := req.Header.Get("Host"); host != "" {
+		req.Host = host
+	}
+
 	for _, fn := range delayedFunc {
 		fn()
 	}
