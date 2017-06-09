@@ -55,6 +55,10 @@ type FileUpload struct {
 	File io.ReadCloser
 }
 
+type DownloadProgress func(current, total int64)
+
+type UploadProgress func(current, total int64)
+
 // File upload files matching the name pattern such as
 // /usr/*/bin/go* (assuming the Separator is '/')
 func File(patterns ...string) interface{} {
@@ -170,6 +174,8 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 	var queryParam param
 	var formParam param
 	var uploads []FileUpload
+	var uploadProgress UploadProgress
+	var progress func(int64, int64)
 	var delayedFunc []func()
 	var lastFunc []func()
 
@@ -224,21 +230,42 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 		case io.Reader:
 			fn := setBodyReader(req, resp, vv)
 			lastFunc = append(lastFunc, fn)
+		case UploadProgress:
+			uploadProgress = vv
+		case DownloadProgress:
+			resp.downloadProgress = vv
+		case func(int64, int64):
+			progress = vv
 		case error:
 			return nil, vv
 		}
 	}
 
 	if len(uploads) > 0 && (req.Method == "POST" || req.Method == "PUT") { // multipart
-		multipartHelper := &multipartHelper{form: formParam.Values, uploads: uploads}
+		var up UploadProgress
+		if uploadProgress != nil {
+			up = uploadProgress
+		} else if progress != nil {
+			up = UploadProgress(progress)
+		}
+		multipartHelper := &multipartHelper{
+			form:           formParam.Values,
+			uploads:        uploads,
+			uploadProgress: up,
+		}
 		multipartHelper.Upload(req)
 		resp.multipartHelper = multipartHelper
-	} else if !formParam.Empty() {
-		if req.Body != nil {
-			queryParam.Copy(formParam)
-		} else {
-			setBodyBytes(req, resp, []byte(formParam.Encode()))
-			setContentType(req, "application/x-www-form-urlencoded; charset=UTF-8")
+	} else {
+		if progress != nil {
+			resp.downloadProgress = DownloadProgress(progress)
+		}
+		if !formParam.Empty() {
+			if req.Body != nil {
+				queryParam.Copy(formParam)
+			} else {
+				setBodyBytes(req, resp, []byte(formParam.Encode()))
+				setContentType(req, "application/x-www-form-urlencoded; charset=UTF-8")
+			}
 		}
 	}
 
@@ -415,9 +442,10 @@ func (b *bodyWrapper) Read(p []byte) (n int, err error) {
 }
 
 type multipartHelper struct {
-	form    url.Values
-	uploads []FileUpload
-	dump    []byte
+	form           url.Values
+	uploads        []FileUpload
+	dump           []byte
+	uploadProgress UploadProgress
 }
 
 func (m *multipartHelper) Upload(req *http.Request) {
@@ -429,6 +457,45 @@ func (m *multipartHelper) Upload(req *http.Request) {
 				bodyWriter.WriteField(key, value)
 			}
 		}
+		var upload func(io.Writer, io.Reader) error
+		if m.uploadProgress != nil {
+			var total int64
+			for _, up := range m.uploads {
+				if file, ok := up.File.(*os.File); ok {
+					stat, err := file.Stat()
+					if err != nil {
+						continue
+					}
+					total += stat.Size()
+				}
+			}
+			var current int64
+			buf := make([]byte, 1024)
+			var lastTime time.Time
+			upload = func(w io.Writer, r io.Reader) error {
+				for {
+					n, err := r.Read(buf)
+					if n > 0 {
+						_, _err := w.Write(buf[:n])
+						if _err != nil {
+							return _err
+						}
+						current += int64(n)
+						if now := time.Now(); now.Sub(lastTime) > 200*time.Millisecond {
+							lastTime = now
+							m.uploadProgress(current, total)
+						}
+					}
+					if err == io.EOF {
+						return nil
+					}
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
 		i := 0
 		for _, up := range m.uploads {
 			if up.FieldName == "" {
@@ -440,9 +507,14 @@ func (m *multipartHelper) Upload(req *http.Request) {
 				continue
 			}
 			//iocopy
-			_, err = io.Copy(fileWriter, up.File)
-			if err != nil {
-				continue
+			if upload == nil {
+				io.Copy(fileWriter, up.File)
+			} else {
+				if _, ok := up.File.(*os.File); ok {
+					upload(fileWriter, up.File)
+				} else {
+					io.Copy(fileWriter, up.File)
+				}
 			}
 			up.File.Close()
 		}

@@ -19,10 +19,11 @@ type Resp struct {
 	resp   *http.Response
 	client *http.Client
 	*multipartHelper
-	reqBody  []byte
-	respBody []byte
-	cost     time.Duration
-	err      error // delayed error
+	reqBody          []byte
+	respBody         []byte
+	downloadProgress DownloadProgress
+	cost             time.Duration
+	err              error // delayed error
 }
 
 // Cost returns time spent by the request
@@ -98,7 +99,8 @@ func (r *Resp) ToXML(v interface{}) error {
 }
 
 // ToFile download the response body to file with optional download callback
-func (r *Resp) ToFile(name string, callback ...DownloadCallback) error {
+func (r *Resp) ToFile(name string) error {
+	//TODO set name to the suffix of url path if name == ""
 	file, err := os.Create(name)
 	if err != nil {
 		return err
@@ -110,18 +112,20 @@ func (r *Resp) ToFile(name string, callback ...DownloadCallback) error {
 		return err
 	}
 
-	if len(callback) > 0 && r.resp.ContentLength > 0 {
-		return r.download(file, r.resp.ContentLength, callback...)
+	if r.downloadProgress != nil && r.resp.ContentLength > 0 {
+		return r.download(file)
 	}
 
 	_, err = io.Copy(file, r.resp.Body)
 	return err
 }
 
-func (r *Resp) download(file *os.File, totalLength int64, callback ...DownloadCallback) error {
+func (r *Resp) download(file *os.File) error {
 	p := make([]byte, 1024)
 	b := r.resp.Body
-	var currentLength int64
+	total := r.resp.ContentLength
+	var current int64
+	var lastTime time.Time
 	for {
 		l, err := b.Read(p)
 		if l > 0 {
@@ -129,16 +133,14 @@ func (r *Resp) download(file *os.File, totalLength int64, callback ...DownloadCa
 			if _err != nil {
 				return _err
 			}
-			currentLength += int64(l)
-			for _, cb := range callback {
-				cb.OnProgress(currentLength, totalLength)
+			current += int64(l)
+			if now := time.Now(); now.Sub(lastTime) > 200*time.Millisecond {
+				lastTime = now
+				r.downloadProgress(current, total)
 			}
 		}
 		if err != nil {
 			if err == io.EOF {
-				for _, cb := range callback {
-					cb.OnComplete(file)
-				}
 				return nil
 			}
 			return err
@@ -209,10 +211,4 @@ func (r *Resp) Format(s fmt.State, verb rune) {
 	} else { // auto
 		r.autoFormat(s)
 	}
-}
-
-// DownloadCallback is the callback when downloading
-type DownloadCallback interface {
-	OnComplete(file *os.File)
-	OnProgress(currentLength int64, totalLength int64)
 }
