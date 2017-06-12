@@ -218,11 +218,28 @@ req.Post(url, req.FileUpload{
 	FileName:  "avatar.png", // Filename 是要上传的文件的名称，我们使用它来猜测mimetype，并将其上传到服务器上
 })
 ```
+使用`req.UploadProgress`监听上传进度
+```go
+progress := func(current, total int64) {
+	fmt.Println(float32(current)/float32(total)*100, "%")
+}
+req.Post(url, req.File("/Users/roc/Pictures/*.png"), req.UploadProgress(progress))
+fmt.Println("upload complete")
+```
 
 ## <a name="Download">下载</a>
 ``` go
 r, _ := req.Get(url)
 r.ToFile("imroc.png")
+```
+使用`req.DownloadProgress`监听下载进度
+```go
+progress := func(current, total int64) {
+	fmt.Println(float32(current)/float32(total)*100, "%")
+}
+r, _ := req.Get(url, req.DownloadProgress(progress))
+r.ToFile("hello.mp4")
+fmt.Println("download complete")
 ```
 
 ## <a name="Cookie">Cookie</a>

@@ -225,11 +225,28 @@ req.Post(url, req.FileUpload{
 	FileName:  "avatar.png", //Filename is the name of the file that you wish to upload. We use this to guess the mimetype as well as pass it onto the server
 })
 ```
+Use `req.UploadProgress` to listen upload progress
+```go
+progress := func(current, total int64) {
+	fmt.Println(float32(current)/float32(total)*100, "%")
+}
+req.Post(url, req.File("/Users/roc/Pictures/*.png"), req.UploadProgress(progress))
+fmt.Println("upload complete")
+```
 
 ## <a name="Download">Download</a>
 ``` go
 r, _ := req.Get(url)
 r.ToFile("imroc.png")
+```
+Use `req.DownloadProgress` to listen download progress
+```go
+progress := func(current, total int64) {
+	fmt.Println(float32(current)/float32(total)*100, "%")
+}
+r, _ := req.Get(url, req.DownloadProgress(progress))
+r.ToFile("hello.mp4")
+fmt.Println("download complete")
 ```
 
 ## <a name="Cookie">Cookie</a>
