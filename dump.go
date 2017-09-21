@@ -189,7 +189,7 @@ func (r *Resp) dumpResponse(dump *dumpBuffer) {
 	}
 }
 
-func (r *Resp) dump() string {
+func (r *Resp) Dump() string {
 	dump := new(dumpBuffer)
 	r.dumpRequest(dump)
 	l := dump.Len()

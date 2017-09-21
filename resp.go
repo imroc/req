@@ -205,7 +205,7 @@ func (r *Resp) Format(s fmt.State, verb rune) {
 		return
 	}
 	if s.Flag('+') { // include header and format pretty.
-		fmt.Fprint(s, r.dump())
+		fmt.Fprint(s, r.Dump())
 	} else if s.Flag('-') { // keep all informations in one line.
 		r.miniFormat(s)
 	} else { // auto
