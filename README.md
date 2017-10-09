@@ -80,11 +80,11 @@ param := req.Param{
 	"cmd":  "add",
 }
 // only url is required, others are optional.
-r, err = req.Post("http://foo.bar/api", header, param)
+r, err := req.Post("http://foo.bar/api", header, param)
 if err != nil {
 	log.Fatal(err)
 }
-r.ToJSON(&foo)       // response => struct/map
+r.ToJSON(&r)       // response => struct/map
 log.Printf("%+v", r) // print info (try it, you may surprise) 
 ```
 
