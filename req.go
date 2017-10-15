@@ -36,6 +36,17 @@ const (
 // Header represents http request header
 type Header map[string]string
 
+func (h Header) Clone() Header {
+	if h == nil {
+		return nil
+	}
+	hh := Header{}
+	for k, v := range h {
+		hh[k] = v
+	}
+	return hh
+}
+
 // Param represents  http request param
 type Param map[string]string
 
