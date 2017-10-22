@@ -48,10 +48,10 @@ func (h Header) Clone() Header {
 }
 
 // Param represents  http request param
-type Param map[string]string
+type Param map[string]interface{}
 
 // QueryParam is used to force append http request param to the uri
-type QueryParam map[string]string
+type QueryParam map[string]interface{}
 
 // Host is used for set request's Host
 type Host string
@@ -153,13 +153,13 @@ func (p *param) Copy(pp param) {
 		}
 	}
 }
-func (p *param) Adds(m map[string]string) {
+func (p *param) Adds(m map[string]interface{}) {
 	if len(m) == 0 {
 		return
 	}
 	vs := p.getValues()
 	for k, v := range m {
-		vs.Add(k, v)
+		vs.Add(k, fmt.Sprint(v))
 	}
 }
 
