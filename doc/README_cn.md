@@ -98,7 +98,7 @@ req.Get("https://www.baidu.com", header)
 ```
 
 ## <a name="Set-Param">设置请求参数</a>
-Use `req.Param` (它实际上是一个 `map[string]string`)
+Use `req.Param` (它实际上是一个 `map[string]interface{}`)
 ``` go
 param := req.Param{
 	"id":  "imroc",
@@ -107,7 +107,7 @@ param := req.Param{
 req.Get("http://foo.bar/api", param) // http://foo.bar/api?id=imroc&pwd=roc
 req.Post(url, param)                  // 请求体 => id=imroc&pwd=roc
 ```
-使用 `req.QueryParam` 强制将请求参数拼在url后面 (它实际上也是一个 `map[string]string`)
+使用 `req.QueryParam` 强制将请求参数拼在url后面 (它实际上也是一个 `map[string]interface{}`)
 ``` go
 req.Post("http://foo.bar/api", req.Param{"name": "roc", "age": "22"}, req.QueryParam{"access_token": "fedledGF9Hg9ehTU"})
 /*

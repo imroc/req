@@ -105,7 +105,7 @@ req.Get("https://www.baidu.com", header)
 ```
 
 ## <a name="Set-Param">Set Param</a>
-Use `req.Param` (it is actually a `map[string]string`)
+Use `req.Param` (it is actually a `map[string]interface{}`)
 ``` go
 param := req.Param{
 	"id":  "imroc",
@@ -114,7 +114,7 @@ param := req.Param{
 req.Get("http://foo.bar/api", param) // http://foo.bar/api?id=imroc&pwd=roc
 req.Post(url, param)                  // body => id=imroc&pwd=roc
 ```
-use `req.QueryParam` force to append params to the url (it is also actually a `map[string]string`)
+use `req.QueryParam` force to append params to the url (it is also actually a `map[string]interface{}`)
 ``` go
 req.Post("http://foo.bar/api", req.Param{"name": "roc", "age": "22"}, req.QueryParam{"access_token": "fedledGF9Hg9ehTU"})
 /*
