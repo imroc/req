@@ -22,13 +22,7 @@ type Resp struct {
 	reqBody          []byte
 	respBody         []byte
 	downloadProgress DownloadProgress
-	cost             time.Duration
 	err              error // delayed error
-}
-
-// Cost returns time spent by the request
-func (r *Resp) Cost() time.Duration {
-	return r.cost
 }
 
 // Request returns *http.Request
@@ -153,9 +147,6 @@ var regNewline = regexp.MustCompile(`\n|\r`)
 func (r *Resp) autoFormat(s fmt.State) {
 	req := r.req
 	fmt.Fprint(s, req.Method, " ", req.URL.String())
-	if r.r.flag&Lcost != 0 {
-		fmt.Fprint(s, " ", r.cost.String())
-	}
 
 	// test if it is should be outputed pretty
 	var pretty bool
@@ -187,9 +178,6 @@ func (r *Resp) autoFormat(s fmt.State) {
 func (r *Resp) miniFormat(s fmt.State) {
 	req := r.req
 	fmt.Fprint(s, req.Method, " ", req.URL.String())
-	if r.r.flag&Lcost != 0 {
-		fmt.Fprint(s, " ", r.cost.String())
-	}
 	if r.r.flag&LreqBody != 0 && len(r.reqBody) > 0 { // request body
 		str := regNewline.ReplaceAllString(string(r.reqBody), " ")
 		fmt.Fprint(s, " ", str)

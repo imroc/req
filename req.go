@@ -307,9 +307,7 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 		resp.client = r.Client()
 	}
 
-	now := time.Now()
 	response, err := resp.client.Do(req)
-	resp.cost = time.Since(now)
 	if err != nil {
 		return nil, err
 	}

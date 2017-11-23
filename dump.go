@@ -200,12 +200,5 @@ func (r *Resp) Dump() string {
 
 	r.dumpResponse(dump)
 
-	cost := r.r.flag&Lcost != 0
-	if cost {
-		if dump.Len() > l {
-			dump.WriteString("=================================")
-		}
-		dump.WriteString("cost: " + r.cost.String())
-	}
 	return dump.String()
 }
