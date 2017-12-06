@@ -26,8 +26,8 @@ func TestDumpText(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dump := resp.dump()
-	for _, keyword := range []string{reqBody, respBody, reqHeader, respHeader, "cost"} {
+	dump := resp.Dump()
+	for _, keyword := range []string{reqBody, respBody, reqHeader, respHeader} {
 		if !strings.Contains(dump, keyword) {
 			t.Errorf("dump missing part, want: %s", keyword)
 		}
@@ -49,7 +49,7 @@ func TestDumpUpload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	dump := r.dump()
+	dump := r.Dump()
 	contains := []string{
 		`Content-Disposition: form-data; name="hello"`,
 		`Content-Disposition: form-data; name="media"; filename="1.txt"`,

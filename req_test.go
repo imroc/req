@@ -12,7 +12,7 @@ import (
 )
 
 func TestUrlParam(t *testing.T) {
-	m := map[string]string{
+	m := map[string]interface{}{
 		"access_token": "123abc",
 		"name":         "roc",
 		"enc":          "中文",
