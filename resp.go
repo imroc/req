@@ -51,6 +51,7 @@ func (r *Resp) ToBytes() ([]byte, error) {
 	if r.respBody != nil {
 		return r.respBody, nil
 	}
+	defer r.resp.Body.Close()
 	respBody, err := ioutil.ReadAll(r.resp.Body)
 	if err != nil {
 		r.err = err
@@ -110,6 +111,7 @@ func (r *Resp) ToFile(name string) error {
 		return r.download(file)
 	}
 
+	defer r.resp.Body.Close()
 	_, err = io.Copy(file, r.resp.Body)
 	return err
 }
@@ -117,6 +119,7 @@ func (r *Resp) ToFile(name string) error {
 func (r *Resp) download(file *os.File) error {
 	p := make([]byte, 1024)
 	b := r.resp.Body
+	defer b.Close()
 	total := r.resp.ContentLength
 	var current int64
 	var lastTime time.Time
