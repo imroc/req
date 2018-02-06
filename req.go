@@ -252,6 +252,12 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 		}
 	}
 
+	if length := req.Header.Get("Content-Length"); length != "" {
+		if l, err := strconv.ParseInt(length, 10, 64); err == nil {
+			req.ContentLength = l
+		}
+	}
+
 	if len(uploads) > 0 && (req.Method == "POST" || req.Method == "PUT") { // multipart
 		var up UploadProgress
 		if uploadProgress != nil {
