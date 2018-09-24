@@ -214,6 +214,13 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 				return nil, err
 			}
 			delayedFunc = append(delayedFunc, fn)
+		case url.Values:
+			p := param{vv}
+			if method == "GET" || method == "HEAD" {
+				queryParam.Copy(p)
+			} else {
+				formParam.Copy(p)
+			}
 		case Param:
 			if method == "GET" || method == "HEAD" {
 				queryParam.Adds(vv)
