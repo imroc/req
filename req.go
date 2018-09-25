@@ -429,9 +429,17 @@ func setContentType(req *http.Request, contentType string) {
 
 func setBodyReader(req *http.Request, resp *Resp, rd io.Reader) func() {
 	var rc io.ReadCloser
-	if trc, ok := rd.(io.ReadCloser); ok {
-		rc = trc
-	} else {
+	switch r := rd.(type) {
+	case *os.File:
+		stat, err := r.Stat()
+		if err == nil {
+			req.ContentLength = stat.Size()
+		}
+		rc = r
+
+	case io.ReadCloser:
+		rc = r
+	default:
 		rc = ioutil.NopCloser(rd)
 	}
 	bw := &bodyWrapper{
