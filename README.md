@@ -47,7 +47,7 @@ There is a default `Req` object, all of its' public methods  are wrapped by the 
 r := req.New()
 r.Get(url)
 
-// use req package to initiate reqeust.
+// use req package to initiate request.
 req.Get(url)
 ```
 You can use `req.New()` to create lots of `*Req` as client with independent configuration
