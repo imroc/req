@@ -3,6 +3,7 @@ package req
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
@@ -84,8 +85,10 @@ type dumpBuffer struct {
 }
 
 func (b *dumpBuffer) Write(p []byte) {
+	if b.Len() > 0 {
+		b.Buffer.WriteString("\r\n\r\n")
+	}
 	b.Buffer.Write(p)
-	b.Buffer.WriteString("\r\n\r\n")
 }
 
 func (b *dumpBuffer) WriteString(s string) {
@@ -189,8 +192,17 @@ func (r *Resp) dumpResponse(dump *dumpBuffer) {
 	}
 }
 
+// Cost return the time cost of the request
+func (r *Resp) Cost() time.Duration {
+	return r.cost
+}
+
+// Dump dump the request
 func (r *Resp) Dump() string {
 	dump := new(dumpBuffer)
+	if r.r.flag&Lcost != 0 {
+		dump.WriteString(fmt.Sprint(r.cost))
+	}
 	r.dumpRequest(dump)
 	l := dump.Len()
 	if l > 0 {

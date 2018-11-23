@@ -18,6 +18,7 @@ type Resp struct {
 	req    *http.Request
 	resp   *http.Response
 	client *http.Client
+	cost   time.Duration
 	*multipartHelper
 	reqBody          []byte
 	respBody         []byte
@@ -149,7 +150,11 @@ var regNewline = regexp.MustCompile(`\n|\r`)
 
 func (r *Resp) autoFormat(s fmt.State) {
 	req := r.req
-	fmt.Fprint(s, req.Method, " ", req.URL.String())
+	if r.r.flag&Lcost != 0 {
+		fmt.Fprint(s, req.Method, " ", req.URL.String(), " ", r.cost)
+	} else {
+		fmt.Fprint(s, req.Method, " ", req.URL.String())
+	}
 
 	// test if it is should be outputed pretty
 	var pretty bool
@@ -180,7 +185,11 @@ func (r *Resp) autoFormat(s fmt.State) {
 
 func (r *Resp) miniFormat(s fmt.State) {
 	req := r.req
-	fmt.Fprint(s, req.Method, " ", req.URL.String())
+	if r.r.flag&Lcost != 0 {
+		fmt.Fprint(s, req.Method, " ", req.URL.String(), " ", r.cost)
+	} else {
+		fmt.Fprint(s, req.Method, " ", req.URL.String())
+	}
 	if r.r.flag&LreqBody != 0 && len(r.reqBody) > 0 { // request body
 		str := regNewline.ReplaceAllString(string(r.reqBody), " ")
 		fmt.Fprint(s, " ", str)
@@ -191,6 +200,7 @@ func (r *Resp) miniFormat(s fmt.State) {
 	}
 }
 
+// Format fort the response
 func (r *Resp) Format(s fmt.State, verb rune) {
 	if r == nil || r.req == nil {
 		return
