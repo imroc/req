@@ -3,6 +3,7 @@ package req
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -254,6 +255,8 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 			resp.downloadProgress = vv
 		case func(int64, int64):
 			progress = vv
+		case context.Context:
+			req = req.WithContext(vv)
 		case error:
 			return nil, vv
 		}
