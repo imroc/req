@@ -174,7 +174,7 @@ func (p *param) Empty() bool {
 // Do execute a http request with sepecify method and url,
 // and it can also have some optional params, depending on your needs.
 func (r *Req) Do(ctx context.Context, method, rawurl string, vs ...interface{}) (resp *Resp, err error) {
-	span, ctx := opentracing.StartSpanFromContext(ctx, "req.Post")
+	span, ctx := opentracing.StartSpanFromContext(ctx, "req.Do")
 	defer span.Finish()
 
 	if rawurl == "" {
@@ -342,6 +342,11 @@ func (r *Req) Do(ctx context.Context, method, rawurl string, vs ...interface{}) 
 	if resp.client == nil {
 		resp.client = r.Client()
 	}
+
+	opentracing.GlobalTracer().Inject(
+		span.Context(),
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(req.Header))
 
 	var response *http.Response
 	if r.flag&Lcost != 0 {
