@@ -163,7 +163,7 @@ Output in simple way (default format)
 ``` go
 r, _ := req.Get(url, param)
 log.Printf("%v\n", r) // GET http://foo.bar/api?name=roc&cmd=add {"code":"0","msg":"success"}
-log.Prinln(r)         // smae as above
+log.Prinln(r)         // same as above
 ```
 
 ### `%-v` or `%-s`
