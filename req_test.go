@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"io/ioutil"
@@ -25,16 +26,17 @@ func TestUrlParam(t *testing.T) {
 			}
 		}
 	}
+	ctx := context.Background()
 	ts := httptest.NewServer(http.HandlerFunc(queryHandler))
-	_, err := Get(ts.URL, QueryParam(m))
+	_, err := Get(ctx, ts.URL, QueryParam(m))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = Head(ts.URL, Param(m))
+	_, err = Head(ctx, ts.URL, Param(m))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = Put(ts.URL, QueryParam(m))
+	_, err = Put(ctx, ts.URL, QueryParam(m))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,9 +56,10 @@ func TestFormParam(t *testing.T) {
 			}
 		}
 	}
+	ctx := context.Background()
 	ts := httptest.NewServer(http.HandlerFunc(formHandler))
 	url := ts.URL
-	_, err := Post(url, formParam)
+	_, err := Post(ctx, url, formParam)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,9 +71,10 @@ func TestParamWithBody(t *testing.T) {
 		"name": "roc",
 		"job":  "programmer",
 	}
+	ctx := context.Background()
 	buf := bytes.NewBufferString(reqBody)
 	ts := newDefaultTestServer()
-	r, err := Post(ts.URL, p, buf)
+	r, err := Post(ctx, ts.URL, p, buf)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +111,8 @@ func TestParamBoth(t *testing.T) {
 	}
 	ts := httptest.NewServer(http.HandlerFunc(handler))
 	url := ts.URL
-	_, err := Patch(url, urlParam, formParam)
+	ctx := context.Background()
+	_, err := Patch(ctx, url, urlParam, formParam)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -127,14 +132,15 @@ func TestBody(t *testing.T) {
 	}
 	ts := httptest.NewServer(http.HandlerFunc(handler))
 
+	ctx := context.Background()
 	// string
-	_, err := Post(ts.URL, body)
+	_, err := Post(ctx, ts.URL, body)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// []byte
-	_, err = Post(ts.URL, []byte(body))
+	_, err = Post(ctx, ts.URL, []byte(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,13 +148,13 @@ func TestBody(t *testing.T) {
 	// *bytes.Buffer
 	var buf bytes.Buffer
 	buf.WriteString(body)
-	_, err = Post(ts.URL, &buf)
+	_, err = Post(ctx, ts.URL, &buf)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// io.Reader
-	_, err = Post(ts.URL, strings.NewReader(body))
+	_, err = Post(ctx, ts.URL, strings.NewReader(body))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -182,7 +188,8 @@ func TestBodyJSON(t *testing.T) {
 	})
 
 	ts := httptest.NewServer(handler)
-	resp, err := Post(ts.URL, BodyJSON(&c))
+	ctx := context.Background()
+	resp, err := Post(ctx, ts.URL, BodyJSON(&c))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +197,7 @@ func TestBodyJSON(t *testing.T) {
 
 	SetJSONEscapeHTML(false)
 	SetJSONIndent("", "\t")
-	resp, err = Put(ts.URL, BodyJSON(&c))
+	resp, err = Put(ctx, ts.URL, BodyJSON(&c))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,14 +232,16 @@ func TestBodyXML(t *testing.T) {
 	})
 
 	ts := httptest.NewServer(handler)
-	resp, err := Post(ts.URL, BodyXML(&c))
+
+	ctx := context.Background()
+	resp, err := Post(ctx, ts.URL, BodyXML(&c))
 	if err != nil {
 		t.Fatal(err)
 	}
 	checkData(resp.reqBody)
 
 	SetXMLIndent("", "    ")
-	resp, err = Put(ts.URL, BodyXML(&c))
+	resp, err = Put(ctx, ts.URL, BodyXML(&c))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +261,9 @@ func TestHeader(t *testing.T) {
 		}
 	}
 	ts := httptest.NewServer(http.HandlerFunc(handler))
-	_, err := Head(ts.URL, header)
+
+	ctx := context.Background()
+	_, err := Head(ctx, ts.URL, header)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -261,7 +272,7 @@ func TestHeader(t *testing.T) {
 	for key, value := range header {
 		httpHeader.Add(key, value)
 	}
-	_, err = Head(ts.URL, httpHeader)
+	_, err = Head(ctx, ts.URL, httpHeader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -300,13 +311,16 @@ func TestUpload(t *testing.T) {
 			}
 		}
 	}
+
 	ts := httptest.NewServer(http.HandlerFunc(handler))
-	_, err := Post(ts.URL, upload)
+
+	ctx := context.Background()
+	_, err := Post(ctx, ts.URL, upload)
 	if err != nil {
 		t.Fatal(err)
 	}
 	ts = newDefaultTestServer()
-	_, err = Post(ts.URL, File("*.go"))
+	_, err = Post(ctx, ts.URL, File("*.go"))
 	if err != nil {
 		t.Fatal(err)
 	}
