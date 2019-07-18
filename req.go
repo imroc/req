@@ -228,8 +228,20 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 			} else {
 				formParam.Adds(vv)
 			}
+		case []Param:
+			for _, value := range vv {
+				if method == "GET" || method == "HEAD" {
+					queryParam.Adds(value)
+				} else {
+					formParam.Adds(value)
+				}
+			}
 		case QueryParam:
 			queryParam.Adds(vv)
+		case []QueryParam:
+			for _, value := range vv {
+				queryParam.Adds(value)
+			}
 		case string:
 			setBodyBytes(req, resp, []byte(vv))
 		case []byte:
