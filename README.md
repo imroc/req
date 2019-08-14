@@ -67,7 +67,8 @@ Examples
 [Cookie](#Cookie)  
 [Set Timeout](#Set-Timeout)  
 [Set Proxy](#Set-Proxy)  
-[Customize Client](#Customize-Client)  
+[Customize Client](#Customize-Client)
+[Set context.Context](#Context)
 
 ## <a name="Basic">Basic</a>
 ``` go
@@ -279,6 +280,12 @@ req.SetProxy(func(r *http.Request) (*url.URL, error) {
 Set a simple proxy (use fixed proxy url for every request)
 ``` go
 req.SetProxyUrl("http://my.proxy.com:23456")
+```
+
+## <a name="Context">Set context.Context</a>
+You can pass context.Context in simple way:
+```go
+r, _ := req.Get(url, context.Background())
 ```
 
 ## <a name="Customize-Client">Customize Client</a>
