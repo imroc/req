@@ -124,6 +124,11 @@ func (r *Resp) download(file *os.File) error {
 	total := r.resp.ContentLength
 	var current int64
 	var lastTime time.Time
+
+	defer func() {
+		r.downloadProgress(current, total)
+	}()
+
 	for {
 		l, err := b.Read(p)
 		if l > 0 {
