@@ -514,6 +514,11 @@ func (m *multipartHelper) Upload(req *http.Request) {
 			var current int64
 			buf := make([]byte, 1024)
 			var lastTime time.Time
+
+			defer func() {
+				m.uploadProgress(current, total)
+			}()
+
 			upload = func(w io.Writer, r io.Reader) error {
 				for {
 					n, err := r.Read(buf)
