@@ -132,7 +132,7 @@ func (r *Resp) download(file *os.File) error {
 				return _err
 			}
 			current += int64(l)
-			if now := time.Now(); now.Sub(lastTime) > 200*time.Millisecond {
+			if now := time.Now(); now.Sub(lastTime) > r.r.progressInterval {
 				lastTime = now
 				r.downloadProgress(current, total)
 			}
