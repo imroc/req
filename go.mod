@@ -1,3 +1,3 @@
-module github.com/aetherwu/req
+module github.com/imroc/req
 
 go 1.12
