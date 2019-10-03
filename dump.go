@@ -17,6 +17,9 @@ import (
 // Debug enable debug mode if set to true
 var Debug bool
 
+// PrintFunc accept your self define function to print
+var PrintFunc func(a ...interface{}) = func(a ...interface{}) { fmt.Println(a) }
+
 // dumpConn is a net.Conn which writes to Writer and reads from Reader
 type dumpConn struct {
 	io.Writer

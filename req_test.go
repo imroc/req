@@ -82,6 +82,26 @@ func TestParamWithBody(t *testing.T) {
 	}
 }
 
+func TestDumpWithBody(t *testing.T) {
+	reqBody := "request body"
+	p := Param{
+		"name": "roc",
+		"job":  "programmer",
+	}
+	buf := bytes.NewBufferString(reqBody)
+	ts := newDefaultTestServer()
+	r, err := Post(ts.URL, p, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Request().URL.Query().Get("name") != "roc" {
+		t.Error("param should in the url when set body manually")
+	}
+	if string(r.reqBody) != reqBody {
+		t.Error("request body not equal")
+	}
+}
+
 func TestParamBoth(t *testing.T) {
 	urlParam := QueryParam{
 		"access_token": "123abc",
