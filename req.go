@@ -48,6 +48,16 @@ func (h Header) Clone() Header {
 	return hh
 }
 
+func ParseStruct(h Header, v interface{}) Header {
+	data, err := json.Marshal(v)
+	if err != nil {
+		return h
+	}
+
+	err = json.Unmarshal(data, &h)
+	return h
+}
+
 // Param represents  http request param
 type Param map[string]interface{}
 
