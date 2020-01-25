@@ -267,46 +267,6 @@ func TestHeader(t *testing.T) {
 	}
 }
 
-func TestParseStruct(t *testing.T) {
-
-	type HeaderStruct struct {
-		UserAgent     string `json:"User-Agent"`
-		Authorization string `json:"Authorization"`
-	}
-
-	h := HeaderStruct{
-		"V1.0.0",
-		"roc",
-	}
-
-	var header Header
-	header = ParseStruct(header, h)
-
-	if header["User-Agent"] != "V1.0.0" && header["Authorization"] != "roc" {
-		t.Fatal("struct parser for header is not working")
-	}
-
-}
-
-func TestHeaderFromStruct(t *testing.T) {
-
-	type HeaderStruct struct {
-		UserAgent string `json:"User-Agent"`
-		Authorization string `json:"Authorization"`
-	}
-
-	h := HeaderStruct{
-		"V1.0.0",
-		"roc",
-	}
-
-	header := HeaderFromStruct(h)
-
-	if header["User-Agent"] != "V1.0.0" && header["Authorization"] != "roc" {
-		t.Fatal("struct parser for header is not working")
-	}
-}
-
 func TestUpload(t *testing.T) {
 	str := "hello req"
 	file := ioutil.NopCloser(strings.NewReader(str))
