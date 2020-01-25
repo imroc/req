@@ -48,6 +48,7 @@ func (h Header) Clone() Header {
 	return hh
 }
 
+// ParseStruct parse struct into header
 func ParseStruct(h Header, v interface{}) Header {
 	data, err := json.Marshal(v)
 	if err != nil {
@@ -56,6 +57,14 @@ func ParseStruct(h Header, v interface{}) Header {
 
 	err = json.Unmarshal(data, &h)
 	return h
+}
+
+// HeaderFromStruct init header from struct
+func HeaderFromStruct(v interface{}) Header {
+
+	var header Header
+	header = ParseStruct(header, v)
+	return header
 }
 
 // Param represents  http request param
