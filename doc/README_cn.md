@@ -97,6 +97,25 @@ header.Set("Accept", "application/json")
 req.Get("https://www.baidu.com", header)
 ```
 
+你可以使用 `struct` 来设置请求头，用 `HeaderFromStruct` 这个函数来解析你的 `struct`
+``` go
+type HeaderStruct struct {
+	UserAgent     string `json:"User-Agent"`
+	Authorization string `json:"Authorization"`
+}
+
+func main(){
+	h := HeaderStruct{
+		"V1.0.0",
+		"roc",
+	}
+
+	authHeader := req.HeaderFromStruct(h) 
+	req.Get("https://www.baidu.com", authHeader, req.Header{"User-Agent": "V1.1"})
+}
+```
+> 注：请给你的 struct 加上 json tag.
+
 ## <a name="Set-Param">设置请求参数</a>
 Use `req.Param` (它实际上是一个 `map[string]interface{}`)
 ``` go
