@@ -105,6 +105,25 @@ header.Set("Accept", "application/json")
 req.Get("https://www.baidu.com", header)
 ```
 
+#### Set Header From Struct
+Use `HeaderFromStruct` func to parse your struct
+``` go
+type HeaderStruct struct {
+		UserAgent string `json:"User-Agent"`
+		Authorization string `json:"Authorization"`
+	}
+
+	h := HeaderStruct{
+		"V1.0.0",
+		"roc",
+	}
+
+	authHeader := req.HeaderFromStruct(h) 
+	req.Get("https://www.baidu.com", authHeader, req.Header{"User-Agent": "V1.1"})
+```
+
+Note: Please add tag 'json' to your argument in struct to let you customize the key name of your header
+
 ## <a name="Set-Param">Set Param</a>
 Use `req.Param` (it is actually a `map[string]interface{}`)
 ``` go
