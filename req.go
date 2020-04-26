@@ -332,7 +332,9 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 
 	resp.resp = response
 
-	if _, ok := resp.client.Transport.(*http.Transport); ok && response.Header.Get("Content-Encoding") == "gzip" && req.Header.Get("Accept-Encoding") != "" {
+	if _, ok := resp.client.Transport.(*http.Transport); ok &&
+		response.Header.Get("Content-Encoding") == "gzip" &&
+		req.Header.Get("Accept-Encoding") != "" {
 		body, err := gzip.NewReader(response.Body)
 		if err != nil {
 			return nil, err
@@ -558,7 +560,7 @@ func (m *multipartHelper) Upload(req *http.Request) {
 		bodyWriter.Close()
 		pw.Close()
 	}()
-	req.Header.Set("Content-Type", bodyWriter.FormDataContentType())
+	setContentType(req, bodyWriter.FormDataContentType())
 	req.Body = ioutil.NopCloser(pr)
 }
 
