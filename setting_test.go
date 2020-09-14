@@ -3,6 +3,7 @@ package req
 import (
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 )
@@ -19,23 +20,36 @@ func TestSetClient(t *testing.T) {
 	ts := newDefaultTestServer()
 
 	client := &http.Client{}
-	SetClient(client)
-	_, err := Get(ts.URL)
-	if err != nil {
-		t.Errorf("error after set client: %v", err)
-	}
 
-	SetClient(nil)
-	_, err = Get(ts.URL)
-	if err != nil {
-		t.Errorf("error after set client to nil: %v", err)
-	}
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SetClient(client)
+		_, err := Get(ts.URL)
+		if err != nil {
+			t.Errorf("error after set client: %v", err)
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SetClient(nil)
+		_, err := Get(ts.URL)
+		if err != nil {
+			t.Errorf("error after set client to nil: %v", err)
+		}
+	}()
+
+	wg.Wait()
 
 	client = Client()
 	if trans, ok := client.Transport.(*http.Transport); ok {
 		trans.MaxIdleConns = 1
 		trans.DisableKeepAlives = true
-		_, err = Get(ts.URL)
+		_, err := Get(ts.URL)
 		if err != nil {
 			t.Errorf("error after change client's transport: %v", err)
 		}

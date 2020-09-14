@@ -34,6 +34,8 @@ func newClient() *http.Client {
 
 // Client return the default underlying http client
 func (r *Req) Client() *http.Client {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 	return r.client
 }
 
@@ -116,7 +118,9 @@ func EnableCookie(enable bool) {
 
 // SetTimeout sets the timeout for every request
 func (r *Req) SetTimeout(d time.Duration) {
-	r.Client().Timeout = d
+	client := newClient()
+	client.Timeout = d
+	r.SetClient(client)
 }
 
 // SetTimeout sets the timeout for every request
