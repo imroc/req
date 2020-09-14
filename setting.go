@@ -34,9 +34,6 @@ func newClient() *http.Client {
 
 // Client return the default underlying http client
 func (r *Req) Client() *http.Client {
-	if r.client == nil {
-		r.client = newClient()
-	}
 	return r.client
 }
 
@@ -47,11 +44,17 @@ func Client() *http.Client {
 
 // SetClient sets the underlying http.Client.
 func (r *Req) SetClient(client *http.Client) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	r.client = client // use default if client == nil
 }
 
 // SetClient sets the default http.Client for requests.
 func SetClient(client *http.Client) {
+	if client == nil {
+		client = newClient()
+	}
 	std.SetClient(client)
 }
 
