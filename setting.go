@@ -53,15 +53,15 @@ func Client() *http.Client {
 func (r *Req) SetClient(client *http.Client) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if client != nil || (client != nil && client.Transport == nil) {
+		client = newClient()
+	}
 
-	r.client = client // use default if client == nil
+	r.client = client
 }
 
 // SetClient sets the default http.Client for requests.
 func SetClient(client *http.Client) {
-	if client == nil {
-		client = newClient()
-	}
 	std.SetClient(client)
 }
 
