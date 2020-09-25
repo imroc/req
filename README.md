@@ -81,7 +81,7 @@ param := req.Param{
 	"cmd":  "add",
 }
 // only url is required, others are optional.
-r, err = req.Post("http://foo.bar/api", header, param)
+r, err := req.Post("http://foo.bar/api", header, param)
 if err != nil {
 	log.Fatal(err)
 }
