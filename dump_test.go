@@ -1,11 +1,14 @@
 package req
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func TestDumpText(t *testing.T) {
@@ -58,5 +61,27 @@ func TestDumpUpload(t *testing.T) {
 		if !strings.Contains(dump, contain) {
 			t.Errorf("multipart dump should contains: %s", contain)
 		}
+	}
+}
+
+func TestDumpWithPrintFunc(t *testing.T) {
+	reqBody := "request body"
+	p := Param{
+		"name": "roc",
+		"job":  "programmer",
+	}
+	buf := bytes.NewBufferString(reqBody)
+	ts := newDefaultTestServer()
+	Debug = true
+	PrintFunc = log.Infoln
+	r, err := Post(ts.URL, p, buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Request().URL.Query().Get("name") != "roc" {
+		t.Error("param should in the url when set body manually")
+	}
+	if string(r.reqBody) != reqBody {
+		t.Error("request body not equal")
 	}
 }
