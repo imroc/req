@@ -34,8 +34,13 @@ func newClient() *http.Client {
 
 // Client return the default underlying http client
 func (r *Req) Client() *http.Client {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if r.client == nil {
+		r.client = newClient()
+	}
+
 	return r.client
 }
 
