@@ -34,9 +34,13 @@ func newClient() *http.Client {
 
 // Client return the default underlying http client
 func (r *Req) Client() *http.Client {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	if r.client == nil {
 		r.client = newClient()
 	}
+
 	return r.client
 }
 
@@ -47,7 +51,13 @@ func Client() *http.Client {
 
 // SetClient sets the underlying http.Client.
 func (r *Req) SetClient(client *http.Client) {
-	r.client = client // use default if client == nil
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if client != nil || (client != nil && client.Transport == nil) {
+		client = newClient()
+	}
+
+	r.client = client
 }
 
 // SetClient sets the default http.Client for requests.
@@ -113,7 +123,11 @@ func EnableCookie(enable bool) {
 
 // SetTimeout sets the timeout for every request
 func (r *Req) SetTimeout(d time.Duration) {
-	r.Client().Timeout = d
+	client := r.Client()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	client.Timeout = d
 }
 
 // SetTimeout sets the timeout for every request

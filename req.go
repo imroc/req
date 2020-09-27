@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -112,12 +113,13 @@ type Req struct {
 	xmlEncOpts       *xmlEncOpts
 	flag             int
 	progressInterval time.Duration
+	mu               sync.RWMutex
 }
 
 // New create a new *Req
 func New() *Req {
 	// default progress reporting interval is 200 milliseconds
-	return &Req{flag: LstdFlags, progressInterval: 200 * time.Millisecond}
+	return &Req{flag: LstdFlags, progressInterval: 200 * time.Millisecond, client: newClient()}
 }
 
 type param struct {
