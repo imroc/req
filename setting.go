@@ -123,9 +123,11 @@ func EnableCookie(enable bool) {
 
 // SetTimeout sets the timeout for every request
 func (r *Req) SetTimeout(d time.Duration) {
-	client := newClient()
+	client := r.Client()
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	client.Timeout = d
-	r.SetClient(client)
 }
 
 // SetTimeout sets the timeout for every request

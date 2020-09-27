@@ -64,7 +64,23 @@ func TestSetting(t *testing.T) {
 			t.Errorf("panic happened while change setting: %v", rc)
 		}
 	}()
-	SetTimeout(2 * time.Second)
+
+	wg := sync.WaitGroup{}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SetTimeout(2 * time.Second)
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		SetTimeout(3 * time.Second)
+	}()
+
+	wg.Wait()
+
 	EnableCookie(false)
 	EnableCookie(true)
 	EnableInsecureTLS(true)
