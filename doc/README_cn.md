@@ -73,7 +73,7 @@ param := req.Param{
 	"cmd":  "add",
 }
 // 只有url必选，其它参数都是可选
-r, err = req.Post("http://foo.bar/api", header, param)
+r, err := req.Post("http://foo.bar/api", header, param)
 if err != nil {
 	log.Fatal(err)
 }
