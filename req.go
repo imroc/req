@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -539,7 +540,17 @@ func (m *multipartHelper) Upload(req *http.Request) {
 				i++
 				up.FieldName = "file" + strconv.Itoa(i)
 			}
-			fileWriter, err := bodyWriter.CreateFormFile(up.FieldName, up.FileName)
+			h := make(textproto.MIMEHeader)
+			h.Set("Content-Disposition",
+				fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+					strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(up.FieldName),
+					strings.NewReplacer("\\", "\\\\", `"`, "\\\"").Replace(up.FileName),
+				),
+			)
+			filename := filepath.Base(up.FileName)
+			mineType := mime.TypeByExtension(filepath.Ext(filename))
+			h.Set("Content-Type", mineType)
+			fileWriter, err := bodyWriter.CreatePart(h)
 			if err != nil {
 				continue
 			}

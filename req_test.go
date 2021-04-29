@@ -291,6 +291,9 @@ func TestUpload(t *testing.T) {
 			if p.FormName() != upload.FieldName {
 				t.Errorf("formname = %s; want = %s", p.FileName(), upload.FileName)
 			}
+			if p.Header.Get("Content-Type") != "text/plain; charset=utf-8" {
+				t.Errorf("Content-Type = %s; want = %s", p.Header.Get("Content-Type"), "text/plain; charset=utf-8")
+			}
 			data, err := ioutil.ReadAll(p)
 			if err != nil {
 				t.Fatal(err)
