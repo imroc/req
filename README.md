@@ -161,7 +161,7 @@ req.Post(url, req.BodyXML(&bar))
 ```
 
 ## <a name="Debug">Debug</a>
-Set global variable `req.Debug` to true, it will print detail infomation for every request.
+Set global variable `req.Debug` to true, it will print detail information for every request.
 ``` go
 req.Debug = true
 req.Post("http://localhost/test" "hi")
@@ -169,7 +169,7 @@ req.Post("http://localhost/test" "hi")
 ![post](doc/post.png)
 
 ## <a name="Format">Output Format</a>
-You can use different kind of output format to log the request and response infomation in your log file in defferent scenarios. For example, use `%+v` output format in the development phase, it allows you to observe the details. Use `%v` or `%-v` output format in production phase, just log the information necessarily.  
+You can use different kind of output format to log the request and response information in your log file in defferent scenarios. For example, use `%+v` output format in the development phase, it allows you to observe the details. Use `%v` or `%-v` output format in production phase, just log the information necessarily.  
 
 ### `%+v` or `%+s`
 Output in detail

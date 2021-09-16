@@ -43,7 +43,7 @@ func (r *Resp) Bytes() []byte {
 }
 
 // ToBytes returns response body as []byte,
-// return error if error happend when reading
+// return error if error happened when reading
 // the response body
 func (r *Resp) ToBytes() ([]byte, error) {
 	if r.err != nil {
@@ -69,7 +69,7 @@ func (r *Resp) String() string {
 }
 
 // ToString returns response body as string,
-// return error if error happend when reading
+// return error if error happened when reading
 // the response body
 func (r *Resp) ToString() (string, error) {
 	data, err := r.ToBytes()
