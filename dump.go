@@ -207,10 +207,11 @@ func (r *Resp) Dump() string {
 	l := dump.Len()
 	if l > 0 {
 		dump.WriteString("=================================")
-		l = dump.Len()
 	}
 
-	r.dumpResponse(dump)
+	if r.resp != nil {
+		r.dumpResponse(dump)
+	}
 
 	return dump.String()
 }

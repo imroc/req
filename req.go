@@ -171,6 +171,13 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 	}
 	resp = &Resp{req: req, r: r}
 
+	// output detail if Debug is enabled
+	if Debug {
+		defer func(resp *Resp) {
+			fmt.Println(resp.Dump())
+		}(resp)
+	}
+
 	var queryParam param
 	var formParam param
 	var uploads []FileUpload
@@ -340,10 +347,6 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 		response.Body = body
 	}
 
-	// output detail if Debug is enabled
-	if Debug {
-		fmt.Println(resp.Dump())
-	}
 	return
 }
 
