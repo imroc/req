@@ -39,3 +39,4 @@ func HeaderFromStruct(v interface{}) Header {
 	return header
 }
 
+type ReservedHeader map[string]string

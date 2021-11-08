@@ -198,6 +198,10 @@ func (r *Req) Do(method, rawurl string, vs ...interface{}) (resp *Resp, err erro
 					req.Header.Add(key, value)
 				}
 			}
+		case ReservedHeader:
+			for key, value := range vv {
+				req.Header[key] = []string{value}
+			}
 		case *bodyJson:
 			fn, err := setBodyJson(req, resp, r.jsonEncOpts, vv.v)
 			if err != nil {
