@@ -44,6 +44,16 @@ func (c *Client) R() *Request {
 	}
 }
 
+func (c *Client) AutoDiscardResponseBody() *Client {
+	return c.ResponseOptions(DiscardResponseBody())
+}
+
+// TestMode is like DebugMode, but discard response body, so you can
+// dump responses without read response body
+func (c *Client) TestMode() *Client {
+	return c.DebugMode().AutoDiscardResponseBody()
+}
+
 func (c *Client) DebugMode() *Client {
 	return c.AutoDecodeTextContent().EnableDump(DumpAll()).UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
 }

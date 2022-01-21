@@ -1,6 +1,8 @@
 package req
 
 import (
+	"io"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -61,4 +63,9 @@ type Response struct {
 
 func (r *Response) Body() Body {
 	return Body{r.Response.Body, r.Response}
+}
+
+func (r *Response) Discard() error {
+	_, err := io.Copy(ioutil.Discard, r.Response.Body)
+	return err
 }
