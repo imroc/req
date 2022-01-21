@@ -65,7 +65,7 @@ client := req.C().UserAgent("custom-client").EnableDump()
 client.R().Get("https://api.github.com/users/imroc").MustString()
 ```
 
-Now you can see the request and response content that has been dumped :
+Now you can see the request and response content that has been dumped:
 
 ```txt
 :authority: api.github.com
@@ -106,3 +106,21 @@ x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 ```
 
 > Here we can see the content is in http2 format, because req will try http2 by default if server support.
+
+## Debug
+
+Simple example:
+
+```go
+// dump head content asynchronously and save it to file
+client := req.C().EnableDump().DumpHead().DumpAsync().DumpToFile("reqdump.log")
+resp, err := client.R().Body(body).Post(url)
+...
+```
+
+All dump options:
+* `DumpAsync()` indicates that the dump should be done asynchronously,
+
+## License
+
+Req released under MIT license, refer [LICENSE](LICENSE) file.
