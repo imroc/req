@@ -27,16 +27,17 @@ Import req in your code:
 import "github.com/imroc/req/v2"
 ```
 
-Prepare client:
+Prepare a client:
 
 ```go
-client := req.C().UserAgent("req/v2")
+client := req.C().UserAgent("req/v2") // client settings is chainable
 ```
 
 Use client to create and send request:
 
 ```go
-resp, err: client.R().Header("test", "req").Get(url)
+// use R() to create a new request, and request settings is also chainable
+resp, err: client.R().Header("test", "req").Body("test").Get("https://test.example.com")
 ```
 
 You can also use the default client when test:
@@ -58,8 +59,10 @@ resp, err := req.DefaultClient().UserAgent("req v2").R().Header("test", "req").G
 Want to debug requests? Just enable dump:
 
 ```go
-client := req.C().EnableDump() // enable dump
-client.R().Get("https://api.github.com/users/imroc").MustString() // send request and read response body
+// create client and enable dump
+client := req.C().EnableDump()
+// send request and read response body
+client.R().Get("https://api.github.com/users/imroc").MustString()
 ```
 
 Now you can see the request and response content that has been dumped :
@@ -102,4 +105,4 @@ x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 {"login":"imroc","id":7448852,"node_id":"MDQ6VXNlcjc0NDg4NTI=","avatar_url":"https://avatars.githubusercontent.com/u/7448852?v=4","gravatar_id":"","url":"https://api.github.com/users/imroc","html_url":"https://github.com/imroc","followers_url":"https://api.github.com/users/imroc/followers","following_url":"https://api.github.com/users/imroc/following{/other_user}","gists_url":"https://api.github.com/users/imroc/gists{/gist_id}","starred_url":"https://api.github.com/users/imroc/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/imroc/subscriptions","organizations_url":"https://api.github.com/users/imroc/orgs","repos_url":"https://api.github.com/users/imroc/repos","events_url":"https://api.github.com/users/imroc/events{/privacy}","received_events_url":"https://api.github.com/users/imroc/received_events","type":"User","site_admin":false,"name":"roc","company":"Tencent","blog":"https://imroc.cc","location":"China","email":null,"hireable":true,"bio":"I'm roc","twitter_username":"imrocchan","public_repos":128,"public_gists":0,"followers":362,"following":151,"created_at":"2014-04-30T10:50:46Z","updated_at":"2021-07-08T12:11:23Z"}
 ```
 
-> Here we can see it's http2 format, because req will try http2 by default if server support.
+> Here we can see the content is in http2 format, because req will try http2 by default if server support.
