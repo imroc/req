@@ -40,14 +40,14 @@ func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) 
 		}
 		return nil, err
 	}
-	proto, status, ok := strings.Cut(line, " ")
+	proto, status, ok := cutString(line, " ")
 	if !ok {
 		return nil, badStringError("malformed HTTP response", line)
 	}
 	resp.Proto = proto
 	resp.Status = strings.TrimLeft(status, " ")
 
-	statusCode, _, _ := strings.Cut(resp.Status, " ")
+	statusCode, _, _ := cutString(resp.Status, " ")
 	if len(statusCode) != 3 {
 		return nil, badStringError("malformed HTTP status code", statusCode)
 	}

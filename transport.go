@@ -1752,7 +1752,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			return nil, err
 		}
 		if resp.StatusCode != 200 {
-			_, text, ok := strings.Cut(resp.Status, " ")
+			_, text, ok := cutString(resp.Status, " ")
 			conn.Close()
 			if !ok {
 				return nil, errors.New("unknown status code")
