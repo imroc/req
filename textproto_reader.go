@@ -564,7 +564,7 @@ func (r *textprotoReader) ReadMIMEHeader() (textproto.MIMEHeader, error) {
 		}
 
 		// Key ends at first colon.
-		k, v, ok := bytes.Cut(kv, colon)
+		k, v, ok := bytesCut(kv, colon)
 		if !ok {
 			return m, protocolError("malformed MIME header line: " + string(kv))
 		}
