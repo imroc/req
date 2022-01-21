@@ -37,22 +37,30 @@ func DisableAutoDecode() ResponseOption {
 	}
 }
 
+var textContentTypes = []string{"text", "json", "xml", "html", "java"}
+
 func AutoDecodeTextContent() ResponseOption {
-	return AutoDecodeContentType("text", "json", "xml", "html", "java")
+	return AutoDecodeContentType(textContentTypes...)
+}
+
+var autoDecodeText = autoDecodeContentTypeFunc(textContentTypes...)
+
+func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) bool {
+	return func(contentType string) bool {
+		for _, t := range contentTypes {
+			if strings.Contains(contentType, t) {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 // AutoDecodeContentType specifies that the response body should been auto-decoded
 // when content type contains keywords that here given.
 func AutoDecodeContentType(contentTypes ...string) ResponseOption {
 	return func(o *ResponseOptions) {
-		o.AutoDecodeContentType = func(contentType string) bool {
-			for _, t := range contentTypes {
-				if strings.Contains(contentType, t) {
-					return true
-				}
-			}
-			return false
-		}
+		o.AutoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
 	}
 }
 
