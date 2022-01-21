@@ -350,6 +350,7 @@ func (t *Transport) readBufferSize() int {
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
 	t.nextProtoOnce.Do(t.onceSetNextProtoDefaults)
+
 	t2 := &Transport{
 		Proxy:                  t.Proxy,
 		DialContext:            t.DialContext,
@@ -371,6 +372,11 @@ func (t *Transport) Clone() *Transport {
 		ForceAttemptHTTP2:      t.ForceAttemptHTTP2,
 		WriteBufferSize:        t.WriteBufferSize,
 		ReadBufferSize:         t.ReadBufferSize,
+		ResponseOptions:        t.ResponseOptions,
+		dump:                   t.dump.Clone(),
+	}
+	if t.dump != nil {
+		t.dump.Start()
 	}
 	if t.TLSClientConfig != nil {
 		t2.TLSClientConfig = t.TLSClientConfig.Clone()
