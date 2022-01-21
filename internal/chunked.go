@@ -13,6 +13,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v2/internal/util"
 	"io"
 )
 
@@ -168,24 +169,11 @@ var semi = []byte(";")
 //     "0;token=val" => "0"
 //     `0;token="quoted string"` => "0"
 func removeChunkExtension(p []byte) ([]byte, error) {
-	p, _, _ = bytesCut(p, semi)
+	p, _, _ = util.CutBytes(p, semi)
 	// TODO: care about exact syntax of chunk extensions? We're
 	// ignoring and stripping them anyway. For now just never
 	// return an error.
 	return p, nil
-}
-
-// bytesCut slices s around the first instance of sep,
-// returning the text before and after sep.
-// The found result reports whether sep appears in s.
-// If sep does not appear in s, cut returns s, nil, false.
-//
-// Cut returns slices of the original slice s, not copies.
-func bytesCut(s, sep []byte) (before, after []byte, found bool) {
-	if i := bytes.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):], true
-	}
-	return s, nil, false
 }
 
 // NewChunkedWriter returns a new chunkedWriter that translates writes into HTTP
