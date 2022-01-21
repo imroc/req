@@ -11,7 +11,7 @@ const (
 )
 
 
-// cutString is a string util function which is copied
+// cutString is a string util function which is ported
 // from go1.18 strings package.
 // cutString slices s around the first instance of sep,
 // returning the text before and after sep.
