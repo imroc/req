@@ -1,7 +1,6 @@
 package req
 
 import (
-	"fmt"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/charmap"
 	"io"
@@ -39,12 +38,10 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc, name, _ := htmlcharset.DetermineEncoding(p[:n], "")
+	enc, _, _ := htmlcharset.DetermineEncoding(p[:n], "")
+	// TODO: log chartset name
 	if enc == charmap.Windows1252 {
 		return
-	}
-	if name != "" {
-		fmt.Println("content charset detected:", name)
 	}
 	if enc == nil {
 		return

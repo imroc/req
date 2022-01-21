@@ -304,16 +304,15 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 		panic(err)
 	}
 	if charset, ok := params["charset"]; ok {
-		fmt.Println("chartset", charset, "detected")
+		// TODO: log charset
 		if strings.Contains(charset, "utf-8") || strings.Contains(charset, "utf8") { // do not decode utf-8
-			fmt.Println("decode not needed")
 			return
 		}
 		enc, _ := htmlcharset.Lookup(charset)
 		if enc == nil {
 			enc, err = ianaindex.MIME.Encoding(charset)
 			if err != nil {
-				fmt.Println("chartset", charset, "not supported:", err.Error(), "; cancel decode")
+				// TODO: log charset not supported
 				return
 			}
 		}

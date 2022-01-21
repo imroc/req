@@ -54,6 +54,9 @@ func (c *Client) TestMode() *Client {
 	return c.DebugMode().AutoDiscardResponseBody()
 }
 
+// DebugMode enables dump for requests and responses, and set user
+// agent to pretend to be a web browser, Avoid returning abnormal
+// data from some sites.
 func (c *Client) DebugMode() *Client {
 	return c.AutoDecodeTextContent().EnableDump(DumpAll()).UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
 }
@@ -96,12 +99,19 @@ func (c *Client) CommonHeader(key, value string) *Client {
 	return c
 }
 
+// EnableDump enables dump requests and responses,  allowing you
+// to clearly see the content of all requests and responses，which
+// is very convenient for debugging APIs.
+// EnableDump accepet options for custom the dump behavior:
+// 1. DumpAsync: dump asynchronously, can be used for debugging in
+//  production environment without affecting performance.
+// 2. DumpHead, DumpBody,
 func (c *Client) EnableDump(opts ...DumpOption) *Client {
 	if len(opts) > 0 {
 		if c.dumpOptions == nil {
 			c.dumpOptions = &DumpOptions{}
 		}
-		c.dumpOptions.Set(opts...)
+		c.dumpOptions.set(opts...)
 	}
 	c.t.EnableDump(c.dumpOptions)
 	return c
