@@ -294,7 +294,7 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 	if t.ResponseOptions.AutoDecodeContentType != nil {
 		shouldDecode = t.ResponseOptions.AutoDecodeContentType
 	} else {
-		shouldDecode = responseBodyIsText
+		shouldDecode = autoDecodeText
 	}
 	if !shouldDecode(contentType) {
 		return
