@@ -3,7 +3,7 @@
 
 A golang http request library for humans
 
-News
+:warning:News
 ========
 
 The new v2 version is under development, come and try it by clicking [here](https://github.com/imroc/req/tree/v2)!
