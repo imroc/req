@@ -1,0 +1,130 @@
+package req
+
+import (
+	"encoding/json"
+	"golang.org/x/net/publicsuffix"
+	"net"
+	"net/http"
+	"net/http/cookiejar"
+	"time"
+)
+
+func DefaultClient() *Client {
+	return defaultClient
+}
+
+func SetDefaultClient(c *Client) {
+	if c != nil {
+		defaultClient = c
+	}
+}
+
+var defaultClient *Client = C()
+
+type Client struct {
+	t            *Transport
+	t2           *http2Transport
+	dumpOptions  *DumpOptions
+	httpClient   *http.Client
+	dialer       *net.Dialer
+	jsonDecoder  *json.Decoder
+	commonHeader map[string]string
+}
+
+func (c *Client) R() *Request {
+	req := &http.Request{
+		Header:     make(http.Header),
+		Proto:      "HTTP/1.1",
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+	}
+	return &Request{
+		client:      c,
+		httpRequest: req,
+	}
+}
+
+
+func (c *Client) ResponseOptions(opts ResponseOptions) *Client {
+	c.t.ResponseOptions = opts
+	return c
+}
+
+func (c *Client) ResponseOption(opts ...ResponseOption) *Client {
+	for _, opt := range opts {
+		opt(&c.t.ResponseOptions)
+	}
+	return c
+}
+
+func (c *Client) Timeout(d time.Duration) *Client {
+	c.httpClient.Timeout = d
+	return c
+}
+
+// NewRequest is the alias of R()
+func (c *Client) NewRequest() *Request {
+	return c.R()
+}
+
+func (c *Client) DumpOptions(opt *DumpOptions) *Client {
+	c.dumpOptions = opt
+	return c
+}
+
+func (c *Client) DisableDump() *Client {
+	c.t.DisableDump()
+	return c
+}
+
+func (c *Client) UserAgent(userAgent string) *Client {
+	return c.Header("User-Agent", userAgent)
+}
+
+func (c *Client) Header(key, value string) *Client {
+	if c.commonHeader == nil {
+		c.commonHeader = make(map[string]string)
+	}
+	c.commonHeader[key] = value
+	return c
+}
+
+func (c *Client) EnableDump(opts ...DumpOption) *Client {
+	if len(opts) > 0 {
+		if c.dumpOptions == nil {
+			c.dumpOptions = &DumpOptions{}
+		}
+		c.dumpOptions.Set(opts...)
+	}
+	c.t.EnableDump(c.dumpOptions)
+	return c
+}
+
+// NewClient is the alias of C()
+func NewClient() *Client {
+	return C()
+}
+
+func C() *Client {
+	t := &Transport{
+		ForceAttemptHTTP2:     true,
+		Proxy:                 http.ProxyFromEnvironment,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	t2, _ := http2ConfigureTransports(t)
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	httpClient := &http.Client{
+		Transport: t,
+		Jar:       jar,
+		Timeout:   2 * time.Minute,
+	}
+	c := &Client{
+		httpClient: httpClient,
+		t:          t,
+		t2:         t2,
+	}
+	return c
+}
