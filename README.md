@@ -8,10 +8,10 @@ A golang http request library for humans.
 
 * Simple and chainable methods for client and request settings.
 * Rich syntax sugar, greatly improving development efficiency.
-* Automatically detect charset and decode to utf-8.
-* Powerful debugging capabilities (logging, tracing, and event dump the requests and responses content).
-* The settings can be dynamically adjusted, making it possible to debug in the production environment.
-* Easy to integrate with existing code, just replace client's Transport you can dump requests and reponses to debug.
+* Automatically detect charset and decode it to utf-8.
+* Powerful debugging capabilities (logging, tracing, and even dump the requests and responses' content).
+* All settings can be dynamically adjusted, making it possible to debug in the production environment.
+* Easy to integrate with existing code, just replace client's Transport then you can dump content as req to debug APIs.
 
 ## Install
 
@@ -36,7 +36,7 @@ client := req.C().UserAgent("req v2")
 Use client to create and send request:
 
 ```go
-resp, err : client.R().Header("test", "req").Get(url)
+resp, err: client.R().Header("test", "req").Get(url)
 ```
 
 You can also use the default client when test:
@@ -56,6 +56,7 @@ resp, err := req.DefaultClient().UserAgent("req v2").R().Header("test", "req").G
 ```
 
 Want to debug requests? Just enable dump:
+
 ```go
 client := req.C().EnableDump() // enable dump
 client.R().Get("https://api.github.com/users/imroc").MustString() // send request and read response body
