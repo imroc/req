@@ -517,7 +517,7 @@ func (r *textprotoReader) ReadDotLines() ([]string, error) {
 
 var colon = []byte(":")
 
-// Readtextproto.MIMEHeader reads a MIME-style header from r.
+// ReadMIMEHeader reads a MIME-style header from r.
 // The header is a sequence of possibly continued Key: Value lines
 // ending in a blank line.
 // The returned map m maps Canonicaltextproto.MIMEHeaderKey(key) to a
@@ -629,7 +629,7 @@ func (r *textprotoReader) upcomingHeaderNewlines() (n int) {
 	return bytes.Count(peek, nl)
 }
 
-// Canonicaltextproto.MIMEHeaderKey returns the canonical format of the
+// CanonicalMIMEHeaderKey returns the canonical format of the
 // MIME header key s. The canonicalization converts the first
 // letter and any letter following a hyphen to upper case;
 // the rest are converted to lowercase. For example, the
