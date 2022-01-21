@@ -15,6 +15,20 @@ type DumpOptions struct {
 	Async        bool
 }
 
+func (do *DumpOptions) Clone() *DumpOptions {
+	if do == nil {
+		return nil
+	}
+	return &DumpOptions{
+		Output:       do.Output,
+		RequestHead:  do.RequestHead,
+		RequestBody:  do.RequestBody,
+		ResponseHead: do.ResponseHead,
+		ResponseBody: do.ResponseBody,
+		Async:        do.Async,
+	}
+}
+
 func (do *DumpOptions) set(opts ...DumpOption) {
 	for _, opt := range opts {
 		opt(do)
