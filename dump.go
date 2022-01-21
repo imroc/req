@@ -203,6 +203,16 @@ func newDumper(opt *DumpOptions) *dumper {
 	return d
 }
 
+func (d *dumper) Clone() *dumper {
+	if d == nil {
+		return nil
+	}
+	return &dumper{
+		DumpOptions: d.DumpOptions.Clone(),
+		ch:          make(chan []byte, 20),
+	}
+}
+
 func (d *dumper) dump(p []byte) {
 	if len(p) == 0 {
 		return
