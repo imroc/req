@@ -44,13 +44,11 @@ func (c *Client) R() *Request {
 	}
 }
 
-
-func (c *Client) ResponseOptions(opts ResponseOptions) *Client {
-	c.t.ResponseOptions = opts
-	return c
+func (c *Client) DebugMode() *Client {
+	return c.AutoDecodeTextContent().EnableDump(DumpAll()).UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
 }
 
-func (c *Client) ResponseOption(opts ...ResponseOption) *Client {
+func (c *Client) ResponseOptions(opts ...ResponseOption) *Client {
 	for _, opt := range opts {
 		opt(&c.t.ResponseOptions)
 	}
@@ -67,21 +65,20 @@ func (c *Client) NewRequest() *Request {
 	return c.R()
 }
 
-func (c *Client) DumpOptions(opt *DumpOptions) *Client {
-	c.dumpOptions = opt
-	return c
-}
-
 func (c *Client) DisableDump() *Client {
 	c.t.DisableDump()
 	return c
 }
 
-func (c *Client) UserAgent(userAgent string) *Client {
-	return c.Header("User-Agent", userAgent)
+func (c *Client) AutoDecodeTextContent() *Client {
+	return c.ResponseOptions(AutoDecodeTextContent())
 }
 
-func (c *Client) Header(key, value string) *Client {
+func (c *Client) UserAgent(userAgent string) *Client {
+	return c.CommonHeader("User-Agent", userAgent)
+}
+
+func (c *Client) CommonHeader(key, value string) *Client {
 	if c.commonHeader == nil {
 		c.commonHeader = make(map[string]string)
 	}

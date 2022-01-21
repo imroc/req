@@ -216,7 +216,7 @@ func (r *Request) execute() (resp *Response, err error) {
 		request:  r,
 		Response: httpResponse,
 	}
-	if r.client.t.Discard {
+	if r.client.t.AutoDiscard {
 		io.Copy(ioutil.Discard, httpResponse.Body)
 	}
 	return

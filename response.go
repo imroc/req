@@ -15,14 +15,16 @@ type ResponseOptions struct {
 	// Only valid when DisableAutoDecode is true.
 	AutoDecodeContentType func(contentType string) bool
 
-	Discard bool
+	// AutoDiscard, if true, read all response body and discard automatically,
+	// useful when test
+	AutoDiscard bool
 }
 
 type ResponseOption func(o *ResponseOptions)
 
-func DiscardBody() ResponseOption {
+func DiscardResponseBody() ResponseOption {
 	return func(o *ResponseOptions) {
-		o.Discard = true
+		o.AutoDiscard = true
 	}
 }
 
@@ -33,12 +35,8 @@ func DisableAutoDecode() ResponseOption {
 	}
 }
 
-// AutoDecodeContentTypeFunc customize the function to determine whether response
-// body should auto decode with specified content type.
-func AutoDecodeContentTypeFunc(fn func(contentType string) bool) ResponseOption {
-	return func(o *ResponseOptions) {
-		o.AutoDecodeContentType = fn
-	}
+func AutoDecodeTextContent() ResponseOption {
+	return AutoDecodeContentType("text", "json", "xml", "html", "java")
 }
 
 // AutoDecodeContentType specifies that the response body should been auto-decoded
