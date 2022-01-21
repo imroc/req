@@ -6572,7 +6572,7 @@ const (
 	// a stream-level WINDOW_UPDATE for at a time.
 	http2transportDefaultStreamMinRefresh = 4 << 10
 
-	http2defaultUserAgent = "Go-http-client/2.0"
+	http2defaultUserAgent = "req/v2"
 
 	// initialMaxConcurrentStreams is a connections maxConcurrentStreams until
 	// it's received servers initial SETTINGS frame, which corresponds with the

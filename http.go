@@ -153,7 +153,7 @@ const maxPostHandlerReadBytes = 256 << 10
 // It was changed at the time of Go 1.1 release because the former User-Agent
 // had ended up blocked by some intrusion detection systems.
 // See https://codereview.appspot.com/7532043.
-const defaultUserAgent = "Go-http-client/1.1"
+const defaultUserAgent = "req/v2"
 
 func idnaASCII(v string) (string, error) {
 	// TODO: Consider removing this check after verifying performance is okay.
