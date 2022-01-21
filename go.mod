@@ -1,4 +1,4 @@
-module github.com/imroc/req
+module github.com/imroc/req/v2
 
 go 1.16
 
