@@ -5,6 +5,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
 	"time"
 )
 
@@ -21,6 +22,7 @@ func SetDefaultClient(c *Client) {
 var defaultClient *Client = C()
 
 type Client struct {
+	log          Logger
 	t            *Transport
 	t2           *http2Transport
 	dumpOptions  *DumpOptions
@@ -63,11 +65,27 @@ func (c *Client) TestMode() *Client {
 	return c.DebugMode().AutoDiscardResponseBody()
 }
 
+const (
+	userAgentFirefox = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:95.0) Gecko/20100101 Firefox/95.0"
+	userAgentChrome  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
+)
+
 // DebugMode enables dump for requests and responses, and set user
 // agent to pretend to be a web browser, Avoid returning abnormal
 // data from some sites.
 func (c *Client) DebugMode() *Client {
-	return c.AutoDecodeTextContent().EnableDump(DumpAll()).UserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
+	return c.AutoDecodeTextContent().
+		EnableDump(DumpAll()).
+		Logger(NewLogger(os.Stdout)).
+		UserAgent(userAgentChrome)
+}
+
+func (c *Client) Logger(log Logger) *Client {
+	if log == nil {
+		return c
+	}
+	c.log = log
+	return c
 }
 
 func (c *Client) ResponseOptions(opts ...ResponseOption) *Client {
@@ -164,6 +182,7 @@ func C() *Client {
 		Timeout:   2 * time.Minute,
 	}
 	c := &Client{
+		log:        &emptyLogger{},
 		httpClient: httpClient,
 		t:          t,
 		t2:         t2,
