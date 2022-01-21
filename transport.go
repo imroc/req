@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v2/internal/ascii"
 	"github.com/imroc/req/v2/internal/godebug"
+	"github.com/imroc/req/v2/internal/util"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
 	"io"
@@ -1752,7 +1753,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			return nil, err
 		}
 		if resp.StatusCode != 200 {
-			_, text, ok := cutString(resp.Status, " ")
+			_, text, ok := util.CutString(resp.Status, " ")
 			conn.Close()
 			if !ok {
 				return nil, errors.New("unknown status code")

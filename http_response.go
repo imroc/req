@@ -7,6 +7,7 @@
 package req
 
 import (
+	"github.com/imroc/req/v2/internal/util"
 	"io"
 	"net/http"
 	"strconv"
@@ -40,14 +41,14 @@ func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) 
 		}
 		return nil, err
 	}
-	proto, status, ok := cutString(line, " ")
+	proto, status, ok := util.CutString(line, " ")
 	if !ok {
 		return nil, badStringError("malformed HTTP response", line)
 	}
 	resp.Proto = proto
 	resp.Status = strings.TrimLeft(status, " ")
 
-	statusCode, _, _ := cutString(resp.Status, " ")
+	statusCode, _, _ := util.CutString(resp.Status, " ")
 	if len(statusCode) != 3 {
 		return nil, badStringError("malformed HTTP status code", statusCode)
 	}
