@@ -191,7 +191,7 @@ var defaultDumpOptions = &DumpOptions{
 
 func newDumper(opt *DumpOptions) *dumper {
 	if opt == nil {
-		opt = defaultDumpOptions
+		opt = defaultDumpOptions.Clone()
 	}
 	if opt.Output == nil {
 		opt.Output = os.Stdout
