@@ -120,6 +120,8 @@ func (c *Client) EnableDump(opts ...DumpOption) *Client {
 			c.dumpOptions = &DumpOptions{}
 		}
 		c.dumpOptions.set(opts...)
+	} else if c.dumpOptions == nil {
+		c.dumpOptions = defaultDumpOptions.Clone()
 	}
 	c.t.EnableDump(c.dumpOptions)
 	return c
