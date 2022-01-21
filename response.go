@@ -69,10 +69,6 @@ type Response struct {
 	request *Request
 }
 
-func (r *Response) Body() Body {
-	return Body{r.Response.Body, r.Response}
-}
-
 func (r *Response) Discard() error {
 	_, err := io.Copy(ioutil.Discard, r.Response.Body)
 	return err
