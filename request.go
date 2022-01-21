@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"io"
+	"io/ioutil"
 	"net/http"
 	urlpkg "net/url"
 	"strings"
@@ -153,7 +154,7 @@ func (r *Request) Body(body interface{}) *Request {
 	case io.ReadCloser:
 		r.httpRequest.Body = b
 	case io.Reader:
-		r.httpRequest.Body = io.NopCloser(b)
+		r.httpRequest.Body = ioutil.NopCloser(b)
 	case []byte:
 		r.BodyBytes(b)
 	case string:
@@ -163,23 +164,23 @@ func (r *Request) Body(body interface{}) *Request {
 }
 
 func (r *Request) BodyBytes(body []byte) *Request {
-	r.httpRequest.Body = io.NopCloser(bytes.NewReader(body))
+	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return r
 }
 
 func (r *Request) BodyString(body string) *Request {
-	r.httpRequest.Body = io.NopCloser(strings.NewReader(body))
+	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	return r
 }
 
 func (r *Request) BodyJsonString(body string) *Request {
-	r.httpRequest.Body = io.NopCloser(strings.NewReader(body))
+	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	r.setContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
 
 func (r *Request) BodyJsonBytes(body []byte) *Request {
-	r.httpRequest.Body = io.NopCloser(bytes.NewReader(body))
+	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	r.setContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
@@ -216,7 +217,7 @@ func (r *Request) execute() (resp *Response, err error) {
 		Response: httpResponse,
 	}
 	if r.client.t.Discard {
-		io.Copy(io.Discard, httpResponse.Body)
+		io.Copy(ioutil.Discard, httpResponse.Body)
 	}
 	return
 }
