@@ -30,7 +30,7 @@ import "github.com/imroc/req/v2"
 Prepare a client:
 
 ```go
-client := req.C().UserAgent("req/v2") // client settings is chainable
+client := req.C().UserAgent("custom-client") // client settings is chainable
 ```
 
 Use client to create and send request:
@@ -44,7 +44,7 @@ You can also use the default client when test:
 
 ```go
 // customize default client settings
-req.DefaultClient().UserAgent("req v2")
+req.DefaultClient().UserAgent("custom-client")
 
 // create and send request using default client
 resp, err := req.New().Header("test", "req").Get(url)
@@ -53,14 +53,14 @@ resp, err := req.New().Header("test", "req").Get(url)
 You can also simply do it with one line of code like this:
 
 ```go
-resp, err := req.DefaultClient().UserAgent("req v2").R().Header("test", "req").Get(url)
+resp, err := req.DefaultClient().UserAgent("custom-client").R().Header("test", "req").Get(url)
 ```
 
 Want to debug requests? Just enable dump:
 
 ```go
 // create client and enable dump
-client := req.C().EnableDump()
+client := req.C().UserAgent("custom-client").EnableDump()
 // send request and read response body
 client.R().Get("https://api.github.com/users/imroc").MustString()
 ```
@@ -72,7 +72,7 @@ Now you can see the request and response content that has been dumped :
 :method: GET
 :path: /users/imroc
 :scheme: https
-user-agent: req/v2
+user-agent: custom-client
 accept-encoding: gzip
 
 :status: 200
