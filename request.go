@@ -208,6 +208,7 @@ func (r *Request) execute() (resp *Response, err error) {
 			r.httpRequest.Header.Set(k, v)
 		}
 	}
+	logf(r.client.log, "%s %s", r.httpRequest.Method, r.httpRequest.URL.String())
 	httpResponse, err := r.client.httpClient.Do(r.httpRequest)
 	if err != nil {
 		return
