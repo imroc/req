@@ -3,7 +3,6 @@ package req
 import (
 	"encoding/json"
 	"golang.org/x/net/publicsuffix"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"time"
@@ -26,9 +25,19 @@ type Client struct {
 	t2           *http2Transport
 	dumpOptions  *DumpOptions
 	httpClient   *http.Client
-	dialer       *net.Dialer
 	jsonDecoder  *json.Decoder
 	commonHeader map[string]string
+}
+
+func copyCommonHeader(h map[string]string) map[string]string {
+	if h == nil {
+		return nil
+	}
+	m := make(map[string]string)
+	for k, v := range h {
+		m[k] = v
+	}
+	return m
 }
 
 func (c *Client) R() *Request {
@@ -102,10 +111,9 @@ func (c *Client) CommonHeader(key, value string) *Client {
 // EnableDump enables dump requests and responses,  allowing you
 // to clearly see the content of all requests and responses，which
 // is very convenient for debugging APIs.
-// EnableDump accepet options for custom the dump behavior:
-// 1. DumpAsync: dump asynchronously, can be used for debugging in
-//  production environment without affecting performance.
-// 2. DumpHead, DumpBody,
+// EnableDump accepet options for custom the dump behavior, such
+// as DumpAsync, DumpHead, DumpBody, DumpRequest, DumpResponse,
+// DumpAll, DumpTo, DumpToFile
 func (c *Client) EnableDump(opts ...DumpOption) *Client {
 	if len(opts) > 0 {
 		if c.dumpOptions == nil {
@@ -120,6 +128,21 @@ func (c *Client) EnableDump(opts ...DumpOption) *Client {
 // NewClient is the alias of C()
 func NewClient() *Client {
 	return C()
+}
+
+func (c *Client) Clone() *Client {
+	t := c.t.Clone()
+	t2, _ := http2ConfigureTransports(t)
+	cc := *c.httpClient
+	cc.Transport = t
+	return &Client{
+		httpClient:   &cc,
+		t:            t,
+		t2:           t2,
+		dumpOptions:  c.dumpOptions.Clone(),
+		jsonDecoder:  c.jsonDecoder,
+		commonHeader: copyCommonHeader(c.commonHeader),
+	}
 }
 
 func C() *Client {
