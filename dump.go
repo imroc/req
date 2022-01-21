@@ -1,11 +1,11 @@
 package req
 
 import (
-	"fmt"
 	"io"
 	"os"
 )
 
+// DumpOptions controls the dump behavior.
 type DumpOptions struct {
 	Output       io.Writer
 	RequestHead  bool
@@ -15,20 +15,25 @@ type DumpOptions struct {
 	Async        bool
 }
 
-func (do *DumpOptions) Set(opts ...DumpOption) {
+func (do *DumpOptions) set(opts ...DumpOption) {
 	for _, opt := range opts {
 		opt(do)
 	}
 }
 
+// DumpOption configures the underlying DumpOptions
 type DumpOption func(*DumpOptions)
 
+// DumpAsync indicates that the dump should be done asynchronously,
+// can be used for debugging in production environment without
+// affecting performance.
 func DumpAsync() DumpOption {
 	return func(o *DumpOptions) {
 		o.Async = true
 	}
 }
 
+// DumpHead indicates that should dump the head of requests and responses.
 func DumpHead() DumpOption {
 	return func(o *DumpOptions) {
 		o.RequestHead = true
@@ -36,6 +41,7 @@ func DumpHead() DumpOption {
 	}
 }
 
+// DumpBody indicates that should dump the body of requests and responses.
 func DumpBody() DumpOption {
 	return func(o *DumpOptions) {
 		o.RequestBody = true
@@ -43,6 +49,7 @@ func DumpBody() DumpOption {
 	}
 }
 
+// DumpRequest indicates that should dump the requests' head and response.
 func DumpRequest() DumpOption {
 	return func(o *DumpOptions) {
 		o.RequestHead = true
@@ -50,6 +57,7 @@ func DumpRequest() DumpOption {
 	}
 }
 
+// DumpResponse indicates that should dump the responses' head and response.
 func DumpResponse() DumpOption {
 	return func(o *DumpOptions) {
 		o.ResponseHead = true
@@ -57,6 +65,7 @@ func DumpResponse() DumpOption {
 	}
 }
 
+// DumpAll indicates that should dump both requests and responses' head and body.
 func DumpAll() DumpOption {
 	return func(o *DumpOptions) {
 		o.RequestHead = true
@@ -66,12 +75,14 @@ func DumpAll() DumpOption {
 	}
 }
 
+// DumpTo indicates that the content should dump to the specified destination.
 func DumpTo(output io.Writer) DumpOption {
 	return func(o *DumpOptions) {
 		o.Output = output
 	}
 }
 
+// DumpToFile indicates that the content should dump to the specified filename.
 func DumpToFile(filename string) DumpOption {
 	return func(o *DumpOptions) {
 		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE, 0600)
@@ -156,10 +167,6 @@ type dumper struct {
 	ch chan []byte
 }
 
-func DefaultDumpOptions() *DumpOptions {
-	return defaultDumpOptions
-}
-
 var defaultDumpOptions = &DumpOptions{
 	Output:       os.Stdout,
 	RequestBody:  true,
@@ -202,7 +209,6 @@ func (d *dumper) Stop() {
 func (d *dumper) Start() {
 	for b := range d.ch {
 		if b == nil {
-			fmt.Println("stop dump")
 			return
 		}
 		d.Output.Write(b)
