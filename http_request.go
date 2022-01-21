@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/imroc/req/internal/ascii"
+	"github.com/imroc/req/v2/internal/ascii"
 	"golang.org/x/net/http/httpguts"
 	"io"
 	"net/http"
