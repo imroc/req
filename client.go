@@ -261,7 +261,7 @@ func (c *Client) Dump(enable bool) *Client {
 }
 
 // DumpOptions configures the underlying Transport's DumpOptions
-func (c *Client) DumpOptions(opt *DumpOptions) *Client {
+func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
 		return c
 	}
