@@ -2,18 +2,15 @@ package req
 
 import (
 	"encoding/json"
+	"github.com/imroc/req/v2/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"strings"
 	"time"
-)
-
-type (
-	// RequestMiddleware type is for request middleware, called before a request is sent
-	RequestMiddleware func(*Client, *Request) error
 )
 
 // DefaultClient returns the global default Client.
@@ -32,13 +29,18 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	log          Logger
-	t            *Transport
-	t2           *http2Transport
-	dumpOptions  *DumpOptions
-	httpClient   *http.Client
-	jsonDecoder  *json.Decoder
-	commonHeader map[string]string
+	HostURL       string
+	PathParams    map[string]string
+	QueryParams   url.Values
+	scheme        string
+	log           Logger
+	t             *Transport
+	t2            *http2Transport
+	dumpOptions   *DumpOptions
+	httpClient    *http.Client
+	jsonDecoder   *json.Decoder
+	commonHeader  map[string]string
+	beforeRequest []RequestMiddleware
 }
 
 func copyCommonHeader(h map[string]string) map[string]string {
@@ -92,6 +94,15 @@ func (c *Client) DebugMode() *Client {
 		SetUserAgent(userAgentChrome)
 }
 
+// SetScheme method sets custom scheme in the Resty client. It's way to override default.
+// 		client.SetScheme("http")
+func (c *Client) SetScheme(scheme string) *Client {
+	if !util.IsStringEmpty(scheme) {
+		c.scheme = strings.TrimSpace(scheme)
+	}
+	return c
+}
+
 // SetLogger set the logger for req.
 func (c *Client) SetLogger(log Logger) *Client {
 	if log == nil {
@@ -108,7 +119,7 @@ func (c *Client) GetResponseOptions() *ResponseOptions {
 	return c.t.ResponseOptions
 }
 
-// ResponseOptions set the ResponseOptions for the underlying Transport.
+// SetResponseOptions set the ResponseOptions for the underlying Transport.
 func (c *Client) SetResponseOptions(opt *ResponseOptions) *Client {
 	if opt == nil {
 		return c
@@ -117,8 +128,8 @@ func (c *Client) SetResponseOptions(opt *ResponseOptions) *Client {
 	return c
 }
 
-// Timeout set the timeout for all requests.
-func (c *Client) Timeout(d time.Duration) *Client {
+// SetTimeout set the timeout for all requests.
+func (c *Client) SetTimeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
 	return c
 }
@@ -341,11 +352,15 @@ func C() *Client {
 		Jar:       jar,
 		Timeout:   2 * time.Minute,
 	}
+	beforeRequest := []RequestMiddleware{
+		parseRequestURL,
+	}
 	c := &Client{
-		log:        &emptyLogger{},
-		httpClient: httpClient,
-		t:          t,
-		t2:         t2,
+		beforeRequest: beforeRequest,
+		log:           &emptyLogger{},
+		httpClient:    httpClient,
+		t:             t,
+		t2:            t2,
 	}
 	return c
 }
