@@ -13,12 +13,14 @@ import (
 	"strings"
 )
 
+// Request is the http request
 type Request struct {
 	error       error
 	client      *Client
 	httpRequest *http.Request
 }
 
+// New create a new request using the global default client.
 func New() *Request {
 	return defaultClient.R()
 }
@@ -27,10 +29,13 @@ func (r *Request) appendError(err error) {
 	r.error = multierror.Append(r.error, err)
 }
 
+// Error return the underlying error, not nil if some error
+// happend when constructing the request.
 func (r *Request) Error() error {
 	return r.error
 }
 
+// Method set the http request method.
 func (r *Request) Method(method string) *Request {
 	if method == "" {
 		// We document that "" means "GET" for Request.Method, and people have
@@ -49,6 +54,7 @@ func (r *Request) Method(method string) *Request {
 	return r
 }
 
+// URL set the http request url.
 func (r *Request) URL(url string) *Request {
 	u, err := urlpkg.Parse(url)
 	if err != nil {
@@ -66,6 +72,7 @@ func (r *Request) send(method, url string) (*Response, error) {
 	return r.Method(method).URL(url).Send()
 }
 
+// MustGet like Get, panic if error happens.
 func (r *Request) MustGet(url string) *Response {
 	resp, err := r.Get(url)
 	if err != nil {
@@ -74,10 +81,12 @@ func (r *Request) MustGet(url string) *Response {
 	return resp
 }
 
+// Get send the request with GET method and specified url.
 func (r *Request) Get(url string) (*Response, error) {
 	return r.send(http.MethodGet, url)
 }
 
+// MustPost like Post, panic if error happens.
 func (r *Request) MustPost(url string) *Response {
 	resp, err := r.Post(url)
 	if err != nil {
@@ -86,10 +95,12 @@ func (r *Request) MustPost(url string) *Response {
 	return resp
 }
 
+// Post send the request with POST method and specified url.
 func (r *Request) Post(url string) (*Response, error) {
 	return r.send(http.MethodPost, url)
 }
 
+// MustPut like Put, panic if error happens.
 func (r *Request) MustPut(url string) *Response {
 	resp, err := r.Put(url)
 	if err != nil {
@@ -98,10 +109,12 @@ func (r *Request) MustPut(url string) *Response {
 	return resp
 }
 
+// Put send the request with Put method and specified url.
 func (r *Request) Put(url string) (*Response, error) {
 	return r.send(http.MethodPut, url)
 }
 
+// MustPatch like Patch, panic if error happens.
 func (r *Request) MustPatch(url string) *Response {
 	resp, err := r.Patch(url)
 	if err != nil {
@@ -110,10 +123,12 @@ func (r *Request) MustPatch(url string) *Response {
 	return resp
 }
 
+// Patch send the request with PATCH method and specified url.
 func (r *Request) Patch(url string) (*Response, error) {
 	return r.send(http.MethodPatch, url)
 }
 
+// MustDelete like Delete, panic if error happens.
 func (r *Request) MustDelete(url string) *Response {
 	resp, err := r.Delete(url)
 	if err != nil {
@@ -122,10 +137,12 @@ func (r *Request) MustDelete(url string) *Response {
 	return resp
 }
 
+// Delete send the request with DELETE method and specified url.
 func (r *Request) Delete(url string) (*Response, error) {
 	return r.send(http.MethodDelete, url)
 }
 
+// MustOptions like Options, panic if error happens.
 func (r *Request) MustOptions(url string) *Response {
 	resp, err := r.Options(url)
 	if err != nil {
@@ -134,18 +151,26 @@ func (r *Request) MustOptions(url string) *Response {
 	return resp
 }
 
+// Options send the request with OPTIONS method and specified url.
 func (r *Request) Options(url string) (*Response, error) {
 	return r.send(http.MethodOptions, url)
 }
 
-func (r *Request) MustHead(url string) (*Response, error) {
-	return r.send(http.MethodHead, url)
+// MustHead like Head, panic if error happens.
+func (r *Request) MustHead(url string) *Response {
+	resp, err := r.send(http.MethodHead, url)
+	if err != nil {
+		panic(err)
+	}
+	return resp
 }
 
+// Head send the request with HEAD method and specified url.
 func (r *Request) Head(url string) (*Response, error) {
 	return r.send(http.MethodHead, url)
 }
 
+// Body set the request body.
 func (r *Request) Body(body interface{}) *Request {
 	if body == nil {
 		return r
@@ -163,28 +188,36 @@ func (r *Request) Body(body interface{}) *Request {
 	return r
 }
 
+// BodyBytes set the request body as []byte.
 func (r *Request) BodyBytes(body []byte) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return r
 }
 
+// BodyString set the request body as string.
 func (r *Request) BodyString(body string) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	return r
 }
 
+// BodyJsonString set the request body as string and set Content-Type header
+// as "application/json; charset=UTF-8"
 func (r *Request) BodyJsonString(body string) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	r.setContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
 
+// BodyJsonBytes set the request body as []byte and set Content-Type header
+// as "application/json; charset=UTF-8"
 func (r *Request) BodyJsonBytes(body []byte) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	r.setContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
 
+// BodyJsonMarshal set the request body that marshaled from object, and
+// set Content-Type header as "application/json; charset=UTF-8"
 func (r *Request) BodyJsonMarshal(v interface{}) *Request {
 	b, err := json.Marshal(v)
 	if err != nil {
@@ -223,6 +256,7 @@ func (r *Request) execute() (resp *Response, err error) {
 	return
 }
 
+// Send sends the request.
 func (r *Request) Send() (resp *Response, err error) {
 	return r.execute()
 }

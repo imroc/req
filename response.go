@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// ResponseOptions determines that how should the response been processed.
 type ResponseOptions struct {
 	// DisableAutoDecode, if true, prevents auto detect response
 	// body's charset and decode it to utf-8
@@ -64,6 +65,7 @@ func AutoDecodeContentType(contentTypes ...string) ResponseOption {
 	}
 }
 
+// Response is the http response.
 type Response struct {
 	*http.Response
 	request *Request
