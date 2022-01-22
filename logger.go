@@ -6,6 +6,9 @@ import (
 	"os"
 )
 
+// Logger is the logging interface that req used internal,
+// you can set the Logger for client if you want to see req's
+// internal logging information.
 type Logger interface {
 	Println(v ...interface{})
 }
@@ -18,6 +21,7 @@ func (l *logger) Println(v ...interface{}) {
 	fmt.Fprintln(l.w, v...)
 }
 
+// NewLogger create a simple Logger.
 func NewLogger(output io.Writer) Logger {
 	if output == nil {
 		output = os.Stdout

@@ -81,6 +81,7 @@ func (c *Client) DebugMode() *Client {
 		UserAgent(userAgentChrome)
 }
 
+// Logger set the logger for req.
 func (c *Client) Logger(log Logger) *Client {
 	if log == nil {
 		return c
@@ -96,6 +97,7 @@ func (c *Client) ResponseOptions(opts ...ResponseOption) *Client {
 	return c
 }
 
+// Timeout set the timeout for all requests.
 func (c *Client) Timeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
 	return c
@@ -207,10 +209,12 @@ func (c *Client) AutoDecodeTextContent() *Client {
 	return c.ResponseOptions(AutoDecodeTextContent())
 }
 
+// UserAgent set the "User-Agent" header for all requests.
 func (c *Client) UserAgent(userAgent string) *Client {
 	return c.CommonHeader("User-Agent", userAgent)
 }
 
+// CommonHeader set the common header for all requests.
 func (c *Client) CommonHeader(key, value string) *Client {
 	if c.commonHeader == nil {
 		c.commonHeader = make(map[string]string)
@@ -244,30 +248,12 @@ func (c *Client) DumpOptions(opt *DumpOptions) *Client {
 	return c
 }
 
-// EnableDump enables dump requests and responses,  allowing you
-// to clearly see the content of all requests and responses，which
-// is very convenient for debugging APIs.
-// EnableDump accepet options for custom the dump behavior, such
-// as DumpAsync, DumpHead, DumpBody, DumpRequest, DumpResponse,
-// DumpAll, DumpTo, DumpToFile
-//func (c *Client) EnableDump(opts ...DumpOption) *Client {
-//	if len(opts) > 0 {
-//		if c.dumpOptions == nil {
-//			c.dumpOptions = &DumpOptions{}
-//		}
-//		c.dumpOptions.set(opts...)
-//	} else if c.dumpOptions == nil {
-//		c.dumpOptions = defaultDumpOptions.Clone()
-//	}
-//	c.t.EnableDump(c.dumpOptions)
-//	return c
-//}
-
-// NewClient is the alias of C()
+// NewClient is the alias of C
 func NewClient() *Client {
 	return C()
 }
 
+// Clone copy and returns the Client
 func (c *Client) Clone() *Client {
 	t := c.t.Clone()
 	t2, _ := http2ConfigureTransports(t)
@@ -283,6 +269,7 @@ func (c *Client) Clone() *Client {
 	}
 }
 
+// C create a new client.
 func C() *Client {
 	t := &Transport{
 		ForceAttemptHTTP2:     true,
