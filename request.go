@@ -15,6 +15,7 @@ import (
 
 // Request is the http request
 type Request struct {
+	pathParams  map[string]string
 	error       error
 	client      *Client
 	httpRequest *http.Request
@@ -23,6 +24,21 @@ type Request struct {
 // New create a new request using the global default client.
 func New() *Request {
 	return defaultClient.R()
+}
+
+func (r *Request) PathParams(params map[string]string) *Request {
+	for key, value := range params {
+		r.PathParam(key, value)
+	}
+	return r
+}
+
+func (r *Request) PathParam(key, value string) *Request {
+	if r.pathParams == nil {
+		r.pathParams = make(map[string]string)
+	}
+	r.pathParams[key] = value
+	return r
 }
 
 func (r *Request) appendError(err error) {
@@ -69,7 +85,19 @@ func (r *Request) URL(url string) *Request {
 }
 
 func (r *Request) Send(method, url string) (*Response, error) {
+	if r.error != nil {
+		return nil, r.error
+	}
+
 	r.httpRequest.Method = method
+
+	// handle path params
+	if len(r.pathParams) > 0 {
+		for k, v := range r.pathParams {
+			url = strings.Replace(url, "{"+k+"}", urlpkg.PathEscape(v), -1)
+		}
+	}
+
 	u, err := urlpkg.Parse(url)
 	if err != nil {
 		return nil, err
