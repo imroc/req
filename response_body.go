@@ -105,6 +105,9 @@ func (r *Response) String() (string, error) {
 }
 
 func (r *Response) Bytes() ([]byte, error) {
+	if r.body != nil {
+		return r.body, nil
+	}
 	defer r.Body.Close()
 	return ioutil.ReadAll(r.Body)
 }

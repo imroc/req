@@ -36,4 +36,5 @@ func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) 
 type Response struct {
 	*http.Response
 	request *Request
+	body    []byte
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/imroc/req/v2/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	urlpkg "net/url"
@@ -355,19 +356,20 @@ func (c *Client) Clone() *Client {
 	cc := *c.httpClient
 	cc.Transport = t
 	return &Client{
-		httpClient:      &cc,
-		t:               t,
-		t2:              t2,
-		dumpOptions:     c.dumpOptions.Clone(),
-		jsonDecoder:     c.jsonDecoder,
-		Headers:         cloneHeaders(c.Headers),
-		PathParams:      cloneMap(c.PathParams),
-		QueryParams:     cloneUrlValues(c.QueryParams),
-		HostURL:         c.HostURL,
-		scheme:          c.scheme,
-		log:             c.log,
-		beforeRequest:   c.beforeRequest,
-		udBeforeRequest: c.udBeforeRequest,
+		httpClient:              &cc,
+		t:                       t,
+		t2:                      t2,
+		dumpOptions:             c.dumpOptions.Clone(),
+		jsonDecoder:             c.jsonDecoder,
+		Headers:                 cloneHeaders(c.Headers),
+		PathParams:              cloneMap(c.PathParams),
+		QueryParams:             cloneUrlValues(c.QueryParams),
+		HostURL:                 c.HostURL,
+		scheme:                  c.scheme,
+		log:                     c.log,
+		beforeRequest:           c.beforeRequest,
+		udBeforeRequest:         c.udBeforeRequest,
+		disableAutoReadResponse: c.disableAutoReadResponse,
 	}
 }
 
@@ -419,13 +421,19 @@ func (c *Client) Do(r *Request) (resp *Response, err error) {
 
 	logf(c.log, "%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
 	httpResponse, err := c.httpClient.Do(r.RawRequest)
-	if err != nil {
-		return
-	}
 	resp = &Response{
 		request:  r,
 		Response: httpResponse,
 	}
+
+	if err != nil || c.disableAutoReadResponse {
+		return
+	}
+	body, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
+		return
+	}
+	resp.body = body
 	return
 }
 
