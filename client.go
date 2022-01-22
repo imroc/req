@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"net/url"
 	"os"
 	"time"
 )
@@ -269,6 +270,27 @@ func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 	if c.t.dump != nil {
 		c.t.dump.DumpOptions = opt
 	}
+	return c
+}
+
+// Proxy set the proxy function.
+func (c *Client) Proxy(proxy func(*http.Request) (*url.URL, error)) *Client {
+	c.t.Proxy = proxy
+	return c
+}
+
+func (c *Client) ProxyFromEnv() *Client {
+	c.t.Proxy = http.ProxyFromEnvironment
+	return c
+}
+
+func (c *Client) ProxyURL(proxyUrl string) *Client {
+	u, err := url.Parse(proxyUrl)
+	if err != nil {
+		logf(c.log, "failed to parse proxy url %s: %v", proxyUrl, err)
+		return c
+	}
+	c.t.Proxy = http.ProxyURL(u)
 	return c
 }
 
