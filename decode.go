@@ -1,20 +1,9 @@
 package req
 
 import (
-	htmlcharset "golang.org/x/net/html/charset"
-	"golang.org/x/text/encoding/charmap"
+	"github.com/imroc/req/v2/internal/charsetutil"
 	"io"
-	"strings"
 )
-
-func responseBodyIsText(contentType string) bool {
-	for _, keyword := range []string{"text", "json", "xml", "html", "java"} {
-		if strings.Contains(contentType, keyword) {
-			return true
-		}
-	}
-	return false
-}
 
 type decodeReaderCloser struct {
 	io.ReadCloser
@@ -38,11 +27,7 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc, _, _ := htmlcharset.DetermineEncoding(p[:n], "")
-	// TODO: log chartset name
-	if enc == charmap.Windows1252 {
-		return
-	}
+	enc := charsetutil.FindEncoding(p)
 	if enc == nil {
 		return
 	}

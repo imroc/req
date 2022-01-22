@@ -250,7 +250,7 @@ func (r *Request) execute() (resp *Response, err error) {
 		request:  r,
 		Response: httpResponse,
 	}
-	if r.client.t.AutoDiscard {
+	if r.client.t.ResponseOptions != nil && r.client.t.ResponseOptions.AutoDiscard {
 		err = resp.Discard()
 	}
 	return
