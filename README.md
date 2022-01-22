@@ -44,10 +44,10 @@ You can also use the default client when test:
 
 ```go
 // customize default client settings
-req.DefaultClient().UserAgent("custom-client")
+req.DefaultClient().SetUserAgent("custom-client")
 
 // create and send request using default client
-resp, err := req.New().Header("test", "req").Get(url)
+resp, err := req.New().SetHeader("test", "req").Get(url)
 ```
 
 You can also simply do it with one line of code like this:
