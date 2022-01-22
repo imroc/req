@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
-	"net/url"
+	urlpkg "net/url"
 	"os"
 	"strings"
 	"time"
@@ -29,26 +29,40 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	HostURL         string
-	PathParams      map[string]string
-	QueryParams     url.Values
-	scheme          string
-	log             Logger
-	t               *Transport
-	t2              *http2Transport
-	dumpOptions     *DumpOptions
-	httpClient      *http.Client
-	jsonDecoder     *json.Decoder
-	Headers         map[string]string
-	beforeRequest   []RequestMiddleware
-	udBeforeRequest []RequestMiddleware
+	HostURL                 string
+	PathParams              map[string]string
+	QueryParams             urlpkg.Values
+	Headers                 http.Header
+	disableAutoReadResponse bool
+	scheme                  string
+	log                     Logger
+	t                       *Transport
+	t2                      *http2Transport
+	dumpOptions             *DumpOptions
+	httpClient              *http.Client
+	jsonDecoder             *json.Decoder
+	beforeRequest           []RequestMiddleware
+	udBeforeRequest         []RequestMiddleware
 }
 
-func cloneUrlValues(v url.Values) url.Values {
+func cloneHeaders(hdrs http.Header) http.Header {
+	if hdrs == nil {
+		return nil
+	}
+	h := make(http.Header)
+	for k, vs := range hdrs {
+		for _, v := range vs {
+			h.Add(k, v)
+		}
+	}
+	return h
+}
+
+func cloneUrlValues(v urlpkg.Values) urlpkg.Values {
 	if v == nil {
 		return nil
 	}
-	vv := make(url.Values)
+	vv := make(urlpkg.Values)
 	for key, values := range v {
 		for _, value := range values {
 			vv.Add(key, value)
@@ -80,17 +94,6 @@ func (c *Client) R() *Request {
 		client:     c,
 		RawRequest: req,
 	}
-}
-
-func (c *Client) AutoDiscardResponseBody() *Client {
-	c.GetResponseOptions().AutoDiscard = true
-	return c
-}
-
-// TestMode is like DebugMode, but discard response body, so you can
-// dump responses without read response body
-func (c *Client) TestMode() *Client {
-	return c.DebugMode().AutoDiscardResponseBody()
 }
 
 const (
@@ -250,6 +253,11 @@ func (c *Client) NewRequest() *Request {
 	return c.R()
 }
 
+func (c *Client) DisableAutoReadResponse(disable bool) *Client {
+	c.disableAutoReadResponse = disable
+	return c
+}
+
 // EnableAutoDecodeAllType indicates that try autodetect and decode all content type.
 func (c *Client) EnableAutoDecodeAllType() *Client {
 	c.GetResponseOptions().AutoDecodeContentType = func(contentType string) bool {
@@ -269,12 +277,19 @@ func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c.SetHeader("User-Agent", userAgent)
 }
 
+func (c *Client) SetHeaders(hdrs map[string]string) *Client {
+	for k, v := range hdrs {
+		c.SetHeader(k, v)
+	}
+	return c
+}
+
 // SetHeader set the common header for all requests.
 func (c *Client) SetHeader(key, value string) *Client {
 	if c.Headers == nil {
-		c.Headers = make(map[string]string)
+		c.Headers = make(http.Header)
 	}
-	c.Headers[key] = value
+	c.Headers.Set(key, value)
 	return c
 }
 
@@ -303,7 +318,7 @@ func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 }
 
 // SetProxy set the proxy function.
-func (c *Client) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Client {
+func (c *Client) SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
 	c.t.Proxy = proxy
 	return c
 }
@@ -319,7 +334,7 @@ func (c *Client) OnBeforeRequest(m RequestMiddleware) *Client {
 }
 
 func (c *Client) SetProxyURL(proxyUrl string) *Client {
-	u, err := url.Parse(proxyUrl)
+	u, err := urlpkg.Parse(proxyUrl)
 	if err != nil {
 		logf(c.log, "failed to parse proxy url %s: %v", proxyUrl, err)
 		return c
@@ -345,7 +360,7 @@ func (c *Client) Clone() *Client {
 		t2:              t2,
 		dumpOptions:     c.dumpOptions.Clone(),
 		jsonDecoder:     c.jsonDecoder,
-		Headers:         cloneMap(c.Headers),
+		Headers:         cloneHeaders(c.Headers),
 		PathParams:      cloneMap(c.PathParams),
 		QueryParams:     cloneUrlValues(c.QueryParams),
 		HostURL:         c.HostURL,
@@ -375,6 +390,7 @@ func C() *Client {
 	}
 	beforeRequest := []RequestMiddleware{
 		parseRequestURL,
+		parseRequestHeader,
 	}
 	c := &Client{
 		beforeRequest: beforeRequest,
@@ -384,4 +400,50 @@ func C() *Client {
 		t2:            t2,
 	}
 	return c
+}
+
+func (c *Client) Do(r *Request) (resp *Response, err error) {
+	for _, f := range r.client.udBeforeRequest {
+		if err := f(r.client, r); err != nil {
+			return nil, err
+		}
+	}
+
+	for _, f := range r.client.beforeRequest {
+		if err := f(r.client, r); err != nil {
+			return nil, err
+		}
+	}
+	setRequestURL(r.RawRequest, r.URL)
+	setRequestHeader(r)
+
+	logf(c.log, "%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
+	httpResponse, err := c.httpClient.Do(r.RawRequest)
+	if err != nil {
+		return
+	}
+	resp = &Response{
+		request:  r,
+		Response: httpResponse,
+	}
+	return
+}
+
+func setRequestHeader(r *Request) {
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+	r.RawRequest.Header = r.Headers
+}
+
+func setRequestURL(r *http.Request, url string) error {
+	// The host's colon:port should be normalized. See Issue 14836.
+	u, err := urlpkg.Parse(url)
+	if err != nil {
+		return err
+	}
+	u.Host = removeEmptyPort(u.Host)
+	r.URL = u
+	r.Host = u.Host
+	return nil
 }

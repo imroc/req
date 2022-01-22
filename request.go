@@ -3,7 +3,6 @@ package req
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"io"
 	"io/ioutil"
@@ -18,6 +17,7 @@ type Request struct {
 	URL            string
 	PathParams     map[string]string
 	QueryParams    urlpkg.Values
+	Headers        http.Header
 	error          error
 	client         *Client
 	RawRequest     *http.Request
@@ -28,6 +28,22 @@ type Request struct {
 // New create a new request using the global default client.
 func New() *Request {
 	return defaultClient.R()
+}
+
+func (r *Request) SetHeaders(hdrs map[string]string) *Request {
+	for k, v := range hdrs {
+		r.SetHeader(k, v)
+	}
+	return r
+}
+
+// SetHeader set the common header for all requests.
+func (r *Request) SetHeader(key, value string) *Request {
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+	r.Headers.Set(key, value)
+	return r
 }
 
 func (r *Request) SetOutputFile(file string) *Request {
@@ -89,44 +105,9 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	if r.error != nil {
 		return nil, r.error
 	}
-
-	if method == "" {
-		// We document that "" means "GET" for Request.Method, and people have
-		// relied on that from NewRequest, so keep that working.
-		// We still enforce validMethod for non-empty methods.
-		method = "GET"
-	}
-	if !validMethod(method) {
-		err := fmt.Errorf("req: invalid method %q", method)
-		if err != nil {
-			return nil, err
-		}
-	}
 	r.RawRequest.Method = method
-
 	r.URL = url
-
-	for _, f := range r.client.udBeforeRequest {
-		if err := f(r.client, r); err != nil {
-			return nil, err
-		}
-	}
-
-	for _, f := range r.client.beforeRequest {
-		if err := f(r.client, r); err != nil {
-			return nil, err
-		}
-	}
-
-	// The host's colon:port should be normalized. See Issue 14836.
-	u, err := urlpkg.Parse(r.URL)
-	if err != nil {
-		return nil, err
-	}
-	u.Host = removeEmptyPort(u.Host)
-	r.RawRequest.URL = u
-	r.RawRequest.Host = u.Host
-	return r.execute()
+	return r.client.Do(r)
 }
 
 // MustGet like Get, panic if error happens.
@@ -287,28 +268,4 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 func (r *Request) SetContentType(contentType string) *Request {
 	r.RawRequest.Header.Set("Content-Type", contentType)
 	return r
-}
-
-func (r *Request) execute() (resp *Response, err error) {
-	if r.error != nil {
-		return nil, r.error
-	}
-	for k, v := range r.client.Headers {
-		if r.RawRequest.Header.Get(k) == "" {
-			r.RawRequest.Header.Set(k, v)
-		}
-	}
-	logf(r.client.log, "%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
-	httpResponse, err := r.client.httpClient.Do(r.RawRequest)
-	if err != nil {
-		return
-	}
-	resp = &Response{
-		request:  r,
-		Response: httpResponse,
-	}
-	if r.client.t.ResponseOptions != nil && r.client.t.ResponseOptions.AutoDiscard {
-		err = resp.Discard()
-	}
-	return
 }

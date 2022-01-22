@@ -2,6 +2,7 @@ package req
 
 import (
 	"github.com/imroc/req/v2/internal/util"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -10,6 +11,24 @@ type (
 	// RequestMiddleware type is for request middleware, called before a request is sent
 	RequestMiddleware func(*Client, *Request) error
 )
+
+func parseRequestHeader(c *Client, r *Request) error {
+	if c.Headers == nil {
+		return nil
+	}
+	hdr := make(http.Header)
+	for k := range c.Headers {
+		hdr[k] = append(hdr[k], c.Headers[k]...)
+	}
+
+	for k := range r.Headers {
+		hdr.Del(k)
+		hdr[k] = append(hdr[k], r.Headers[k]...)
+	}
+
+	r.Headers = hdr
+	return nil
+}
 
 func parseRequestURL(c *Client, r *Request) error {
 	if len(r.PathParams) > 0 {
@@ -82,4 +101,3 @@ func parseRequestURL(c *Client, r *Request) error {
 
 	return nil
 }
-
