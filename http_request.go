@@ -149,7 +149,7 @@ func requestWrite(r *http.Request, w io.Writer, usingProxy bool, extraHeaders ht
 	}
 
 	rw := w // raw writer
-	if dump != nil && dump.RequestHead {
+	if dump != nil && dump.RequestHeader {
 		w = dump.WrapWriter(w)
 	}
 

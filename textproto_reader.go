@@ -52,7 +52,7 @@ type textprotoReader struct {
 func newTextprotoReader(r *bufio.Reader, dump *dumper) *textprotoReader {
 	commonHeaderOnce.Do(initCommonHeader)
 	t := &textprotoReader{R: r}
-	if dump != nil && dump.ResponseHead {
+	if dump != nil && dump.ResponseHeader {
 		t.readLine = func() (line []byte, isPrefix bool, err error) {
 			line, err = t.R.ReadSlice('\n')
 			if len(line) == 0 {
