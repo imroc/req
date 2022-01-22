@@ -60,7 +60,7 @@ Want to debug requests? Just enable dump:
 
 ```go
 // create client and enable dump
-client := req.C().UserAgent("custom-client").EnableDump()
+client := req.C().UserAgent("custom-client").DumpAll()
 // send request and read response body
 client.R().Get("https://api.github.com/users/imroc").MustString()
 ```
@@ -113,13 +113,10 @@ Simple example:
 
 ```go
 // dump head content asynchronously and save it to file
-client := req.C().EnableDump().DumpHead().DumpAsync().DumpToFile("reqdump.log")
+client := req.C().DumpOnlyHead().DumpAsync().DumpToFile("reqdump.log")
 resp, err := client.R().Body(body).Post(url)
 ...
 ```
-
-All dump options:
-* `DumpAsync()` indicates that the dump should be done asynchronously,
 
 ## License
 

@@ -1865,7 +1865,7 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 	}
 	if fh.Type == http2FrameHeaders && fr.ReadMetaHeaders != nil {
 		hr, err := fr.readMetaFrame(f.(*http2HeadersFrame))
-		if fr.dump != nil && err == nil && fr.dump.ResponseHead {
+		if err == nil && fr.dump != nil && fr.dump.ResponseHead {
 			fr.dump.dump([]byte("\r\n"))
 		}
 		return hr, err
