@@ -20,7 +20,7 @@ type Request struct {
 	QueryParams    urlpkg.Values
 	error          error
 	client         *Client
-	httpRequest    *http.Request
+	RawRequest     *http.Request
 	isSaveResponse bool
 	output         io.WriteCloser
 }
@@ -102,7 +102,7 @@ func (r *Request) Send(method, url string) (*Response, error) {
 			return nil, err
 		}
 	}
-	r.httpRequest.Method = method
+	r.RawRequest.Method = method
 
 	r.URL = url
 
@@ -124,8 +124,8 @@ func (r *Request) Send(method, url string) (*Response, error) {
 		return nil, err
 	}
 	u.Host = removeEmptyPort(u.Host)
-	r.httpRequest.URL = u
-	r.httpRequest.Host = u.Host
+	r.RawRequest.URL = u
+	r.RawRequest.Host = u.Host
 	return r.execute()
 }
 
@@ -234,9 +234,9 @@ func (r *Request) SetBody(body interface{}) *Request {
 	}
 	switch b := body.(type) {
 	case io.ReadCloser:
-		r.httpRequest.Body = b
+		r.RawRequest.Body = b
 	case io.Reader:
-		r.httpRequest.Body = ioutil.NopCloser(b)
+		r.RawRequest.Body = ioutil.NopCloser(b)
 	case []byte:
 		r.SetBodyBytes(b)
 	case string:
@@ -247,20 +247,20 @@ func (r *Request) SetBody(body interface{}) *Request {
 
 // SetBodyBytes set the request body as []byte.
 func (r *Request) SetBodyBytes(body []byte) *Request {
-	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
+	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return r
 }
 
 // SetBodyString set the request body as string.
 func (r *Request) SetBodyString(body string) *Request {
-	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
+	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	return r
 }
 
 // SetBodyJsonString set the request body as string and set Content-Type header
 // as "application/json; charset=UTF-8"
 func (r *Request) SetBodyJsonString(body string) *Request {
-	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
+	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	r.SetContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
@@ -268,7 +268,7 @@ func (r *Request) SetBodyJsonString(body string) *Request {
 // SetBodyJsonBytes set the request body as []byte and set Content-Type header
 // as "application/json; charset=UTF-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
-	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
+	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	r.SetContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
@@ -285,7 +285,7 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 }
 
 func (r *Request) SetContentType(contentType string) *Request {
-	r.httpRequest.Header.Set("Content-Type", contentType)
+	r.RawRequest.Header.Set("Content-Type", contentType)
 	return r
 }
 
@@ -294,12 +294,12 @@ func (r *Request) execute() (resp *Response, err error) {
 		return nil, r.error
 	}
 	for k, v := range r.client.Headers {
-		if r.httpRequest.Header.Get(k) == "" {
-			r.httpRequest.Header.Set(k, v)
+		if r.RawRequest.Header.Get(k) == "" {
+			r.RawRequest.Header.Set(k, v)
 		}
 	}
-	logf(r.client.log, "%s %s", r.httpRequest.Method, r.httpRequest.URL.String())
-	httpResponse, err := r.client.httpClient.Do(r.httpRequest)
+	logf(r.client.log, "%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
+	httpResponse, err := r.client.httpClient.Do(r.RawRequest)
 	if err != nil {
 		return
 	}

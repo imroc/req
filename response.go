@@ -1,8 +1,6 @@
 package req
 
 import (
-	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -42,9 +40,4 @@ func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) 
 type Response struct {
 	*http.Response
 	request *Request
-}
-
-func (r *Response) Discard() error {
-	_, err := io.Copy(ioutil.Discard, r.Response.Body)
-	return err
 }
