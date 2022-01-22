@@ -2,7 +2,6 @@ package req
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/go-multierror"
@@ -15,7 +14,9 @@ import (
 
 // Request is the http request
 type Request struct {
+	URL         string
 	pathParams  map[string]string
+	query       urlpkg.Values
 	error       error
 	client      *Client
 	httpRequest *http.Request
@@ -26,14 +27,14 @@ func New() *Request {
 	return defaultClient.R()
 }
 
-func (r *Request) PathParams(params map[string]string) *Request {
+func (r *Request) SetPathParams(params map[string]string) *Request {
 	for key, value := range params {
-		r.PathParam(key, value)
+		r.SetPathParam(key, value)
 	}
 	return r
 }
 
-func (r *Request) PathParam(key, value string) *Request {
+func (r *Request) SetPathParam(key, value string) *Request {
 	if r.pathParams == nil {
 		r.pathParams = make(map[string]string)
 	}
@@ -51,8 +52,11 @@ func (r *Request) Error() error {
 	return r.error
 }
 
-// Method set the http request method.
-func (r *Request) Method(method string) *Request {
+func (r *Request) Send(method, url string) (*Response, error) {
+	if r.error != nil {
+		return nil, r.error
+	}
+
 	if method == "" {
 		// We document that "" means "GET" for Request.Method, and people have
 		// relied on that from NewRequest, so keep that working.
@@ -62,33 +66,9 @@ func (r *Request) Method(method string) *Request {
 	if !validMethod(method) {
 		err := fmt.Errorf("net/http: invalid method %q", method)
 		if err != nil {
-			r.appendError(err)
+			return nil, err
 		}
 	}
-	r.httpRequest.Method = method
-	r.httpRequest = r.httpRequest.WithContext(context.Background())
-	return r
-}
-
-// URL set the http request url.
-func (r *Request) URL(url string) *Request {
-	u, err := urlpkg.Parse(url)
-	if err != nil {
-		r.appendError(err)
-		return r
-	}
-	// The host's colon:port should be normalized. See Issue 14836.
-	u.Host = removeEmptyPort(u.Host)
-	r.httpRequest.URL = u
-	r.httpRequest.Host = u.Host
-	return r
-}
-
-func (r *Request) Send(method, url string) (*Response, error) {
-	if r.error != nil {
-		return nil, r.error
-	}
-
 	r.httpRequest.Method = method
 
 	// handle path params
@@ -102,6 +82,16 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// handle query params
+	if len(r.query) > 0 {
+		if len(strings.TrimSpace(u.RawQuery)) == 0 { // empty query
+			u.RawQuery = r.query.Encode()
+		} else { // query not empty
+			u.RawQuery = u.RawQuery + "&" + r.query.Encode()
+		}
+	}
+
 	// The host's colon:port should be normalized. See Issue 14836.
 	u.Host = removeEmptyPort(u.Host)
 	r.httpRequest.URL = u
@@ -207,8 +197,8 @@ func (r *Request) Head(url string) (*Response, error) {
 	return r.Send(http.MethodHead, url)
 }
 
-// Body set the request body.
-func (r *Request) Body(body interface{}) *Request {
+// SetBody set the request body.
+func (r *Request) SetBody(body interface{}) *Request {
 	if body == nil {
 		return r
 	}
@@ -218,53 +208,53 @@ func (r *Request) Body(body interface{}) *Request {
 	case io.Reader:
 		r.httpRequest.Body = ioutil.NopCloser(b)
 	case []byte:
-		r.BodyBytes(b)
+		r.SetBodyBytes(b)
 	case string:
-		r.BodyString(b)
+		r.SetBodyString(b)
 	}
 	return r
 }
 
-// BodyBytes set the request body as []byte.
-func (r *Request) BodyBytes(body []byte) *Request {
+// SetBodyBytes set the request body as []byte.
+func (r *Request) SetBodyBytes(body []byte) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	return r
 }
 
-// BodyString set the request body as string.
-func (r *Request) BodyString(body string) *Request {
+// SetBodyString set the request body as string.
+func (r *Request) SetBodyString(body string) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
 	return r
 }
 
-// BodyJsonString set the request body as string and set Content-Type header
+// SetBodyJsonString set the request body as string and set Content-Type header
 // as "application/json; charset=UTF-8"
-func (r *Request) BodyJsonString(body string) *Request {
+func (r *Request) SetBodyJsonString(body string) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(strings.NewReader(body))
-	r.setContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
+	r.SetContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
 
-// BodyJsonBytes set the request body as []byte and set Content-Type header
+// SetBodyJsonBytes set the request body as []byte and set Content-Type header
 // as "application/json; charset=UTF-8"
-func (r *Request) BodyJsonBytes(body []byte) *Request {
+func (r *Request) SetBodyJsonBytes(body []byte) *Request {
 	r.httpRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
-	r.setContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
+	r.SetContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
 	return r
 }
 
-// BodyJsonMarshal set the request body that marshaled from object, and
+// SetBodyJsonMarshal set the request body that marshaled from object, and
 // set Content-Type header as "application/json; charset=UTF-8"
-func (r *Request) BodyJsonMarshal(v interface{}) *Request {
+func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 	b, err := json.Marshal(v)
 	if err != nil {
 		r.appendError(err)
 		return r
 	}
-	return r.BodyBytes(b)
+	return r.SetBodyBytes(b)
 }
 
-func (r *Request) setContentType(contentType string) *Request {
+func (r *Request) SetContentType(contentType string) *Request {
 	r.httpRequest.Header.Set("Content-Type", contentType)
 	return r
 }
