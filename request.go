@@ -90,8 +90,6 @@ func (r *Request) Send(method, url string) (*Response, error) {
 		return nil, r.error
 	}
 
-	r.URL = url
-
 	if method == "" {
 		// We document that "" means "GET" for Request.Method, and people have
 		// relied on that from NewRequest, so keep that working.
@@ -99,12 +97,20 @@ func (r *Request) Send(method, url string) (*Response, error) {
 		method = "GET"
 	}
 	if !validMethod(method) {
-		err := fmt.Errorf("net/http: invalid method %q", method)
+		err := fmt.Errorf("req: invalid method %q", method)
 		if err != nil {
 			return nil, err
 		}
 	}
 	r.httpRequest.Method = method
+
+	r.URL = url
+
+	for _, f := range r.client.udBeforeRequest {
+		if err := f(r.client, r); err != nil {
+			return nil, err
+		}
+	}
 
 	for _, f := range r.client.beforeRequest {
 		if err := f(r.client, r); err != nil {
