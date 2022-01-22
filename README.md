@@ -30,14 +30,14 @@ import "github.com/imroc/req/v2"
 Prepare a client:
 
 ```go
-client := req.C().UserAgent("custom-client") // client settings is chainable
+client := req.C().SetUserAgent("custom-client") // client settings is chainable
 ```
 
 Use client to create and send request:
 
 ```go
 // use R() to create a new request, and request settings is also chainable
-resp, err: client.R().Header("test", "req").Body("test").Get("https://test.example.com")
+resp, err: client.R().SetHeader("test", "req").SetBody("test").Get("https://test.example.com")
 ```
 
 You can also use the default client when test:
@@ -53,16 +53,16 @@ resp, err := req.New().Header("test", "req").Get(url)
 You can also simply do it with one line of code like this:
 
 ```go
-resp, err := req.DefaultClient().UserAgent("custom-client").R().Header("test", "req").Get(url)
+resp, err := req.DefaultClient().UserAgent("custom-client").R().SetHeader("test", "req").Get(url)
 ```
 
 Want to debug requests? Just enable dump:
 
 ```go
 // create client and enable dump
-client := req.C().UserAgent("custom-client").DumpAll()
+client := req.C().UserAgent("custom-client").EnableDumpAll()
 // send request and read response body
-client.R().Get("https://api.github.com/users/imroc").MustString()
+client.R().Get("https://api.github.com/users/imroc")
 ```
 
 Now you can see the request and response content that has been dumped:
@@ -113,8 +113,8 @@ Simple example:
 
 ```go
 // dump head content asynchronously and save it to file
-client := req.C().DumpOnlyHead().DumpAsync().DumpToFile("reqdump.log")
-resp, err := client.R().Body(body).Post(url)
+client := req.C().DumpOnlyHeader().DumpAsync().DumpToFile("reqdump.log")
+resp, err := client.R().SetBody(body).Post(url)
 ...
 ```
 
