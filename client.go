@@ -61,7 +61,8 @@ func (c *Client) R() *Request {
 }
 
 func (c *Client) AutoDiscardResponseBody() *Client {
-	return c.ResponseOptions(DiscardResponseBody())
+	c.getResponseOptions().AutoDiscard = true
+	return c
 }
 
 // TestMode is like DebugMode, but discard response body, so you can
@@ -79,7 +80,7 @@ const (
 // agent to pretend to be a web browser, Avoid returning abnormal
 // data from some sites.
 func (c *Client) DebugMode() *Client {
-	return c.AutoDecodeTextContent().
+	return c.AutoDecodeTextType().
 		Dump(true).
 		Logger(NewLogger(os.Stdout)).
 		UserAgent(userAgentChrome)
@@ -94,10 +95,18 @@ func (c *Client) Logger(log Logger) *Client {
 	return c
 }
 
-func (c *Client) ResponseOptions(opts ...ResponseOption) *Client {
-	for _, opt := range opts {
-		opt(&c.t.ResponseOptions)
+func (c *Client) getResponseOptions() *ResponseOptions {
+	if c.t.ResponseOptions == nil {
+		c.t.ResponseOptions = &ResponseOptions{}
 	}
+	return c.t.ResponseOptions
+}
+
+func (c *Client) ResponseOptions(opt *ResponseOptions) *Client {
+	if opt == nil {
+		return c
+	}
+	c.t.ResponseOptions = opt
 	return c
 }
 
@@ -209,8 +218,18 @@ func (c *Client) NewRequest() *Request {
 	return c.R()
 }
 
-func (c *Client) AutoDecodeTextContent() *Client {
-	return c.ResponseOptions(AutoDecodeTextContent())
+// AutoDecodeAllType indicates that try autodetect and decode all content type.
+func (c *Client) AutoDecodeAllType() *Client {
+	c.getResponseOptions().AutoDecodeContentType = func(contentType string) bool {
+		return true
+	}
+	return c
+}
+
+// AutoDecodeTextType indicates that only try autodetect and decode the text content type.
+func (c *Client) AutoDecodeTextType() *Client {
+	c.getResponseOptions().AutoDecodeContentType = autoDecodeText
+	return c
 }
 
 // UserAgent set the "User-Agent" header for all requests.

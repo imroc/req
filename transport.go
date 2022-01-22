@@ -269,7 +269,7 @@ type Transport struct {
 	// upgrades, set this to true.
 	ForceAttemptHTTP2 bool
 
-	ResponseOptions
+	*ResponseOptions
 	dump *dumper
 }
 
@@ -286,6 +286,9 @@ func (t *Transport) dumpResponseBody(res *http.Response) {
 }
 
 func (t *Transport) autoDecodeResponseBody(res *http.Response) {
+	if t.ResponseOptions == nil {
+		return
+	}
 	if t.ResponseOptions.DisableAutoDecode {
 		return
 	}

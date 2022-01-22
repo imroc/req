@@ -23,26 +23,7 @@ type ResponseOptions struct {
 	AutoDiscard bool
 }
 
-type ResponseOption func(o *ResponseOptions)
-
-func DiscardResponseBody() ResponseOption {
-	return func(o *ResponseOptions) {
-		o.AutoDiscard = true
-	}
-}
-
-// DisableAutoDecode disable the response body auto-decode to improve performance.
-func DisableAutoDecode() ResponseOption {
-	return func(o *ResponseOptions) {
-		o.DisableAutoDecode = true
-	}
-}
-
 var textContentTypes = []string{"text", "json", "xml", "html", "java"}
-
-func AutoDecodeTextContent() ResponseOption {
-	return AutoDecodeContentType(textContentTypes...)
-}
 
 var autoDecodeText = autoDecodeContentTypeFunc(textContentTypes...)
 
@@ -54,14 +35,6 @@ func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) 
 			}
 		}
 		return false
-	}
-}
-
-// AutoDecodeContentType specifies that the response body should been auto-decoded
-// when content type contains keywords that here given.
-func AutoDecodeContentType(contentTypes ...string) ResponseOption {
-	return func(o *ResponseOptions) {
-		o.AutoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
 	}
 }
 
