@@ -16,7 +16,7 @@ A golang http request library for humans.
 ## Install
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-alpha.2
+go get github.com/imroc/req/v2@v2.0.0-alpha.3
 ```
 
 ## Quick Start
