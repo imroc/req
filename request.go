@@ -9,22 +9,55 @@ import (
 	"io/ioutil"
 	"net/http"
 	urlpkg "net/url"
+	"os"
 	"strings"
 )
 
 // Request is the http request
 type Request struct {
-	URL         string
-	pathParams  map[string]string
-	query       urlpkg.Values
-	error       error
-	client      *Client
-	httpRequest *http.Request
+	URL            string
+	PathParams     map[string]string
+	QueryParams    urlpkg.Values
+	error          error
+	client         *Client
+	httpRequest    *http.Request
+	isSaveResponse bool
+	output         io.WriteCloser
 }
 
 // New create a new request using the global default client.
 func New() *Request {
 	return defaultClient.R()
+}
+
+func (r *Request) SetOutputFile(file string) *Request {
+	output, err := os.Create(file)
+	if err != nil {
+		r.appendError(err)
+		return r
+	}
+	return r.SetOutput(output)
+}
+
+func (r *Request) SetOutput(output io.WriteCloser) *Request {
+	r.output = output
+	r.isSaveResponse = true
+	return r
+}
+
+func (r *Request) SetQueryParams(params map[string]string) *Request {
+	for k, v := range params {
+		r.SetQueryParam(k, v)
+	}
+	return r
+}
+
+func (r *Request) SetQueryParam(key, value string) *Request {
+	if r.QueryParams == nil {
+		r.QueryParams = make(urlpkg.Values)
+	}
+	r.QueryParams.Set(key, value)
+	return r
 }
 
 func (r *Request) SetPathParams(params map[string]string) *Request {
@@ -35,10 +68,10 @@ func (r *Request) SetPathParams(params map[string]string) *Request {
 }
 
 func (r *Request) SetPathParam(key, value string) *Request {
-	if r.pathParams == nil {
-		r.pathParams = make(map[string]string)
+	if r.PathParams == nil {
+		r.PathParams = make(map[string]string)
 	}
-	r.pathParams[key] = value
+	r.PathParams[key] = value
 	return r
 }
 
@@ -57,6 +90,8 @@ func (r *Request) Send(method, url string) (*Response, error) {
 		return nil, r.error
 	}
 
+	r.URL = url
+
 	if method == "" {
 		// We document that "" means "GET" for Request.Method, and people have
 		// relied on that from NewRequest, so keep that working.
@@ -71,28 +106,17 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	}
 	r.httpRequest.Method = method
 
-	// handle path params
-	if len(r.pathParams) > 0 {
-		for k, v := range r.pathParams {
-			url = strings.Replace(url, "{"+k+"}", urlpkg.PathEscape(v), -1)
-		}
-	}
-
-	u, err := urlpkg.Parse(url)
-	if err != nil {
-		return nil, err
-	}
-
-	// handle query params
-	if len(r.query) > 0 {
-		if len(strings.TrimSpace(u.RawQuery)) == 0 { // empty query
-			u.RawQuery = r.query.Encode()
-		} else { // query not empty
-			u.RawQuery = u.RawQuery + "&" + r.query.Encode()
+	for _, f := range r.client.beforeRequest {
+		if err := f(r.client, r); err != nil {
+			return nil, err
 		}
 	}
 
 	// The host's colon:port should be normalized. See Issue 14836.
+	u, err := urlpkg.Parse(r.URL)
+	if err != nil {
+		return nil, err
+	}
 	u.Host = removeEmptyPort(u.Host)
 	r.httpRequest.URL = u
 	r.httpRequest.Host = u.Host

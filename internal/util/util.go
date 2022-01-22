@@ -28,3 +28,8 @@ func CutBytes(s, sep []byte) (before, after []byte, found bool) {
 	}
 	return s, nil, false
 }
+
+// IsStringEmpty method tells whether given string is empty or not
+func IsStringEmpty(str string) bool {
+	return len(strings.TrimSpace(str)) == 0
+}
