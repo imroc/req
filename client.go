@@ -77,8 +77,8 @@ func (c *Client) R() *Request {
 		ProtoMinor: 1,
 	}
 	return &Request{
-		client:      c,
-		httpRequest: req,
+		client:     c,
+		RawRequest: req,
 	}
 }
 
