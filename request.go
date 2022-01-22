@@ -68,8 +68,17 @@ func (r *Request) URL(url string) *Request {
 	return r
 }
 
-func (r *Request) send(method, url string) (*Response, error) {
-	return r.Method(method).URL(url).Send()
+func (r *Request) Send(method, url string) (*Response, error) {
+	r.httpRequest.Method = method
+	u, err := urlpkg.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	// The host's colon:port should be normalized. See Issue 14836.
+	u.Host = removeEmptyPort(u.Host)
+	r.httpRequest.URL = u
+	r.httpRequest.Host = u.Host
+	return r.execute()
 }
 
 // MustGet like Get, panic if error happens.
@@ -81,9 +90,9 @@ func (r *Request) MustGet(url string) *Response {
 	return resp
 }
 
-// Get send the request with GET method and specified url.
+// Get Send the request with GET method and specified url.
 func (r *Request) Get(url string) (*Response, error) {
-	return r.send(http.MethodGet, url)
+	return r.Send(http.MethodGet, url)
 }
 
 // MustPost like Post, panic if error happens.
@@ -95,9 +104,9 @@ func (r *Request) MustPost(url string) *Response {
 	return resp
 }
 
-// Post send the request with POST method and specified url.
+// Post Send the request with POST method and specified url.
 func (r *Request) Post(url string) (*Response, error) {
-	return r.send(http.MethodPost, url)
+	return r.Send(http.MethodPost, url)
 }
 
 // MustPut like Put, panic if error happens.
@@ -109,9 +118,9 @@ func (r *Request) MustPut(url string) *Response {
 	return resp
 }
 
-// Put send the request with Put method and specified url.
+// Put Send the request with Put method and specified url.
 func (r *Request) Put(url string) (*Response, error) {
-	return r.send(http.MethodPut, url)
+	return r.Send(http.MethodPut, url)
 }
 
 // MustPatch like Patch, panic if error happens.
@@ -123,9 +132,9 @@ func (r *Request) MustPatch(url string) *Response {
 	return resp
 }
 
-// Patch send the request with PATCH method and specified url.
+// Patch Send the request with PATCH method and specified url.
 func (r *Request) Patch(url string) (*Response, error) {
-	return r.send(http.MethodPatch, url)
+	return r.Send(http.MethodPatch, url)
 }
 
 // MustDelete like Delete, panic if error happens.
@@ -137,9 +146,9 @@ func (r *Request) MustDelete(url string) *Response {
 	return resp
 }
 
-// Delete send the request with DELETE method and specified url.
+// Delete Send the request with DELETE method and specified url.
 func (r *Request) Delete(url string) (*Response, error) {
-	return r.send(http.MethodDelete, url)
+	return r.Send(http.MethodDelete, url)
 }
 
 // MustOptions like Options, panic if error happens.
@@ -151,23 +160,23 @@ func (r *Request) MustOptions(url string) *Response {
 	return resp
 }
 
-// Options send the request with OPTIONS method and specified url.
+// Options Send the request with OPTIONS method and specified url.
 func (r *Request) Options(url string) (*Response, error) {
-	return r.send(http.MethodOptions, url)
+	return r.Send(http.MethodOptions, url)
 }
 
 // MustHead like Head, panic if error happens.
 func (r *Request) MustHead(url string) *Response {
-	resp, err := r.send(http.MethodHead, url)
+	resp, err := r.Send(http.MethodHead, url)
 	if err != nil {
 		panic(err)
 	}
 	return resp
 }
 
-// Head send the request with HEAD method and specified url.
+// Head Send the request with HEAD method and specified url.
 func (r *Request) Head(url string) (*Response, error) {
-	return r.send(http.MethodHead, url)
+	return r.Send(http.MethodHead, url)
 }
 
 // Body set the request body.
@@ -254,9 +263,4 @@ func (r *Request) execute() (resp *Response, err error) {
 		err = resp.Discard()
 	}
 	return
-}
-
-// Send sends the request.
-func (r *Request) Send() (resp *Response, err error) {
-	return r.execute()
 }
