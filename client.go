@@ -29,18 +29,19 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	HostURL       string
-	PathParams    map[string]string
-	QueryParams   url.Values
-	scheme        string
-	log           Logger
-	t             *Transport
-	t2            *http2Transport
-	dumpOptions   *DumpOptions
-	httpClient    *http.Client
-	jsonDecoder   *json.Decoder
-	commonHeader  map[string]string
-	beforeRequest []RequestMiddleware
+	HostURL         string
+	PathParams      map[string]string
+	QueryParams     url.Values
+	scheme          string
+	log             Logger
+	t               *Transport
+	t2              *http2Transport
+	dumpOptions     *DumpOptions
+	httpClient      *http.Client
+	jsonDecoder     *json.Decoder
+	commonHeader    map[string]string
+	beforeRequest   []RequestMiddleware
+	udBeforeRequest []RequestMiddleware
 }
 
 func copyCommonHeader(h map[string]string) map[string]string {
@@ -267,17 +268,12 @@ func (c *Client) SetCommonHeader(key, value string) *Client {
 // EnableDump enables dump requests and responses,  allowing you
 // to clearly see the content of all requests and responses，which
 // is very convenient for debugging APIs.
-func (c *Client) EnableDump() *Client {
-	if c.t.dump != nil { // dump already started
+func (c *Client) EnableDump(enable bool) *Client {
+	if !enable {
+		c.t.DisableDump()
 		return c
 	}
-	c.t.EnableDump(c.GetDumpOptions())
-	return c
-}
-
-// DisableDump stop the dump.
-func (c *Client) DisableDump() *Client {
-	c.t.DisableDump()
+	c.enableDump()
 	return c
 }
 
@@ -301,6 +297,11 @@ func (c *Client) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Client {
 
 func (c *Client) SetProxyFromEnv() *Client {
 	c.t.Proxy = http.ProxyFromEnvironment
+	return c
+}
+
+func (c *Client) OnBeforeRequest(m RequestMiddleware) *Client {
+	c.udBeforeRequest = append(c.udBeforeRequest, m)
 	return c
 }
 
