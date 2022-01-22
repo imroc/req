@@ -116,7 +116,7 @@ func (c *Client) Timeout(d time.Duration) *Client {
 	return c
 }
 
-func (c *Client) getDumpOptions() *DumpOptions {
+func (c *Client) GetDumpOptions() *DumpOptions {
 	if c.dumpOptions == nil {
 		c.dumpOptions = newDefaultDumpOptions()
 	}
@@ -127,7 +127,7 @@ func (c *Client) enableDump() {
 	if c.t.dump != nil { // dump already started
 		return
 	}
-	c.t.EnableDump(c.getDumpOptions())
+	c.t.EnableDump(c.GetDumpOptions())
 }
 
 // DumpToFile indicates that the content should dump to the specified filename.
@@ -137,13 +137,13 @@ func (c *Client) DumpToFile(filename string) *Client {
 		logf(c.log, "create dump file error: %v", err)
 		return c
 	}
-	c.getDumpOptions().Output = file
+	c.GetDumpOptions().Output = file
 	return c
 }
 
 // DumpTo indicates that the content should dump to the specified destination.
 func (c *Client) DumpTo(output io.Writer) *Client {
-	c.getDumpOptions().Output = output
+	c.GetDumpOptions().Output = output
 	c.enableDump()
 	return c
 }
@@ -152,7 +152,7 @@ func (c *Client) DumpTo(output io.Writer) *Client {
 // can be used for debugging in production environment without
 // affecting performance.
 func (c *Client) DumpAsync() *Client {
-	o := c.getDumpOptions()
+	o := c.GetDumpOptions()
 	o.Async = true
 	c.enableDump()
 	return c
@@ -160,7 +160,7 @@ func (c *Client) DumpAsync() *Client {
 
 // DumpOnlyResponse indicates that should dump the responses' head and response.
 func (c *Client) DumpOnlyResponse() *Client {
-	o := c.getDumpOptions()
+	o := c.GetDumpOptions()
 	o.ResponseHead = true
 	o.ResponseBody = true
 	o.RequestBody = false
@@ -171,7 +171,7 @@ func (c *Client) DumpOnlyResponse() *Client {
 
 // DumpOnlyRequest indicates that should dump the requests' head and response.
 func (c *Client) DumpOnlyRequest() *Client {
-	o := c.getDumpOptions()
+	o := c.GetDumpOptions()
 	o.RequestHead = true
 	o.RequestBody = true
 	o.ResponseBody = false
@@ -182,7 +182,7 @@ func (c *Client) DumpOnlyRequest() *Client {
 
 // DumpOnlyBody indicates that should dump the body of requests and responses.
 func (c *Client) DumpOnlyBody() *Client {
-	o := c.getDumpOptions()
+	o := c.GetDumpOptions()
 	o.RequestBody = true
 	o.ResponseBody = true
 	o.RequestHead = false
@@ -193,7 +193,7 @@ func (c *Client) DumpOnlyBody() *Client {
 
 // DumpOnlyHead indicates that should dump the head of requests and responses.
 func (c *Client) DumpOnlyHead() *Client {
-	o := c.getDumpOptions()
+	o := c.GetDumpOptions()
 	o.RequestHead = true
 	o.ResponseHead = true
 	o.RequestBody = false
@@ -204,7 +204,7 @@ func (c *Client) DumpOnlyHead() *Client {
 
 // DumpAll indicates that should dump both requests and responses' head and body.
 func (c *Client) DumpAll() *Client {
-	o := c.getDumpOptions()
+	o := c.GetDumpOptions()
 	o.RequestHead = true
 	o.RequestBody = true
 	o.ResponseHead = true
