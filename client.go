@@ -10,10 +10,12 @@ import (
 	"time"
 )
 
+// DefaultClient returns the global default Client.
 func DefaultClient() *Client {
 	return defaultClient
 }
 
+// SetDefaultClient override the global default Client.
 func SetDefaultClient(c *Client) {
 	if c != nil {
 		defaultClient = c
@@ -22,6 +24,7 @@ func SetDefaultClient(c *Client) {
 
 var defaultClient *Client = C()
 
+// Client is the req's http client.
 type Client struct {
 	log          Logger
 	t            *Transport
@@ -43,6 +46,7 @@ func copyCommonHeader(h map[string]string) map[string]string {
 	return m
 }
 
+// R create a new request.
 func (c *Client) R() *Request {
 	req := &http.Request{
 		Header:     make(http.Header),
