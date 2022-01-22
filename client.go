@@ -3,6 +3,7 @@ package req
 import (
 	"encoding/json"
 	"golang.org/x/net/publicsuffix"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
@@ -75,7 +76,7 @@ const (
 // data from some sites.
 func (c *Client) DebugMode() *Client {
 	return c.AutoDecodeTextContent().
-		EnableDump(DumpAll()).
+		Dump(true).
 		Logger(NewLogger(os.Stdout)).
 		UserAgent(userAgentChrome)
 }
@@ -100,14 +101,106 @@ func (c *Client) Timeout(d time.Duration) *Client {
 	return c
 }
 
+func (c *Client) getDumpOptions() *DumpOptions {
+	if c.dumpOptions == nil {
+		c.dumpOptions = newDefaultDumpOptions()
+	}
+	return c.dumpOptions
+}
+
+func (c *Client) enableDump() {
+	if c.t.dump != nil { // dump already started
+		return
+	}
+	c.t.EnableDump(c.getDumpOptions())
+}
+
+// DumpToFile indicates that the content should dump to the specified filename.
+func (c *Client) DumpToFile(filename string) *Client {
+	file, err := os.Create(filename)
+	if err != nil {
+		logf(c.log, "create dump file error: %v", err)
+		return c
+	}
+	c.getDumpOptions().Output = file
+	return c
+}
+
+// DumpTo indicates that the content should dump to the specified destination.
+func (c *Client) DumpTo(output io.Writer) *Client {
+	c.getDumpOptions().Output = output
+	c.enableDump()
+	return c
+}
+
+// DumpAsync indicates that the dump should be done asynchronously,
+// can be used for debugging in production environment without
+// affecting performance.
+func (c *Client) DumpAsync() *Client {
+	o := c.getDumpOptions()
+	o.Async = true
+	c.enableDump()
+	return c
+}
+
+// DumpOnlyResponse indicates that should dump the responses' head and response.
+func (c *Client) DumpOnlyResponse() *Client {
+	o := c.getDumpOptions()
+	o.ResponseHead = true
+	o.ResponseBody = true
+	o.RequestBody = false
+	o.RequestHead = false
+	c.enableDump()
+	return c
+}
+
+// DumpOnlyRequest indicates that should dump the requests' head and response.
+func (c *Client) DumpOnlyRequest() *Client {
+	o := c.getDumpOptions()
+	o.RequestHead = true
+	o.RequestBody = true
+	o.ResponseBody = false
+	o.ResponseHead = false
+	c.enableDump()
+	return c
+}
+
+// DumpOnlyBody indicates that should dump the body of requests and responses.
+func (c *Client) DumpOnlyBody() *Client {
+	o := c.getDumpOptions()
+	o.RequestBody = true
+	o.ResponseBody = true
+	o.RequestHead = false
+	o.ResponseHead = false
+	c.enableDump()
+	return c
+}
+
+// DumpOnlyHead indicates that should dump the head of requests and responses.
+func (c *Client) DumpOnlyHead() *Client {
+	o := c.getDumpOptions()
+	o.RequestHead = true
+	o.ResponseHead = true
+	o.RequestBody = false
+	o.ResponseBody = false
+	c.enableDump()
+	return c
+}
+
+// DumpAll indicates that should dump both requests and responses' head and body.
+func (c *Client) DumpAll() *Client {
+	o := c.getDumpOptions()
+	o.RequestHead = true
+	o.RequestBody = true
+	o.ResponseHead = true
+	o.ResponseBody = true
+	c.enableDump()
+	return c
+}
+
 // NewRequest is the alias of R()
 func (c *Client) NewRequest() *Request {
 	return c.R()
-}
-
-func (c *Client) DisableDump() *Client {
-	c.t.DisableDump()
-	return c
 }
 
 func (c *Client) AutoDecodeTextContent() *Client {
@@ -126,24 +219,49 @@ func (c *Client) CommonHeader(key, value string) *Client {
 	return c
 }
 
+// Dump if true, enables dump requests and responses,  allowing you
+// to clearly see the content of all requests and responses，which
+// is very convenient for debugging APIs.
+// Dump if false, disable the dump behaviour.
+func (c *Client) Dump(enable bool) *Client {
+	if !enable {
+		c.t.DisableDump()
+		return c
+	}
+	c.enableDump()
+	return c
+}
+
+// DumpOptions configures the underlying Transport's DumpOptions
+func (c *Client) DumpOptions(opt *DumpOptions) *Client {
+	if opt == nil {
+		return c
+	}
+	c.dumpOptions = opt
+	if c.t.dump != nil {
+		c.t.dump.DumpOptions = opt
+	}
+	return c
+}
+
 // EnableDump enables dump requests and responses,  allowing you
 // to clearly see the content of all requests and responses，which
 // is very convenient for debugging APIs.
 // EnableDump accepet options for custom the dump behavior, such
 // as DumpAsync, DumpHead, DumpBody, DumpRequest, DumpResponse,
 // DumpAll, DumpTo, DumpToFile
-func (c *Client) EnableDump(opts ...DumpOption) *Client {
-	if len(opts) > 0 {
-		if c.dumpOptions == nil {
-			c.dumpOptions = &DumpOptions{}
-		}
-		c.dumpOptions.set(opts...)
-	} else if c.dumpOptions == nil {
-		c.dumpOptions = defaultDumpOptions.Clone()
-	}
-	c.t.EnableDump(c.dumpOptions)
-	return c
-}
+//func (c *Client) EnableDump(opts ...DumpOption) *Client {
+//	if len(opts) > 0 {
+//		if c.dumpOptions == nil {
+//			c.dumpOptions = &DumpOptions{}
+//		}
+//		c.dumpOptions.set(opts...)
+//	} else if c.dumpOptions == nil {
+//		c.dumpOptions = defaultDumpOptions.Clone()
+//	}
+//	c.t.EnableDump(c.dumpOptions)
+//	return c
+//}
 
 // NewClient is the alias of C()
 func NewClient() *Client {
