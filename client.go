@@ -39,12 +39,25 @@ type Client struct {
 	dumpOptions     *DumpOptions
 	httpClient      *http.Client
 	jsonDecoder     *json.Decoder
-	commonHeader    map[string]string
+	Headers         map[string]string
 	beforeRequest   []RequestMiddleware
 	udBeforeRequest []RequestMiddleware
 }
 
-func copyCommonHeader(h map[string]string) map[string]string {
+func cloneUrlValues(v url.Values) url.Values {
+	if v == nil {
+		return nil
+	}
+	vv := make(url.Values)
+	for key, values := range v {
+		for _, value := range values {
+			vv.Add(key, value)
+		}
+	}
+	return vv
+}
+
+func cloneMap(h map[string]string) map[string]string {
 	if h == nil {
 		return nil
 	}
@@ -180,10 +193,10 @@ func (c *Client) EnableDumpAsync() *Client {
 // EnableDumpOnlyResponse indicates that should dump the responses' head and response.
 func (c *Client) EnableDumpOnlyResponse() *Client {
 	o := c.GetDumpOptions()
-	o.ResponseHead = true
+	o.ResponseHeader = true
 	o.ResponseBody = true
 	o.RequestBody = false
-	o.RequestHead = false
+	o.RequestHeader = false
 	c.enableDump()
 	return c
 }
@@ -191,10 +204,10 @@ func (c *Client) EnableDumpOnlyResponse() *Client {
 // EnableDumpOnlyRequest indicates that should dump the requests' head and response.
 func (c *Client) EnableDumpOnlyRequest() *Client {
 	o := c.GetDumpOptions()
-	o.RequestHead = true
+	o.RequestHeader = true
 	o.RequestBody = true
 	o.ResponseBody = false
-	o.ResponseHead = false
+	o.ResponseHeader = false
 	c.enableDump()
 	return c
 }
@@ -204,17 +217,17 @@ func (c *Client) EnableDumpOnlyBody() *Client {
 	o := c.GetDumpOptions()
 	o.RequestBody = true
 	o.ResponseBody = true
-	o.RequestHead = false
-	o.ResponseHead = false
+	o.RequestHeader = false
+	o.ResponseHeader = false
 	c.enableDump()
 	return c
 }
 
-// EnableDumpOnlyHead indicates that should dump the head of requests and responses.
-func (c *Client) EnableDumpOnlyHead() *Client {
+// EnableDumpOnlyHeader indicates that should dump the head of requests and responses.
+func (c *Client) EnableDumpOnlyHeader() *Client {
 	o := c.GetDumpOptions()
-	o.RequestHead = true
-	o.ResponseHead = true
+	o.RequestHeader = true
+	o.ResponseHeader = true
 	o.RequestBody = false
 	o.ResponseBody = false
 	c.enableDump()
@@ -224,9 +237,9 @@ func (c *Client) EnableDumpOnlyHead() *Client {
 // EnableDumpAll indicates that should dump both requests and responses' head and body.
 func (c *Client) EnableDumpAll() *Client {
 	o := c.GetDumpOptions()
-	o.RequestHead = true
+	o.RequestHeader = true
 	o.RequestBody = true
-	o.ResponseHead = true
+	o.ResponseHeader = true
 	o.ResponseBody = true
 	c.enableDump()
 	return c
@@ -253,15 +266,15 @@ func (c *Client) EnableAutoDecodeTextType() *Client {
 
 // SetUserAgent set the "User-Agent" header for all requests.
 func (c *Client) SetUserAgent(userAgent string) *Client {
-	return c.SetCommonHeader("User-Agent", userAgent)
+	return c.SetHeader("User-Agent", userAgent)
 }
 
-// SetCommonHeader set the common header for all requests.
-func (c *Client) SetCommonHeader(key, value string) *Client {
-	if c.commonHeader == nil {
-		c.commonHeader = make(map[string]string)
+// SetHeader set the common header for all requests.
+func (c *Client) SetHeader(key, value string) *Client {
+	if c.Headers == nil {
+		c.Headers = make(map[string]string)
 	}
-	c.commonHeader[key] = value
+	c.Headers[key] = value
 	return c
 }
 
@@ -327,12 +340,19 @@ func (c *Client) Clone() *Client {
 	cc := *c.httpClient
 	cc.Transport = t
 	return &Client{
-		httpClient:   &cc,
-		t:            t,
-		t2:           t2,
-		dumpOptions:  c.dumpOptions.Clone(),
-		jsonDecoder:  c.jsonDecoder,
-		commonHeader: copyCommonHeader(c.commonHeader),
+		httpClient:      &cc,
+		t:               t,
+		t2:              t2,
+		dumpOptions:     c.dumpOptions.Clone(),
+		jsonDecoder:     c.jsonDecoder,
+		Headers:         cloneMap(c.Headers),
+		PathParams:      cloneMap(c.PathParams),
+		QueryParams:     cloneUrlValues(c.QueryParams),
+		HostURL:         c.HostURL,
+		scheme:          c.scheme,
+		log:             c.log,
+		beforeRequest:   c.beforeRequest,
+		udBeforeRequest: c.udBeforeRequest,
 	}
 }
 

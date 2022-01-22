@@ -7,12 +7,12 @@ import (
 
 // DumpOptions controls the dump behavior.
 type DumpOptions struct {
-	Output       io.Writer
-	RequestHead  bool
-	RequestBody  bool
-	ResponseHead bool
-	ResponseBody bool
-	Async        bool
+	Output         io.Writer
+	RequestHeader  bool
+	RequestBody    bool
+	ResponseHeader bool
+	ResponseBody   bool
+	Async          bool
 }
 
 func (do *DumpOptions) Clone() *DumpOptions {
@@ -99,20 +99,20 @@ type dumper struct {
 
 func newDefaultDumpOptions() *DumpOptions {
 	return &DumpOptions{
-		Output:       os.Stdout,
-		RequestBody:  true,
-		ResponseBody: true,
-		ResponseHead: true,
-		RequestHead:  true,
+		Output:         os.Stdout,
+		RequestBody:    true,
+		ResponseBody:   true,
+		ResponseHeader: true,
+		RequestHeader:  true,
 	}
 }
 
 var defaultDumpOptions = &DumpOptions{
-	Output:       os.Stdout,
-	RequestBody:  true,
-	ResponseBody: true,
-	ResponseHead: true,
-	RequestHead:  true,
+	Output:         os.Stdout,
+	RequestBody:    true,
+	ResponseBody:   true,
+	ResponseHeader: true,
+	RequestHeader:  true,
 }
 
 func newDumper(opt *DumpOptions) *dumper {

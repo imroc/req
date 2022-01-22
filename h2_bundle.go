@@ -1865,7 +1865,7 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 	}
 	if fh.Type == http2FrameHeaders && fr.ReadMetaHeaders != nil {
 		hr, err := fr.readMetaFrame(f.(*http2HeadersFrame))
-		if err == nil && fr.dump != nil && fr.dump.ResponseHead {
+		if err == nil && fr.dump != nil && fr.dump.ResponseHeader {
 			fr.dump.dump([]byte("\r\n"))
 		}
 		return hr, err
@@ -2910,7 +2910,7 @@ func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame) (*http2MetaHeadersFr
 		mh.Fields = append(mh.Fields, hf)
 	}
 	emitFunc := rawEmitFunc
-	if fr.dump != nil && fr.dump.ResponseHead {
+	if fr.dump != nil && fr.dump.ResponseHeader {
 		emitFunc = func(hf hpack.HeaderField) {
 			fr.dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
 			rawEmitFunc(hf)
@@ -7184,7 +7184,7 @@ func (t *http2Transport) newClientConn(c net.Conn, singleUse bool) (*http2Client
 		pings:                 make(map[[8]byte]chan struct{}),
 		reqHeaderMu:           make(chan struct{}, 1),
 	}
-	if t.t1.dump != nil && t.t1.dump.RequestHead {
+	if t.t1.dump != nil && t.t1.dump.RequestHeader {
 		cc.writeHeader = func(name, value string) {
 			t.t1.dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
 			cc._writeHeader(name, value)
@@ -8403,7 +8403,7 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 		}
 	})
 
-	if cc.t.t1.dump != nil && cc.t.t1.dump.RequestHead {
+	if cc.t.t1.dump != nil && cc.t.t1.dump.RequestHeader {
 		cc.t.t1.dump.dump([]byte("\r\n"))
 	}
 

@@ -293,7 +293,7 @@ func (r *Request) execute() (resp *Response, err error) {
 	if r.error != nil {
 		return nil, r.error
 	}
-	for k, v := range r.client.commonHeader {
+	for k, v := range r.client.Headers {
 		if r.httpRequest.Header.Get(k) == "" {
 			r.httpRequest.Header.Set(k, v)
 		}
