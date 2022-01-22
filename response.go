@@ -15,10 +15,6 @@ type ResponseOptions struct {
 	// whether the response body should been auto decode to utf-8.
 	// Only valid when DisableAutoDecode is true.
 	AutoDecodeContentType func(contentType string) bool
-
-	// AutoDiscard, if true, read all response body and discard automatically,
-	// useful when test
-	AutoDiscard bool
 }
 
 var textContentTypes = []string{"text", "json", "xml", "html", "java"}
