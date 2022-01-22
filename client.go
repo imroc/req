@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+type (
+	// RequestMiddleware type is for request middleware, called before a request is sent
+	RequestMiddleware func(*Client, *Request) error
+)
+
 // DefaultClient returns the global default Client.
 func DefaultClient() *Client {
 	return defaultClient
@@ -81,10 +86,10 @@ const (
 // agent to pretend to be a web browser, Avoid returning abnormal
 // data from some sites.
 func (c *Client) DebugMode() *Client {
-	return c.AutoDecodeTextType().
-		Dump(true).
+	return c.EnableAutoDecodeTextType().
+		EnableDumpAll().
 		SetLogger(NewLogger(os.Stdout)).
-		UserAgent(userAgentChrome)
+		SetUserAgent(userAgentChrome)
 }
 
 // SetLogger set the logger for req.
@@ -132,8 +137,8 @@ func (c *Client) enableDump() {
 	c.t.EnableDump(c.GetDumpOptions())
 }
 
-// DumpToFile indicates that the content should dump to the specified filename.
-func (c *Client) DumpToFile(filename string) *Client {
+// EnableDumpToFile indicates that the content should dump to the specified filename.
+func (c *Client) EnableDumpToFile(filename string) *Client {
 	file, err := os.Create(filename)
 	if err != nil {
 		logf(c.log, "create dump file error: %v", err)
@@ -143,25 +148,25 @@ func (c *Client) DumpToFile(filename string) *Client {
 	return c
 }
 
-// DumpTo indicates that the content should dump to the specified destination.
-func (c *Client) DumpTo(output io.Writer) *Client {
+// EnableDumpTo indicates that the content should dump to the specified destination.
+func (c *Client) EnableDumpTo(output io.Writer) *Client {
 	c.GetDumpOptions().Output = output
 	c.enableDump()
 	return c
 }
 
-// DumpAsync indicates that the dump should be done asynchronously,
+// EnableDumpAsync indicates that the dump should be done asynchronously,
 // can be used for debugging in production environment without
 // affecting performance.
-func (c *Client) DumpAsync() *Client {
+func (c *Client) EnableDumpAsync() *Client {
 	o := c.GetDumpOptions()
 	o.Async = true
 	c.enableDump()
 	return c
 }
 
-// DumpOnlyResponse indicates that should dump the responses' head and response.
-func (c *Client) DumpOnlyResponse() *Client {
+// EnableDumpOnlyResponse indicates that should dump the responses' head and response.
+func (c *Client) EnableDumpOnlyResponse() *Client {
 	o := c.GetDumpOptions()
 	o.ResponseHead = true
 	o.ResponseBody = true
@@ -171,8 +176,8 @@ func (c *Client) DumpOnlyResponse() *Client {
 	return c
 }
 
-// DumpOnlyRequest indicates that should dump the requests' head and response.
-func (c *Client) DumpOnlyRequest() *Client {
+// EnableDumpOnlyRequest indicates that should dump the requests' head and response.
+func (c *Client) EnableDumpOnlyRequest() *Client {
 	o := c.GetDumpOptions()
 	o.RequestHead = true
 	o.RequestBody = true
@@ -182,8 +187,8 @@ func (c *Client) DumpOnlyRequest() *Client {
 	return c
 }
 
-// DumpOnlyBody indicates that should dump the body of requests and responses.
-func (c *Client) DumpOnlyBody() *Client {
+// EnableDumpOnlyBody indicates that should dump the body of requests and responses.
+func (c *Client) EnableDumpOnlyBody() *Client {
 	o := c.GetDumpOptions()
 	o.RequestBody = true
 	o.ResponseBody = true
@@ -193,8 +198,8 @@ func (c *Client) DumpOnlyBody() *Client {
 	return c
 }
 
-// DumpOnlyHead indicates that should dump the head of requests and responses.
-func (c *Client) DumpOnlyHead() *Client {
+// EnableDumpOnlyHead indicates that should dump the head of requests and responses.
+func (c *Client) EnableDumpOnlyHead() *Client {
 	o := c.GetDumpOptions()
 	o.RequestHead = true
 	o.ResponseHead = true
@@ -204,8 +209,8 @@ func (c *Client) DumpOnlyHead() *Client {
 	return c
 }
 
-// DumpAll indicates that should dump both requests and responses' head and body.
-func (c *Client) DumpAll() *Client {
+// EnableDumpAll indicates that should dump both requests and responses' head and body.
+func (c *Client) EnableDumpAll() *Client {
 	o := c.GetDumpOptions()
 	o.RequestHead = true
 	o.RequestBody = true
@@ -220,27 +225,27 @@ func (c *Client) NewRequest() *Request {
 	return c.R()
 }
 
-// AutoDecodeAllType indicates that try autodetect and decode all content type.
-func (c *Client) AutoDecodeAllType() *Client {
+// EnableAutoDecodeAllType indicates that try autodetect and decode all content type.
+func (c *Client) EnableAutoDecodeAllType() *Client {
 	c.GetResponseOptions().AutoDecodeContentType = func(contentType string) bool {
 		return true
 	}
 	return c
 }
 
-// AutoDecodeTextType indicates that only try autodetect and decode the text content type.
-func (c *Client) AutoDecodeTextType() *Client {
+// EnableAutoDecodeTextType indicates that only try autodetect and decode the text content type.
+func (c *Client) EnableAutoDecodeTextType() *Client {
 	c.GetResponseOptions().AutoDecodeContentType = autoDecodeText
 	return c
 }
 
-// UserAgent set the "User-Agent" header for all requests.
-func (c *Client) UserAgent(userAgent string) *Client {
-	return c.CommonHeader("User-Agent", userAgent)
+// SetUserAgent set the "User-Agent" header for all requests.
+func (c *Client) SetUserAgent(userAgent string) *Client {
+	return c.SetCommonHeader("User-Agent", userAgent)
 }
 
-// CommonHeader set the common header for all requests.
-func (c *Client) CommonHeader(key, value string) *Client {
+// SetCommonHeader set the common header for all requests.
+func (c *Client) SetCommonHeader(key, value string) *Client {
 	if c.commonHeader == nil {
 		c.commonHeader = make(map[string]string)
 	}
@@ -248,20 +253,24 @@ func (c *Client) CommonHeader(key, value string) *Client {
 	return c
 }
 
-// Dump if true, enables dump requests and responses,  allowing you
+// EnableDump enables dump requests and responses,  allowing you
 // to clearly see the content of all requests and responses，which
 // is very convenient for debugging APIs.
-// Dump if false, disable the dump behaviour.
-func (c *Client) Dump(enable bool) *Client {
-	if !enable {
-		c.t.DisableDump()
+func (c *Client) EnableDump() *Client {
+	if c.t.dump != nil { // dump already started
 		return c
 	}
-	c.enableDump()
+	c.t.EnableDump(c.GetDumpOptions())
 	return c
 }
 
-// DumpOptions configures the underlying Transport's DumpOptions
+// DisableDump stop the dump.
+func (c *Client) DisableDump() *Client {
+	c.t.DisableDump()
+	return c
+}
+
+// SetDumpOptions configures the underlying Transport's DumpOptions
 func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
 		return c
@@ -273,18 +282,18 @@ func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 	return c
 }
 
-// Proxy set the proxy function.
-func (c *Client) Proxy(proxy func(*http.Request) (*url.URL, error)) *Client {
+// SetProxy set the proxy function.
+func (c *Client) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Client {
 	c.t.Proxy = proxy
 	return c
 }
 
-func (c *Client) ProxyFromEnv() *Client {
+func (c *Client) SetProxyFromEnv() *Client {
 	c.t.Proxy = http.ProxyFromEnvironment
 	return c
 }
 
-func (c *Client) ProxyURL(proxyUrl string) *Client {
+func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	u, err := url.Parse(proxyUrl)
 	if err != nil {
 		logf(c.log, "failed to parse proxy url %s: %v", proxyUrl, err)
