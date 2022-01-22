@@ -61,7 +61,7 @@ func (c *Client) R() *Request {
 }
 
 func (c *Client) AutoDiscardResponseBody() *Client {
-	c.getResponseOptions().AutoDiscard = true
+	c.GetResponseOptions().AutoDiscard = true
 	return c
 }
 
@@ -82,12 +82,12 @@ const (
 func (c *Client) DebugMode() *Client {
 	return c.AutoDecodeTextType().
 		Dump(true).
-		Logger(NewLogger(os.Stdout)).
+		SetLogger(NewLogger(os.Stdout)).
 		UserAgent(userAgentChrome)
 }
 
-// Logger set the logger for req.
-func (c *Client) Logger(log Logger) *Client {
+// SetLogger set the logger for req.
+func (c *Client) SetLogger(log Logger) *Client {
 	if log == nil {
 		return c
 	}
@@ -95,14 +95,15 @@ func (c *Client) Logger(log Logger) *Client {
 	return c
 }
 
-func (c *Client) getResponseOptions() *ResponseOptions {
+func (c *Client) GetResponseOptions() *ResponseOptions {
 	if c.t.ResponseOptions == nil {
 		c.t.ResponseOptions = &ResponseOptions{}
 	}
 	return c.t.ResponseOptions
 }
 
-func (c *Client) ResponseOptions(opt *ResponseOptions) *Client {
+// ResponseOptions set the ResponseOptions for the underlying Transport.
+func (c *Client) SetResponseOptions(opt *ResponseOptions) *Client {
 	if opt == nil {
 		return c
 	}
@@ -220,7 +221,7 @@ func (c *Client) NewRequest() *Request {
 
 // AutoDecodeAllType indicates that try autodetect and decode all content type.
 func (c *Client) AutoDecodeAllType() *Client {
-	c.getResponseOptions().AutoDecodeContentType = func(contentType string) bool {
+	c.GetResponseOptions().AutoDecodeContentType = func(contentType string) bool {
 		return true
 	}
 	return c
@@ -228,7 +229,7 @@ func (c *Client) AutoDecodeAllType() *Client {
 
 // AutoDecodeTextType indicates that only try autodetect and decode the text content type.
 func (c *Client) AutoDecodeTextType() *Client {
-	c.getResponseOptions().AutoDecodeContentType = autoDecodeText
+	c.GetResponseOptions().AutoDecodeContentType = autoDecodeText
 	return c
 }
 
