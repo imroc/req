@@ -426,9 +426,24 @@ func (c *Client) Do(r *Request) (resp *Response, err error) {
 		Response: httpResponse,
 	}
 
-	if err != nil || c.disableAutoReadResponse {
+	if err != nil {
 		return
 	}
+
+	if r.isSaveResponse {
+		defer func() {
+			httpResponse.Body.Close()
+			r.output.Close()
+		}()
+		_, err = io.Copy(r.output, httpResponse.Body)
+		return
+	}
+
+	if c.disableAutoReadResponse {
+		return
+	}
+
+	// auto read response body
 	body, err := ioutil.ReadAll(httpResponse.Body)
 	if err != nil {
 		return

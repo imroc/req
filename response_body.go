@@ -3,47 +3,9 @@ package req
 import (
 	"encoding/json"
 	"encoding/xml"
-	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 )
-
-func (r *Response) MustSave(dst io.Writer) {
-	err := r.Save(dst)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (r *Response) Save(dst io.Writer) error {
-	if dst == nil {
-		return nil // TODO: return error
-	}
-	_, err := io.Copy(dst, r.Body)
-	r.Body.Close()
-	return err
-}
-
-func (r *Response) MustSaveFile(filename string) {
-	err := r.SaveFile(filename)
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (r *Response) SaveFile(filename string) error {
-	if filename == "" {
-		return nil // TODO: return error
-	}
-	file, err := os.Create(filename)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(file, r.Body)
-	r.Body.Close()
-	return err
-}
 
 func (r *Response) MustUnmarshalJson(v interface{}) {
 	err := r.UnmarshalJson(v)
