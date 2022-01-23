@@ -28,6 +28,7 @@ import "github.com/imroc/req/v2"
 ```
 
 [Quick Start](#Quick-Start)
+[Debug](#Debug)
 
 ### <a name="Quick-Start">Quick Start</a>
 
