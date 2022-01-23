@@ -121,6 +121,22 @@ client := req.C().
 	EnableDumpAsync(). // Dump asynchronously to improve performance
 	EnableDumpToFile("reqdump.log") // Dump to file without printing it out
 client.Get(url)
+
+// Enable dump with fully customized settings
+opt := &req.DumpOptions{
+            Output:         os.Stdout,
+            RequestHeader:  true,
+            ResponseBody:   true,
+            RequestBody:    false,
+            ResponseHeader: false,
+            Async:          false,
+        }
+client := req.C().SetDumpOptions(opt).EnableDump(true)
+client.R().Get("https://www.baidu.com/")
+
+// Change settings dynamiclly
+opt.ResponseBody = false
+client.R().Get("https://www.baidu.com/")
 ```
 
 **Logging**
@@ -191,7 +207,7 @@ client := req.C().EnableDumpOnlyHeader()
 
 // Send a request with multiple headers and cookies
 resp, err := client.R().
-	SetHeader("Accept", "application/json"). // Set one header
+    SetHeader("Accept", "application/json"). // Set one header
     SetHeaders(map[string]string{ // Set multiple headers at once 
         "My-Custom-Header": "My Custom Value",
         "User":             "imroc",
