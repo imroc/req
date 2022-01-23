@@ -107,6 +107,16 @@ func (c *Client) R() *Request {
 
 }
 
+func (c *Client) DisableKeepAlives(disable bool) *Client {
+	c.t.DisableKeepAlives = disable
+	return c
+}
+
+func (c *Client) DisableCompression(disable bool) *Client {
+	c.t.DisableCompression = disable
+	return c
+}
+
 func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	c.t.TLSClientConfig = conf
 	return c
