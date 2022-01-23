@@ -19,7 +19,7 @@ A golang http request library for humans.
 go get github.com/imroc/req/v2@v2.0.0-alpha.3
 ```
 
-## Quick Start
+## Usage
 
 Import req in your code:
 
@@ -27,47 +27,50 @@ Import req in your code:
 import "github.com/imroc/req/v2"
 ```
 
-Prepare a client:
+[Quick Start](#Quick-Start)
+
+### <a name="Quick-Start">Quick Start</a>
+
+**Simple GET**
 
 ```go
-client := req.C().SetUserAgent("custom-client") // client settings is chainable
+// Create and send a request with the global default client
+resp, err := req.New().Get("https://api.github.com/users/imroc")
+
+// Create and send a request with the custom client
+client := req.C()
+resp, err := client.R().Get("https://api.github.com/users/imroc")
 ```
 
-Use client to create and send request:
+**Client Settings**
 
 ```go
-// use R() to create a new request, and request settings is also chainable
-resp, err: client.R().SetHeader("test", "req").SetBody("test").Get("https://test.example.com")
+client.SetUserAgent("my-custom-client").
+	SetTimeout(5 * time.Second).
+	DevMode()
 ```
 
-You can also use the default client when test:
+**Request Settings**
 
 ```go
-// customize default client settings
-req.DefaultClient().SetUserAgent("custom-client")
-
-// create and send request using default client
-resp, err := req.New().SetHeader("test", "req").Get(url)
+var result Result
+resp, err := client.R().
+	SetResult(&result).
+	SetHeader("Accept", "application/json").
+	SetQeuryParam("page", "1").
+	SetPathParam("userId", "imroc").
+	Get(url)
 ```
 
-You can also simply do it with one line of code like this:
+### <a name="Debug">Debug</a>
 
 ```go
-resp, err := req.DefaultClient().UserAgent("custom-client").R().SetHeader("test", "req").Get(url)
-```
-
-Want to debug requests? Just enable dump:
-
-```go
-// create client and enable dump
-client := req.C().UserAgent("custom-client").EnableDumpAll()
-// send request and read response body
+// Set EnableDump to true, default dump all content to stderr,
+// including both header and body of request and response
+client := req.C().EnableDump(true)
 client.R().Get("https://api.github.com/users/imroc")
-```
 
-Now you can see the request and response content that has been dumped:
-
-```txt
+/* Output
 :authority: api.github.com
 :method: GET
 :path: /users/imroc
@@ -103,20 +106,18 @@ content-length: 486
 x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 
 {"login":"imroc","id":7448852,"node_id":"MDQ6VXNlcjc0NDg4NTI=","avatar_url":"https://avatars.githubusercontent.com/u/7448852?v=4","gravatar_id":"","url":"https://api.github.com/users/imroc","html_url":"https://github.com/imroc","followers_url":"https://api.github.com/users/imroc/followers","following_url":"https://api.github.com/users/imroc/following{/other_user}","gists_url":"https://api.github.com/users/imroc/gists{/gist_id}","starred_url":"https://api.github.com/users/imroc/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/imroc/subscriptions","organizations_url":"https://api.github.com/users/imroc/orgs","repos_url":"https://api.github.com/users/imroc/repos","events_url":"https://api.github.com/users/imroc/events{/privacy}","received_events_url":"https://api.github.com/users/imroc/received_events","type":"User","site_admin":false,"name":"roc","company":"Tencent","blog":"https://imroc.cc","location":"China","email":null,"hireable":true,"bio":"I'm roc","twitter_username":"imrocchan","public_repos":128,"public_gists":0,"followers":362,"following":151,"created_at":"2014-04-30T10:50:46Z","updated_at":"2021-07-08T12:11:23Z"}
+
+*/
+	
+// dump header content asynchronously and save it to file
+client := req.C().
+	EnableDumpOnlyHeader(). // only dump the header of request and response
+	EnableDumpAsync(). // dump asynchronously to improve performance
+	EnableDumpToFile("reqdump.log") // dump to file without printing it out
+client.Get(url)
 ```
 
-> Here we can see the content is in http2 format, because req will try http2 by default if server support.
-
-## Debug
-
-Simple example:
-
-```go
-// dump head content asynchronously and save it to file
-client := req.C().DumpOnlyHeader().DumpAsync().DumpToFile("reqdump.log")
-resp, err := client.R().SetBody(body).Post(url)
-...
-```
+## PathParams and QeuryParams
 
 ## License
 
