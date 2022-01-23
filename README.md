@@ -30,8 +30,10 @@ import "github.com/imroc/req/v2"
 
 * [Quick Start](#Quick-Start)
 * [Debug](#Debug)
-* [PathParam and QueryParam](#PathParam-QueryParam)
-* [Header and Cookie](#Header-Cookie)
+* [PathParam](#PathParam)
+* [QueryParam](#QueryParam)
+* [Header](#Header)
+* [Cookie](#Cookie)
 
 ### <a name="Quick-Start">Quick Start</a>
 
@@ -71,8 +73,8 @@ resp, err := client.R().
 **Dump the content of request and response**
 
 ```go
-// Set EnableDump to true, default dump all content to stderr,
-// including both header and body of request and response
+// Set EnableDump to true, dump all content to stderr by default,
+// including both the header and body of all request and response
 client := req.C().EnableDump(true)
 client.R().Get("https://api.github.com/users/imroc")
 
@@ -81,7 +83,7 @@ client.R().Get("https://api.github.com/users/imroc")
 :method: GET
 :path: /users/imroc
 :scheme: https
-user-agent: custom-client
+user-agent: req/v2 (https://github.com/imroc/req)
 accept-encoding: gzip
 
 :status: 200
@@ -164,7 +166,9 @@ client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-### <a name="PathParam-QueryParam">PathParam and QueryParam</a>
+### <a name="PathParam">PathParam</a>
+
+Use `PathParam` to replace variable in the url path:
 
 ```go
 client := req.C().DevMode()
@@ -173,23 +177,14 @@ client.R().
     SetPathParams(map[string]string{ // Set multiple path params at once 
         "repo": "req",
         "path": "README.md",
-    }).SetQueryParam("a", "a"). // Set a query param, which will be encoded as query parameter in url
-    SetQueryParams(map[string]string{ // Set multiple query params at once 
-        "b": "b",
-        "c": "c",
-    }).SetQueryString("d=d&e=e"). // Set query params as a raw query string
-    Get("https://api.github.com/repos/{owner}/{repo}/contents/{path}?x=x")
+    }).Get("https://api.github.com/repos/{owner}/{repo}/contents/{path}")
 /* Output
-2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md?x=x&a=a&b=b&c=c&d=d&e=e
+2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md
 ...
 */
 
-// You can also set the common PathParam and QueryParam for every request on client
-client.SetPathParam(k1, v1).
-    SetPathParams(pathParams).
-    SetQueryParam(k2, v2).
-    SetQueryParams(queryParams).
-    SetQueryString(queryString).
+// You can also set the common PathParam for every request on client
+client.SetPathParam(k1, v1).SetPathParams(pathParams)
 	
 resp, err := client.Get(url1)
 ...
@@ -198,19 +193,80 @@ resp, err := client.Get(url2)
 ...
 ```
 
-### <a name="Header-Cookie">Header and Cookie</a>
+### <a name="QueryParam">QueryParam</a>
+
+```go
+client := req.C().DevMode()
+client.R().
+    SetQueryParam("a", "a"). // Set a query param, which will be encoded as query parameter in url
+    SetQueryParams(map[string]string{ // Set multiple query params at once 
+        "b": "b",
+        "c": "c",
+    }).SetQueryString("d=d&e=e"). // Set query params as a raw query string
+    Get("https://api.github.com/repos/imroc/req/contents/README.md?x=x")
+/* Output
+2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md?x=x&a=a&b=b&c=c&d=d&e=e
+...
+*/
+
+// You can also set the common QueryParam for every request on client
+client.SetQueryParam(k, v).
+    SetQueryParams(queryParams).
+    SetQueryString(queryString).
+	
+resp1, err := client.Get(url1)
+...
+resp2, err := client.Get(url2)
+...
+```
+
+### <a name="Header">Header</a>
 
 ```go
 // Let's dump the header to see what's going on
 client := req.C().EnableDumpOnlyHeader() 
 
 // Send a request with multiple headers and cookies
-resp, err := client.R().
+client.R().
     SetHeader("Accept", "application/json"). // Set one header
     SetHeaders(map[string]string{ // Set multiple headers at once 
         "My-Custom-Header": "My Custom Value",
         "User":             "imroc",
-    }).SetCookie(&http.Cookie{ // Set one cookie
+    }).Get("https://www.baidu.com/")
+
+/* Output
+GET / HTTP/1.1
+Host: www.baidu.com
+User-Agent: req/v2 (https://github.com/imroc/req)
+Accept: application/json
+My-Custom-Header: My Custom Value
+User: imroc
+Accept-Encoding: gzip
+
+...
+*/
+
+// You can also set the common header and cookie for every request on client.
+client.SetHeader(header).
+	SetHeaders(headers).
+	SetCookie(cookie).
+	SetCookies(cookies)
+
+resp1, err := client.R().Get(url1)
+...
+resp2, err := client.R().Get(url2)
+...
+```
+
+### <a name="Cookie">Cookie</a>
+
+```go
+// Let's dump the header to see what's going on
+client := req.C().EnableDumpOnlyHeader() 
+
+// Send a request with multiple headers and cookies
+client.R().
+    SetCookie(&http.Cookie{ // Set one cookie
         Name:     "imroc/req",
         Value:    "This is my custome cookie value",
         Path:     "/",
@@ -242,26 +298,20 @@ resp, err := client.R().
 /* Output
 GET / HTTP/1.1
 Host: www.baidu.com
-User-Agent: req/v2
+User-Agent: req/v2 (https://github.com/imroc/req)
 Accept: application/json
 Cookie: imroc/req="This is my custome cookie value"; testcookie1="testcookie1 value"; testcookie2="testcookie2 value"
-My-Custom-Header: My Custom Value
-User: imroc
 Accept-Encoding: gzip
 
 ...
 */
 
-// You can also set the common header and cookie for every request on client.
-client.SetHeader(header).
-	SetHeaders(headers).
-	SetCookie(cookie).
-	SetCookies(cookies)
+// You can also set the common cookie for every request on client.
+client.SetCookie(cookie).SetCookies(cookies)
 
-resp, err := client.R().Get(url1)
+resp1, err := client.R().Get(url1)
 ...
-resp, err := client.R().Get(url2)
-...
+resp2, err := client.R().Get(url2)
 ```
 
 ## License
