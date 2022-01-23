@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/hashicorp/go-multierror"
+	"github.com/imroc/req/v2/internal/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,16 +19,29 @@ type Request struct {
 	PathParams     map[string]string
 	QueryParams    urlpkg.Values
 	Headers        http.Header
+	Result         interface{}
+	Error          interface{}
 	error          error
 	client         *Client
 	RawRequest     *http.Request
 	isSaveResponse bool
+	isMultiPart    bool
 	output         io.WriteCloser
 }
 
 // New create a new request using the global default client.
 func New() *Request {
 	return defaultClient.R()
+}
+
+func (r *Request) SetResult(result interface{}) *Request {
+	r.Result = util.GetPointer(result)
+	return r
+}
+
+func (r *Request) SetError(error interface{}) *Request {
+	r.Error = util.GetPointer(error)
+	return r
 }
 
 func (r *Request) SetHeaders(hdrs map[string]string) *Request {
@@ -93,12 +107,6 @@ func (r *Request) SetPathParam(key, value string) *Request {
 
 func (r *Request) appendError(err error) {
 	r.error = multierror.Append(r.error, err)
-}
-
-// Error return the underlying error, not nil if some error
-// happend when constructing the request.
-func (r *Request) Error() error {
-	return r.error
 }
 
 func (r *Request) Send(method, url string) (*Response, error) {

@@ -2,10 +2,10 @@ package req
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"github.com/imroc/req/v2/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	urlpkg "net/url"
@@ -30,10 +30,15 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	HostURL                 string
-	PathParams              map[string]string
-	QueryParams             urlpkg.Values
-	Headers                 http.Header
+	HostURL       string
+	PathParams    map[string]string
+	QueryParams   urlpkg.Values
+	Headers       http.Header
+	JSONMarshal   func(v interface{}) ([]byte, error)
+	JSONUnmarshal func(data []byte, v interface{}) error
+	XMLMarshal    func(v interface{}) ([]byte, error)
+	XMLUnmarshal  func(data []byte, v interface{}) error
+
 	disableAutoReadResponse bool
 	scheme                  string
 	log                     Logger
@@ -44,6 +49,7 @@ type Client struct {
 	jsonDecoder             *json.Decoder
 	beforeRequest           []RequestMiddleware
 	udBeforeRequest         []RequestMiddleware
+	afterResponse           []ResponseMiddleware
 }
 
 func cloneHeaders(hdrs http.Header) http.Header {
@@ -334,6 +340,11 @@ func (c *Client) OnBeforeRequest(m RequestMiddleware) *Client {
 	return c
 }
 
+func (c *Client) OnAfterResponse(m ResponseMiddleware) *Client {
+	c.afterResponse = append(c.afterResponse, m)
+	return c
+}
+
 func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	u, err := urlpkg.Parse(proxyUrl)
 	if err != nil {
@@ -394,61 +405,65 @@ func C() *Client {
 		parseRequestURL,
 		parseRequestHeader,
 	}
+	afterResponse := []ResponseMiddleware{
+		parseResponseBody,
+		handleDownload,
+	}
 	c := &Client{
 		beforeRequest: beforeRequest,
+		afterResponse: afterResponse,
 		log:           &emptyLogger{},
 		httpClient:    httpClient,
 		t:             t,
 		t2:            t2,
+		JSONMarshal:   json.Marshal,
+		JSONUnmarshal: json.Unmarshal,
+		XMLMarshal:    xml.Marshal,
+		XMLUnmarshal:  xml.Unmarshal,
 	}
 	return c
 }
 
 func (c *Client) Do(r *Request) (resp *Response, err error) {
+
 	for _, f := range r.client.udBeforeRequest {
-		if err := f(r.client, r); err != nil {
-			return nil, err
+		if err = f(r.client, r); err != nil {
+			return
 		}
 	}
 
 	for _, f := range r.client.beforeRequest {
-		if err := f(r.client, r); err != nil {
-			return nil, err
+		if err = f(r.client, r); err != nil {
+			return
 		}
 	}
+
 	setRequestURL(r.RawRequest, r.URL)
 	setRequestHeader(r)
 
 	logf(c.log, "%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
 	httpResponse, err := c.httpClient.Do(r.RawRequest)
+	if err != nil {
+		return
+	}
+
 	resp = &Response{
-		request:  r,
+		Request:  r,
 		Response: httpResponse,
 	}
 
-	if err != nil {
-		return
+	if !c.disableAutoReadResponse && !r.isSaveResponse { // auto read response body
+		_, err = resp.Bytes()
+		if err != nil {
+			return
+		}
 	}
 
-	if r.isSaveResponse {
-		defer func() {
-			httpResponse.Body.Close()
-			r.output.Close()
-		}()
-		_, err = io.Copy(r.output, httpResponse.Body)
-		return
+	for _, f := range r.client.afterResponse {
+		if err = f(r.client, resp); err != nil {
+			return
+		}
 	}
-
-	if c.disableAutoReadResponse {
-		return
-	}
-
-	// auto read response body
-	body, err := ioutil.ReadAll(httpResponse.Body)
-	if err != nil {
-		return
-	}
-	resp.body = body
 	return
 }
 

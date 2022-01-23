@@ -2,8 +2,34 @@ package util
 
 import (
 	"bytes"
+	"reflect"
+	"regexp"
 	"strings"
 )
+
+var (
+	jsonCheck = regexp.MustCompile(`(?i:(application|text)/(json|.*\+json|json\-.*)(;|$))`)
+	xmlCheck  = regexp.MustCompile(`(?i:(application|text)/(xml|.*\+xml)(;|$))`)
+)
+
+// IsJSONType method is to check JSON content type or not
+func IsJSONType(ct string) bool {
+	return jsonCheck.MatchString(ct)
+}
+
+// IsXMLType method is to check XML content type or not
+func IsXMLType(ct string) bool {
+	return xmlCheck.MatchString(ct)
+}
+
+
+func GetPointer(v interface{}) interface{} {
+	vv := reflect.ValueOf(v)
+	if vv.Kind() == reflect.Ptr {
+		return v
+	}
+	return reflect.New(vv.Type()).Interface()
+}
 
 // CutString slices s around the first instance of sep,
 // returning the text before and after sep.
@@ -32,4 +58,13 @@ func CutBytes(s, sep []byte) (before, after []byte, found bool) {
 // IsStringEmpty method tells whether given string is empty or not
 func IsStringEmpty(str string) bool {
 	return len(strings.TrimSpace(str)) == 0
+}
+
+func FirstNonEmpty(v ...string) string {
+	for _, s := range v {
+		if !IsStringEmpty(s) {
+			return s
+		}
+	}
+	return ""
 }
