@@ -15,6 +15,11 @@ import (
 	"time"
 )
 
+var (
+	hdrUserAgentKey   = "User-Agent"
+	hdrUserAgentValue = "req/v2 (https://github.com/imroc/req)"
+)
+
 // DefaultClient returns the global default Client.
 func DefaultClient() *Client {
 	return defaultClient
@@ -105,6 +110,25 @@ func (c *Client) R() *Request {
 		RawRequest: req,
 	}
 
+}
+
+func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
+	if len(policies) == 0 {
+		return c
+	}
+	c.httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		for _, f := range policies {
+			if f == nil {
+				continue
+			}
+			err := f(req, via)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	return c
 }
 
 func (c *Client) DisableKeepAlives(disable bool) *Client {

@@ -75,12 +75,9 @@ func parseRequestHeader(c *Client, r *Request) error {
 		r.Headers = make(http.Header)
 	}
 	for k := range c.Headers {
-		r.Headers[k] = append(r.Headers[k], c.Headers[k]...)
-	}
-
-	for k := range r.Headers {
-		r.Headers.Del(k)
-		r.Headers[k] = append(r.Headers[k], r.Headers[k]...)
+		if r.Headers.Get(k) == "" {
+			r.Headers.Add(k, c.Headers.Get(k))
+		}
 	}
 
 	return nil
