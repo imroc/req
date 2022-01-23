@@ -31,7 +31,8 @@ import "github.com/imroc/req/v2"
 
 * [Quick Start](#Quick-Start)
 * [Debug](#Debug)
-* [PathParams and QueryParams](#PathParams-QueryParams)
+* [PathParam and QueryParam](#PathParam-QueryParam)
+* [Header and Cookie](#Header-Cookie)
 
 ### <a name="Quick-Start">Quick Start</a>
 
@@ -112,7 +113,6 @@ content-length: 486
 x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 
 {"login":"imroc","id":7448852,"node_id":"MDQ6VXNlcjc0NDg4NTI=","avatar_url":"https://avatars.githubusercontent.com/u/7448852?v=4","gravatar_id":"","url":"https://api.github.com/users/imroc","html_url":"https://github.com/imroc","followers_url":"https://api.github.com/users/imroc/followers","following_url":"https://api.github.com/users/imroc/following{/other_user}","gists_url":"https://api.github.com/users/imroc/gists{/gist_id}","starred_url":"https://api.github.com/users/imroc/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/imroc/subscriptions","organizations_url":"https://api.github.com/users/imroc/orgs","repos_url":"https://api.github.com/users/imroc/repos","events_url":"https://api.github.com/users/imroc/events{/privacy}","received_events_url":"https://api.github.com/users/imroc/received_events","type":"User","site_admin":false,"name":"roc","company":"Tencent","blog":"https://imroc.cc","location":"China","email":null,"hireable":true,"bio":"I'm roc","twitter_username":"imrocchan","public_repos":128,"public_gists":0,"followers":362,"following":151,"created_at":"2014-04-30T10:50:46Z","updated_at":"2021-07-08T12:11:23Z"}
-
 */
 	
 // Dump header content asynchronously and save it to file
@@ -126,8 +126,8 @@ client.Get(url)
 **Logging**
 
 ```go
-// Logging is enabled by default, but only output warning and error message.
-// EnableDebug set to true to enable debug level logging.
+// Logging is enabled by default, but only output warning and error message to stderr.
+// EnableDebug set to true to enable debug level message logging.
 client := req.C().EnableDebug(true)
 client.R().Get("https://api.github.com/users/imroc")
 // Output
@@ -140,25 +140,113 @@ client.SetLogger(nil)
 client.SetLogger(logger)
 ```
 
-### <a name="PathParams-QueryParams">PathParams and QueryParams</a>
+**DevMode**
+
+If you want to enable all debug features (dump, debug logging and tracing), just call `DevMode()`:
 
 ```go
-client := req.C().EnableDebug(true)
+client := req.C().DevMode()
+client.R().Get("https://imroc.cc")
+```
+
+### <a name="PathParam-QueryParam">PathParam and QueryParam</a>
+
+```go
+client := req.C().DevMode()
 client.R().
-    SetPathParam("owner", "imroc").
-    SetPathParams(map[string]string{
+    SetPathParam("owner", "imroc"). // Set a path param, which will replace the vairable in url path
+    SetPathParams(map[string]string{ // Set multiple path params at once 
         "repo": "req",
         "path": "README.md",
-    }).
-    SetQueryParam("a", "a").
-    SetQueryParams(map[string]string{
+    }).SetQueryParam("a", "a"). // Set a query param, which will be encoded as query parameter in url
+    SetQueryParams(map[string]string{ // Set multiple query params at once 
         "b": "b",
         "c": "c",
-    }).
-    SetQueryString("d=d&e=e").
+    }).SetQueryString("d=d&e=e"). // Set query params as a raw query string
     Get("https://api.github.com/repos/{owner}/{repo}/contents/{path}?x=x")
-// Output
-// 2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md?x=x&a=a&b=b&c=c&d=d&e=e
+/* Output
+2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md?x=x&a=a&b=b&c=c&d=d&e=e
+...
+*/
+
+// You can also set the common PathParam and QueryParam for every request on client
+client.SetPathParam(k1, v1).
+    SetPathParams(pathParams).
+    SetQueryParam(k2, v2).
+    SetQueryParams(queryParams).
+    SetQueryString(queryString).
+	
+resp, err := client.Get(url1)
+...
+
+resp, err := client.Get(url2)
+...
+```
+
+### <a name="Header-Cookie">Header and Cookie</a>
+
+```go
+// Let's dump the header to see what's going on
+client := req.C().EnableDumpOnlyHeader() 
+
+// Send a request with multiple headers and cookies
+resp, err := client.R().
+	SetHeader("Accept", "application/json"). // Set one header
+    SetHeaders(map[string]string{ // Set multiple headers at once 
+        "My-Custom-Header": "My Custom Value",
+        "User":             "imroc",
+    }).SetCookie(&http.Cookie{ // Set one cookie
+        Name:     "imroc/req",
+        Value:    "This is my custome cookie value",
+        Path:     "/",
+        Domain:   "baidu.com",
+        MaxAge:   36000,
+        HttpOnly: false,
+        Secure:   true,
+    }).SetCookies([]*http.Cookie{ // Set multiple cookies at once 
+        &http.Cookie{
+            Name:     "testcookie1",
+            Value:    "testcookie1 value",
+            Path:     "/",
+            Domain:   "baidu.com",
+            MaxAge:   36000,
+            HttpOnly: false,
+            Secure:   true,
+        },
+        &http.Cookie{
+            Name:     "testcookie2",
+            Value:    "testcookie2 value",
+            Path:     "/",
+            Domain:   "baidu.com",
+            MaxAge:   36000,
+            HttpOnly: false,
+            Secure:   true,
+        },
+    }).Get("https://www.baidu.com/")
+
+/* Output
+GET / HTTP/1.1
+Host: www.baidu.com
+User-Agent: req/v2
+Accept: application/json
+Cookie: imroc/req="This is my custome cookie value"; testcookie1="testcookie1 value"; testcookie2="testcookie2 value"
+My-Custom-Header: My Custom Value
+User: imroc
+Accept-Encoding: gzip
+
+...
+*/
+
+// You can also set the common header and cookie for every request on client.
+client.SetHeader(header).
+	SetHeaders(headers).
+	SetCookie(cookie).
+	SetCookies(cookies)
+
+resp, err := client.R().Get(url1)
+...
+resp, err := client.R().Get(url2)
+...
 ```
 
 ## License
