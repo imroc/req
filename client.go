@@ -1,6 +1,7 @@
 package req
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"github.com/imroc/req/v2/internal/util"
@@ -105,6 +106,12 @@ func (c *Client) R() *Request {
 	}
 
 }
+
+func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
+	c.t.TLSClientConfig = conf
+	return c
+}
+
 func (c *Client) SetQueryParams(params map[string]string) *Client {
 	for k, v := range params {
 		c.SetQueryParam(k, v)
