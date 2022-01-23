@@ -31,6 +31,7 @@ import "github.com/imroc/req/v2"
 
 * [Quick Start](#Quick-Start)
 * [Debug](#Debug)
+* [PathParams and QueryParams](#PathParams-QueryParams)
 
 ### <a name="Quick-Start">Quick Start</a>
 
@@ -66,6 +67,8 @@ resp, err := client.R().
 ```
 
 ### <a name="Debug">Debug</a>
+
+**Dump the content of request and response**
 
 ```go
 // Set EnableDump to true, default dump all content to stderr,
@@ -112,15 +115,51 @@ x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 
 */
 	
-// dump header content asynchronously and save it to file
+// Dump header content asynchronously and save it to file
 client := req.C().
-	EnableDumpOnlyHeader(). // only dump the header of request and response
-	EnableDumpAsync(). // dump asynchronously to improve performance
-	EnableDumpToFile("reqdump.log") // dump to file without printing it out
+	EnableDumpOnlyHeader(). // Only dump the header of request and response
+	EnableDumpAsync(). // Dump asynchronously to improve performance
+	EnableDumpToFile("reqdump.log") // Dump to file without printing it out
 client.Get(url)
 ```
 
-## PathParams and QeuryParams
+**Logging**
+
+```go
+// Logging is enabled by default, but only output warning and error message.
+// EnableDebug set to true to enable debug level logging.
+client := req.C().EnableDebug(true)
+client.R().Get("https://api.github.com/users/imroc")
+// Output
+// 2022/01/23 14:33:04.755019 DEBUG [req] GET https://api.github.com/users/imroc
+
+// SetLogger with nil to disable all log
+client.SetLogger(nil)
+
+// Or customize the logger with your own implementation.
+client.SetLogger(logger)
+```
+
+### <a name="PathParams-QueryParams">PathParams and QueryParams</a>
+
+```go
+client := req.C().EnableDebug(true)
+client.R().
+    SetPathParam("owner", "imroc").
+    SetPathParams(map[string]string{
+        "repo": "req",
+        "path": "README.md",
+    }).
+    SetQueryParam("a", "a").
+    SetQueryParams(map[string]string{
+        "b": "b",
+        "c": "c",
+    }).
+    SetQueryString("d=d&e=e").
+    Get("https://api.github.com/repos/{owner}/{repo}/contents/{path}?x=x")
+// Output
+// 2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md?x=x&a=a&b=b&c=c&d=d&e=e
+```
 
 ## License
 
