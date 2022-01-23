@@ -6,12 +6,11 @@ A golang http request library for humans.
 
 ## Features
 
-* Simple and chainable methods for client and request settings.
-* Rich syntax sugar, greatly improving development efficiency.
+* Simple and chainable methods for client and request settings, rich syntax sugar, less code and more efficiency.
 * Automatically detect charset and decode it to utf-8.
 * Powerful debugging capabilities (logging, tracing, and even dump the requests and responses' content).
-* All settings can be dynamically adjusted, making it possible to debug in the production environment.
-* Easy to integrate with existing code, just replace client's Transport then you can dump content as req to debug APIs.
+* All settings can be changed dynamically, making it possible to debug in the production environment.
+* Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
 
 ## Install
 
