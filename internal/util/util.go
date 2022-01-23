@@ -2,6 +2,7 @@ package util
 
 import (
 	"bytes"
+	"encoding/base64"
 	"reflect"
 	"regexp"
 	"strings"
@@ -21,7 +22,6 @@ func IsJSONType(ct string) bool {
 func IsXMLType(ct string) bool {
 	return xmlCheck.MatchString(ct)
 }
-
 
 func GetPointer(v interface{}) interface{} {
 	vv := reflect.ValueOf(v)
@@ -67,4 +67,18 @@ func FirstNonEmpty(v ...string) string {
 		}
 	}
 	return ""
+}
+
+// See 2 (end of page 4) https://www.ietf.org/rfc/rfc2617.txt
+// "To receive authorization, the client sends the userid and password,
+// separated by a single colon (":") character, within a base64
+// encoded string in the credentials."
+// It is not meant to be urlencoded.
+func basicAuth(username, password string) string {
+	auth := username + ":" + password
+	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func BasicAuthHeaderValue(username, password string) string {
+	return "Basic " + basicAuth(username, password)
 }

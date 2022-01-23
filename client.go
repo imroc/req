@@ -374,6 +374,11 @@ func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c.SetHeader(hdrUserAgentKey, userAgent)
 }
 
+func (c *Client) SetBasicAuth(username, password string) *Client {
+	c.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
+	return c
+}
+
 func (c *Client) SetHeaders(hdrs map[string]string) *Client {
 	for k, v := range hdrs {
 		c.SetHeader(k, v)
@@ -566,10 +571,11 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 }
 
 func setRequestHeaderAndCookie(r *Request) {
-	if r.Headers == nil {
-		r.Headers = make(http.Header)
+	for k, vs := range r.Headers {
+		for _, v := range vs {
+			r.RawRequest.Header.Add(k, v)
+		}
 	}
-	r.RawRequest.Header = r.Headers
 	for _, cookie := range r.Cookies {
 		r.RawRequest.AddCookie(cookie)
 	}

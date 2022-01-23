@@ -69,6 +69,11 @@ func (r *Request) SetError(error interface{}) *Request {
 	return r
 }
 
+func (r *Request) SetBasicAuth(username, password string) *Request {
+	r.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
+	return r
+}
+
 func (r *Request) SetHeaders(hdrs map[string]string) *Request {
 	for k, v := range hdrs {
 		r.SetHeader(k, v)

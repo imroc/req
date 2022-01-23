@@ -79,7 +79,6 @@ func parseRequestHeader(c *Client, r *Request) error {
 			r.Headers.Add(k, c.Headers.Get(k))
 		}
 	}
-
 	return nil
 }
 
