@@ -149,12 +149,6 @@ func foreachHeaderElement(v string, fn func(string)) {
 // well read them)
 const maxPostHandlerReadBytes = 256 << 10
 
-// NOTE: This is not intended to reflect the actual Go version being used.
-// It was changed at the time of Go 1.1 release because the former User-Agent
-// had ended up blocked by some intrusion detection systems.
-// See https://codereview.appspot.com/7532043.
-const defaultUserAgent = "req/v2"
-
 func idnaASCII(v string) (string, error) {
 	// TODO: Consider removing this check after verifying performance is okay.
 	// Right now punycode verification, length checks, context checks, and the
