@@ -2,11 +2,13 @@ package req
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"encoding/xml"
 	"github.com/imroc/req/v2/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	urlpkg "net/url"
@@ -111,6 +113,59 @@ func (c *Client) R() *Request {
 	}
 }
 
+// SetCertFromFile helps to set client certificates from cert and key file
+func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		c.log.Errorf("failed to load client cert: %v", err)
+		return c
+	}
+	config := c.tlsConfig()
+	config.Certificates = append(config.Certificates, cert)
+	return c
+}
+
+// SetCerts helps to set client certificates
+func (c *Client) SetCerts(certs ...tls.Certificate) *Client {
+	config := c.tlsConfig()
+	config.Certificates = append(config.Certificates, certs...)
+	return c
+}
+
+func (c *Client) appendRootCertData(data []byte) {
+	config := c.tlsConfig()
+	if config.RootCAs == nil {
+		config.RootCAs = x509.NewCertPool()
+	}
+	config.RootCAs.AppendCertsFromPEM(data)
+	return
+}
+
+// SetRootCertFromString helps to set root CA cert from string
+func (c *Client) SetRootCertFromString(pemContent string) *Client {
+	c.appendRootCertData([]byte(pemContent))
+	return c
+}
+
+// SetRootCertFromFile helps to set root CA cert from file
+func (c *Client) SetRootCertFromFile(pemFilePath string) *Client {
+	rootPemData, err := ioutil.ReadFile(pemFilePath)
+	if err != nil {
+		c.log.Errorf("failed to read root cert file: %v", err)
+		return c
+	}
+	c.appendRootCertData(rootPemData)
+	return c
+}
+
+func (c *Client) tlsConfig() *tls.Config {
+	if c.t.TLSClientConfig == nil {
+		c.t.TLSClientConfig = &tls.Config{}
+	}
+	return c.t.TLSClientConfig
+}
+
+// SetRedirectPolicy helps to set the RedirectPolicy
 func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	if len(policies) == 0 {
 		return c
