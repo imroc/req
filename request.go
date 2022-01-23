@@ -140,7 +140,7 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	}
 	r.RawRequest.Method = method
 	r.URL = url
-	return r.client.Do(r)
+	return r.client.do(r)
 }
 
 // MustGet like Get, panic if error happens.

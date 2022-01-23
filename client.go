@@ -480,7 +480,7 @@ func setupRequest(r *Request) {
 	setRequestHeaderAndCookie(r)
 }
 
-func (c *Client) Do(r *Request) (resp *Response, err error) {
+func (c *Client) do(r *Request) (resp *Response, err error) {
 
 	for _, f := range r.client.udBeforeRequest {
 		if err = f(r.client, r); err != nil {
