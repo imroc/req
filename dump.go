@@ -99,7 +99,7 @@ type dumper struct {
 
 func newDefaultDumpOptions() *DumpOptions {
 	return &DumpOptions{
-		Output:         os.Stdout,
+		Output:         os.Stderr,
 		RequestBody:    true,
 		ResponseBody:   true,
 		ResponseHeader: true,
@@ -107,20 +107,12 @@ func newDefaultDumpOptions() *DumpOptions {
 	}
 }
 
-var defaultDumpOptions = &DumpOptions{
-	Output:         os.Stdout,
-	RequestBody:    true,
-	ResponseBody:   true,
-	ResponseHeader: true,
-	RequestHeader:  true,
-}
-
 func newDumper(opt *DumpOptions) *dumper {
 	if opt == nil {
-		opt = defaultDumpOptions.Clone()
+		opt = newDefaultDumpOptions()
 	}
 	if opt.Output == nil {
-		opt.Output = os.Stdout
+		opt.Output = os.Stderr
 	}
 	d := &dumper{
 		DumpOptions: opt,
