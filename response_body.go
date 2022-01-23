@@ -71,7 +71,12 @@ func (r *Response) Bytes() ([]byte, error) {
 		return r.body, nil
 	}
 	defer r.Body.Close()
-	return ioutil.ReadAll(r.Body)
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	r.body = body
+	return body, nil
 }
 
 func (r *Response) MustBytes() []byte {

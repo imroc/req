@@ -35,6 +35,30 @@ func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) 
 // Response is the http response.
 type Response struct {
 	*http.Response
-	request *Request
+	Request *Request
 	body    []byte
+}
+
+// IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
+func (r *Response) IsSuccess() bool {
+	return r.StatusCode > 199 && r.StatusCode < 300
+}
+
+// IsError method returns true if HTTP status `code >= 400` otherwise false.
+func (r *Response) IsError() bool {
+	return r.StatusCode > 399
+}
+
+func (r *Response) GetContentType() string {
+	return r.Header.Get("Content-Type")
+}
+
+// Result method returns the response value as an object if it has one
+func (r *Response) Result() interface{} {
+	return r.Request.Result
+}
+
+// Error method returns the error object if it has one
+func (r *Response) Error() interface{} {
+	return r.Request.Error
 }
