@@ -34,6 +34,7 @@ type Client struct {
 	PathParams    map[string]string
 	QueryParams   urlpkg.Values
 	Headers       http.Header
+	Cookies       []*http.Cookie
 	JSONMarshal   func(v interface{}) ([]byte, error)
 	JSONUnmarshal func(data []byte, v interface{}) error
 	XMLMarshal    func(v interface{}) ([]byte, error)
@@ -102,6 +103,48 @@ func (c *Client) R() *Request {
 		client:     c,
 		RawRequest: req,
 	}
+
+}
+func (c *Client) SetQueryParams(params map[string]string) *Client {
+	for k, v := range params {
+		c.SetQueryParam(k, v)
+	}
+	return c
+}
+
+func (c *Client) SetQueryParam(key, value string) *Client {
+	if c.QueryParams == nil {
+		c.QueryParams = make(urlpkg.Values)
+	}
+	c.QueryParams.Set(key, value)
+	return c
+}
+
+func (c *Client) SetQueryString(query string) *Client {
+	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
+	if err == nil {
+		if c.QueryParams == nil {
+			c.QueryParams = make(urlpkg.Values)
+		}
+		for p, v := range params {
+			for _, pv := range v {
+				c.QueryParams.Add(p, pv)
+			}
+		}
+	} else {
+		c.log.Warnf("failed to parse query string (%s): %v", query, err)
+	}
+	return c
+}
+
+func (c *Client) SetCookie(hc *http.Cookie) *Client {
+	c.Cookies = append(c.Cookies, hc)
+	return c
+}
+
+func (c *Client) SetCookies(cs []*http.Cookie) *Client {
+	c.Cookies = append(c.Cookies, cs...)
+	return c
 }
 
 const (
@@ -411,6 +454,7 @@ func C() *Client {
 	beforeRequest := []RequestMiddleware{
 		parseRequestURL,
 		parseRequestHeader,
+		parseRequestCookie,
 	}
 	afterResponse := []ResponseMiddleware{
 		parseResponseBody,
@@ -431,6 +475,11 @@ func C() *Client {
 	return c
 }
 
+func setupRequest(r *Request) {
+	setRequestURL(r.RawRequest, r.URL)
+	setRequestHeaderAndCookie(r)
+}
+
 func (c *Client) Do(r *Request) (resp *Response, err error) {
 
 	for _, f := range r.client.udBeforeRequest {
@@ -445,11 +494,12 @@ func (c *Client) Do(r *Request) (resp *Response, err error) {
 		}
 	}
 
-	setRequestURL(r.RawRequest, r.URL)
-	setRequestHeader(r)
+	setupRequest(r)
+
 	if c.Debug {
 		c.log.Debugf("%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
 	}
+
 	httpResponse, err := c.httpClient.Do(r.RawRequest)
 	if err != nil {
 		return
@@ -475,11 +525,14 @@ func (c *Client) Do(r *Request) (resp *Response, err error) {
 	return
 }
 
-func setRequestHeader(r *Request) {
+func setRequestHeaderAndCookie(r *Request) {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
 	}
 	r.RawRequest.Header = r.Headers
+	for _, cookie := range r.Cookies {
+		r.RawRequest.AddCookie(cookie)
+	}
 }
 
 func setRequestURL(r *http.Request, url string) error {

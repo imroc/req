@@ -19,6 +19,7 @@ type Request struct {
 	PathParams     map[string]string
 	QueryParams    urlpkg.Values
 	Headers        http.Header
+	Cookies        []*http.Cookie
 	Result         interface{}
 	Error          interface{}
 	error          error
@@ -32,6 +33,16 @@ type Request struct {
 // New create a new request using the global default client.
 func New() *Request {
 	return defaultClient.R()
+}
+
+func (r *Request) SetCookie(hc *http.Cookie) *Request {
+	r.Cookies = append(r.Cookies, hc)
+	return r
+}
+
+func (r *Request) SetCookies(rs []*http.Cookie) *Request {
+	r.Cookies = append(r.Cookies, rs...)
+	return r
 }
 
 func (r *Request) SetQueryString(query string) *Request {

@@ -18,16 +18,6 @@ type (
 	ResponseMiddleware func(*Client, *Response) error
 )
 
-// unmarshalc content into object from JSON or XML
-func unmarshalc(c *Client, ct string, b []byte, d interface{}) (err error) {
-	if util.IsJSONType(ct) {
-		err = c.JSONUnmarshal(b, d)
-	} else if util.IsXMLType(ct) {
-		err = c.XMLUnmarshal(b, d)
-	}
-	return
-}
-
 func parseResponseBody(c *Client, r *Response) (err error) {
 	if r.StatusCode == http.StatusNoContent {
 		return
@@ -81,17 +71,28 @@ func parseRequestHeader(c *Client, r *Request) error {
 	if c.Headers == nil {
 		return nil
 	}
-	hdr := make(http.Header)
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
 	for k := range c.Headers {
-		hdr[k] = append(hdr[k], c.Headers[k]...)
+		r.Headers[k] = append(r.Headers[k], c.Headers[k]...)
 	}
 
 	for k := range r.Headers {
-		hdr.Del(k)
-		hdr[k] = append(hdr[k], r.Headers[k]...)
+		r.Headers.Del(k)
+		r.Headers[k] = append(r.Headers[k], r.Headers[k]...)
 	}
 
-	r.Headers = hdr
+	return nil
+}
+
+func parseRequestCookie(c *Client, r *Request) error {
+	if len(c.Cookies) == 0 {
+		return nil
+	}
+	for _, ck := range c.Cookies {
+		r.Cookies = append(r.Cookies, ck)
+	}
 	return nil
 }
 
