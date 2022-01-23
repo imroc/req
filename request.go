@@ -34,6 +34,20 @@ func New() *Request {
 	return defaultClient.R()
 }
 
+func (r *Request) SetQueryString(query string) *Request {
+	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
+	if err == nil {
+		for p, v := range params {
+			for _, pv := range v {
+				r.QueryParams.Add(p, pv)
+			}
+		}
+	} else {
+		r.client.log.Errorf("%v", err)
+	}
+	return r
+}
+
 func (r *Request) SetResult(result interface{}) *Request {
 	r.Result = util.GetPointer(result)
 	return r

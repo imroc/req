@@ -38,6 +38,7 @@ type Client struct {
 	JSONUnmarshal func(data []byte, v interface{}) error
 	XMLMarshal    func(v interface{}) ([]byte, error)
 	XMLUnmarshal  func(data []byte, v interface{}) error
+	Debug         bool
 
 	disableAutoReadResponse bool
 	scheme                  string
@@ -108,13 +109,18 @@ const (
 	userAgentChrome  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
 )
 
-// DebugMode enables dump for requests and responses, and set user
+func (c *Client) EnableDebug(enable bool) *Client {
+	c.Debug = enable
+	return c
+}
+
+// DevMode enables dump for requests and responses, and set user
 // agent to pretend to be a web browser, Avoid returning abnormal
 // data from some sites.
-func (c *Client) DebugMode() *Client {
+func (c *Client) DevMode() *Client {
 	return c.EnableAutoDecodeTextType().
 		EnableDumpAll().
-		SetLogger(NewLogger(os.Stdout)).
+		EnableDebug(true).
 		SetUserAgent(userAgentChrome)
 }
 
@@ -127,9 +133,10 @@ func (c *Client) SetScheme(scheme string) *Client {
 	return c
 }
 
-// SetLogger set the logger for req.
+// SetLogger set the logger for req, set to nil to disable logger.
 func (c *Client) SetLogger(log Logger) *Client {
 	if log == nil {
+		c.log = &disableLogger{}
 		return c
 	}
 	c.log = log
@@ -176,7 +183,7 @@ func (c *Client) enableDump() {
 func (c *Client) EnableDumpToFile(filename string) *Client {
 	file, err := os.Create(filename)
 	if err != nil {
-		logf(c.log, "create dump file error: %v", err)
+		c.log.Errorf("create dump file error: %v", err)
 		return c
 	}
 	c.GetDumpOptions().Output = file
@@ -348,7 +355,7 @@ func (c *Client) OnAfterResponse(m ResponseMiddleware) *Client {
 func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	u, err := urlpkg.Parse(proxyUrl)
 	if err != nil {
-		logf(c.log, "failed to parse proxy url %s: %v", proxyUrl, err)
+		c.log.Errorf("failed to parse proxy url %s: %v", proxyUrl, err)
 		return c
 	}
 	c.t.Proxy = http.ProxyURL(u)
@@ -412,7 +419,7 @@ func C() *Client {
 	c := &Client{
 		beforeRequest: beforeRequest,
 		afterResponse: afterResponse,
-		log:           &emptyLogger{},
+		log:           createLogger(),
 		httpClient:    httpClient,
 		t:             t,
 		t2:            t2,
@@ -440,8 +447,9 @@ func (c *Client) Do(r *Request) (resp *Response, err error) {
 
 	setRequestURL(r.RawRequest, r.URL)
 	setRequestHeader(r)
-
-	logf(c.log, "%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
+	if c.Debug {
+		c.log.Debugf("%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
+	}
 	httpResponse, err := c.httpClient.Do(r.RawRequest)
 	if err != nil {
 		return

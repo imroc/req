@@ -1,43 +1,52 @@
 package req
 
 import (
-	"fmt"
-	"io"
+	"log"
 	"os"
 )
 
-// Logger is the logging interface that req used internal,
-// you can set the Logger for client if you want to see req's
-// internal logging information.
+// Logger interface is to abstract the logging from Resty. Gives control to
+// the Resty users, choice of the logger.
 type Logger interface {
-	Println(v ...interface{})
+	Errorf(format string, v ...interface{})
+	Warnf(format string, v ...interface{})
+	Debugf(format string, v ...interface{})
 }
+
+func createLogger() *logger {
+	l := &logger{l: log.New(os.Stderr, "", log.Ldate|log.Lmicroseconds)}
+	return l
+}
+
+var _ Logger = (*logger)(nil)
+
+type disableLogger struct{}
+
+func (l *disableLogger) Errorf(format string, v ...interface{}) {}
+func (l *disableLogger) Warnf(format string, v ...interface{})  {}
+func (l *disableLogger) Debugf(format string, v ...interface{}) {}
 
 type logger struct {
-	w io.Writer
+	l *log.Logger
 }
 
-func (l *logger) Println(v ...interface{}) {
-	fmt.Fprintln(l.w, v...)
+func (l *logger) Errorf(format string, v ...interface{}) {
+	l.output("ERROR", format, v...)
 }
 
-// NewLogger create a simple Logger.
-func NewLogger(output io.Writer) Logger {
-	if output == nil {
-		output = os.Stdout
+func (l *logger) Warnf(format string, v ...interface{}) {
+	l.output("WARN", format, v...)
+}
+
+func (l *logger) Debugf(format string, v ...interface{}) {
+	l.output("DEBUG", format, v...)
+}
+
+func (l *logger) output(level, format string, v ...interface{}) {
+	format = level + " [req] " + format
+	if len(v) == 0 {
+		l.l.Print(format)
+		return
 	}
-	return &logger{output}
-}
-
-type emptyLogger struct{}
-
-func (l *emptyLogger) Println(v ...interface{}) {}
-
-func logp(logger Logger, s string) {
-	logger.Println("[req]", s)
-}
-
-func logf(logger Logger, format string, v ...interface{}) {
-	s := fmt.Sprintf(format, v...)
-	logp(logger, s)
+	l.l.Printf(format, v...)
 }
