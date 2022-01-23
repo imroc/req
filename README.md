@@ -186,10 +186,10 @@ client.R().
 // You can also set the common PathParam for every request on client
 client.SetPathParam(k1, v1).SetPathParams(pathParams)
 	
-resp, err := client.Get(url1)
+resp1, err := client.Get(url1)
 ...
 
-resp, err := client.Get(url2)
+resp2, err := client.Get(url2)
 ...
 ```
 
@@ -247,10 +247,7 @@ Accept-Encoding: gzip
 */
 
 // You can also set the common header and cookie for every request on client.
-client.SetHeader(header).
-	SetHeaders(headers).
-	SetCookie(cookie).
-	SetCookies(cookies)
+client.SetHeader(header).SetHeaders(headers)
 
 resp1, err := client.R().Get(url1)
 ...
