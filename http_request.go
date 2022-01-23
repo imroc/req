@@ -169,7 +169,7 @@ func requestWrite(r *http.Request, w io.Writer, usingProxy bool, extraHeaders ht
 
 	// Use the defaultUserAgent unless the Header contains one, which
 	// may be blank to not send the header.
-	userAgent := defaultUserAgent
+	userAgent := hdrUserAgentValue
 	if headerHas(r.Header, "User-Agent") {
 		userAgent = r.Header.Get("User-Agent")
 	}

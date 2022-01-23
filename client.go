@@ -109,7 +109,6 @@ func (c *Client) R() *Request {
 		client:     c,
 		RawRequest: req,
 	}
-
 }
 
 func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
@@ -372,7 +371,7 @@ func (c *Client) EnableAutoDecodeTextType() *Client {
 
 // SetUserAgent set the "User-Agent" header for all requests.
 func (c *Client) SetUserAgent(userAgent string) *Client {
-	return c.SetHeader("User-Agent", userAgent)
+	return c.SetHeader(hdrUserAgentKey, userAgent)
 }
 
 func (c *Client) SetHeaders(hdrs map[string]string) *Client {

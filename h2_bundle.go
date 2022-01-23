@@ -6572,8 +6572,6 @@ const (
 	// a stream-level WINDOW_UPDATE for at a time.
 	http2transportDefaultStreamMinRefresh = 4 << 10
 
-	http2defaultUserAgent = "req/v2"
-
 	// initialMaxConcurrentStreams is a connections maxConcurrentStreams until
 	// it's received servers initial SETTINGS frame, which corresponds with the
 	// spec's minimum recommended value.
@@ -8368,7 +8366,7 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 			f("accept-encoding", "gzip")
 		}
 		if !didUA {
-			f("user-agent", http2defaultUserAgent)
+			f("user-agent", hdrUserAgentValue)
 		}
 	}
 
