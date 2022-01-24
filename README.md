@@ -12,13 +12,13 @@ A golang http request library for humans.
 * All settings can be changed dynamically, making it possible to debug in the production environment.
 * Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
 
-## Install
+## Quick-Start
+
+**Install**
 
 ``` sh
 go get github.com/imroc/req/v2@v2.0.0-alpha.6
 ```
-
-## Quick-Start
 
 Import req in your code:
 
