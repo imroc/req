@@ -130,7 +130,7 @@ You can find more complete and runnable examples [here](examples).
 **Dump the content of request and response**
 
 ```go
-// Set EnableDump to true, dump all content to stderr by default,
+// Set EnableDump to true, dump all content to stdout by default,
 // including both the header and body of all request and response
 client := req.C().EnableDump(true)
 client.R().Get("https://api.github.com/users/imroc")
@@ -178,7 +178,7 @@ client := req.C().
 	EnableDumpOnlyHeader(). // Only dump the header of request and response
 	EnableDumpAsync(). // Dump asynchronously to improve performance
 	EnableDumpToFile("reqdump.log") // Dump to file without printing it out
-client.Get(url)
+client.R().Get(url)
 
 // Enable dump with fully customized settings
 opt := &req.DumpOptions{
@@ -197,10 +197,10 @@ opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 ```
 
-**Logging**
+**Debug Logging**
 
 ```go
-// Logging is enabled by default, but only output warning and error message to stderr.
+// Logging is enabled by default, but only output warning and error message to stdout.
 // EnableDebug set to true to enable debug level message logging.
 client := req.C().EnableDebug(true)
 client.R().Get("https://api.github.com/users/imroc")
