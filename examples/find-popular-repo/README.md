@@ -5,7 +5,7 @@ This is a runable example of req, using the Github API [List repositories for a 
 ## How to run
 
 ```bash
-make run
+go run .
 ```
 
 ## Modify it
