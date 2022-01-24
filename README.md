@@ -41,31 +41,54 @@ import "github.com/imroc/req/v2"
 
 ```go
 // Create and send a request with the global default client
-resp, err := req.New().Get("https://api.github.com/users/imroc")
+req.DevMode()
+resp, err := req.Get("https://api.github.com/users/imroc")
 
 // Create and send a request with the custom client
-client := req.C()
+client := req.C().DevMode()
 resp, err := client.R().Get("https://api.github.com/users/imroc")
 ```
 
 **Client Settings**
 
 ```go
-client.SetUserAgent("my-custom-client").
-	SetTimeout(5 * time.Second).
-	DevMode()
+// Create a client with custom client settings
+client := req.C().SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
+
+// You can also configure the global client using the same chaining method, req wraps glbal
+// method for default client 
+req.SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
 ```
 
 **Request Settings**
 
 ```go
+// Use client to create a request with custom request settings
+client := req.C()
 var result Result
 resp, err := client.R().
-	SetResult(&result).
 	SetHeader("Accept", "application/json").
 	SetQeuryParam("page", "1").
 	SetPathParam("userId", "imroc").
-	Get(url)
+    SetResult(&result).
+    Get(url)
+
+// You can also create a request using global client using the same chaining method
+resp, err := req.R().
+    SetHeader("Accept", "application/json").
+    SetQeuryParam("page", "1").
+    SetPathParam("userId", "imroc").
+    SetResult(&result).
+    Get(url)
+
+// You can even also create a request without calling R(), cuz req
+// wraps global method for request, and create a request using
+// the default client automatically.
+resp, err := req.SetHeader("Accept", "application/json").
+    SetQeuryParam("page", "1").
+    SetPathParam("userId", "imroc").
+    SetResult(&result).
+    Get(url)
 ```
 
 ### <a name="Debug">Debug</a>

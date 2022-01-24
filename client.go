@@ -99,6 +99,10 @@ func cloneMap(h map[string]string) map[string]string {
 	return m
 }
 
+func R() *Request {
+	return defaultClient.R()
+}
+
 // R create a new request.
 func (c *Client) R() *Request {
 	req := &http.Request{
@@ -113,6 +117,10 @@ func (c *Client) R() *Request {
 	}
 }
 
+func SetCertFromFile(certFile, keyFile string) *Client {
+	return defaultClient.SetCertFromFile(certFile, keyFile)
+}
+
 // SetCertFromFile helps to set client certificates from cert and key file
 func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
@@ -123,6 +131,10 @@ func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 	config := c.tlsConfig()
 	config.Certificates = append(config.Certificates, cert)
 	return c
+}
+
+func SetCerts(certs ...tls.Certificate) *Client {
+	return defaultClient.SetCerts(certs...)
 }
 
 // SetCerts helps to set client certificates
@@ -141,10 +153,18 @@ func (c *Client) appendRootCertData(data []byte) {
 	return
 }
 
+func SetRootCertFromString(pemContent string) *Client {
+	return defaultClient.SetRootCertFromString(pemContent)
+}
+
 // SetRootCertFromString helps to set root CA cert from string
 func (c *Client) SetRootCertFromString(pemContent string) *Client {
 	c.appendRootCertData([]byte(pemContent))
 	return c
+}
+
+func SetRootCertFromFile(pemFilePath string) *Client {
+	return defaultClient.SetRootCertFromFile(pemFilePath)
 }
 
 // SetRootCertFromFile helps to set root CA cert from file
@@ -163,6 +183,10 @@ func (c *Client) tlsConfig() *tls.Config {
 		c.t.TLSClientConfig = &tls.Config{}
 	}
 	return c.t.TLSClientConfig
+}
+
+func SetRedirectPolicy(policies ...RedirectPolicy) *Client {
+	return defaultClient.SetRedirectPolicy(policies...)
 }
 
 // SetRedirectPolicy helps to set the RedirectPolicy
@@ -185,9 +209,17 @@ func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	return c
 }
 
+func DisableKeepAlives(disable bool) *Client {
+	return defaultClient.DisableKeepAlives(disable)
+}
+
 func (c *Client) DisableKeepAlives(disable bool) *Client {
 	c.t.DisableKeepAlives = disable
 	return c
+}
+
+func DisableCompression(disable bool) *Client {
+	return defaultClient.DisableCompression(disable)
 }
 
 func (c *Client) DisableCompression(disable bool) *Client {
@@ -195,19 +227,31 @@ func (c *Client) DisableCompression(disable bool) *Client {
 	return c
 }
 
+func SetTLSClientConfig(conf *tls.Config) *Client {
+	return defaultClient.SetTLSClientConfig(conf)
+}
+
 func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	c.t.TLSClientConfig = conf
 	return c
 }
 
-func (c *Client) SetQueryParams(params map[string]string) *Client {
+func SetCommonQueryParams(params map[string]string) *Client {
+	return defaultClient.SetCommonQueryParams(params)
+}
+
+func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
 	for k, v := range params {
-		c.SetQueryParam(k, v)
+		c.SetCommonQueryParam(k, v)
 	}
 	return c
 }
 
-func (c *Client) SetQueryParam(key, value string) *Client {
+func SetCommonQueryParam(key, value string) *Client {
+	return defaultClient.SetCommonQueryParam(key, value)
+}
+
+func (c *Client) SetCommonQueryParam(key, value string) *Client {
 	if c.QueryParams == nil {
 		c.QueryParams = make(urlpkg.Values)
 	}
@@ -215,7 +259,11 @@ func (c *Client) SetQueryParam(key, value string) *Client {
 	return c
 }
 
-func (c *Client) SetQueryString(query string) *Client {
+func SetCommonQueryString(query string) *Client {
+	return defaultClient.SetCommonQueryString(query)
+}
+
+func (c *Client) SetCommonQueryString(query string) *Client {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
 	if err == nil {
 		if c.QueryParams == nil {
@@ -232,12 +280,20 @@ func (c *Client) SetQueryString(query string) *Client {
 	return c
 }
 
-func (c *Client) SetCookie(hc *http.Cookie) *Client {
+func SetCommonCookie(hc *http.Cookie) *Client {
+	return defaultClient.SetCommonCookie(hc)
+}
+
+func (c *Client) SetCommonCookie(hc *http.Cookie) *Client {
 	c.Cookies = append(c.Cookies, hc)
 	return c
 }
 
-func (c *Client) SetCookies(cs []*http.Cookie) *Client {
+func SetCommonCookies(cs []*http.Cookie) *Client {
+	return defaultClient.SetCommonCookies(cs)
+}
+
+func (c *Client) SetCommonCookies(cs []*http.Cookie) *Client {
 	c.Cookies = append(c.Cookies, cs...)
 	return c
 }
@@ -247,19 +303,30 @@ const (
 	userAgentChrome  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
 )
 
+func EnableDebug(enable bool) *Client {
+	return defaultClient.EnableDebug(enable)
+}
+
 func (c *Client) EnableDebug(enable bool) *Client {
 	c.Debug = enable
 	return c
+}
+
+func DevMode() *Client {
+	return defaultClient.DevMode()
 }
 
 // DevMode enables dump for requests and responses, and set user
 // agent to pretend to be a web browser, Avoid returning abnormal
 // data from some sites.
 func (c *Client) DevMode() *Client {
-	return c.EnableAutoDecodeTextType().
-		EnableDumpAll().
+	return c.EnableDumpAll().
 		EnableDebug(true).
 		SetUserAgent(userAgentChrome)
+}
+
+func SetScheme(scheme string) *Client {
+	return defaultClient.SetScheme(scheme)
 }
 
 // SetScheme method sets custom scheme in the Resty client. It's way to override default.
@@ -269,6 +336,10 @@ func (c *Client) SetScheme(scheme string) *Client {
 		c.scheme = strings.TrimSpace(scheme)
 	}
 	return c
+}
+
+func SetLogger(log Logger) *Client {
+	return defaultClient.SetLogger(log)
 }
 
 // SetLogger set the logger for req, set to nil to disable logger.
@@ -281,11 +352,19 @@ func (c *Client) SetLogger(log Logger) *Client {
 	return c
 }
 
+func GetResponseOptions() *ResponseOptions {
+	return defaultClient.GetResponseOptions()
+}
+
 func (c *Client) GetResponseOptions() *ResponseOptions {
 	if c.t.ResponseOptions == nil {
 		c.t.ResponseOptions = &ResponseOptions{}
 	}
 	return c.t.ResponseOptions
+}
+
+func SetResponseOptions(opt *ResponseOptions) *Client {
+	return defaultClient.SetResponseOptions(opt)
 }
 
 // SetResponseOptions set the ResponseOptions for the underlying Transport.
@@ -297,10 +376,18 @@ func (c *Client) SetResponseOptions(opt *ResponseOptions) *Client {
 	return c
 }
 
+func SetTimeout(d time.Duration) *Client {
+	return defaultClient.SetTimeout(d)
+}
+
 // SetTimeout set the timeout for all requests.
 func (c *Client) SetTimeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
 	return c
+}
+
+func GetDumpOptions() *DumpOptions {
+	return defaultClient.GetDumpOptions()
 }
 
 func (c *Client) GetDumpOptions() *DumpOptions {
@@ -317,6 +404,10 @@ func (c *Client) enableDump() {
 	c.t.EnableDump(c.GetDumpOptions())
 }
 
+func EnableDumpToFile(filename string) *Client {
+	return defaultClient.EnableDumpToFile(filename)
+}
+
 // EnableDumpToFile indicates that the content should dump to the specified filename.
 func (c *Client) EnableDumpToFile(filename string) *Client {
 	file, err := os.Create(filename)
@@ -328,11 +419,19 @@ func (c *Client) EnableDumpToFile(filename string) *Client {
 	return c
 }
 
+func EnableDumpTo(output io.Writer) *Client {
+	return defaultClient.EnableDumpTo(output)
+}
+
 // EnableDumpTo indicates that the content should dump to the specified destination.
 func (c *Client) EnableDumpTo(output io.Writer) *Client {
 	c.GetDumpOptions().Output = output
 	c.enableDump()
 	return c
+}
+
+func EnableDumpAsync() *Client {
+	return defaultClient.EnableDumpAsync()
 }
 
 // EnableDumpAsync indicates that the dump should be done asynchronously,
@@ -343,6 +442,10 @@ func (c *Client) EnableDumpAsync() *Client {
 	o.Async = true
 	c.enableDump()
 	return c
+}
+
+func EnableDumpOnlyResponse() *Client {
+	return defaultClient.EnableDumpOnlyResponse()
 }
 
 // EnableDumpOnlyResponse indicates that should dump the responses' head and response.
@@ -356,6 +459,10 @@ func (c *Client) EnableDumpOnlyResponse() *Client {
 	return c
 }
 
+func EnableDumpOnlyRequest() *Client {
+	return defaultClient.EnableDumpOnlyRequest()
+}
+
 // EnableDumpOnlyRequest indicates that should dump the requests' head and response.
 func (c *Client) EnableDumpOnlyRequest() *Client {
 	o := c.GetDumpOptions()
@@ -365,6 +472,10 @@ func (c *Client) EnableDumpOnlyRequest() *Client {
 	o.ResponseHeader = false
 	c.enableDump()
 	return c
+}
+
+func EnableDumpOnlyBody() *Client {
+	return defaultClient.EnableDumpOnlyBody()
 }
 
 // EnableDumpOnlyBody indicates that should dump the body of requests and responses.
@@ -378,6 +489,10 @@ func (c *Client) EnableDumpOnlyBody() *Client {
 	return c
 }
 
+func EnableDumpOnlyHeader() *Client {
+	return defaultClient.EnableDumpOnlyHeader()
+}
+
 // EnableDumpOnlyHeader indicates that should dump the head of requests and responses.
 func (c *Client) EnableDumpOnlyHeader() *Client {
 	o := c.GetDumpOptions()
@@ -387,6 +502,10 @@ func (c *Client) EnableDumpOnlyHeader() *Client {
 	o.ResponseBody = false
 	c.enableDump()
 	return c
+}
+
+func EnableDumpAll() *Client {
+	return defaultClient.EnableDumpAll()
 }
 
 // EnableDumpAll indicates that should dump both requests and responses' head and body.
@@ -400,9 +519,17 @@ func (c *Client) EnableDumpAll() *Client {
 	return c
 }
 
+func NewRequest() *Request {
+	return defaultClient.R()
+}
+
 // NewRequest is the alias of R()
 func (c *Client) NewRequest() *Request {
 	return c.R()
+}
+
+func DisableAutoReadResponse(disable bool) *Client {
+	return defaultClient.DisableAutoReadResponse(disable)
 }
 
 func (c *Client) DisableAutoReadResponse(disable bool) *Client {
@@ -410,44 +537,74 @@ func (c *Client) DisableAutoReadResponse(disable bool) *Client {
 	return c
 }
 
+func EnableAutoDecodeAllType() *Client {
+	return defaultClient.EnableAutoDecodeAllType()
+}
+
 // EnableAutoDecodeAllType indicates that try autodetect and decode all content type.
 func (c *Client) EnableAutoDecodeAllType() *Client {
-	c.GetResponseOptions().AutoDecodeContentType = func(contentType string) bool {
+	opt := c.GetResponseOptions()
+	opt.AutoDecodeContentType = func(contentType string) bool {
 		return true
 	}
+	opt.DisableAutoDecode = false
 	return c
 }
 
-// EnableAutoDecodeTextType indicates that only try autodetect and decode the text content type.
-func (c *Client) EnableAutoDecodeTextType() *Client {
-	c.GetResponseOptions().AutoDecodeContentType = autoDecodeText
+func DisableAutoDecode(disable bool) *Client {
+	return defaultClient.DisableAutoDecode(disable)
+}
+
+// DisableAutoDecode disable auto detect charset and decode to utf-8
+func (c *Client) DisableAutoDecode(disable bool) *Client {
+	c.GetResponseOptions().DisableAutoDecode = disable
 	return c
+}
+
+func SetUserAgent(userAgent string) *Client {
+	return defaultClient.SetUserAgent(userAgent)
 }
 
 // SetUserAgent set the "User-Agent" header for all requests.
 func (c *Client) SetUserAgent(userAgent string) *Client {
-	return c.SetHeader(hdrUserAgentKey, userAgent)
+	return c.SetCommonHeader(hdrUserAgentKey, userAgent)
 }
 
-func (c *Client) SetBasicAuth(username, password string) *Client {
-	c.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
+func SetCommonBasicAuth(username, password string) *Client {
+	return defaultClient.SetCommonBasicAuth(username, password)
+}
+
+func (c *Client) SetCommonBasicAuth(username, password string) *Client {
+	c.SetCommonHeader("Authorization", util.BasicAuthHeaderValue(username, password))
 	return c
 }
 
-func (c *Client) SetHeaders(hdrs map[string]string) *Client {
+func SetCommonHeaders(hdrs map[string]string) *Client {
+	return defaultClient.SetCommonHeaders(hdrs)
+}
+
+func (c *Client) SetCommonHeaders(hdrs map[string]string) *Client {
 	for k, v := range hdrs {
-		c.SetHeader(k, v)
+		c.SetCommonHeader(k, v)
 	}
 	return c
 }
 
-// SetHeader set the common header for all requests.
-func (c *Client) SetHeader(key, value string) *Client {
+func SetCommonHeader(key, value string) *Client {
+	return defaultClient.SetCommonHeader(key, value)
+}
+
+// SetCommonHeader set the common header for all requests.
+func (c *Client) SetCommonHeader(key, value string) *Client {
 	if c.Headers == nil {
 		c.Headers = make(http.Header)
 	}
 	c.Headers.Set(key, value)
 	return c
+}
+
+func EnableDump(enable bool) *Client {
+	return defaultClient.EnableDump(enable)
 }
 
 // EnableDump enables dump requests and responses,  allowing you
@@ -462,6 +619,10 @@ func (c *Client) EnableDump(enable bool) *Client {
 	return c
 }
 
+func SetDumpOptions(opt *DumpOptions) *Client {
+	return defaultClient.SetDumpOptions(opt)
+}
+
 // SetDumpOptions configures the underlying Transport's DumpOptions
 func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
@@ -474,15 +635,18 @@ func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
 	return c
 }
 
+func SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
+	return defaultClient.SetProxy(proxy)
+}
+
 // SetProxy set the proxy function.
 func (c *Client) SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
 	c.t.Proxy = proxy
 	return c
 }
 
-func (c *Client) SetProxyFromEnv() *Client {
-	c.t.Proxy = http.ProxyFromEnvironment
-	return c
+func OnBeforeRequest(m RequestMiddleware) *Client {
+	return defaultClient.OnBeforeRequest(m)
 }
 
 func (c *Client) OnBeforeRequest(m RequestMiddleware) *Client {
@@ -490,9 +654,17 @@ func (c *Client) OnBeforeRequest(m RequestMiddleware) *Client {
 	return c
 }
 
+func OnAfterResponse(m ResponseMiddleware) *Client {
+	return defaultClient.OnAfterResponse(m)
+}
+
 func (c *Client) OnAfterResponse(m ResponseMiddleware) *Client {
 	c.afterResponse = append(c.afterResponse, m)
 	return c
+}
+
+func SetProxyURL(proxyUrl string) *Client {
+	return defaultClient.SetProxyURL(proxyUrl)
 }
 
 func (c *Client) SetProxyURL(proxyUrl string) *Client {
@@ -563,7 +735,7 @@ func C() *Client {
 	c := &Client{
 		beforeRequest: beforeRequest,
 		afterResponse: afterResponse,
-		log:           createLogger(),
+		log:           createDefaultLogger(),
 		httpClient:    httpClient,
 		t:             t,
 		t2:            t2,
