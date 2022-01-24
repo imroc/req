@@ -18,24 +18,13 @@ A golang http request library for humans.
 go get github.com/imroc/req/v2@v2.0.0-alpha.6
 ```
 
-## Usage
+## Quick-Start
 
 Import req in your code:
 
 ```go
 import "github.com/imroc/req/v2"
 ```
-
-### Table of Contents
-
-* [Quick Start](#Quick-Start)
-* [Debug](#Debug)
-* [PathParam](#PathParam)
-* [QueryParam](#QueryParam)
-* [Header](#Header)
-* [Cookie](#Cookie)
-
-### <a name="Quick-Start">Quick Start</a>
 
 **Simple GET**
 
@@ -90,6 +79,14 @@ resp, err := req.SetHeader("Accept", "application/json").
     SetResult(&result).
     Get(url)
 ```
+
+## Examples
+
+* [Debug](#Debug)
+* [PathParam](#PathParam)
+* [QueryParam](#QueryParam)
+* [Header](#Header)
+* [Cookie](#Cookie)
 
 ### <a name="Debug">Debug</a>
 
