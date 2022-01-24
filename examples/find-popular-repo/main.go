@@ -1,9 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/imroc/req/v2"
-	"errors"
 	"strconv"
 )
 
@@ -21,6 +21,7 @@ func init() {
 	// req.DevMode()
 }
 
+// Change the name if you want
 var username = "imroc"
 
 func main() {
@@ -31,7 +32,6 @@ func main() {
 	}
 	fmt.Printf("The most popular repo of %s is %s, which have %d stars\n", username, repo, star)
 }
-
 
 func findTheMostPopularRepo(username string) (repo string, star int, err error) {
 
