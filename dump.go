@@ -99,7 +99,7 @@ type dumper struct {
 
 func newDefaultDumpOptions() *DumpOptions {
 	return &DumpOptions{
-		Output:         os.Stderr,
+		Output:         os.Stdout,
 		RequestBody:    true,
 		ResponseBody:   true,
 		ResponseHeader: true,
