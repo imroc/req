@@ -122,6 +122,7 @@ The common methods list is:
 * [Set Query Parameter](#QueryParam)
 * [Set Header](#Header)
 * [Set Cookie](#Cookie)
+* [Set Cert](#Cert)
 
 You can find more complete and runnable examples [here](examples).
 
@@ -366,6 +367,28 @@ client.SetCookie(cookie).SetCookies(cookies)
 resp1, err := client.R().Get(url1)
 ...
 resp2, err := client.R().Get(url2)
+```
+
+### <a name="Cert">Set Cert</a>
+
+```go
+// Set root cert and client cert from file path
+client := req.C().
+    SetRootCertFromFile("/path/to/root/certs/pemFile1.pem", "/path/to/root/certs/pemFile2.pem", "/path/to/root/certs/pemFile3.pem"). // Set root cert from one or more pem files
+    SetCertFromFile("/path/to/client/certs/client.pem", "/path/to/client/certs/client.key") // Set client cert and key cert file
+	
+// You can also set root cert from string
+client.SetRootCertFromString("-----BEGIN CERTIFICATE-----XXXXXX-----END CERTIFICATE-----")
+
+// And set client cert with 
+cert1, err := tls.LoadX509KeyPair("/path/to/client/certs/client.pem", "/path/to/client/certs/client.key")
+if err != nil {
+    log.Fatalf("ERROR client certificate: %s", err)
+}
+// ...
+
+// you can add more certs if you want
+client.SetCert(cert1, cert2, cert3) 
 ```
 
 ## License
