@@ -4,6 +4,8 @@
 
 A golang http request library for humans.
 
+**Table of Contents**
+
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
 * [Debug](#Debug)
