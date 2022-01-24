@@ -87,6 +87,10 @@ resp, err := req.SetHeader("Accept", "application/json").
 
 ## <a name="API-Design">API Design</a>
 
+**Settings and Chainable Methods**
+
+`Request` and `Client` is the most important object, and both need to support a lot of settings, req provide rich chainable methods out of the box, making it very simple and intuitive to initiate any request you want.
+
 **Global Wrapper for Testing Purposes**
 
 `req` wraps global methods of `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, just test API with minimal code like this:
@@ -109,15 +113,15 @@ The common methods list is:
 * `Request.SetBasicAuth` vs `Client.SetCommonBasicAuth`
 * `Request.SetQueryParam` vs `Client.SetCommonQueryParam`
 * `Request.SetQueryParams` vs `Client.SetCommonQueryParams`
-* `Request.SetQueryParamString` vs `Client.SetCommonQueryParamString`
+* `Request.SetQueryString` vs `Client.SetCommonQueryString`
 
 ## <a name="Examples">Examples</a>
 
 * [Debug](#Debug)
-* [PathParam](#PathParam)
-* [QueryParam](#QueryParam)
-* [Header](#Header)
-* [Cookie](#Cookie)
+* [Set Path Parameter](#PathParam)
+* [Set Query Parameter](#QueryParam)
+* [Set Header](#Header)
+* [Set Cookie](#Cookie)
 
 You can find more complete and runnable examples [here](examples).
 
@@ -219,7 +223,7 @@ client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-### <a name="PathParam">PathParam</a>
+### <a name="PathParam">Set Path Parameter</a>
 
 Use `PathParam` to replace variable in the url path:
 
@@ -246,7 +250,7 @@ resp2, err := client.Get(url2)
 ...
 ```
 
-### <a name="QueryParam">QueryParam</a>
+### <a name="QueryParam">Set Query Parameter</a>
 
 ```go
 client := req.C().DevMode()
@@ -273,7 +277,7 @@ resp2, err := client.Get(url2)
 ...
 ```
 
-### <a name="Header">Header</a>
+### <a name="Header">Set Header</a>
 
 ```go
 // Let's dump the header to see what's going on
@@ -308,7 +312,7 @@ resp2, err := client.R().Get(url2)
 ...
 ```
 
-### <a name="Cookie">Cookie</a>
+### <a name="Cookie">Set Cookie</a>
 
 ```go
 // Let's dump the header to see what's going on
