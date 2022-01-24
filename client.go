@@ -572,6 +572,14 @@ func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c.SetCommonHeader(hdrUserAgentKey, userAgent)
 }
 
+func SetCommonBearerAuthToken(token string) *Client {
+	return defaultClient.SetCommonBearerAuthToken(token)
+}
+
+func (c *Client) SetCommonBearerAuthToken(token string) *Client {
+	return c.SetCommonHeader("Authorization", "Bearer "+token)
+}
+
 func SetCommonBasicAuth(username, password string) *Client {
 	return defaultClient.SetCommonBasicAuth(username, password)
 }

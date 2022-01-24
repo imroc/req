@@ -84,13 +84,20 @@ func (r *Request) SetError(error interface{}) *Request {
 	return r
 }
 
+func SetBearerAuthToken(token string) *Request {
+	return defaultClient.R().SetBearerAuthToken(token)
+}
+
+func (r *Request) SetBearerAuthToken(token string) *Request {
+	return r.SetHeader("Authorization", "Bearer "+token)
+}
+
 func SetBasicAuth(username, password string) *Request {
 	return defaultClient.R().SetBasicAuth(username, password)
 }
 
 func (r *Request) SetBasicAuth(username, password string) *Request {
-	r.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
-	return r
+	return r.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
 }
 
 func SetHeaders(hdrs map[string]string) *Request {
