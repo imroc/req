@@ -12,7 +12,7 @@ A golang http request library for humans.
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for client and request settings, rich syntax sugar, less code and more efficiency.
-* Automatically detect charset and decode it to utf-8.
+* Automatically detect charset and decode it to utf-8 by default.
 * Powerful debugging capabilities (logging, tracing, and even dump the requests and responses' content).
 * All settings can be changed dynamically, making it possible to debug in the production environment.
 * Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
@@ -34,7 +34,8 @@ import "github.com/imroc/req/v2"
 **Simple GET**
 
 ```go
-// Create and send a request with the global default client
+// Create and send a request with the global default client, use
+// DevMode to see all details, try and suprise :)
 req.DevMode()
 resp, err := req.Get("https://api.github.com/users/imroc")
 
@@ -96,25 +97,13 @@ resp, err := req.SetHeader("Accept", "application/json").
 `req` wraps global methods of `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, just test API with minimal code like this:
 
 ```go
-req.DevMode().SetCommonBasicAuth("imroc", "123456")
+req.SetCommonBasicAuth("imroc", "123456").DevMode()
 req.SetBodyJsonString(`{"nickname":"roc", "email":"roc@imroc.cc"}`).Post("https://api.exmaple.com/profile")
 ```
 
 **Conmmon Methods and Override**
 
 There are some similar methods between `Client` and `Request`, the pattern is like `Request.SetXXX` corresponding to `Client.SetCommonXXX`, client settings take effect for all requests, but will be overridden if the request sets the same setting.
-
-The common methods list is:
-
-* `Request.SetHeader` vs `Client.SetCommonHeader`
-* `Request.SetHeaders` vs `Client.SetCommonHeaders`
-* `Request.SetCookie` vs `Client.SetCommonCookie`
-* `Request.SetCookies` vs `Client.SetCommonCookies`
-* `Request.SetBasicAuth` vs `Client.SetCommonBasicAuth`
-* `Request.SetBearerToken` vs `Client.SetCommonBearerToken`
-* `Request.SetQueryParam` vs `Client.SetCommonQueryParam`
-* `Request.SetQueryParams` vs `Client.SetCommonQueryParams`
-* `Request.SetQueryString` vs `Client.SetCommonQueryString`
 
 ## <a name="Examples">Examples</a>
 
