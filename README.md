@@ -11,7 +11,7 @@ A golang http request library for humans.
 * [Debug](#Debug)
 * [Set Path and Query Parameter](#Param)
 * [Set Header and Cookie](#Header-Cookie)
-* [Set Cert](#Cert)
+* [Set Certificates](#Cert)
 * [Set Basic Auth and Bearer Token](#Auth)
 * [Use Global Methods](#Global)
   
@@ -21,7 +21,7 @@ A golang http request library for humans.
 * Global wrapper of both `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, make API testing minimal, and even replace tools like postman, curl with code (see [Use Global Methods](#Global)).
 * There are some common settings between Client level and Request level, you can override Client settings at Request level if you want to (common settings pattern is `Request.SetXXX` vs `Client.SetCommonXXX`).
 * Automatically detect charset and decode it to utf-8 by default.
-* Powerful debugging capabilities, including logging, tracing, and even dump the requests and responses' content (see [Debug](#Debug])).
+* Powerful debugging capabilities, including logging, tracing, and even dump the requests and responses' content (see [Debug](#Debug)).
 * All settings can be changed dynamically, making it possible to debug in the production environment.
 * Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
 
@@ -30,7 +30,7 @@ A golang http request library for humans.
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-alpha.7
+go get github.com/imroc/req/v2@v2.0.0-alpha.8
 ```
 
 **Import**
@@ -341,7 +341,7 @@ resp1, err := client.R().Get(url1)
 resp2, err := client.R().Get(url2)
 ```
 
-## <a name="Cert">Set Cert</a>
+## <a name="Cert">Set Certificates</a>
 
 ```go
 client := req.R()
