@@ -111,6 +111,7 @@ The common methods list is:
 * `Request.SetCookie` vs `Client.SetCommonCookie`
 * `Request.SetCookies` vs `Client.SetCommonCookies`
 * `Request.SetBasicAuth` vs `Client.SetCommonBasicAuth`
+* `Request.SetBearerToken` vs `Client.SetCommonBearerToken`
 * `Request.SetQueryParam` vs `Client.SetCommonQueryParam`
 * `Request.SetQueryParams` vs `Client.SetCommonQueryParams`
 * `Request.SetQueryString` vs `Client.SetCommonQueryString`
