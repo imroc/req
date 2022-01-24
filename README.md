@@ -88,6 +88,8 @@ resp, err := req.SetHeader("Accept", "application/json").
 * [Header](#Header)
 * [Cookie](#Cookie)
 
+You can find more complete and runnable examples [here](examples).
+
 ### <a name="Debug">Debug</a>
 
 **Dump the content of request and response**
