@@ -4,7 +4,12 @@
 
 A golang http request library for humans.
 
-## Features
+* [Features](#Features)
+* [Quick Start](#Quick-Start)
+* [API Design](#API-Design)
+* [Examples](#Examples)
+  
+## <a name="Features">Features</a>
 
 * Simple and chainable methods for client and request settings, rich syntax sugar, less code and more efficiency.
 * Automatically detect charset and decode it to utf-8.
@@ -12,7 +17,7 @@ A golang http request library for humans.
 * All settings can be changed dynamically, making it possible to debug in the production environment.
 * Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
 
-## Quick-Start
+## <a name="Quick-Start">Quick Start</a>
 
 **Install**
 
@@ -41,11 +46,11 @@ resp, err := client.R().Get("https://api.github.com/users/imroc")
 **Client Settings**
 
 ```go
-// Create a client with custom client settings
+// Create a client with custom client settings using chainable method
 client := req.C().SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
 
-// You can also configure the global client using the same chaining method, req wraps glbal
-// method for default client 
+// You can also configure the global client using the same chainable method,
+// req wraps global method for default client 
 req.SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
 ```
 
@@ -80,7 +85,33 @@ resp, err := req.SetHeader("Accept", "application/json").
     Get(url)
 ```
 
-## Examples
+## <a name="API-Design">API Design</a>
+
+**Global Wrapper for Testing Purposes**
+
+`req` wraps global methods of `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, just test API with minimal code like this:
+
+```go
+req.DevMode().SetCommonBasicAuth("imroc", "123456")
+req.SetBodyJsonString(`{"nickname":"roc", "email":"roc@imroc.cc"}`).Post("https://api.exmaple.com/profile")
+```
+
+**Conmmon Methods and Override**
+
+There are some similar methods between `Client` and `Request`, the pattern is like `Request.SetXXX` corresponding to `Client.SetCommonXXX`, client settings take effect for all requests, but will be overridden if the request sets the same setting.
+
+The common methods list is:
+
+* `Request.SetHeader` vs `Client.SetCommonHeader`
+* `Request.SetHeaders` vs `Client.SetCommonHeaders`
+* `Request.SetCookie` vs `Client.SetCommonCookie`
+* `Request.SetCookies` vs `Client.SetCommonCookies`
+* `Request.SetBasicAuth` vs `Client.SetCommonBasicAuth`
+* `Request.SetQueryParam` vs `Client.SetCommonQueryParam`
+* `Request.SetQueryParams` vs `Client.SetCommonQueryParams`
+* `Request.SetQueryParamString` vs `Client.SetCommonQueryParamString`
+
+## <a name="Examples">Examples</a>
 
 * [Debug](#Debug)
 * [PathParam](#PathParam)
