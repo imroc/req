@@ -133,12 +133,12 @@ func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 	return c
 }
 
-func SetCerts(certs ...tls.Certificate) *Client {
-	return defaultClient.SetCerts(certs...)
+func SetCert(certs ...tls.Certificate) *Client {
+	return defaultClient.SetCert(certs...)
 }
 
-// SetCerts helps to set client certificates
-func (c *Client) SetCerts(certs ...tls.Certificate) *Client {
+// SetCert helps to set client certificates
+func (c *Client) SetCert(certs ...tls.Certificate) *Client {
 	config := c.tlsConfig()
 	config.Certificates = append(config.Certificates, certs...)
 	return c
@@ -163,18 +163,20 @@ func (c *Client) SetRootCertFromString(pemContent string) *Client {
 	return c
 }
 
-func SetRootCertFromFile(pemFilePath string) *Client {
-	return defaultClient.SetRootCertFromFile(pemFilePath)
+func SetRootCertFromFile(pemFiles ...string) *Client {
+	return defaultClient.SetRootCertFromFile(pemFiles...)
 }
 
-// SetRootCertFromFile helps to set root CA cert from file
-func (c *Client) SetRootCertFromFile(pemFilePath string) *Client {
-	rootPemData, err := ioutil.ReadFile(pemFilePath)
-	if err != nil {
-		c.log.Errorf("failed to read root cert file: %v", err)
-		return c
+// SetRootCertFromFile helps to set root cert from files
+func (c *Client) SetRootCertFromFile(pemFiles ...string) *Client {
+	for _, pemFile := range pemFiles {
+		rootPemData, err := ioutil.ReadFile(pemFile)
+		if err != nil {
+			c.log.Errorf("failed to read root cert file: %v", err)
+			return c
+		}
+		c.appendRootCertData(rootPemData)
 	}
-	c.appendRootCertData(rootPemData)
 	return c
 }
 
