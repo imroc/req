@@ -6,14 +6,20 @@ A golang http request library for humans.
 
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
-* [API Design](#API-Design)
-* [Examples](#Examples)
+* [Debug](#Debug)
+* [Set Path and Query Parameter](#Param)
+* [Set Header and Cookie](#Header-Cookie)
+* [Set Cert](#Cert)
+* [Set Basic Auth and Bearer Token](#Auth)
+* [Use Global Methods](#Global)
   
 ## <a name="Features">Features</a>
 
-* Simple and chainable methods for client and request settings, rich syntax sugar, less code and more efficiency.
+* Simple and chainable methods for client and request settings, less code and more efficiency.
+* Global wrapper of both `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, make API testing minimal, and even replace tools like postman, curl with code (see [Use Global Methods](#Global)).
+* There are some common settings between Client level and Request level, you can override Client settings at Request level if you want to (common settings pattern is `Request.SetXXX` vs `Client.SetCommonXXX`).
 * Automatically detect charset and decode it to utf-8 by default.
-* Powerful debugging capabilities (logging, tracing, and even dump the requests and responses' content).
+* Powerful debugging capabilities, including logging, tracing, and even dump the requests and responses' content (see [Debug](#Debug])).
 * All settings can be changed dynamically, making it possible to debug in the production environment.
 * Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
 
@@ -86,38 +92,7 @@ resp, err := req.SetHeader("Accept", "application/json").
     Get(url)
 ```
 
-## <a name="API-Design">API Design</a>
-
-**Settings and Chainable Methods**
-
-`Request` and `Client` is the most important object, and both need to support a lot of settings, req provide rich chainable methods out of the box, making it very simple and intuitive to initiate any request you want.
-
-**Global Wrapper for Testing Purposes**
-
-`req` wraps global methods of `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, just test API with minimal code like this:
-
-```go
-req.SetCommonBasicAuth("imroc", "123456").DevMode()
-req.SetBodyJsonString(`{"nickname":"roc", "email":"roc@imroc.cc"}`).Post("https://api.exmaple.com/profile")
-```
-
-**Conmmon Methods and Override**
-
-There are some similar methods between `Client` and `Request`, the pattern is like `Request.SetXXX` corresponding to `Client.SetCommonXXX`, client settings take effect for all requests, but will be overridden if the request sets the same setting.
-
-## <a name="Examples">Examples</a>
-
-* [Debug](#Debug)
-* [Set Path Parameter](#PathParam)
-* [Set Query Parameter](#QueryParam)
-* [Set Header](#Header)
-* [Set Cookie](#Cookie)
-* [Set Cert](#Cert)
-* [Set Basic Auth and Bearer Token](#Auth)
-
-You can find more complete and runnable examples [here](examples).
-
-### <a name="Debug">Debug</a>
+## <a name="Debug">Debug</a>
 
 **Dump the content of request and response**
 
@@ -214,7 +189,9 @@ client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-### <a name="PathParam">Set Path Parameter</a>
+## <a name="Param">Set Path and Query Parameter</a>
+
+**Set Path Parameter**
 
 Use `PathParam` to replace variable in the url path:
 
@@ -226,7 +203,7 @@ client.R().
     SetPathParams(map[string]string{ // Set multiple path params at once 
         "repo": "req",
         "path": "README.md",
-    }).Get("https://api.github.com/repos/{owner}/{repo}/contents/{path}")
+    }).Get("https://api.github.com/repos/{owner}/{repo}/contents/{path}") // path parameter will replace path variable in the url
 /* Output
 2022/01/23 14:43:59.114592 DEBUG [req] GET https://api.github.com/repos/imroc/req/contents/README.md
 ...
@@ -242,7 +219,7 @@ resp2, err := client.Get(url2)
 ...
 ```
 
-### <a name="QueryParam">Set Query Parameter</a>
+**Set Query Parameter**
 
 ```go
 client := req.C().DevMode()
@@ -270,8 +247,9 @@ resp2, err := client.Get(url2)
 ...
 ```
 
-### <a name="Header">Set Header</a>
+## <a name="Header-Cookie">Set Header and Cookie</a>
 
+**Set Header**
 ```go
 // Let's dump the header to see what's going on
 client := req.C().EnableDumpOnlyHeader() 
@@ -305,7 +283,7 @@ resp2, err := client.R().Get(url2)
 ...
 ```
 
-### <a name="Cookie">Set Cookie</a>
+**Set Cookie**
 
 ```go
 // Let's dump the header to see what's going on
@@ -361,7 +339,7 @@ resp1, err := client.R().Get(url1)
 resp2, err := client.R().Get(url2)
 ```
 
-### <a name="Cert">Set Cert</a>
+## <a name="Cert">Set Cert</a>
 
 ```go
 client := req.R()
@@ -384,7 +362,7 @@ if err != nil {
 client.SetCert(cert1, cert2, cert3) 
 ```
 
-### <a name="Auth">Set Basic Auth and Bearer Token</a>
+## <a name="Auth">Set Basic Auth and Bearer Token</a>
 
 ```go
 client := req.C()
@@ -400,6 +378,21 @@ client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com
 
 // Set bearer token for a request, will override client's bearer token setting.
 client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.example.com/profile")
+```
+
+## <a name="Global">Use Global Methods</a>
+
+`req` wrap methods of both `Client` and `Request` with global methods, very convenient when doing api testing, no need to explicitly create clients and requests to minimize the amount of code.
+
+```go
+req.SetTimeout(5 * time.Second).
+	SetCommonBasicAuth("imroc", "123456").
+	SetUserAgent("my api client").
+	DevMode()
+
+req.SetQueryParam("page", "2").
+	SetHeader("Accept", "application/json").
+	Get("https://api.example.com/repos")
 ```
 
 ## License

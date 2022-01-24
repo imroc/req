@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -47,24 +49,44 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 	return
 }
 
-func handleDownload(c *Client, r *Response) error {
+func handleDownload(c *Client, r *Response) (err error) {
 	if !r.Request.isSaveResponse {
 		return nil
 	}
-
 	var body io.ReadCloser
+
 	if r.body != nil { // already read
 		body = ioutil.NopCloser(bytes.NewReader(r.body))
 	} else {
 		body = r.Body
 	}
 
+	var output io.WriteCloser
+	if r.Request.outputFile != "" {
+		file := r.Request.outputFile
+		if c.outputDirectory != "" && !filepath.IsAbs(file) {
+			file = c.outputDirectory + string(filepath.Separator) + file
+		}
+
+		file = filepath.Clean(file)
+
+		if err = util.CreateDirectory(filepath.Dir(file)); err != nil {
+			return err
+		}
+		output, err = os.Create(file)
+		if err != nil {
+			return
+		}
+	} else {
+		output = r.Request.output // must not nil
+	}
+
 	defer func() {
 		body.Close()
-		r.Request.output.Close()
+		output.Close()
 	}()
-	_, err := io.Copy(r.Request.output, body)
-	return err
+	_, err = io.Copy(output, body)
+	return
 }
 
 func parseRequestHeader(c *Client, r *Request) error {

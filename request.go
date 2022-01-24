@@ -15,16 +15,18 @@ import (
 
 // Request is the http request
 type Request struct {
-	URL            string
-	PathParams     map[string]string
-	QueryParams    urlpkg.Values
-	Headers        http.Header
-	Cookies        []*http.Cookie
-	Result         interface{}
-	Error          interface{}
-	error          error
-	client         *Client
-	RawRequest     *http.Request
+	URL         string
+	PathParams  map[string]string
+	QueryParams urlpkg.Values
+	Headers     http.Header
+	Cookies     []*http.Cookie
+	Result      interface{}
+	Error       interface{}
+	error       error
+	client      *Client
+	RawRequest  *http.Request
+
+	outputFile     string
 	isSaveResponse bool
 	isMultiPart    bool
 	output         io.WriteCloser
@@ -129,12 +131,9 @@ func SetOutputFile(file string) *Request {
 }
 
 func (r *Request) SetOutputFile(file string) *Request {
-	output, err := os.Create(file)
-	if err != nil {
-		r.appendError(err)
-		return r
-	}
-	return r.SetOutput(output)
+	r.isSaveResponse = true
+	r.outputFile = file
+	return r
 }
 
 func SetOutput(output io.WriteCloser) *Request {
