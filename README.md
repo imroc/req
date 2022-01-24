@@ -56,9 +56,9 @@ req.SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
 client := req.C()
 var result Result
 resp, err := client.R().
-	SetHeader("Accept", "application/json").
-	SetQeuryParam("page", "1").
-	SetPathParam("userId", "imroc").
+    SetHeader("Accept", "application/json").
+    SetQeuryParam("page", "1").
+    SetPathParam("userId", "imroc").
     SetResult(&result).
     Get(url)
 
