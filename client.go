@@ -49,6 +49,7 @@ type Client struct {
 	XMLUnmarshal  func(data []byte, v interface{}) error
 	Debug         bool
 
+	outputDirectory         string
 	disableAutoReadResponse bool
 	scheme                  string
 	log                     Logger
@@ -115,6 +116,15 @@ func (c *Client) R() *Request {
 		client:     c,
 		RawRequest: req,
 	}
+}
+
+func SetOutputDirectory(dir string) *Client {
+	return defaultClient.SetOutputDirectory(dir)
+}
+
+func (c *Client) SetOutputDirectory(dir string) *Client {
+	c.outputDirectory = dir
+	return c
 }
 
 func SetCertFromFile(certFile, keyFile string) *Client {

@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/base64"
+	"os"
 	"reflect"
 	"regexp"
 	"strings"
@@ -81,4 +82,15 @@ func basicAuth(username, password string) string {
 
 func BasicAuthHeaderValue(username, password string) string {
 	return "Basic " + basicAuth(username, password)
+}
+
+func CreateDirectory(dir string) (err error) {
+	if _, err = os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			if err = os.MkdirAll(dir, 0755); err != nil {
+				return
+			}
+		}
+	}
+	return
 }
