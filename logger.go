@@ -1,6 +1,7 @@
 package req
 
 import (
+	"io"
 	"log"
 	"os"
 )
@@ -13,9 +14,13 @@ type Logger interface {
 	Debugf(format string, v ...interface{})
 }
 
-func createLogger() *logger {
-	l := &logger{l: log.New(os.Stderr, "", log.Ldate|log.Lmicroseconds)}
-	return l
+// NewLogger create a Logger wraps the *log.Logger
+func NewLogger(output io.Writer, prefix string, flag int) Logger {
+	return &logger{l: log.New(output, prefix, flag)}
+}
+
+func createDefaultLogger() Logger {
+	return NewLogger(os.Stderr, "", log.Ldate|log.Lmicroseconds)
 }
 
 var _ Logger = (*logger)(nil)
