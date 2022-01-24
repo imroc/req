@@ -123,6 +123,7 @@ The common methods list is:
 * [Set Header](#Header)
 * [Set Cookie](#Cookie)
 * [Set Cert](#Cert)
+* [Set Basic Auth and Bearer Token](#Auth)
 
 You can find more complete and runnable examples [here](examples).
 
@@ -175,10 +176,9 @@ x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 */
 	
 // Dump header content asynchronously and save it to file
-client := req.C().
-	EnableDumpOnlyHeader(). // Only dump the header of request and response
-	EnableDumpAsync(). // Dump asynchronously to improve performance
-	EnableDumpToFile("reqdump.log") // Dump to file without printing it out
+client.EnableDumpOnlyHeader(). // Only dump the header of request and response
+    EnableDumpAsync(). // Dump asynchronously to improve performance
+    EnableDumpToFile("reqdump.log") // Dump to file without printing it out
 client.R().Get(url)
 
 // Enable dump with fully customized settings
@@ -190,7 +190,7 @@ opt := &req.DumpOptions{
             ResponseHeader: false,
             Async:          false,
         }
-client := req.C().SetDumpOptions(opt).EnableDump(true)
+client.SetDumpOptions(opt).EnableDump(true)
 client.R().Get("https://www.baidu.com/")
 
 // Change settings dynamiclly
@@ -230,6 +230,7 @@ Use `PathParam` to replace variable in the url path:
 
 ```go
 client := req.C().DevMode()
+
 client.R().
     SetPathParam("owner", "imroc"). // Set a path param, which will replace the vairable in url path
     SetPathParams(map[string]string{ // Set multiple path params at once 
@@ -255,6 +256,7 @@ resp2, err := client.Get(url2)
 
 ```go
 client := req.C().DevMode()
+
 client.R().
     SetQueryParam("a", "a"). // Set a query param, which will be encoded as query parameter in url
     SetQueryParams(map[string]string{ // Set multiple query params at once 
@@ -372,9 +374,10 @@ resp2, err := client.R().Get(url2)
 ### <a name="Cert">Set Cert</a>
 
 ```go
+client := req.R()
+
 // Set root cert and client cert from file path
-client := req.C().
-    SetRootCertFromFile("/path/to/root/certs/pemFile1.pem", "/path/to/root/certs/pemFile2.pem", "/path/to/root/certs/pemFile3.pem"). // Set root cert from one or more pem files
+client.SetRootCertFromFile("/path/to/root/certs/pemFile1.pem", "/path/to/root/certs/pemFile2.pem", "/path/to/root/certs/pemFile3.pem"). // Set root cert from one or more pem files
     SetCertFromFile("/path/to/client/certs/client.pem", "/path/to/client/certs/client.key") // Set client cert and key cert file
 	
 // You can also set root cert from string
@@ -389,6 +392,24 @@ if err != nil {
 
 // you can add more certs if you want
 client.SetCert(cert1, cert2, cert3) 
+```
+
+### <a name="Auth">Set Basic Auth and Bearer Token</a>
+
+```go
+client := req.C()
+
+// Set basic auth for all request
+client.SetCommonBasicAuth("imroc", "123456")
+
+// Set bearer token for all request
+client.SetCommonBearerToken("MDc0ZTg5YmU4Yzc5MjAzZGJjM2ZiMzkz")
+
+// Set basic auth for a request, will override client's basic auth setting.
+client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com/profile")
+
+// Set bearer token for a request, will override client's bearer token setting.
+client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.example.com/profile")
 ```
 
 ## License
