@@ -20,7 +20,7 @@ func NewLogger(output io.Writer, prefix string, flag int) Logger {
 }
 
 func createDefaultLogger() Logger {
-	return NewLogger(os.Stderr, "", log.Ldate|log.Lmicroseconds)
+	return NewLogger(os.Stdout, "", log.Ldate|log.Lmicroseconds)
 }
 
 var _ Logger = (*logger)(nil)

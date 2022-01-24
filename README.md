@@ -53,11 +53,11 @@ req.SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
 
 ```go
 // Use client to create a request with custom request settings
-client := req.C()
+client := req.C().DevMode()
 var result Result
 resp, err := client.R().
     SetHeader("Accept", "application/json").
-    SetQeuryParam("page", "1").
+    SetQueryParam("page", "1").
     SetPathParam("userId", "imroc").
     SetResult(&result).
     Get(url)
@@ -65,7 +65,7 @@ resp, err := client.R().
 // You can also create a request using global client using the same chaining method
 resp, err := req.R().
     SetHeader("Accept", "application/json").
-    SetQeuryParam("page", "1").
+    SetQueryParam("page", "1").
     SetPathParam("userId", "imroc").
     SetResult(&result).
     Get(url)
@@ -74,7 +74,7 @@ resp, err := req.R().
 // wraps global method for request, and create a request using
 // the default client automatically.
 resp, err := req.SetHeader("Accept", "application/json").
-    SetQeuryParam("page", "1").
+    SetQueryParam("page", "1").
     SetPathParam("userId", "imroc").
     SetResult(&result).
     Get(url)
