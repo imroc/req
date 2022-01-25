@@ -17,7 +17,7 @@ type ErrorMessage struct {
 }
 
 func init() {
-	req.EnableDebug(true)
+	req.EnableDebugLog(true)
 	// Uncomment DevMode below if you want to see more details
 	// req.DevMode()
 }
