@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	urlpkg "net/url"
+	"os"
 	"strings"
 )
 
@@ -17,6 +18,7 @@ type Request struct {
 	URL         string
 	PathParams  map[string]string
 	QueryParams urlpkg.Values
+	FormData    urlpkg.Values
 	Headers     http.Header
 	Cookies     []*http.Cookie
 	Result      interface{}
@@ -25,10 +27,42 @@ type Request struct {
 	client      *Client
 	RawRequest  *http.Request
 
+	isMultiPart    bool
+	uploadFiles    []*uploadFile
+	uploadReader   []io.ReadCloser
 	outputFile     string
 	isSaveResponse bool
-	isMultiPart    bool
 	output         io.WriteCloser
+}
+
+func SetFormDataFromValues(data urlpkg.Values) *Request {
+	return defaultClient.R().SetFormDataFromValues(data)
+}
+
+func (r *Request) SetFormDataFromValues(data urlpkg.Values) *Request {
+	if r.FormData == nil {
+		r.FormData = urlpkg.Values{}
+	}
+	for k, v := range data {
+		for _, kv := range v {
+			r.FormData.Add(k, kv)
+		}
+	}
+	return r
+}
+
+func SetFormData(data map[string]string) *Request {
+	return defaultClient.R().SetFormData(data)
+}
+
+func (r *Request) SetFormData(data map[string]string) *Request {
+	if r.FormData == nil {
+		r.FormData = urlpkg.Values{}
+	}
+	for k, v := range data {
+		r.FormData.Set(k, v)
+	}
+	return r
 }
 
 func SetCookie(hc *http.Cookie) *Request {
@@ -64,6 +98,51 @@ func (r *Request) SetQueryString(query string) *Request {
 	} else {
 		r.client.log.Errorf("%v", err)
 	}
+	return r
+}
+
+func SetFileReader(paramName, filePath string, reader io.Reader) *Request {
+	return defaultClient.R().SetFileReader(paramName, filePath, reader)
+}
+
+func (r *Request) SetFileReader(paramName, filePath string, reader io.Reader) *Request {
+	r.isMultiPart = true
+	r.uploadFiles = append(r.uploadFiles, &uploadFile{
+		ParamName: paramName,
+		FilePath:  filePath,
+		Reader:    reader,
+	})
+	return r
+}
+
+func SetFiles(files map[string]string) *Request {
+	return defaultClient.R().SetFiles(files)
+}
+
+func (r *Request) SetFiles(files map[string]string) *Request {
+	for k, v := range files {
+		r.SetFile(k, v)
+	}
+	return r
+}
+
+func SetFile(paramName, filePath string) *Request {
+	return defaultClient.R().SetFile(paramName, filePath)
+}
+
+func (r *Request) SetFile(paramName, filePath string) *Request {
+	r.isMultiPart = true
+	file, err := os.Open(filePath)
+	if err != nil {
+		r.client.log.Errorf("failed to open %s: %v", filePath, err)
+		r.appendError(err)
+		return r
+	}
+	r.uploadFiles = append(r.uploadFiles, &uploadFile{
+		ParamName: paramName,
+		FilePath:  filePath,
+		Reader:    file,
+	})
 	return r
 }
 
