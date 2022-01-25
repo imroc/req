@@ -8,22 +8,20 @@ A golang http request library for humans.
 
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
-* [Debug](#Debug)
+* [Debugging](#Debugging)
 * [Set Path and Query Parameter](#Param)
 * [Set Header and Cookie](#Header-Cookie)
 * [Set Certificates](#Cert)
 * [Set Basic Auth and Bearer Token](#Auth)
-* [Use Global Methods](#Global)
+* [Use Global Wrapper Methods](#Global)
   
 ## <a name="Features">Features</a>
 
-* Simple and chainable methods for client and request settings, less code and more efficiency.
-* Global wrapper of both `Client` and `Request` for testing purposes, so that you don't even need to create the client or request explicitly, make API testing minimal, and even replace tools like postman, curl with code (see [Use Global Methods](#Global)).
-* There are some common settings between Client level and Request level, you can override Client settings at Request level if you want to (common settings pattern is `Request.SetXXX` vs `Client.SetCommonXXX`).
-* Automatically detect charset and decode it to utf-8 by default.
-* Powerful debugging capabilities, including logging, tracing, and even dump the requests and responses' content (see [Debug](#Debug)).
-* All settings can be changed dynamically, making it possible to debug in the production environment.
-* Easy to integrate with existing code, just replace the Transport of existing http.Client, then you can dump content as req to debug APIs.
+* Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
+* Powerful [Debugging](#Debugging) capabilities, including debug logs, performance traces, and even dump complete request and response content.
+* [Use Global Wrapper Methods](#Global) to test HTTP APIs with minimal code.
+* Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default.
+* Exportable `Transport`, just replace the Transport of existing http.Client with `*req.Transport`, then you can dump the content as `req` does to debug APIs with minimal code change.
 
 ## <a name="Quick-Start">Quick Start</a>
 
@@ -94,7 +92,7 @@ resp, err := req.SetHeader("Accept", "application/json").
     Get(url)
 ```
 
-## <a name="Debug">Debug</a>
+## <a name="Debugging">Debugging</a>
 
 **Dump the content of request and response**
 
