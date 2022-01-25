@@ -24,7 +24,7 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 	if r.StatusCode == http.StatusNoContent {
 		return
 	}
-	body, err := r.Bytes() // in case req.SetResult with cient.DisalbeAutoReadResponse(true)
+	body, err := r.ToBytes() // in case req.SetResult or req.SetError with cient.DisalbeAutoReadResponse(true)
 	if err != nil {
 		return
 	}
