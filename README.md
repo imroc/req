@@ -9,11 +9,11 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
 * [Debugging](#Debugging)
-* [Set Path Parameter and Query Parameter](#Param)
-* [Set Header and Cookie](#Header-Cookie)
-* [Set Certificates](#Cert)
-* [Set Basic Auth and Bearer Token](#Auth)
 * [Testing with Global Wrapper Methods](#Global)
+* [Path Parameter and Query Parameter](#Param)
+* [Header and Cookie](#Header-Cookie)
+* [Custom Client and Root Certificates](#Cert)
+* [Basic Auth and Bearer Token](#Auth)
   
 ## <a name="Features">Features</a>
 
@@ -146,14 +146,36 @@ client.SetLogger(logger)
 
 **DevMode**
 
-If you want to enable all debug features (dump, debug logging and tracing), just call `DevMode()`:
+If you want to enable all debug features (dump, debug log and tracing), just call `DevMode()`:
 
 ```go
 client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-## <a name="Param">Set Path Parameter and Query Parameter</a>
+## <a name="Global">Testing with Use Global Methods</a>
+
+`req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
+
+```go
+// Call the global methods just like the Client's methods,
+// so you can treat package name `req` as a Client, and
+// you don't need to create any client explicitly.
+req.SetTimeout(5 * time.Second).
+	SetCommonBasicAuth("imroc", "123456").
+	SetUserAgent("my api client").
+	DevMode()
+
+// Call the global method just like the Request's method,
+// which will create request automatically using the default
+// client, so you can treat package name `req` as a Request,
+// and you don't need to create request explicitly.
+req.SetQueryParam("page", "2").
+	SetHeader("Accept", "application/json").
+	Get("https://api.example.com/repos")
+```
+
+## <a name="Param">Path Parameter and Query Parameter</a>
 
 **Set Path Parameter**
 
@@ -213,7 +235,7 @@ resp2, err := client.Get(url2)
 ...
 ```
 
-## <a name="Header-Cookie">Set Header and Cookie</a>
+## <a name="Header-Cookie">Header and Cookie</a>
 
 **Set Header**
 ```go
@@ -305,7 +327,7 @@ resp1, err := client.R().Get(url1)
 resp2, err := client.R().Get(url2)
 ```
 
-## <a name="Cert">Set Certificates</a>
+## <a name="Cert">Custom Client and Root Certificates</a>
 
 ```go
 client := req.R()
@@ -328,7 +350,7 @@ if err != nil {
 client.SetCert(cert1, cert2, cert3) 
 ```
 
-## <a name="Auth">Set Basic Auth and Bearer Token</a>
+## <a name="Auth">Basic Auth and Bearer Token</a>
 
 ```go
 client := req.C()
@@ -346,27 +368,31 @@ client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com
 client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.example.com/profile")
 ```
 
-## <a name="Global">Testing with Use Global Methods</a>
-
-`req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
+## <a name="Download">Download and Upload</a>
 
 ```go
-// Call the global methods just like the Client's methods,
-// so you can treat package name `req` as a Client, and
-// you don't need to create any client explicitly.
-req.SetTimeout(5 * time.Second).
-	SetCommonBasicAuth("imroc", "123456").
-	SetUserAgent("my api client").
-	DevMode()
+// Create a client with default download direcotry
+client := req.C().SetOutputDirectory("/path/to/download")
 
-// Call the global method just like the Request's method,
-// which will create request automatically using the default
-// client, so you can treat package name `req` as a Request,
-// and you don't need to create request explicitly.
-req.SetQueryParam("page", "2").
-	SetHeader("Accept", "application/json").
-	Get("https://api.example.com/repos")
+// Download to relative file path, this will be downloaded
+// to /path/to/download/test.jpg
+client.R().SetOutputFile("test.jpg").Get(url)
+
+// Download to absolute file path, ignore the output directory
+// setting from Client
+client.R().SetOutputFile("/tmp/test.jpg").Get(url)
+
+// You can also save file to any `io.WriteCloser`
+file, err := os.Create("/tmp/test.jpg")
+if err != nil {
+	fmt.Println(err)
+	return
+}
+client.R().SetOutput(file).Get(url)
+
 ```
+
+
 
 ## License
 
