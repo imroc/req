@@ -157,7 +157,7 @@ client.R().Get("https://imroc.cc")
 
 **Set Path Parameter**
 
-Use `PathParam` to replace variable in the url path:
+Use `SetPathParam` or `SetPathParams` to replace variable in the url path:
 
 ```go
 client := req.C().DevMode()
@@ -184,6 +184,8 @@ resp2, err := client.Get(url2)
 ```
 
 **Set Query Parameter**
+
+Use `SetQueryParam`, `SetQueryParams` or `SetQueryString` to append url query parameter:
 
 ```go
 client := req.C().DevMode()
