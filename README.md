@@ -2,7 +2,7 @@
 
 [![GoDoc](https://pkg.go.dev/badge/github.com/imroc/req.svg)](https://pkg.go.dev/github.com/imroc/req)
 
-A golang http request library for humans.
+Simplified golang http client library with magic, happy sending requests, less code and more efficiency.
 
 **Table of Contents**
 
@@ -37,59 +37,23 @@ go get github.com/imroc/req/v2@v2.0.0-alpha.8
 import "github.com/imroc/req/v2"
 ```
 
-**Simple GET**
-
 ```go
-// Create and send a request with the global default client, use
-// DevMode to see all details, try and suprise :)
+// For test, you can create and send a request with the global default
+// client, use DevMode to see all details, try and suprise :)
 req.DevMode()
-resp, err := req.Get("https://api.github.com/users/imroc")
+req.Get("https://api.github.com/users/imroc")
 
-// Create and send a request with the custom client
-client := req.C().DevMode()
-resp, err := client.R().Get("https://api.github.com/users/imroc")
-```
-
-**Client Settings**
-
-```go
-// Create a client with custom client settings using chainable method
-client := req.C().SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
-
-// You can also configure the global client using the same chainable method,
-// req wraps global method for default client 
-req.SetUserAgent("my-custom-client").SetTimeout(5 * time.Second).DevMode()
-```
-
-**Request Settings**
-
-```go
-// Use client to create a request with custom request settings
-client := req.C().DevMode()
-var result Result
-resp, err := client.R().
-    SetHeader("Accept", "application/json").
+// Create and send a request with the custom client and settings
+client := req.C(). // Use C() to create a client
+    SetUserAgent("my-custom-client"). // Chainable client settings
+    SetTimeout(5 * time.Second).
+    DevMode()
+resp, err := client.R(). // Use R() to create a request
+    SetHeader("Accept", "application/vnd.github.v3+json"). // Chainable request settings
+    SetPathParam("username", "imroc").
     SetQueryParam("page", "1").
-    SetPathParam("userId", "imroc").
     SetResult(&result).
-    Get(url)
-
-// You can also create a request using global client using the same chaining method
-resp, err := req.R().
-    SetHeader("Accept", "application/json").
-    SetQueryParam("page", "1").
-    SetPathParam("userId", "imroc").
-    SetResult(&result).
-    Get(url)
-
-// You can even also create a request without calling R(), cuz req
-// wraps global method for request, and create a request using
-// the default client automatically.
-resp, err := req.SetHeader("Accept", "application/json").
-    SetQueryParam("page", "1").
-    SetPathParam("userId", "imroc").
-    SetResult(&result).
-    Get(url)
+    Get("https://api.github.com/users/{username}/repos")
 ```
 
 ## <a name="Debugging">Debugging</a>
@@ -140,11 +104,11 @@ x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
 {"login":"imroc","id":7448852,"node_id":"MDQ6VXNlcjc0NDg4NTI=","avatar_url":"https://avatars.githubusercontent.com/u/7448852?v=4","gravatar_id":"","url":"https://api.github.com/users/imroc","html_url":"https://github.com/imroc","followers_url":"https://api.github.com/users/imroc/followers","following_url":"https://api.github.com/users/imroc/following{/other_user}","gists_url":"https://api.github.com/users/imroc/gists{/gist_id}","starred_url":"https://api.github.com/users/imroc/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/imroc/subscriptions","organizations_url":"https://api.github.com/users/imroc/orgs","repos_url":"https://api.github.com/users/imroc/repos","events_url":"https://api.github.com/users/imroc/events{/privacy}","received_events_url":"https://api.github.com/users/imroc/received_events","type":"User","site_admin":false,"name":"roc","company":"Tencent","blog":"https://imroc.cc","location":"China","email":null,"hireable":true,"bio":"I'm roc","twitter_username":"imrocchan","public_repos":128,"public_gists":0,"followers":362,"following":151,"created_at":"2014-04-30T10:50:46Z","updated_at":"2021-07-08T12:11:23Z"}
 */
 	
-// Dump header content asynchronously and save it to file
+// Customize dump settings with predefined convenience settings. 
 client.EnableDumpOnlyHeader(). // Only dump the header of request and response
     EnableDumpAsync(). // Dump asynchronously to improve performance
     EnableDumpToFile("reqdump.log") // Dump to file without printing it out
-client.R().Get(url)
+client.R().Get(url) // Send request to see the content that have been dumpped
 
 // Enable dump with fully customized settings
 opt := &req.DumpOptions{
