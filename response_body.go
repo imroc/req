@@ -1,46 +1,24 @@
 package req
 
 import (
-	"encoding/json"
-	"encoding/xml"
 	"io/ioutil"
 	"strings"
 )
 
-func (r *Response) MustUnmarshalJson(v interface{}) {
-	err := r.UnmarshalJson(v)
-	if err != nil {
-		panic(err)
-	}
-}
-
 func (r *Response) UnmarshalJson(v interface{}) error {
-	b, err := r.Bytes()
+	b, err := r.ToBytes()
 	if err != nil {
 		return err
 	}
-	return json.Unmarshal(b, v)
-}
-
-func (r *Response) MustUnmarshalXml(v interface{}) {
-	err := r.UnmarshalXml(v)
-	if err != nil {
-		panic(err)
-	}
+	return r.Request.client.JSONUnmarshal(b, v)
 }
 
 func (r *Response) UnmarshalXml(v interface{}) error {
-	b, err := r.Bytes()
+	b, err := r.ToBytes()
 	if err != nil {
 		return err
 	}
-	return xml.Unmarshal(b, v)
-}
-func (r *Response) MustUnmarshal(v interface{}) {
-	err := r.Unmarshal(v)
-	if err != nil {
-		panic(err)
-	}
+	return r.Request.client.XMLUnmarshal(b, v)
 }
 
 func (r *Response) Unmarshal(v interface{}) error {
@@ -53,20 +31,30 @@ func (r *Response) Unmarshal(v interface{}) error {
 	return r.UnmarshalJson(v)
 }
 
-func (r *Response) MustString() string {
-	b, err := r.Bytes()
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
+// Bytes return the response body as []bytes that hava already been read, could be
+// nil if not read, the following cases are already read:
+// 1. `Request.SetResult` or `Request.SetError` is called.
+// 2. `Client.DisableAutoReadResponse(false)` is not called,
+//     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
+func (r *Response) Bytes() []byte {
+	return r.body
 }
 
-func (r *Response) String() (string, error) {
-	b, err := r.Bytes()
+// String return the response body as string that hava already been read, could be
+// nil if not read, the following cases are already read:
+// 1. `Request.SetResult` or `Request.SetError` is called.
+// 2. `Client.DisableAutoReadResponse(false)` is not called,
+//     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
+func (r *Response) String() string {
+	return string(r.body)
+}
+
+func (r *Response) ToString() (string, error) {
+	b, err := r.ToBytes()
 	return string(b), err
 }
 
-func (r *Response) Bytes() ([]byte, error) {
+func (r *Response) ToBytes() ([]byte, error) {
 	if r.body != nil {
 		return r.body, nil
 	}
@@ -77,12 +65,4 @@ func (r *Response) Bytes() ([]byte, error) {
 	}
 	r.body = body
 	return body, nil
-}
-
-func (r *Response) MustBytes() []byte {
-	b, err := r.Bytes()
-	if err != nil {
-		panic(err)
-	}
-	return b
 }
