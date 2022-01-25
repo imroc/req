@@ -13,13 +13,13 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Set Header and Cookie](#Header-Cookie)
 * [Set Certificates](#Cert)
 * [Set Basic Auth and Bearer Token](#Auth)
-* [Use Global Wrapper Methods](#Global)
+* [Testing with Global Wrapper Methods](#Global)
   
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
 * Powerful [Debugging](#Debugging) capabilities, including debug logs, performance traces, and even dump complete request and response content.
-* [Use Global Wrapper Methods](#Global) to test HTTP APIs with minimal code.
+* [Testing with Global Wrapper Methods](#Global) with minimal code.
 * Detect the charset of response body and decode it to UTF-8 automatically to avoid garbled characters by default.
 * Exportable `Transport`, just replace the Transport of existing http.Client with `*req.Transport`, then you can dump the content as `req` does to debug APIs with minimal code change.
 
@@ -346,16 +346,23 @@ client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com
 client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.example.com/profile")
 ```
 
-## <a name="Global">Use Global Methods</a>
+## <a name="Global">Use Global Methods to Test</a>
 
-`req` wrap methods of both `Client` and `Request` with global methods, very convenient when doing api testing, no need to explicitly create clients and requests to minimize the amount of code.
+`req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
 
 ```go
+// Call the global methods just like the Client's methods,
+// so you can treat package name `req` as a Client, and
+// you don't need to create any client explicitly.
 req.SetTimeout(5 * time.Second).
 	SetCommonBasicAuth("imroc", "123456").
 	SetUserAgent("my api client").
 	DevMode()
 
+// Call the global method just like the Request's method,
+// which will create request automatically using the default
+// client, so you can treat package name `req` as a Request,
+// and you don't need to create request explicitly.
 req.SetQueryParam("page", "2").
 	SetHeader("Accept", "application/json").
 	Get("https://api.example.com/repos")
