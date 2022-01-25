@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/imroc/req"
 	"github.com/imroc/req/v2"
 	"strconv"
 )
@@ -78,9 +79,9 @@ func findTheMostPopularRepo(username string) (repo string, star int, err error) 
 		}
 
 		// Unkown http status code, record and return error, here we can use
-		// MustString() to get response body, cuz body have already been read
-		// and no error returned.
-		err = fmt.Errorf("unkown error. status code %d; body: %s", resp.StatusCode, resp.MustString())
+		// String() to get response body, cuz response body have already been read
+		// and no error returned, do not need to use ToString().
+		err = fmt.Errorf("unkown error. status code %d; body: %s", resp.StatusCode, resp.String())
 		return
 	}
 }
