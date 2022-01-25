@@ -811,7 +811,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 	}
 
 	if !c.disableAutoReadResponse && !r.isSaveResponse { // auto read response body
-		_, err = resp.Bytes()
+		_, err = resp.ToBytes()
 		if err != nil {
 			return
 		}

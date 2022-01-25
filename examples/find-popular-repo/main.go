@@ -3,9 +3,9 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/imroc/req"
-	"github.com/imroc/req/v2"
 	"strconv"
+
+	"github.com/imroc/req/v2"
 )
 
 type Repo struct {
