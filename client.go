@@ -46,8 +46,8 @@ type Client struct {
 	JSONMarshal   func(v interface{}) ([]byte, error)
 	JSONUnmarshal func(data []byte, v interface{}) error
 	XMLMarshal    func(v interface{}) ([]byte, error)
-	XMLUnmarshal  func(data []byte, v interface{}) error
-	Debug         bool
+	XMLUnmarshal func(data []byte, v interface{}) error
+	DebugLog     bool
 
 	outputDirectory         string
 	disableAutoReadResponse bool
@@ -315,12 +315,12 @@ const (
 	userAgentChrome  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
 )
 
-func EnableDebug(enable bool) *Client {
-	return defaultClient.EnableDebug(enable)
+func EnableDebugLog(enable bool) *Client {
+	return defaultClient.EnableDebugLog(enable)
 }
 
-func (c *Client) EnableDebug(enable bool) *Client {
-	c.Debug = enable
+func (c *Client) EnableDebugLog(enable bool) *Client {
+	c.DebugLog = enable
 	return c
 }
 
@@ -333,7 +333,7 @@ func DevMode() *Client {
 // data from some sites.
 func (c *Client) DevMode() *Client {
 	return c.EnableDumpAll().
-		EnableDebug(true).
+		EnableDebugLog(true).
 		SetUserAgent(userAgentChrome)
 }
 
@@ -788,7 +788,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 
 	setupRequest(r)
 
-	if c.Debug {
+	if c.DebugLog {
 		c.log.Debugf("%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
 	}
 
