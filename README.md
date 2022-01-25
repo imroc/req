@@ -346,7 +346,7 @@ client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com
 client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.example.com/profile")
 ```
 
-## <a name="Global">Use Global Methods to Test</a>
+## <a name="Global">Testing with Use Global Methods</a>
 
 `req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
 
