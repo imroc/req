@@ -20,6 +20,7 @@ import (
 var (
 	hdrUserAgentKey   = "User-Agent"
 	hdrUserAgentValue = "req/v2 (https://github.com/imroc/req)"
+	hdrContentTypeKey = "Content-Type"
 )
 
 // DefaultClient returns the global default Client.
@@ -457,6 +458,34 @@ func (c *Client) EnableDumpAsync() *Client {
 	return c
 }
 
+func EnableDumpNoRequestBody() *Client {
+	return defaultClient.EnableDumpNoRequestBody()
+}
+
+func (c *Client) EnableDumpNoRequestBody() *Client {
+	o := c.GetDumpOptions()
+	o.ResponseHeader = true
+	o.ResponseBody = true
+	o.RequestBody = false
+	o.RequestHeader = true
+	c.enableDump()
+	return c
+}
+
+func EnableDumpNoResponseBody() *Client {
+	return defaultClient.EnableDumpNoResponseBody()
+}
+
+func (c *Client) EnableDumpNoResponseBody() *Client {
+	o := c.GetDumpOptions()
+	o.ResponseHeader = true
+	o.ResponseBody = false
+	o.RequestBody = true
+	o.RequestHeader = true
+	c.enableDump()
+	return c
+}
+
 func EnableDumpOnlyResponse() *Client {
 	return defaultClient.EnableDumpOnlyResponse()
 }
@@ -749,6 +778,7 @@ func C() *Client {
 		parseRequestURL,
 		parseRequestHeader,
 		parseRequestCookie,
+		parseRequestBody,
 	}
 	afterResponse := []ResponseMiddleware{
 		parseResponseBody,

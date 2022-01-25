@@ -2,10 +2,13 @@ package req
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/imroc/req/v2/internal/util"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -19,6 +22,104 @@ type (
 	// ResponseMiddleware type is for response middleware, called after a response has been received
 	ResponseMiddleware func(*Client, *Response) error
 )
+
+var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
+
+func escapeQuotes(s string) string {
+	return quoteEscaper.Replace(s)
+}
+
+func createMultipartHeader(param, fileName, contentType string) textproto.MIMEHeader {
+	hdr := make(textproto.MIMEHeader)
+
+	var contentDispositionValue string
+	if util.IsStringEmpty(fileName) {
+		contentDispositionValue = fmt.Sprintf(`form-data; name="%s"`, param)
+	} else {
+		contentDispositionValue = fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
+			param, escapeQuotes(fileName))
+	}
+	hdr.Set("Content-Disposition", contentDispositionValue)
+
+	if !util.IsStringEmpty(contentType) {
+		hdr.Set(hdrContentTypeKey, contentType)
+	}
+	return hdr
+}
+
+func closeq(v interface{}) {
+	if c, ok := v.(io.Closer); ok {
+		c.Close()
+	}
+}
+
+type multipartBody struct {
+	*io.PipeReader
+	closed bool
+}
+
+func (r *multipartBody) Read(p []byte) (n int, err error) {
+	if r.closed {
+		return 0, io.EOF
+	}
+	n, err = r.PipeReader.Read(p)
+	if err != nil {
+		r.closed = true
+		err = nil
+	}
+	return
+}
+
+func writeMultipartFormFile(w *multipart.Writer, fieldName, fileName string, r io.Reader) error {
+	defer closeq(r)
+	// Auto detect actual multipart content type
+	cbuf := make([]byte, 512)
+	size, err := r.Read(cbuf)
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	pw, err := w.CreatePart(createMultipartHeader(fieldName, fileName, http.DetectContentType(cbuf)))
+	if err != nil {
+		return err
+	}
+
+	if _, err = pw.Write(cbuf[:size]); err != nil {
+		return err
+	}
+
+	_, err = io.Copy(pw, r)
+	return err
+}
+
+func writeMultiPart(c *Client, r *Request, w *multipart.Writer, pw *io.PipeWriter) {
+	for k, vs := range r.FormData {
+		for _, v := range vs {
+			w.WriteField(k, v)
+		}
+	}
+	for _, file := range r.uploadFiles {
+		writeMultipartFormFile(w, file.ParamName, file.FilePath, file.Reader)
+	}
+	w.Close()  // close multipart to write tailer boundary
+	pw.Close() // close pipe writer so that pipe reader could get EOF, and stop upload
+}
+
+func handleMultiPart(c *Client, r *Request) (err error) {
+	pr, pw := io.Pipe()
+	r.RawRequest.Body = pr
+	w := multipart.NewWriter(pw)
+	r.RawRequest.Header.Set(hdrContentTypeKey, w.FormDataContentType())
+	go writeMultiPart(c, r, w, pw)
+	return
+}
+
+func parseRequestBody(c *Client, r *Request) (err error) {
+	if r.isMultiPart {
+		err = handleMultiPart(c, r)
+	}
+	return
+}
 
 func parseResponseBody(c *Client, r *Response) (err error) {
 	if r.StatusCode == http.StatusNoContent {
