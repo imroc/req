@@ -9,7 +9,7 @@ A golang http request library for humans.
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
 * [Debugging](#Debugging)
-* [Set Path and Query Parameter](#Param)
+* [Set Path Parameter and Query Parameter](#Param)
 * [Set Header and Cookie](#Header-Cookie)
 * [Set Certificates](#Cert)
 * [Set Basic Auth and Bearer Token](#Auth)
@@ -20,7 +20,7 @@ A golang http request library for humans.
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
 * Powerful [Debugging](#Debugging) capabilities, including debug logs, performance traces, and even dump complete request and response content.
 * [Use Global Wrapper Methods](#Global) to test HTTP APIs with minimal code.
-* Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default.
+* Detect the charset of response body and decode it to UTF-8 automatically to avoid garbled characters by default.
 * Exportable `Transport`, just replace the Transport of existing http.Client with `*req.Transport`, then you can dump the content as `req` does to debug APIs with minimal code change.
 
 ## <a name="Quick-Start">Quick Start</a>
@@ -163,12 +163,12 @@ opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 ```
 
-**Debug Logging**
+**Debug Log**
 
 ```go
 // Logging is enabled by default, but only output warning and error message to stdout.
-// EnableDebug set to true to enable debug level message logging.
-client := req.C().EnableDebug(true)
+// EnableDebugLog set to true to enable debug level message logging.
+client := req.C().EnableDebugLog(true)
 client.R().Get("https://api.github.com/users/imroc")
 // Output
 // 2022/01/23 14:33:04.755019 DEBUG [req] GET https://api.github.com/users/imroc
@@ -189,7 +189,7 @@ client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-## <a name="Param">Set Path and Query Parameter</a>
+## <a name="Param">Set Path Parameter and Query Parameter</a>
 
 **Set Path Parameter**
 
