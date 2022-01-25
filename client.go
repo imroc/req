@@ -767,7 +767,7 @@ func C() *Client {
 		XMLUnmarshal:  xml.Unmarshal,
 	}
 
-	t.DebugFunc = func(format string, v ...interface{}) {
+	t.Debugf = func(format string, v ...interface{}) {
 		if c.DebugLog {
 			c.log.Debugf(format, v...)
 		}

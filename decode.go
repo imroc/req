@@ -32,7 +32,7 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc := charsetutil.FindEncoding(p, a.t.DebugFunc)
+	enc := charsetutil.FindEncoding(p, a.t.Debugf)
 	if enc == nil {
 		return
 	}

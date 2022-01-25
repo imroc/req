@@ -271,8 +271,8 @@ type Transport struct {
 
 	*ResponseOptions
 
-	dump      *dumper
-	DebugFunc func(format string, v ...interface{})
+	dump   *dumper
+	Debugf func(format string, v ...interface{})
 }
 
 func (t *Transport) handleResponseBody(res *http.Response) {
