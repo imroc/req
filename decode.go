@@ -14,8 +14,13 @@ func (d *decodeReaderCloser) Read(p []byte) (n int, err error) {
 	return d.decodeReader.Read(p)
 }
 
+func newAutoDecodeReadCloser(input io.ReadCloser, t *Transport) *autoDecodeReadCloser {
+	return &autoDecodeReadCloser{ReadCloser: input, t: t}
+}
+
 type autoDecodeReadCloser struct {
 	io.ReadCloser
+	t            *Transport
 	decodeReader io.Reader
 	detected     bool
 	peek         []byte
@@ -27,7 +32,7 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc := charsetutil.FindEncoding(p)
+	enc := charsetutil.FindEncoding(p, a.t.DebugFunc)
 	if enc == nil {
 		return
 	}

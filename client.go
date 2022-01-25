@@ -46,8 +46,8 @@ type Client struct {
 	JSONMarshal   func(v interface{}) ([]byte, error)
 	JSONUnmarshal func(data []byte, v interface{}) error
 	XMLMarshal    func(v interface{}) ([]byte, error)
-	XMLUnmarshal func(data []byte, v interface{}) error
-	DebugLog     bool
+	XMLUnmarshal  func(data []byte, v interface{}) error
+	DebugLog      bool
 
 	outputDirectory         string
 	disableAutoReadResponse bool
@@ -382,6 +382,7 @@ func SetResponseOptions(opt *ResponseOptions) *Client {
 // SetResponseOptions set the ResponseOptions for the underlying Transport.
 func (c *Client) SetResponseOptions(opt *ResponseOptions) *Client {
 	if opt == nil {
+		c.log.Warnf("ignore nil *ResponseOptions")
 		return c
 	}
 	c.t.ResponseOptions = opt
@@ -729,6 +730,7 @@ func (c *Client) Clone() *Client {
 // C create a new client.
 func C() *Client {
 	t := &Transport{
+		ResponseOptions:       &ResponseOptions{},
 		ForceAttemptHTTP2:     true,
 		Proxy:                 http.ProxyFromEnvironment,
 		MaxIdleConns:          100,
@@ -763,6 +765,12 @@ func C() *Client {
 		JSONUnmarshal: json.Unmarshal,
 		XMLMarshal:    xml.Marshal,
 		XMLUnmarshal:  xml.Unmarshal,
+	}
+
+	t.DebugFunc = func(format string, v ...interface{}) {
+		if c.DebugLog {
+			c.log.Debugf(format, v...)
+		}
 	}
 	return c
 }

@@ -270,7 +270,9 @@ type Transport struct {
 	ForceAttemptHTTP2 bool
 
 	*ResponseOptions
-	dump *dumper
+
+	dump      *dumper
+	DebugFunc func(format string, v ...interface{})
 }
 
 func (t *Transport) handleResponseBody(res *http.Response) {
@@ -326,7 +328,7 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 		res.Body = &decodeReaderCloser{res.Body, decodeReader}
 		return
 	}
-	res.Body = &autoDecodeReadCloser{ReadCloser: res.Body}
+	res.Body = newAutoDecodeReadCloser(res.Body, t)
 }
 
 // A cancelKey is the key of the reqCanceler map.

@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	urlpkg "net/url"
-	"os"
 	"strings"
 )
 
