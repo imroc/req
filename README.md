@@ -28,7 +28,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-alpha.10
+go get github.com/imroc/req/v2@v2.0.0-alpha.11
 ```
 
 **Import**
@@ -370,6 +370,8 @@ client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.e
 
 ## <a name="Download">Download and Upload</a>
 
+**Download**
+
 ```go
 // Create a client with default download direcotry
 client := req.C().SetOutputDirectory("/path/to/download")
@@ -389,10 +391,28 @@ if err != nil {
 	return
 }
 client.R().SetOutput(file).Get(url)
-
 ```
 
+**Multipart Upload**
 
+```go
+client := req.().EnableDumpNoRequestBody() // Request body contains unreadable binary, do not dump
+
+client.R().SetFile("pic", "test.jpg"). // Set form param name and filename
+    SetFile("pic", "/path/to/roc.png"). // Multiple files using the same form param name
+    SetFiles(map[string]string{ // Set multiple files using map
+        "exe": "test.exe",
+        "src": "main.go",
+    }).
+    SetFormData(map[string]string{ // Set from param using map
+        "name":  "imroc",
+        "email": "roc@imroc.cc",
+    }).
+	SetFromDataFromValues(values). // You can also set form data using `url.Values`
+    Post("http://127.0.0.1:8888/upload")
+*/
+
+```
 
 ## License
 
