@@ -14,6 +14,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Header and Cookie](#Header-Cookie)
 * [Custom Client and Root Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
+* [Download and Upload](#Download)
   
 ## <a name="Features">Features</a>
 
@@ -374,7 +375,7 @@ client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.e
 
 ```go
 // Create a client with default download direcotry
-client := req.C().SetOutputDirectory("/path/to/download")
+client := req.C().SetOutputDirectory("/path/to/download").EnableDumpNoResponseBody()
 
 // Download to relative file path, this will be downloaded
 // to /path/to/download/test.jpg
