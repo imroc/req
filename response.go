@@ -50,7 +50,7 @@ func (r *Response) IsError() bool {
 }
 
 func (r *Response) GetContentType() string {
-	return r.Header.Get("Content-Type")
+	return r.Header.Get(hdrContentTypeKey)
 }
 
 // Result method returns the response value as an object if it has one

@@ -2,7 +2,6 @@ package req
 
 import (
 	"bytes"
-	"encoding/json"
 	"github.com/hashicorp/go-multierror"
 	"github.com/imroc/req/v2/internal/util"
 	"io"
@@ -510,7 +509,20 @@ func SetBodyJsonMarshal(v interface{}) *Request {
 // SetBodyJsonMarshal set the request body that marshaled from object, and
 // set Content-Type header as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
-	b, err := json.Marshal(v)
+	b, err := r.client.JSONMarshal(v)
+	if err != nil {
+		r.appendError(err)
+		return r
+	}
+	return r.SetBodyBytes(b)
+}
+
+func SetBodyXmlMarshal(v interface{}) *Request {
+	return defaultClient.R().SetBodyXmlMarshal(v)
+}
+
+func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
+	b, err := r.client.XMLMarshal(v)
 	if err != nil {
 		r.appendError(err)
 		return r
@@ -523,6 +535,6 @@ func SetContentType(contentType string) *Request {
 }
 
 func (r *Request) SetContentType(contentType string) *Request {
-	r.RawRequest.Header.Set("Content-Type", contentType)
+	r.RawRequest.Header.Set(hdrContentTypeKey, contentType)
 	return r
 }

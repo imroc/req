@@ -129,31 +129,30 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 	return
 }
 
-func parseResponseBody(c *Client, r *Response) (err error) {
-	if r.StatusCode == http.StatusNoContent {
-		return
-	}
+func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 	body, err := r.ToBytes() // in case req.SetResult or req.SetError with cient.DisalbeAutoReadResponse(true)
 	if err != nil {
 		return
 	}
-	// Handles only JSON or XML content type
 	ct := util.FirstNonEmpty(r.GetContentType())
-	if r.IsSuccess() && r.Request.Result != nil {
-		r.Request.Error = nil
-		if util.IsJSONType(ct) {
-			return c.JSONUnmarshal(body, r.Request.Result)
-		} else if util.IsXMLType(ct) {
-			return c.XMLUnmarshal(body, r.Request.Result)
-		}
+	if util.IsJSONType(ct) {
+		return c.JSONUnmarshal(body, v)
+	} else if util.IsXMLType(ct) {
+		return c.XMLUnmarshal(body, v)
 	}
-	if r.IsError() && r.Request.Error != nil {
-		r.Request.Result = nil
-		if util.IsJSONType(ct) {
-			return c.JSONUnmarshal(body, r.Request.Error)
-		} else if util.IsXMLType(ct) {
-			return c.XMLUnmarshal(body, r.Request.Error)
-		}
+	return
+}
+
+func parseResponseBody(c *Client, r *Response) (err error) {
+	if r.StatusCode == http.StatusNoContent {
+		return
+	}
+	// Handles only JSON or XML content type
+	if r.Request.Result != nil && r.IsSuccess() {
+		unmarshalBody(c, r, r.Request.Result)
+	}
+	if r.Request.Error != nil && r.IsError() {
+		unmarshalBody(c, r, r.Request.Error)
 	}
 	return
 }
