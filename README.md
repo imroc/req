@@ -370,4 +370,4 @@ req.SetQueryParam("page", "2").
 
 ## License
 
-Req released under MIT license, refer [LICENSE](LICENSE) file.
+`Req` released under MIT license, refer [LICENSE](LICENSE) file.

@@ -17,7 +17,7 @@ var boms = []struct {
 	{[]byte{0xef, 0xbb, 0xbf}, "utf-8"},
 }
 
-func FindEncoding(content []byte) encoding.Encoding {
+func FindEncoding(content []byte, debugf func(format string, v ...interface{})) encoding.Encoding {
 	if len(content) == 0 {
 		return nil
 	}
@@ -29,7 +29,13 @@ func FindEncoding(content []byte) encoding.Encoding {
 			}
 		}
 	}
-	e, _ := prescan(content)
+	e, name := prescan(content)
+	if strings.ToLower(name) == "utf-8" {
+		if debugf != nil {
+			debugf("%s charset found in the meta tag content, no need to decode", name)
+		}
+		return nil
+	}
 	if e != nil {
 		return e
 	}
