@@ -17,12 +17,6 @@ import (
 	"time"
 )
 
-var (
-	hdrUserAgentKey   = "User-Agent"
-	hdrUserAgentValue = "req/v2 (https://github.com/imroc/req)"
-	hdrContentTypeKey = "Content-Type"
-)
-
 // DefaultClient returns the global default Client.
 func DefaultClient() *Client {
 	return defaultClient

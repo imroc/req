@@ -114,9 +114,17 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 	return
 }
 
+func handleFormData(r *Request) {
+	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(r.FormData.Encode()))
+}
+
 func parseRequestBody(c *Client, r *Request) (err error) {
 	if r.isMultiPart {
-		err = handleMultiPart(c, r)
+		return handleMultiPart(c, r)
+	}
+	if len(r.FormData) > 0 {
+		handleFormData(r)
+		return
 	}
 	return
 }
