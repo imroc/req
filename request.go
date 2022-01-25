@@ -484,10 +484,10 @@ func SetBodyJsonString(body string) *Request {
 }
 
 // SetBodyJsonString set the request body as string and set Content-Type header
-// as "application/json; charset=UTF-8"
+// as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonString(body string) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(body))
-	r.SetContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
+	r.SetContentType(jsonContentType)
 	return r
 }
 
@@ -496,10 +496,10 @@ func SetBodyJsonBytes(body []byte) *Request {
 }
 
 // SetBodyJsonBytes set the request body as []byte and set Content-Type header
-// as "application/json; charset=UTF-8"
+// as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
-	r.SetContentType(CONTENT_TYPE_APPLICATION_JSON_UTF8)
+	r.SetContentType(jsonContentType)
 	return r
 }
 
@@ -508,7 +508,7 @@ func SetBodyJsonMarshal(v interface{}) *Request {
 }
 
 // SetBodyJsonMarshal set the request body that marshaled from object, and
-// set Content-Type header as "application/json; charset=UTF-8"
+// set Content-Type header as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 	b, err := json.Marshal(v)
 	if err != nil {
