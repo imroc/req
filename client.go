@@ -330,6 +330,7 @@ func DevMode() *Client {
 func (c *Client) DevMode() *Client {
 	return c.EnableDumpAll().
 		EnableDebugLog(true).
+		EnableTraceAll(true).
 		SetUserAgent(userAgentChrome)
 }
 
