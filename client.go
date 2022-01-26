@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"github.com/imroc/req/v2/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
@@ -33,7 +34,7 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	HostURL       string
+	BaseURL       string
 	PathParams    map[string]string
 	QueryParams   urlpkg.Values
 	Headers       http.Header
@@ -112,6 +113,15 @@ func (c *Client) R() *Request {
 		client:     c,
 		RawRequest: req,
 	}
+}
+
+func SetBaseURL(u string) *Client {
+	return defaultClient.SetBaseURL(u)
+}
+
+func (c *Client) SetBaseURL(u string) *Client {
+	c.BaseURL = strings.TrimRight(u, "/")
+	return c
 }
 
 func SetOutputDirectory(dir string) *Client {
@@ -193,6 +203,16 @@ func (c *Client) tlsConfig() *tls.Config {
 	return c.t.TLSClientConfig
 }
 
+func (c *Client) defaultCheckRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if c.DebugLog {
+		c.log.Debugf("<redirect> %s %s", req.Method, req.URL.String())
+	}
+	return nil
+}
+
 func SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	return defaultClient.SetRedirectPolicy(policies...)
 }
@@ -211,6 +231,9 @@ func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 			if err != nil {
 				return err
 			}
+		}
+		if c.DebugLog {
+			c.log.Debugf("<redirect> %s %s", req.Method, req.URL.String())
 		}
 		return nil
 	}
@@ -306,11 +329,6 @@ func (c *Client) SetCommonCookies(cs []*http.Cookie) *Client {
 	return c
 }
 
-const (
-	userAgentFirefox = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:95.0) Gecko/20100101 Firefox/95.0"
-	userAgentChrome  = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36"
-)
-
 func EnableDebugLog(enable bool) *Client {
 	return defaultClient.EnableDebugLog(enable)
 }
@@ -320,18 +338,21 @@ func (c *Client) EnableDebugLog(enable bool) *Client {
 	return c
 }
 
+// DevMode is a global wrapper method for default client.
 func DevMode() *Client {
 	return defaultClient.DevMode()
 }
 
-// DevMode enables dump for requests and responses, and set user
-// agent to pretend to be a web browser, Avoid returning abnormal
-// data from some sites.
+// DevMode enables:
+// 1. Dump content of all requests and responses to see details.
+// 2. Output debug log for deeper insights.
+// 3. Trace all requests, so you can get trace info to analyze performance.
+// 4. Set User-Agent to pretend to be a web browser, avoid returning abnormal data from some sites.
 func (c *Client) DevMode() *Client {
 	return c.EnableDumpAll().
 		EnableDebugLog(true).
 		EnableTraceAll(true).
-		SetUserAgent(userAgentChrome)
+		SetUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
 }
 
 func SetScheme(scheme string) *Client {
@@ -361,29 +382,11 @@ func (c *Client) SetLogger(log Logger) *Client {
 	return c
 }
 
-func GetResponseOptions() *ResponseOptions {
-	return defaultClient.GetResponseOptions()
-}
-
-func (c *Client) GetResponseOptions() *ResponseOptions {
+func (c *Client) getResponseOptions() *ResponseOptions {
 	if c.t.ResponseOptions == nil {
 		c.t.ResponseOptions = &ResponseOptions{}
 	}
 	return c.t.ResponseOptions
-}
-
-func SetResponseOptions(opt *ResponseOptions) *Client {
-	return defaultClient.SetResponseOptions(opt)
-}
-
-// SetResponseOptions set the ResponseOptions for the underlying Transport.
-func (c *Client) SetResponseOptions(opt *ResponseOptions) *Client {
-	if opt == nil {
-		c.log.Warnf("ignore nil *ResponseOptions")
-		return c
-	}
-	c.t.ResponseOptions = opt
-	return c
 }
 
 func SetTimeout(d time.Duration) *Client {
@@ -396,11 +399,7 @@ func (c *Client) SetTimeout(d time.Duration) *Client {
 	return c
 }
 
-func GetDumpOptions() *DumpOptions {
-	return defaultClient.GetDumpOptions()
-}
-
-func (c *Client) GetDumpOptions() *DumpOptions {
+func (c *Client) getDumpOptions() *DumpOptions {
 	if c.dumpOptions == nil {
 		c.dumpOptions = newDefaultDumpOptions()
 	}
@@ -411,7 +410,7 @@ func (c *Client) enableDump() {
 	if c.t.dump != nil { // dump already started
 		return
 	}
-	c.t.EnableDump(c.GetDumpOptions())
+	c.t.EnableDump(c.getDumpOptions())
 }
 
 func EnableDumpToFile(filename string) *Client {
@@ -425,7 +424,7 @@ func (c *Client) EnableDumpToFile(filename string) *Client {
 		c.log.Errorf("create dump file error: %v", err)
 		return c
 	}
-	c.GetDumpOptions().Output = file
+	c.getDumpOptions().Output = file
 	return c
 }
 
@@ -435,7 +434,7 @@ func EnableDumpTo(output io.Writer) *Client {
 
 // EnableDumpTo indicates that the content should dump to the specified destination.
 func (c *Client) EnableDumpTo(output io.Writer) *Client {
-	c.GetDumpOptions().Output = output
+	c.getDumpOptions().Output = output
 	c.enableDump()
 	return c
 }
@@ -448,7 +447,7 @@ func EnableDumpAsync() *Client {
 // can be used for debugging in production environment without
 // affecting performance.
 func (c *Client) EnableDumpAsync() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.Async = true
 	c.enableDump()
 	return c
@@ -459,7 +458,7 @@ func EnableDumpNoRequestBody() *Client {
 }
 
 func (c *Client) EnableDumpNoRequestBody() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.ResponseHeader = true
 	o.ResponseBody = true
 	o.RequestBody = false
@@ -473,7 +472,7 @@ func EnableDumpNoResponseBody() *Client {
 }
 
 func (c *Client) EnableDumpNoResponseBody() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.ResponseHeader = true
 	o.ResponseBody = false
 	o.RequestBody = true
@@ -488,7 +487,7 @@ func EnableDumpOnlyResponse() *Client {
 
 // EnableDumpOnlyResponse indicates that should dump the responses' head and response.
 func (c *Client) EnableDumpOnlyResponse() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.ResponseHeader = true
 	o.ResponseBody = true
 	o.RequestBody = false
@@ -503,7 +502,7 @@ func EnableDumpOnlyRequest() *Client {
 
 // EnableDumpOnlyRequest indicates that should dump the requests' head and response.
 func (c *Client) EnableDumpOnlyRequest() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.RequestHeader = true
 	o.RequestBody = true
 	o.ResponseBody = false
@@ -518,7 +517,7 @@ func EnableDumpOnlyBody() *Client {
 
 // EnableDumpOnlyBody indicates that should dump the body of requests and responses.
 func (c *Client) EnableDumpOnlyBody() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.RequestBody = true
 	o.ResponseBody = true
 	o.RequestHeader = false
@@ -533,7 +532,7 @@ func EnableDumpOnlyHeader() *Client {
 
 // EnableDumpOnlyHeader indicates that should dump the head of requests and responses.
 func (c *Client) EnableDumpOnlyHeader() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.RequestHeader = true
 	o.ResponseHeader = true
 	o.RequestBody = false
@@ -548,7 +547,7 @@ func EnableDumpAll() *Client {
 
 // EnableDumpAll indicates that should dump both requests and responses' head and body.
 func (c *Client) EnableDumpAll() *Client {
-	o := c.GetDumpOptions()
+	o := c.getDumpOptions()
 	o.RequestHeader = true
 	o.RequestBody = true
 	o.ResponseHeader = true
@@ -575,17 +574,36 @@ func (c *Client) DisableAutoReadResponse(disable bool) *Client {
 	return c
 }
 
-func EnableAutoDecodeAllType() *Client {
-	return defaultClient.EnableAutoDecodeAllType()
+func SetAutoDecodeContentType(contentTypes ...string) *Client {
+	return defaultClient.SetAutoDecodeContentType(contentTypes...)
 }
 
-// EnableAutoDecodeAllType indicates that try autodetect and decode all content type.
-func (c *Client) EnableAutoDecodeAllType() *Client {
-	opt := c.GetResponseOptions()
+func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
+	opt := c.getResponseOptions()
+	opt.AutoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
+	return c
+}
+
+func SetAutoDecodeAllTypeFunc(fn func(contentType string) bool) *Client {
+	return defaultClient.SetAutoDecodeAllTypeFunc(fn)
+}
+
+func (c *Client) SetAutoDecodeAllTypeFunc(fn func(contentType string) bool) *Client {
+	opt := c.getResponseOptions()
+	opt.AutoDecodeContentType = fn
+	return c
+}
+
+func SetAutoDecodeAllType() *Client {
+	return defaultClient.SetAutoDecodeAllType()
+}
+
+// SetAutoDecodeAllType indicates that try autodetect and decode all content type.
+func (c *Client) SetAutoDecodeAllType() *Client {
+	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = func(contentType string) bool {
 		return true
 	}
-	opt.DisableAutoDecode = false
 	return c
 }
 
@@ -595,7 +613,7 @@ func DisableAutoDecode(disable bool) *Client {
 
 // DisableAutoDecode disable auto detect charset and decode to utf-8
 func (c *Client) DisableAutoDecode(disable bool) *Client {
-	c.GetResponseOptions().DisableAutoDecode = disable
+	c.getResponseOptions().DisableAutoDecode = disable
 	return c
 }
 
@@ -752,7 +770,7 @@ func (c *Client) Clone() *Client {
 		Headers:                 cloneHeaders(c.Headers),
 		PathParams:              cloneMap(c.PathParams),
 		QueryParams:             cloneUrlValues(c.QueryParams),
-		HostURL:                 c.HostURL,
+		BaseURL:                 c.BaseURL,
 		scheme:                  c.scheme,
 		log:                     c.log,
 		beforeRequest:           c.beforeRequest,
@@ -801,6 +819,7 @@ func C() *Client {
 		XMLMarshal:    xml.Marshal,
 		XMLUnmarshal:  xml.Unmarshal,
 	}
+	httpClient.CheckRedirect = c.defaultCheckRedirect
 
 	t.Debugf = func(format string, v ...interface{}) {
 		if c.DebugLog {

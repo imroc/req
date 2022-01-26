@@ -32,9 +32,12 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc := charsetutil.FindEncoding(p, a.t.Debugf)
+	enc, name := charsetutil.FindEncoding(p)
 	if enc == nil {
 		return
+	}
+	if a.t.Debugf != nil {
+		a.t.Debugf("charset %s found in body's meta, auto-decode to utf-8", name)
 	}
 	dc := enc.NewDecoder()
 	a.decodeReader = dc.Reader(a.ReadCloser)

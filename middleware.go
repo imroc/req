@@ -241,7 +241,7 @@ func parseRequestURL(c *Client, r *Request) error {
 		return err
 	}
 
-	// If Request.URL is relative path then added c.HostURL into
+	// If Request.URL is relative path then added c.BaseURL into
 	// the request URL otherwise Request.URL will be used as-is
 	if !reqURL.IsAbs() {
 		r.URL = reqURL.String()
@@ -249,13 +249,12 @@ func parseRequestURL(c *Client, r *Request) error {
 			r.URL = "/" + r.URL
 		}
 
-		reqURL, err = url.Parse(c.HostURL + r.URL)
+		reqURL, err = url.Parse(c.BaseURL + r.URL)
 		if err != nil {
 			return err
 		}
 	}
 
-	// GH #407 && #318
 	if reqURL.Scheme == "" && len(c.scheme) > 0 {
 		reqURL.Scheme = c.scheme
 	}
