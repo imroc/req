@@ -13,16 +13,16 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Header and Cookie](#Header-Cookie)
 * [Custom Client and Root Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
-* [Download and Upload](#Download)
+* [Download and Upload](#Download-Upload)
 * [Auto-Decoding](#AutoDecode)
   
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, even provide global wrapper methods to test with minimal code.
+* Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, even provide global wrapper methods to test with minimal code (see [Debugging](#Debugging).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decoding](#AutoDecode)).
 * Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
-* Easy upload and download.
+* Easy [Download and Upload](#Download-Upload).
 * Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token, timeout, proxy, certs, redirect policy and so on for requests or clients.
 
 ## <a name="Quick-Start">Quick Start</a>
@@ -30,7 +30,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-beta.0
+go get github.com/imroc/req/v2@v2.0.0-beta.1
 ```
 
 **Import**
@@ -400,7 +400,7 @@ client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com
 client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.example.com/profile")
 ```
 
-## <a name="Download">Download and Upload</a>
+## <a name="Download-Upload">Download and Upload</a>
 
 **Download**
 
