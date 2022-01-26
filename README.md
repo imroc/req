@@ -9,7 +9,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
 * [Debugging](#Debugging)
-* [Path and Query Parameter](#Param)
+* [URL Path and Query Parameter](#Param)
 * [Form Data](#Form)
 * [Header and Cookie](#Header-Cookie)
 * [Body and Marshal/Unmarshal](#Header-Cookie)
@@ -18,6 +18,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Download and Upload](#Download-Upload)
 * [Auto-Decoding](#AutoDecode)
 * [Request and Response Middleware](#Middleware)
+* [Redirect Policy](#Redirect)
 
 ## <a name="Features">Features</a>
 
@@ -211,7 +212,7 @@ req.SetQueryParam("page", "2").
 	Get("https://api.example.com/repos")
 ```
 
-## <a name="Param">Path and Query Parameter</a>
+## <a name="Param">URL Path and Query Parameter</a>
 
 **Set Path Parameter**
 
@@ -288,6 +289,22 @@ accept-encoding: gzip
 user-agent: req/v2 (https://github.com/imroc/req)
 
 blog=https%3A%2F%2Fimroc.cc&username=imroc
+*/
+
+// Multi value form data
+criteria := url.Values{
+    "multi": []string{"a", "b", "c"},
+}
+client.R().SetFormDataFromValues(criteria).Post("https://httpbin.org/post")
+/* Output
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+accept-encoding: gzip
+user-agent: req/v2 (https://github.com/imroc/req)
+
+multi=a&multi=b&multi=c
 */
 ```
 
@@ -662,7 +679,7 @@ client := req.C()
 // Registering Request Middleware
 client.OnBeforeRequest(func(c *req.Client, r *req.Request) error {
 	// You can access Client and current Request object to do something
-	// you need
+	// as you need
 
     return nil  // return nil if it is success
   })
@@ -670,10 +687,41 @@ client.OnBeforeRequest(func(c *req.Client, r *req.Request) error {
 // Registering Response Middleware
 client.OnAfterResponse(func(c *req.Client, r *req.Response) error {
     // You can access Client and current Response object to do something
-    // you need
+    // as you need
 
     return nil  // return nil if it is success
   })
+```
+
+## <a name="Redirect">Redirect Policy</a>
+
+```go
+client := req.C().EnableDumpOnlyRequest()
+
+client.SetRedirectPolicy(
+    // Only allow up to 5 redirects
+    req.MaxRedirectPolicy(5),
+    // Only allow redirect to same domain.
+    // e.g. redirect "www.imroc.cc" to "imroc.cc" is allowed, but "google.com" is not
+    req.SameDomainRedirectPolicy(),
+)
+
+client.SetRedirectPolicy(
+    // Only *.google.com/google.com and *.imroc.cc/imroc.cc is allowed to redirect
+    req.AllowedDomainRedirectPolicy("google.com", "imroc.cc"),
+    // Only allow redirect to same host.
+    // e.g. redirect "www.imroc.cc" to "imroc.cc" is not allowed, only "www.imroc.cc" is allowed
+    req.SameHostRedirectPolicy(),
+)
+
+// All redirect is not allowd
+client.SetRedirectPolicy(req.NoRedirectPolicy())
+
+// Or customize the redirect with your own implementation
+client.SetRedirectPolicy(func(req *http.Request, via []*http.Request) error {
+    // ...
+})
+
 ```
 
 ## License
