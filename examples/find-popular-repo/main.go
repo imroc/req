@@ -17,9 +17,7 @@ type ErrorMessage struct {
 }
 
 func init() {
-	req.EnableDebugLog(true)
-	// Uncomment DevMode below if you want to see more details
-	// req.DevMode()
+	req.DevMode().EnableDumpOnlyHeader()
 }
 
 // Change the name if you want
