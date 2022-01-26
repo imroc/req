@@ -36,7 +36,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-beta.1
+go get github.com/imroc/req/v2@v2.0.0-beta.2
 ```
 
 **Import**
