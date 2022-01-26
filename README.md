@@ -19,10 +19,11 @@ Simplified golang http client library with magic, happy sending requests, less c
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful [Debugging](#Debugging) capabilities, including debug logs, performance traces, and even dump complete request and response content.
-* [Testing with Global Wrapper Methods](#Global) with minimal code.
-* Detect the charset of response body and decode it to UTF-8 automatically to avoid garbled characters by default.
-* Exportable `Transport`, just replace the Transport of existing http.Client with `*req.Transport`, then you can dump the content as `req` does to debug APIs with minimal code change.
+* Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, even provide global wrapper methods to test with minimal code.
+* Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decoding](#AutoDecode)).
+* Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
+* Easy upload and download.
+* Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token, timeout, proxy, redirect policy and so on for requests or clients.
 
 ## <a name="Quick-Start">Quick Start</a>
 
