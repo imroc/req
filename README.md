@@ -10,7 +10,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Quick Start](#Quick-Start)
 * [Debugging](#Debugging)
 * [Path and Query Parameter](#Param)
-* [Form Data](#From)
+* [Form Data](#Form)
 * [Header and Cookie](#Header-Cookie)
 * [Body and Marshal/Unmarshal](#Header-Cookie)
 * [Custom Client and Root Certificates](#Cert)
