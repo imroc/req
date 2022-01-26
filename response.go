@@ -2,7 +2,6 @@ package req
 
 import (
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -23,13 +22,12 @@ var textContentTypes = []string{"text", "json", "xml", "html", "java"}
 var autoDecodeText = autoDecodeContentTypeFunc(textContentTypes...)
 
 func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) bool {
+	m := make(map[string]bool)
+	for _, ct := range contentTypes {
+		m[ct] = true
+	}
 	return func(contentType string) bool {
-		for _, t := range contentTypes {
-			if strings.Contains(contentType, t) {
-				return true
-			}
-		}
-		return false
+		return m[contentType]
 	}
 }
 

@@ -14,6 +14,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Custom Client and Root Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
 * [Download and Upload](#Download)
+* [Auto-Decoding](#AutoDecode)
   
 ## <a name="Features">Features</a>
 
@@ -125,9 +126,11 @@ client.R().Get("https://www.baidu.com/")
 // Logging is enabled by default, but only output the warning and error message.
 // set `EnableDebugLog` to true to enable debug level logging.
 client := req.C().EnableDebugLog(true)
-client.R().Get("https://api.github.com/users/imroc")
+client.R().Get("http://baidu.com/s?wd=req")
 /* Output
-2022/01/23 14:33:04.755019 DEBUG [req] GET https://api.github.com/users/imroc
+2022/01/26 15:46:29.279368 DEBUG [req] GET http://baidu.com/s?wd=req
+2022/01/26 15:46:29.469653 DEBUG [req] charset iso-8859-1 detected in Content-Type, auto-decode to utf-8
+2022/01/26 15:46:29.469713 DEBUG [req] <redirect> GET http://www.baidu.com/s?wd=req
 ...
 */
 
@@ -440,6 +443,37 @@ client.R().SetFile("pic", "test.jpg"). // Set form param name and filename
     Post("http://127.0.0.1:8888/upload")
 */
 
+```
+
+## <a name="AutoDecode">Auto-Decoding</a>
+
+`Req` detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default.
+
+Its principle is to detect whether `Content-Type` header at first, if it's not the text content type (json, xml, html and so on), `req` will not try to decode. If it is, then `req` will try to find the charset information, if it's not included in the header, it will try to sniff the body's content to determine the charset, if found and is not utf-8, then decode it to utf-8 automatically, if the charset is not sure, it will not decode, and leave the body untouched.
+
+You can also disable if you don't need or care a lot about performance:
+
+```go
+client.DisableAutoDecode(true)
+```
+
+Also you can make some customization:
+
+```go
+// Try to auto-detect and decode all content types (some server may return incorrect Content-Type header)
+client.SetAutoDecodeAllType()
+
+// Only auto-detect and decode content which `Content-Type` header contains "html" or "json"
+client.SetAutoDecodeContentType("html", "json")
+
+// Or you can customize the function to determine whether to decode
+fn := func(contentType string) bool {
+    if regexContentType.MatchString(contentType) {
+        return true
+    }
+    return false
+}
+client.SetAutoDecodeAllTypeFunc(fn)
 ```
 
 ## License

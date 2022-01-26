@@ -324,6 +324,9 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 		if enc == nil {
 			return
 		}
+		if t.Debugf != nil {
+			t.Debugf("charset %s detected in Content-Type, auto-decode to utf-8", charset)
+		}
 		decodeReader := enc.NewDecoder().Reader(res.Body)
 		res.Body = &decodeReaderCloser{res.Body, decodeReader}
 		return
