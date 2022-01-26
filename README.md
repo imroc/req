@@ -293,10 +293,10 @@ blog=https%3A%2F%2Fimroc.cc&username=imroc
 */
 
 // Multi value form data
-criteria := url.Values{
+v := url.Values{
     "multi": []string{"a", "b", "c"},
 }
-client.R().SetFormDataFromValues(criteria).Post("https://httpbin.org/post")
+client.R().SetFormDataFromValues(v).Post("https://httpbin.org/post")
 /* Output
 :authority: httpbin.org
 :method: POST
