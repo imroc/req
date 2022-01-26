@@ -29,6 +29,7 @@ type Request struct {
 	RawRequest  *http.Request
 	StartTime   time.Time
 
+	marshalBody    interface{}
 	ctx            context.Context
 	isMultiPart    bool
 	uploadFiles    []*uploadFile
@@ -506,6 +507,8 @@ func (r *Request) SetBody(body interface{}) *Request {
 		r.SetBodyBytes(b)
 	case string:
 		r.SetBodyString(b)
+	default:
+		r.marshalBody = body
 	}
 	return r
 }
@@ -538,8 +541,7 @@ func SetBodyJsonString(body string) *Request {
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonString(body string) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(body))
-	r.SetContentType(jsonContentType)
-	return r
+	return r.SetContentType(jsonContentType)
 }
 
 func SetBodyJsonBytes(body []byte) *Request {
@@ -550,8 +552,7 @@ func SetBodyJsonBytes(body []byte) *Request {
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
-	r.SetContentType(jsonContentType)
-	return r
+	return r.SetContentType(jsonContentType)
 }
 
 func SetBodyJsonMarshal(v interface{}) *Request {
@@ -566,7 +567,25 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	return r.SetBodyBytes(b)
+	return r.SetContentType(jsonContentType).SetBodyBytes(b)
+}
+
+func SetBodyXmlString(body string) *Request {
+	return defaultClient.R().SetBodyXmlString(body)
+}
+
+func (r *Request) SetBodyXmlString(body string) *Request {
+	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(body))
+	return r.SetContentType(xmlContentType)
+}
+
+func SetBodyXmlBytes(body []byte) *Request {
+	return defaultClient.R().SetBodyXmlBytes(body)
+}
+
+func (r *Request) SetBodyXmlBytes(body []byte) *Request {
+	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
+	return r.SetContentType(xmlContentType)
 }
 
 func SetBodyXmlMarshal(v interface{}) *Request {
@@ -579,7 +598,7 @@ func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	return r.SetBodyBytes(b)
+	return r.SetContentType(xmlContentType).SetBodyBytes(b)
 }
 
 func SetContentType(contentType string) *Request {
@@ -587,7 +606,7 @@ func SetContentType(contentType string) *Request {
 }
 
 func (r *Request) SetContentType(contentType string) *Request {
-	r.RawRequest.Header.Set(hdrContentTypeKey, contentType)
+	r.SetHeader(hdrContentTypeKey, contentType)
 	return r
 }
 

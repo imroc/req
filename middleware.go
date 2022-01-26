@@ -53,23 +53,6 @@ func closeq(v interface{}) {
 	}
 }
 
-type multipartBody struct {
-	*io.PipeReader
-	closed bool
-}
-
-func (r *multipartBody) Read(p []byte) (n int, err error) {
-	if r.closed {
-		return 0, io.EOF
-	}
-	n, err = r.PipeReader.Read(p)
-	if err != nil {
-		r.closed = true
-		err = nil
-	}
-	return
-}
-
 func writeMultipartFormFile(w *multipart.Writer, fieldName, fileName string, r io.Reader) error {
 	defer closeq(r)
 	// Auto detect actual multipart content type
@@ -92,7 +75,7 @@ func writeMultipartFormFile(w *multipart.Writer, fieldName, fileName string, r i
 	return err
 }
 
-func writeMultiPart(c *Client, r *Request, w *multipart.Writer, pw *io.PipeWriter) {
+func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
 	for k, vs := range r.FormData {
 		for _, v := range vs {
 			w.WriteField(k, v)
@@ -110,12 +93,44 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 	r.RawRequest.Body = pr
 	w := multipart.NewWriter(pw)
 	r.RawRequest.Header.Set(hdrContentTypeKey, w.FormDataContentType())
-	go writeMultiPart(c, r, w, pw)
+	go writeMultiPart(r, w, pw)
 	return
 }
 
 func handleFormData(r *Request) {
 	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(r.FormData.Encode()))
+}
+
+func handleMarshalBody(c *Client, r *Request) error {
+	ct := ""
+	if r.Headers != nil {
+		ct = r.Headers.Get(hdrContentTypeKey)
+	}
+	if ct == "" {
+		ct = c.Headers.Get(hdrContentTypeKey)
+	}
+	if ct != "" {
+		if util.IsXMLType(ct) {
+			body, err := c.XMLMarshal(r.marshalBody)
+			if err != nil {
+				return err
+			}
+			r.SetBodyBytes(body)
+		} else {
+			body, err := c.JSONMarshal(r.marshalBody)
+			if err != nil {
+				return err
+			}
+			r.SetBodyBytes(body)
+		}
+		return nil
+	}
+	body, err := c.JSONMarshal(r.marshalBody)
+	if err != nil {
+		return err
+	}
+	r.SetBodyJsonBytes(body)
+	return nil
 }
 
 func parseRequestBody(c *Client, r *Request) (err error) {
@@ -126,6 +141,9 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 		handleFormData(r)
 		return
 	}
+	if r.marshalBody != nil {
+		handleMarshalBody(c, r)
+	}
 	return
 }
 
@@ -134,7 +152,7 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 	if err != nil {
 		return
 	}
-	ct := util.FirstNonEmpty(r.GetContentType())
+	ct := r.GetContentType()
 	if util.IsJSONType(ct) {
 		return c.JSONUnmarshal(body, v)
 	} else if util.IsXMLType(ct) {
