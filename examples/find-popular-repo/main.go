@@ -8,18 +8,6 @@ import (
 	"github.com/imroc/req/v2"
 )
 
-type Repo struct {
-	Name string `json:"name"`
-	Star int    `json:"stargazers_count"`
-}
-type ErrorMessage struct {
-	Message string `json:"message"`
-}
-
-func init() {
-	req.DevMode().EnableDumpOnlyHeader()
-}
-
 // Change the name if you want
 var username = "imroc"
 
@@ -30,6 +18,18 @@ func main() {
 		return
 	}
 	fmt.Printf("The most popular repo of %s is %s, which have %d stars\n", username, repo, star)
+}
+
+func init() {
+	req.EnableDumpOnlyHeader().EnableDebugLog(true).EnableTraceAll(true)
+}
+
+type Repo struct {
+	Name string `json:"name"`
+	Star int    `json:"stargazers_count"`
+}
+type ErrorMessage struct {
+	Message string `json:"message"`
 }
 
 func findTheMostPopularRepo(username string) (repo string, star int, err error) {
@@ -52,6 +52,11 @@ func findTheMostPopularRepo(username string) (repo string, star int, err error) 
 			SetResult(&repos).
 			SetError(&errMsg).
 			Get("https://api.github.com/users/{username}/repos")
+
+		fmt.Println("TraceInfo:")
+		fmt.Println("----------")
+		fmt.Println(resp.TraceInfo())
+		fmt.Println()
 
 		if err != nil {
 			return
