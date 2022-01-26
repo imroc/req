@@ -9,7 +9,6 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
 * [Debugging](#Debugging)
-* [Testing with Global Wrapper Methods](#Global)
 * [Path Parameter and Query Parameter](#Param)
 * [Header and Cookie](#Header-Cookie)
 * [Custom Client and Root Certificates](#Cert)
@@ -29,7 +28,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-alpha.11
+go get github.com/imroc/req/v2@v2.0.0-beta.0
 ```
 
 **Import**
@@ -59,57 +58,49 @@ resp, err := client.R(). // Use R() to create a request
 
 ## <a name="Debugging">Debugging</a>
 
-**Dump the content of request and response**
+**Dump the Content**
 
 ```go
 // Set EnableDump to true, dump all content to stdout by default,
 // including both the header and body of all request and response
 client := req.C().EnableDump(true)
-client.R().Get("https://api.github.com/users/imroc")
+client.R().Get("https://httpbin.org/get")
 
 /* Output
-:authority: api.github.com
+:authority: httpbin.org
 :method: GET
-:path: /users/imroc
+:path: /get
 :scheme: https
-user-agent: req/v2 (https://github.com/imroc/req)
+user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36
 accept-encoding: gzip
 
 :status: 200
-server: GitHub.com
-date: Fri, 21 Jan 2022 09:31:43 GMT
-content-type: application/json; charset=utf-8
-cache-control: public, max-age=60, s-maxage=60
-vary: Accept, Accept-Encoding, Accept, X-Requested-With
-etag: W/"fe5acddc5c01a01153ebc4068a1f067dadfa7a7dc9a025f44b37b0a0a50e2c55"
-last-modified: Thu, 08 Jul 2021 12:11:23 GMT
-x-github-media-type: github.v3; format=json
-access-control-expose-headers: ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset
+date: Wed, 26 Jan 2022 06:39:20 GMT
+content-type: application/json
+content-length: 372
+server: gunicorn/19.9.0
 access-control-allow-origin: *
-strict-transport-security: max-age=31536000; includeSubdomains; preload
-x-frame-options: deny
-x-content-type-options: nosniff
-x-xss-protection: 0
-referrer-policy: origin-when-cross-origin, strict-origin-when-cross-origin
-content-security-policy: default-src 'none'
-content-encoding: gzip
-x-ratelimit-limit: 60
-x-ratelimit-remaining: 59
-x-ratelimit-reset: 1642761103
-x-ratelimit-resource: core
-x-ratelimit-used: 1
-accept-ranges: bytes
-content-length: 486
-x-github-request-id: AF10:6205:BA107D:D614F2:61EA7D7E
+access-control-allow-credentials: true
 
-{"login":"imroc","id":7448852,"node_id":"MDQ6VXNlcjc0NDg4NTI=","avatar_url":"https://avatars.githubusercontent.com/u/7448852?v=4","gravatar_id":"","url":"https://api.github.com/users/imroc","html_url":"https://github.com/imroc","followers_url":"https://api.github.com/users/imroc/followers","following_url":"https://api.github.com/users/imroc/following{/other_user}","gists_url":"https://api.github.com/users/imroc/gists{/gist_id}","starred_url":"https://api.github.com/users/imroc/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/imroc/subscriptions","organizations_url":"https://api.github.com/users/imroc/orgs","repos_url":"https://api.github.com/users/imroc/repos","events_url":"https://api.github.com/users/imroc/events{/privacy}","received_events_url":"https://api.github.com/users/imroc/received_events","type":"User","site_admin":false,"name":"roc","company":"Tencent","blog":"https://imroc.cc","location":"China","email":null,"hireable":true,"bio":"I'm roc","twitter_username":"imrocchan","public_repos":128,"public_gists":0,"followers":362,"following":151,"created_at":"2014-04-30T10:50:46Z","updated_at":"2021-07-08T12:11:23Z"}
+{
+  "args": {},
+  "headers": {
+    "Accept-Encoding": "gzip",
+    "Host": "httpbin.org",
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36",
+    "X-Amzn-Trace-Id": "Root=1-61f0ec98-5958c02662de26e458b7672b"
+  },
+  "origin": "103.7.29.30",
+  "url": "https://httpbin.org/get"
+}
 */
 	
 // Customize dump settings with predefined convenience settings. 
 client.EnableDumpOnlyHeader(). // Only dump the header of request and response
     EnableDumpAsync(). // Dump asynchronously to improve performance
     EnableDumpToFile("reqdump.log") // Dump to file without printing it out
-client.R().Get(url) // Send request to see the content that have been dumpped
+// Send request to see the content that have been dumpped	
+client.R().Get(url) 
 
 // Enable dump with fully customized settings
 opt := &req.DumpOptions{
@@ -128,21 +119,57 @@ opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 ```
 
-**Debug Log**
+**EnableDebugLog for Deeper Insights**
 
 ```go
-// Logging is enabled by default, but only output warning and error message to stdout.
-// EnableDebugLog set to true to enable debug level message logging.
+// Logging is enabled by default, but only output the warning and error message.
+// set `EnableDebugLog` to true to enable debug level logging.
 client := req.C().EnableDebugLog(true)
 client.R().Get("https://api.github.com/users/imroc")
-// Output
-// 2022/01/23 14:33:04.755019 DEBUG [req] GET https://api.github.com/users/imroc
+/* Output
+2022/01/23 14:33:04.755019 DEBUG [req] GET https://api.github.com/users/imroc
+...
+*/
 
 // SetLogger with nil to disable all log
 client.SetLogger(nil)
 
 // Or customize the logger with your own implementation.
 client.SetLogger(logger)
+```
+
+**EnableTrace to Analyze Performance**
+
+```go
+// Enable trace at request level
+client := req.C()
+resp, err := client.R().EnableTrace(true).Get("https://api.github.com/users/imroc")
+if err != nil {
+	log.Fatal(err)
+}
+ti := resp.TraceInfo() // Use `resp.Request.TraceInfo()` to avoid unnecessary copy in production
+fmt.Println(ti)
+fmt.Println("--------")
+k, v := ti.MaxTime()
+fmt.Printf("Max time is %s which tooks %v\n", k, v)
+
+/* Output
+TotalTime         : 1.342805875s
+DNSLookupTime     : 7.549292ms
+TCPConnectTime    : 567.833µs
+TLSHandshakeTime  : 536.604041ms
+FirstResponseTime : 797.466708ms
+ResponseTime      : 374.875µs
+IsConnReused:     : false
+RemoteAddr        : 192.30.255.117:443
+--------
+Max time is FirstResponseTime which tooks 797.466708ms
+*/
+
+// Enable trace at client level
+client.EnableTraceAll()
+resp, err = client.R().Get(url)
+// ...
 ```
 
 **DevMode**
@@ -154,7 +181,7 @@ client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-## <a name="Global">Testing with Use Global Methods</a>
+**Testing with Use Global Methods**
 
 `req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
 

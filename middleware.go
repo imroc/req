@@ -194,6 +194,7 @@ func handleDownload(c *Client, r *Response) (err error) {
 		output.Close()
 	}()
 	_, err = io.Copy(output, body)
+	r.setReceivedAt()
 	return
 }
 

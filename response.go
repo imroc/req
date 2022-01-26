@@ -3,6 +3,7 @@ package req
 import (
 	"net/http"
 	"strings"
+	"time"
 )
 
 // ResponseOptions determines that how should the response been processed.
@@ -35,8 +36,9 @@ func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) 
 // Response is the http response.
 type Response struct {
 	*http.Response
-	Request *Request
-	body    []byte
+	Request    *Request
+	body       []byte
+	receivedAt time.Time
 }
 
 // IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
@@ -61,4 +63,26 @@ func (r *Response) Result() interface{} {
 // Error method returns the error object if it has one
 func (r *Response) Error() interface{} {
 	return r.Request.Error
+}
+
+func (r *Response) TraceInfo() TraceInfo {
+	return r.Request.TraceInfo()
+}
+
+func (r *Response) TotalTime() time.Duration {
+	if r.Request.trace != nil {
+		return r.Request.TraceInfo().TotalTime
+	}
+	return r.receivedAt.Sub(r.Request.StartTime)
+}
+
+func (r *Response) ReceivedAt() time.Time {
+	return r.receivedAt
+}
+
+func (r *Response) setReceivedAt() {
+	r.receivedAt = time.Now()
+	if r.Request.trace != nil {
+		r.Request.trace.endTime = r.receivedAt
+	}
 }

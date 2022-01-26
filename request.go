@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"context"
 	"github.com/hashicorp/go-multierror"
 	"github.com/imroc/req/v2/internal/util"
 	"io"
@@ -10,6 +11,7 @@ import (
 	urlpkg "net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 // Request is the http request
@@ -25,13 +27,63 @@ type Request struct {
 	error       error
 	client      *Client
 	RawRequest  *http.Request
+	StartTime   time.Time
 
+	ctx            context.Context
 	isMultiPart    bool
 	uploadFiles    []*uploadFile
 	uploadReader   []io.ReadCloser
 	outputFile     string
 	isSaveResponse bool
 	output         io.WriteCloser
+	trace          *clientTrace
+}
+
+func (r *Request) TraceInfo() TraceInfo {
+	ct := r.trace
+
+	if ct == nil {
+		return TraceInfo{}
+	}
+
+	ti := TraceInfo{
+		DNSLookupTime:     ct.dnsDone.Sub(ct.dnsStart),
+		TLSHandshakeTime:  ct.tlsHandshakeDone.Sub(ct.tlsHandshakeStart),
+		FirstResponseTime: ct.gotFirstResponseByte.Sub(ct.gotConn),
+		IsConnReused:      ct.gotConnInfo.Reused,
+		IsConnWasIdle:     ct.gotConnInfo.WasIdle,
+		ConnIdleTime:      ct.gotConnInfo.IdleTime,
+	}
+
+	// Calculate the total time accordingly,
+	// when connection is reused
+	if ct.gotConnInfo.Reused {
+		ti.TotalTime = ct.endTime.Sub(ct.getConn)
+	} else {
+		ti.TotalTime = ct.endTime.Sub(ct.dnsStart)
+	}
+
+	// Only calculate on successful connections
+	if !ct.connectDone.IsZero() {
+		ti.TCPConnectTime = ct.connectDone.Sub(ct.dnsDone)
+	}
+
+	// Only calculate on successful connections
+	if !ct.gotConn.IsZero() {
+		ti.ConnectTime = ct.gotConn.Sub(ct.getConn)
+	}
+
+	// Only calculate on successful connections
+	if !ct.gotFirstResponseByte.IsZero() {
+		ti.ResponseTime = ct.endTime.Sub(ct.gotFirstResponseByte)
+	}
+
+	// Capture remote address info when connection is non-nil
+	if ct.gotConnInfo.Conn != nil {
+		ti.RemoteAddr = ct.gotConnInfo.Conn.RemoteAddr()
+	}
+
+	return ti
 }
 
 func SetFormDataFromValues(data urlpkg.Values) *Request {
@@ -275,7 +327,7 @@ func (r *Request) appendError(err error) {
 
 func (r *Request) Send(method, url string) (*Response, error) {
 	if r.error != nil {
-		return nil, r.error
+		return &Response{}, r.error
 	}
 	r.RawRequest.Method = method
 	r.URL = url
@@ -536,5 +588,42 @@ func SetContentType(contentType string) *Request {
 
 func (r *Request) SetContentType(contentType string) *Request {
 	r.RawRequest.Header.Set(hdrContentTypeKey, contentType)
+	return r
+}
+
+// Context method returns the Context if its already set in request
+// otherwise it creates new one using `context.Background()`.
+func (r *Request) Context() context.Context {
+	if r.ctx == nil {
+		r.ctx = context.Background()
+	}
+	return r.ctx
+}
+
+func SetContext(ctx context.Context) *Request {
+	return defaultClient.R().SetContext(ctx)
+}
+
+// SetContext method sets the context.Context for current Request. It allows
+// to interrupt the request execution if ctx.Done() channel is closed.
+// See https://blog.golang.org/context article and the "context" package
+// documentation.
+func (r *Request) SetContext(ctx context.Context) *Request {
+	r.ctx = ctx
+	return r
+}
+
+func EnableTrace(enable bool) *Request {
+	return defaultClient.R().EnableTrace(enable)
+}
+
+func (r *Request) EnableTrace(enable bool) *Request {
+	if enable {
+		if r.trace == nil {
+			r.trace = &clientTrace{}
+		}
+	} else {
+		r.trace = nil
+	}
 	return r
 }
