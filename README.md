@@ -64,6 +64,8 @@ resp, err := client.R(). // Use R() to create a request
     Get("https://api.github.com/users/{username}/repos")
 ```
 
+Checkout more runnable examples in the [examples](examples) direcotry.
+
 ## <a name="Debugging">Debugging</a>
 
 **Dump the Content**
