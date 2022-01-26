@@ -11,11 +11,13 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Debugging](#Debugging)
 * [Path Parameter and Query Parameter](#Param)
 * [Header and Cookie](#Header-Cookie)
+* [Body and Marshal/Unmarshal](#Header-Cookie)
 * [Custom Client and Root Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
 * [Download and Upload](#Download-Upload)
 * [Auto-Decoding](#AutoDecode)
-  
+* [Request and Response Middleware](#Middleware)
+
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
@@ -24,6 +26,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
 * Easy [Download and Upload](#Download-Upload).
 * Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token, timeout, proxy, certs, redirect policy and so on for requests or clients.
+* Support middleware before request sent and after got response 
 
 ## <a name="Quick-Start">Quick Start</a>
 
@@ -359,6 +362,159 @@ resp1, err := client.R().Get(url1)
 resp2, err := client.R().Get(url2)
 ```
 
+You can also customize the CookieJar:
+```go
+// Set your own http.CookieJar implementation
+client.SetCookieJar(jar)
+
+// Set to nil to disable CookieJar
+client.SetCookieJar(nil)
+```
+
+## <a name="Body">Body and Marshal/Unmarshal</a>
+
+**Request Body**
+
+```go
+// Create a client that dump request
+client := req.C().EnableDumpOnlyRequest()
+// SetBody accepts string, []byte, io.Reader, use type assertion to
+// determine the data type of body automatically. 
+client.R().SetBody("test").Post("https://httpbin.org/post")
+/* Output
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+accept-encoding: gzip
+user-agent: req/v2 (https://github.com/imroc/req)
+
+test
+*/
+
+// If it cannot determine, like map and struct, then it will wait
+// and marshal to json or xml automatically according to the `Content-Type`
+// header that have been set before or after, default to json if not set.
+type User struct {
+    Name  string `json:"name"`
+    Email string `json:"email"`
+}
+user := &User{Name: "imroc", Email: "roc@imroc.cc"}
+client.R().SetBody(user).Post("https://httpbin.org/post")
+/* Output
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+content-type: application/json; charset=utf-8
+accept-encoding: gzip
+user-agent: req/v2 (https://github.com/imroc/req)
+
+{"name":"imroc","email":"roc@imroc.cc"}
+*/
+
+
+// You can use more specific methods to avoid type assertions and improves performance,
+client.R().SetBodyJsonString(`{"username": "imroc"}`).Post("https://httpbin.org/post")
+/*
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+content-type: application/json; charset=utf-8
+accept-encoding: gzip
+user-agent: req/v2 (https://github.com/imroc/req)
+
+{"username": "imroc"}
+*/
+
+// Marshal body and set `Content-Type` automatically without any guess
+cient.R().SetBodyXmlMarshal(user).Post("https://httpbin.org/post")
+/* Output
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+content-type: text/xml; charset=utf-8
+accept-encoding: gzip
+user-agent: req/v2 (https://github.com/imroc/req)
+
+<User><Name>imroc</Name><Email>roc@imroc.cc</Email></User>
+*/
+```
+
+**Response Body**
+
+```go
+// Define success body struct
+type User struct {
+    Name string `json:"name"`
+    Blog string `json:"blog"`
+}
+// Define error body struct
+type ErrorMessage struct {
+    Message string `json:"message"`
+}
+// Create a client and dump body to see details
+client := req.C().EnableDumpOnlyBody()
+
+// Send a request and unmarshal result automatically according to
+// response `Content-Type`
+user := &User{}
+errMsg := &ErrorMessage{}
+resp, err := client.R().
+	SetResult(user). // Set success result
+	SetError(errMsg). // Set error result
+	Get("https://api.github.com/users/imroc")
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println("----------")
+
+if resp.IsSuccess() { // status `code >= 200 and <= 299` is considered as success
+	// Must have been marshaled to user if no error returned before
+    fmt.Printf("%s's blog is %s\n", user.Name, user.Blog)
+} else if resp.IsError() { // status `code >= 400` is considered as error
+	// Must have been marshaled to errMsg if no error returned before
+    fmt.Println("got error:", errMsg.Message) 
+} else {
+    log.Fatal("unknown http status:", resp.Status)
+}
+/* Output
+{"login":"imroc","id":7448852,"node_id":"MDQ6VXNlcjc0NDg4NTI=","avatar_url":"https://avatars.githubusercontent.com/u/7448852?v=4","gravatar_id":"","url":"https://api.github.com/users/imroc","html_url":"https://github.com/imroc","followers_url":"https://api.github.com/users/imroc/followers","following_url":"https://api.github.com/users/imroc/following{/other_user}","gists_url":"https://api.github.com/users/imroc/gists{/gist_id}","starred_url":"https://api.github.com/users/imroc/starred{/owner}{/repo}","subscriptions_url":"https://api.github.com/users/imroc/subscriptions","organizations_url":"https://api.github.com/users/imroc/orgs","repos_url":"https://api.github.com/users/imroc/repos","events_url":"https://api.github.com/users/imroc/events{/privacy}","received_events_url":"https://api.github.com/users/imroc/received_events","type":"User","site_admin":false,"name":"roc","company":"Tencent","blog":"https://imroc.cc","location":"China","email":null,"hireable":true,"bio":"I'm roc","twitter_username":"imrocchan","public_repos":129,"public_gists":0,"followers":362,"following":151,"created_at":"2014-04-30T10:50:46Z","updated_at":"2022-01-24T23:32:53Z"}
+----------
+roc's blog is https://imroc.cc
+*/
+
+// Or you can also unmarshal response later
+if resp.IsSuccess() {
+    err = resp.Unmarshal(user)
+    if err != nil {
+        log.Fatal(err)
+    }
+    fmt.Printf("%s's blog is %s\n", user.Name, user.Blog)
+} else {
+    fmt.Println("bad response:", resp)
+}
+
+// Also, you can get the raw response and Unmarshal by yourself
+yaml.Unmarshal(resp.Bytes())
+```
+
+**Disable Auto-Read Response Body**
+
+Response body will be read into memory if it's not a download request by default, you can disable it if you want (normally you don't need to do this).
+
+```go
+client.DisableAutoReadResponse(true)
+
+resp, err := client.R().Get(url)
+if err != nil {
+	log.Fatal(err)
+}
+io.Copy(dst, resp.Body)
+```
+
 ## <a name="Cert">Custom Client and Root Certificates</a>
 
 ```go
@@ -475,6 +631,28 @@ fn := func(contentType string) bool {
     return false
 }
 client.SetAutoDecodeAllTypeFunc(fn)
+```
+
+## <a name="Middleware">Request and Response Middleware</a>
+
+```go
+client := req.C()
+
+// Registering Request Middleware
+client.OnBeforeRequest(func(c *req.Client, r *req.Request) error {
+	// You can access Client and current Request object to do something
+	// you need
+
+    return nil  // return nil if it is success
+  })
+
+// Registering Response Middleware
+client.OnAfterResponse(func(c *req.Client, r *req.Response) error {
+    // You can access Client and current Response object to do something
+    // you need
+
+    return nil  // return nil if it is success
+  })
 ```
 
 ## License

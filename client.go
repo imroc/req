@@ -667,6 +667,15 @@ func (c *Client) SetCommonHeader(key, value string) *Client {
 	return c
 }
 
+func SetCommonContentType(ct string) *Client {
+	return defaultClient.SetCommonContentType(ct)
+}
+
+func (c *Client) SetCommonContentType(ct string) *Client {
+	c.SetCommonHeader(hdrContentTypeKey, ct)
+	return c
+}
+
 func EnableDump(enable bool) *Client {
 	return defaultClient.EnableDump(enable)
 }
@@ -747,6 +756,15 @@ func EnableTraceAll(enable bool) *Client {
 
 func (c *Client) EnableTraceAll(enable bool) *Client {
 	c.trace = enable
+	return c
+}
+
+func SetCookieJar(jar http.CookieJar) *Client {
+	return defaultClient.SetCookieJar(jar)
+}
+
+func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
+	c.httpClient.Jar = jar
 	return c
 }
 
