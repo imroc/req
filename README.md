@@ -1,8 +1,8 @@
-# req
-
-[![GoDoc](https://pkg.go.dev/badge/github.com/imroc/req.svg)](https://pkg.go.dev/github.com/imroc/req)
-
-Simplified golang http client library with magic, happy sending requests, less code and more efficiency.
+<p align="center">
+<h1 align="center">Req</h1>
+<p align="center">Simplified Golang HTTP client library with Black Magic, Less Code and More Efficiency.</p>
+<p align="center"><a href="https://pkg.go.dev/github.com/imroc/req"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
+</p>
 
 **Table of Contents**
 
