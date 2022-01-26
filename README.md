@@ -19,6 +19,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Auto-Decoding](#AutoDecode)
 * [Request and Response Middleware](#Middleware)
 * [Redirect Policy](#Redirect)
+* [Proxy](#Proxy)
 
 ## <a name="Features">Features</a>
 
@@ -721,7 +722,23 @@ client.SetRedirectPolicy(req.NoRedirectPolicy())
 client.SetRedirectPolicy(func(req *http.Request, via []*http.Request) error {
     // ...
 })
+```
 
+## <a name="Proxy">Proxy</a>
+
+`Req` use proxy `http.ProxyFromEnvironment` by default, which will read the `HTTP_PROXY/HTTPS_PROXY/http_proxy/https_proxy` environment variable, and setup proxy if environment variable is been set. You can customize it if you need:
+
+```go
+// Set proxy from proxy url
+client.SetProxyURL("http://myproxy:8080")
+
+// Custmize the proxy function with your own implementation
+client.SetProxy(func(request *http.Request) (*url.URL, error) {
+    //...
+})
+
+// Disable proxy
+client.SetProxy(nil)
 ```
 
 ## License
