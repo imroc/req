@@ -16,7 +16,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Custom Client and Root Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
 * [Download and Upload](#Download-Upload)
-* [Auto-Decoding](#AutoDecode)
+* [Auto-Decode](#AutoDecode)
 * [Request and Response Middleware](#Middleware)
 * [Redirect Policy](#Redirect)
 * [Proxy](#Proxy)
@@ -540,6 +540,22 @@ if resp.IsSuccess() {
 yaml.Unmarshal(resp.Bytes())
 ```
 
+**Customize Body Marshal/Unmarshal**
+```go
+// Example of registering json-iterator
+import jsoniter "github.com/json-iterator/go"
+
+json := jsoniter.ConfigCompatibleWithStandardLibrary
+
+client := req.R()
+client.JSONMarshal = json.Marshal
+client.JSONUnmarshal = json.Unmarshal
+
+// Similarly, XML functions can also be customized
+client.XMLMarshal
+client.XMLUnmarshal
+```
+
 **Disable Auto-Read Response Body**
 
 Response body will be read into memory if it's not a download request by default, you can disable it if you want (normally you don't need to do this).
@@ -637,11 +653,14 @@ client.R().SetFile("pic", "test.jpg"). // Set form param name and filename
     }).
 	SetFromDataFromValues(values). // You can also set form data using `url.Values`
     Post("http://127.0.0.1:8888/upload")
-*/
 
+// You can also use io.Reader to upload
+avatarImgFile, _ := os.Open("avatar.png")
+client.R().SetFileReader("avatar", "avatar.png", avatarImgFile).Post(url)
+*/
 ```
 
-## <a name="AutoDecode">Auto-Decoding</a>
+## <a name="AutoDecode">Auto-Decode</a>
 
 `Req` detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default.
 
