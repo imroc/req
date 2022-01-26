@@ -9,7 +9,8 @@ Simplified golang http client library with magic, happy sending requests, less c
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
 * [Debugging](#Debugging)
-* [Path Parameter and Query Parameter](#Param)
+* [Path and Query Parameter](#Param)
+* [Form Data](#From)
 * [Header and Cookie](#Header-Cookie)
 * [Body and Marshal/Unmarshal](#Header-Cookie)
 * [Custom Client and Root Certificates](#Cert)
@@ -210,7 +211,7 @@ req.SetQueryParam("page", "2").
 	Get("https://api.example.com/repos")
 ```
 
-## <a name="Param">Path Parameter and Query Parameter</a>
+## <a name="Param">Path and Query Parameter</a>
 
 **Set Path Parameter**
 
@@ -268,6 +269,26 @@ resp1, err := client.Get(url1)
 ...
 resp2, err := client.Get(url2)
 ...
+```
+
+## <a name="Form">Form Data</a>
+
+```go
+client := req.C().EnableDumpOnlyRequest()
+client.R().SetFormData(map[string]string{
+    "username": "imroc",
+    "blog":     "https://imroc.cc",
+}).Post("https://httpbin.org/post")
+/* Output
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+accept-encoding: gzip
+user-agent: req/v2 (https://github.com/imroc/req)
+
+blog=https%3A%2F%2Fimroc.cc&username=imroc
+*/
 ```
 
 ## <a name="Header-Cookie">Header and Cookie</a>
