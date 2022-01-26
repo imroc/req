@@ -332,8 +332,6 @@ Accept: application/json
 My-Custom-Header: My Custom Value
 User: imroc
 Accept-Encoding: gzip
-
-...
 */
 
 // You can also set the common header and cookie for every request on client.
@@ -389,8 +387,6 @@ User-Agent: req/v2 (https://github.com/imroc/req)
 Accept: application/json
 Cookie: imroc/req="This is my custome cookie value"; testcookie1="testcookie1 value"; testcookie2="testcookie2 value"
 Accept-Encoding: gzip
-
-...
 */
 
 // You can also set the common cookie for every request on client.
