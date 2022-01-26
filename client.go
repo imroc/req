@@ -44,6 +44,7 @@ type Client struct {
 	XMLUnmarshal  func(data []byte, v interface{}) error
 	DebugLog      bool
 
+	trace                   bool
 	outputDirectory         string
 	disableAutoReadResponse bool
 	scheme                  string
@@ -721,6 +722,15 @@ func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	return c
 }
 
+func EnableTraceAll(enable bool) *Client {
+	return defaultClient.EnableTraceAll(enable)
+}
+
+func (c *Client) EnableTraceAll(enable bool) *Client {
+	c.trace = enable
+	return c
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
@@ -802,9 +812,12 @@ func C() *Client {
 func setupRequest(r *Request) {
 	setRequestURL(r.RawRequest, r.URL)
 	setRequestHeaderAndCookie(r)
+	setTrace(r)
 }
 
 func (c *Client) do(r *Request) (resp *Response, err error) {
+
+	resp = &Response{}
 
 	for _, f := range r.client.udBeforeRequest {
 		if err = f(r.client, r); err != nil {
@@ -824,15 +837,14 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		c.log.Debugf("%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
 	}
 
+	r.StartTime = time.Now()
 	httpResponse, err := c.httpClient.Do(r.RawRequest)
 	if err != nil {
 		return
 	}
 
-	resp = &Response{
-		Request:  r,
-		Response: httpResponse,
-	}
+	resp.Request = r
+	resp.Response = httpResponse
 
 	if !c.disableAutoReadResponse && !r.isSaveResponse { // auto read response body
 		_, err = resp.ToBytes()
@@ -847,6 +859,18 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		}
 	}
 	return
+}
+
+func setTrace(r *Request) {
+	if r.trace == nil {
+		if r.client.trace {
+			r.trace = &clientTrace{}
+		} else {
+			return
+		}
+	}
+	r.ctx = r.trace.createContext(r.Context())
+	r.RawRequest = r.RawRequest.WithContext(r.ctx)
 }
 
 func setRequestHeaderAndCookie(r *Request) {

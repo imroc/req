@@ -60,6 +60,7 @@ func (r *Response) ToBytes() ([]byte, error) {
 	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
+	r.setReceivedAt()
 	if err != nil {
 		return nil, err
 	}
