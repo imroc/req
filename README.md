@@ -23,7 +23,7 @@ Simplified golang http client library with magic, happy sending requests, less c
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decoding](#AutoDecode)).
 * Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
 * Easy upload and download.
-* Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token, timeout, proxy, redirect policy and so on for requests or clients.
+* Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token, timeout, proxy, certs, redirect policy and so on for requests or clients.
 
 ## <a name="Quick-Start">Quick Start</a>
 
@@ -185,7 +185,7 @@ client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
 
-**Testing with Use Global Methods**
+**Test with Global Wrapper Methods**
 
 `req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
 
