@@ -10,7 +10,7 @@ func (r *Response) UnmarshalJson(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return r.Request.client.JSONUnmarshal(b, v)
+	return r.Request.client.jsonUnmarshal(b, v)
 }
 
 func (r *Response) UnmarshalXml(v interface{}) error {
@@ -18,7 +18,7 @@ func (r *Response) UnmarshalXml(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return r.Request.client.XMLUnmarshal(b, v)
+	return r.Request.client.xmlUnmarshal(b, v)
 }
 
 func (r *Response) Unmarshal(v interface{}) error {

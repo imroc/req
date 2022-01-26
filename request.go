@@ -562,7 +562,7 @@ func SetBodyJsonMarshal(v interface{}) *Request {
 // SetBodyJsonMarshal set the request body that marshaled from object, and
 // set Content-Type header as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
-	b, err := r.client.JSONMarshal(v)
+	b, err := r.client.jsonMarshal(v)
 	if err != nil {
 		r.appendError(err)
 		return r
@@ -593,7 +593,7 @@ func SetBodyXmlMarshal(v interface{}) *Request {
 }
 
 func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
-	b, err := r.client.XMLMarshal(v)
+	b, err := r.client.xmlMarshal(v)
 	if err != nil {
 		r.appendError(err)
 		return r

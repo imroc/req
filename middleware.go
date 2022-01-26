@@ -111,13 +111,13 @@ func handleMarshalBody(c *Client, r *Request) error {
 	}
 	if ct != "" {
 		if util.IsXMLType(ct) {
-			body, err := c.XMLMarshal(r.marshalBody)
+			body, err := c.xmlMarshal(r.marshalBody)
 			if err != nil {
 				return err
 			}
 			r.SetBodyBytes(body)
 		} else {
-			body, err := c.JSONMarshal(r.marshalBody)
+			body, err := c.jsonMarshal(r.marshalBody)
 			if err != nil {
 				return err
 			}
@@ -125,7 +125,7 @@ func handleMarshalBody(c *Client, r *Request) error {
 		}
 		return nil
 	}
-	body, err := c.JSONMarshal(r.marshalBody)
+	body, err := c.jsonMarshal(r.marshalBody)
 	if err != nil {
 		return err
 	}
@@ -154,9 +154,9 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 	}
 	ct := r.GetContentType()
 	if util.IsJSONType(ct) {
-		return c.JSONUnmarshal(body, v)
+		return c.jsonUnmarshal(body, v)
 	} else if util.IsXMLType(ct) {
-		return c.XMLUnmarshal(body, v)
+		return c.xmlUnmarshal(body, v)
 	}
 	return
 }

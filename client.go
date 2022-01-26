@@ -34,17 +34,17 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	BaseURL       string
-	PathParams    map[string]string
-	QueryParams   urlpkg.Values
-	Headers       http.Header
-	Cookies       []*http.Cookie
-	JSONMarshal   func(v interface{}) ([]byte, error)
-	JSONUnmarshal func(data []byte, v interface{}) error
-	XMLMarshal    func(v interface{}) ([]byte, error)
-	XMLUnmarshal  func(data []byte, v interface{}) error
-	DebugLog      bool
+	BaseURL     string
+	PathParams  map[string]string
+	QueryParams urlpkg.Values
+	Headers     http.Header
+	Cookies     []*http.Cookie
+	DebugLog    bool
 
+	jsonMarshal             func(v interface{}) ([]byte, error)
+	jsonUnmarshal           func(data []byte, v interface{}) error
+	xmlMarshal              func(v interface{}) ([]byte, error)
+	xmlUnmarshal            func(data []byte, v interface{}) error
 	trace                   bool
 	outputDirectory         string
 	disableAutoReadResponse bool
@@ -768,6 +768,42 @@ func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	return c
 }
 
+func SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
+	return defaultClient.SetJsonMarshal(fn)
+}
+
+func (c *Client) SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
+	c.jsonMarshal = fn
+	return c
+}
+
+func SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
+	return defaultClient.SetJsonUnmarshal(fn)
+}
+
+func (c *Client) SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
+	c.jsonUnmarshal = fn
+	return c
+}
+
+func SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
+	return defaultClient.SetXmlMarshal(fn)
+}
+
+func (c *Client) SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
+	c.xmlMarshal = fn
+	return c
+}
+
+func SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
+	return defaultClient.SetXmlUnmarshal(fn)
+}
+
+func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
+	c.xmlUnmarshal = fn
+	return c
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
@@ -832,10 +868,10 @@ func C() *Client {
 		httpClient:    httpClient,
 		t:             t,
 		t2:            t2,
-		JSONMarshal:   json.Marshal,
-		JSONUnmarshal: json.Unmarshal,
-		XMLMarshal:    xml.Marshal,
-		XMLUnmarshal:  xml.Unmarshal,
+		jsonMarshal:   json.Marshal,
+		jsonUnmarshal: json.Unmarshal,
+		xmlMarshal:    xml.Marshal,
+		xmlUnmarshal:  xml.Unmarshal,
 	}
 	httpClient.CheckRedirect = c.defaultCheckRedirect
 

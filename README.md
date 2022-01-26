@@ -536,20 +536,20 @@ if resp.IsSuccess() {
 yaml.Unmarshal(resp.Bytes())
 ```
 
-**Customize Body Marshal/Unmarshal**
+**Customize JSON&XML Marshal/Unmarshal**
+
 ```go
 // Example of registering json-iterator
 import jsoniter "github.com/json-iterator/go"
 
 json := jsoniter.ConfigCompatibleWithStandardLibrary
 
-client := req.R()
-client.JSONMarshal = json.Marshal
-client.JSONUnmarshal = json.Unmarshal
+client := req.C().
+	SetJsonMarshal(json.Marshal).
+	SetJsonUnmarshal(json.Unmarshal)
 
 // Similarly, XML functions can also be customized
-client.XMLMarshal
-client.XMLUnmarshal
+client.SetXmlMarshal(xmlMarshalFunc).SetXmlUnmarshal(xmlUnmarshalFunc)
 ```
 
 **Disable Auto-Read Response Body**
