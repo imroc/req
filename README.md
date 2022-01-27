@@ -167,17 +167,16 @@ fmt.Println("----------")
 fmt.Println(trace) // Print details
 
 /* Output
-request total time is 1.962598667s, and server respond frist byte since connection ready costs 1.311601416s
-----------
-TotalTime         : 1.962598667s
-DNSLookupTime     : 3.604917ms
-TCPConnectTime    : 610µs
-TLSHandshakeTime  : 644.718542ms
-FirstResponseTime : 1.311601416s
-ResponseTime      : 2.002209ms
+the request total time is 2.562416041s, and costs 1.289082208s from connection ready to server respond frist byte
+--------
+TotalTime         : 2.562416041s
+DNSLookupTime     : 445.246375ms
+TCPConnectTime    : 428.458µs
+TLSHandshakeTime  : 825.888208ms
+FirstResponseTime : 1.289082208s
+ResponseTime      : 1.712375ms
 IsConnReused:     : false
 RemoteAddr        : 98.126.155.187:443
-
 */
 
 // Enable trace at client level
