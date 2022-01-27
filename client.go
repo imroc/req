@@ -34,12 +34,14 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	BaseURL     string
-	PathParams  map[string]string
-	QueryParams urlpkg.Values
-	Headers     http.Header
-	Cookies     []*http.Cookie
-	DebugLog    bool
+	BaseURL               string
+	PathParams            map[string]string
+	QueryParams           urlpkg.Values
+	Headers               http.Header
+	Cookies               []*http.Cookie
+	FormData              urlpkg.Values
+	DebugLog              bool
+	AllowGetMethodPayload bool
 
 	jsonMarshal             func(v interface{}) ([]byte, error)
 	jsonUnmarshal           func(data []byte, v interface{}) error
@@ -113,6 +115,36 @@ func (c *Client) R() *Request {
 		client:     c,
 		RawRequest: req,
 	}
+}
+
+func SetCommonFormDataFromValues(data urlpkg.Values) *Client {
+	return defaultClient.SetCommonFormDataFromValues(data)
+}
+
+func (c *Client) SetCommonFormDataFromValues(data urlpkg.Values) *Client {
+	if c.FormData == nil {
+		c.FormData = urlpkg.Values{}
+	}
+	for k, v := range data {
+		for _, kv := range v {
+			c.FormData.Add(k, kv)
+		}
+	}
+	return c
+}
+
+func SetCommonFormData(data map[string]string) *Client {
+	return defaultClient.SetCommonFormData(data)
+}
+
+func (c *Client) SetCommonFormData(data map[string]string) *Client {
+	if c.FormData == nil {
+		c.FormData = urlpkg.Values{}
+	}
+	for k, v := range data {
+		c.FormData.Set(k, v)
+	}
+	return c
 }
 
 func SetBaseURL(u string) *Client {
@@ -802,6 +834,19 @@ func SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	c.xmlUnmarshal = fn
 	return c
+}
+
+func EnableAllowGetMethodPayload(a bool) *Client {
+	return defaultClient.EnableAllowGetMethodPayload(a)
+}
+
+func (c *Client) EnableAllowGetMethodPayload(a bool) *Client {
+	c.AllowGetMethodPayload = a
+	return c
+}
+
+func (c *Client) isPayloadForbid(m string) bool {
+	return (m == http.MethodGet && !c.AllowGetMethodPayload) || m == http.MethodHead || m == http.MethodOptions
 }
 
 // NewClient is the alias of C
