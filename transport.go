@@ -44,6 +44,18 @@ import (
 // MaxIdleConnsPerHost.
 const DefaultMaxIdleConnsPerHost = 2
 
+// ResponseOptions determines that how should the response been processed.
+type ResponseOptions struct {
+	// DisableAutoDecode, if true, prevents auto detect response
+	// body's charset and decode it to utf-8
+	DisableAutoDecode bool
+
+	// AutoDecodeContentType specifies an optional function for determine
+	// whether the response body should been auto decode to utf-8.
+	// Only valid when DisableAutoDecode is true.
+	AutoDecodeContentType func(contentType string) bool
+}
+
 // Transport is an implementation of http.RoundTripper that supports HTTP,
 // HTTPS, and HTTP proxies (for either HTTP or HTTPS with CONNECT).
 //

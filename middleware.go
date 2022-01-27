@@ -198,7 +198,7 @@ func handleDownload(c *Client, r *Response) (err error) {
 		body = r.Body
 	}
 
-	var output io.WriteCloser
+	var output io.Writer
 	if r.Request.outputFile != "" {
 		file := r.Request.outputFile
 		if c.outputDirectory != "" && !filepath.IsAbs(file) {
@@ -220,7 +220,7 @@ func handleDownload(c *Client, r *Response) (err error) {
 
 	defer func() {
 		body.Close()
-		output.Close()
+		closeq(output)
 	}()
 	_, err = io.Copy(output, body)
 	r.setReceivedAt()
