@@ -26,9 +26,11 @@
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
 * Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, even provide global wrapper methods to test with minimal code (see [Debugging](#Debugging).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decoding](#AutoDecode)).
+* Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support.
 * Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
 * Easy [Download and Upload](#Download-Upload).
-* Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token, timeout, proxy, certs, redirect policy and so on for requests or clients.
+* Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token for both client and request level.
+* Easy set timeout, proxy, certs, redirect policy for client.
 * Support middleware before request sent and after got response 
 
 ## <a name="Quick-Start">Quick Start</a>

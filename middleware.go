@@ -134,13 +134,24 @@ func handleMarshalBody(c *Client, r *Request) error {
 }
 
 func parseRequestBody(c *Client, r *Request) (err error) {
-	if r.isMultiPart {
+	if c.isPayloadForbid(r.RawRequest.Method) {
+		return
+	}
+	// handle multipart
+	if r.isMultiPart && (r.RawRequest.Method != http.MethodPatch) {
 		return handleMultiPart(c, r)
+	}
+
+	// handle form data
+	if len(c.FormData) > 0 {
+		r.SetFormDataFromValues(c.FormData)
 	}
 	if len(r.FormData) > 0 {
 		handleFormData(r)
 		return
 	}
+
+	// handle marshal body
 	if r.marshalBody != nil {
 		handleMarshalBody(c, r)
 	}
