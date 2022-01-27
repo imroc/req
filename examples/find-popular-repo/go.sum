@@ -12,8 +12,8 @@ github.com/hashicorp/errwrap v1.0.0 h1:hLrqtEDnRye3+sgx6z4qVLNuviH3MR5aQ0ykNJa/U
 github.com/hashicorp/errwrap v1.0.0/go.mod h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=
 github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
-github.com/imroc/req/v2 v2.0.0-beta.1 h1:eVlSdoboOJIz5tYeTw9Ik1Onb8KO02EJ0Ab/GmSli7U=
-github.com/imroc/req/v2 v2.0.0-beta.1/go.mod h1:Tn6STXYRyagrmRswbWYuiiSE3FBpnzUcqBHjtJ3+7gI=
+github.com/imroc/req/v2 v2.0.0 h1:KcRQ+V4e34cS/3sGn0KMtN9WOKqSXtCLSrZv6WnlU4k=
+github.com/imroc/req/v2 v2.0.0/go.mod h1:Tn6STXYRyagrmRswbWYuiiSE3FBpnzUcqBHjtJ3+7gI=
 github.com/json-iterator/go v1.1.9/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/leodido/go-urn v1.2.0/go.mod h1:+8+nEpDfqqsY+g338gtMEUOtuK+4dEMhiQEgxpxOKII=
 github.com/mattn/go-isatty v0.0.12/go.mod h1:cbi8OIDigv2wuxKPP5vlRcQ1OAZbq2CE4Kysco4FUpU=

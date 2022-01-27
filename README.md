@@ -4,7 +4,7 @@
     <p align="center"><a href="https://pkg.go.dev/github.com/imroc/req"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
 </p>
 
-## Big News
+##:warning Big News
 
 Brand new v2 version is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
 
