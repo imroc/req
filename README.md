@@ -25,12 +25,13 @@
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
 * Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, and even provide global wrapper methods to test with minimal code (see [Debugging](#Debugging).
-* Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decoding](#AutoDecode)).
+* Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
+* Automatic marshal and unmarshal for JSON and XML content type and fully customizable.
 * Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support.
 * Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
 * Easy [Download and Upload](#Download-Upload).
 * Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token for both client and request level.
-* Easy set timeout, proxy, certs, redirect policy for client.
+* Easy set timeout, proxy, certs, redirect policy, cookie jar, compression, keepalives etc for client.
 * Support middleware before request sent and after got response.
 
 ## <a name="Quick-Start">Quick Start</a>
@@ -361,16 +362,8 @@ client := req.C().EnableDumpOnlyHeader()
 
 // Send a request with multiple headers and cookies
 client.R().
-    SetCookie(&http.Cookie{ // Set one cookie
-        Name:     "imroc/req",
-        Value:    "This is my custome cookie value",
-        Path:     "/",
-        Domain:   "baidu.com",
-        MaxAge:   36000,
-        HttpOnly: false,
-        Secure:   true,
-    }).SetCookies([]*http.Cookie{ // Set multiple cookies at once 
-        &http.Cookie{
+    SetCookies(
+		&http.Cookie{
             Name:     "testcookie1",
             Value:    "testcookie1 value",
             Path:     "/",
@@ -388,19 +381,19 @@ client.R().
             HttpOnly: false,
             Secure:   true,
         },
-    }).Get("https://www.baidu.com/")
+    ).Get("https://www.baidu.com/")
 
 /* Output
 GET / HTTP/1.1
 Host: www.baidu.com
 User-Agent: req/v2 (https://github.com/imroc/req)
 Accept: application/json
-Cookie: imroc/req="This is my custome cookie value"; testcookie1="testcookie1 value"; testcookie2="testcookie2 value"
+Cookie: testcookie1="testcookie1 value"; testcookie2="testcookie2 value"
 Accept-Encoding: gzip
 */
 
 // You can also set the common cookie for every request on client.
-client.SetCommonCookie(cookie).SetCommonCookies(cookies)
+client.SetCommonCookies(cookie1, cookie2, cookie3)
 
 resp1, err := client.R().Get(url1)
 ...

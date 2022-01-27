@@ -117,21 +117,12 @@ func (r *Request) SetFormData(data map[string]string) *Request {
 	return r
 }
 
-func SetCookie(hc *http.Cookie) *Request {
-	return defaultClient.R().SetCookie(hc)
+func SetCookies(cookies ...*http.Cookie) *Request {
+	return defaultClient.R().SetCookies(cookies...)
 }
 
-func (r *Request) SetCookie(hc *http.Cookie) *Request {
-	r.Cookies = append(r.Cookies, hc)
-	return r
-}
-
-func SetCookies(rs []*http.Cookie) *Request {
-	return defaultClient.R().SetCookies(rs)
-}
-
-func (r *Request) SetCookies(rs []*http.Cookie) *Request {
-	r.Cookies = append(r.Cookies, rs...)
+func (r *Request) SetCookies(cookies ...*http.Cookie) *Request {
+	r.Cookies = append(r.Cookies, cookies...)
 	return r
 }
 
