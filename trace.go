@@ -25,21 +25,26 @@ IsConnReused:     : true
 RemoteAddr        : %v`
 )
 
-func (t TraceInfo) MaxTime() (maxName string, maxValue time.Duration) {
+func (t TraceInfo) Blame() string {
+	var mk string
+	var mv time.Duration
 	m := map[string]time.Duration{
-		"DNSLookupTime":     t.DNSLookupTime,
-		"TCPConnectTime":    t.TCPConnectTime,
-		"TLSHandshakeTime":  t.TLSHandshakeTime,
-		"FirstResponseTime": t.FirstResponseTime,
-		"ResponseTime":      t.ResponseTime,
+		"dns lookup":    t.DNSLookupTime,
+		"tcp connect":   t.TCPConnectTime,
+		"tls handshake": t.TLSHandshakeTime,
+		"server respond frist byte since connection ready": t.FirstResponseTime,
+		"server respond header and body":                   t.ResponseTime,
 	}
 	for k, v := range m {
-		if v > maxValue {
-			maxName = k
-			maxValue = v
+		if v > mv {
+			mk = k
+			mv = v
 		}
 	}
-	return
+	if mk == "" {
+		return ""
+	}
+	return fmt.Sprintf("request total time is %v, and %s costs %v", t.TotalTime, mk, mv)
 }
 
 func (t TraceInfo) String() string {

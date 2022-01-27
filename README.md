@@ -131,7 +131,7 @@ opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 ```
 
-**EnableDebugLog for Deeper Insights**
+**Enable DebugLog for Deeper Insights**
 
 ```go
 // Logging is enabled by default, but only output the warning and error message.
@@ -152,7 +152,7 @@ client.SetLogger(nil)
 client.SetLogger(logger)
 ```
 
-**EnableTrace to Analyze Performance**
+**Enable Trace to Analyze Performance**
 
 ```go
 // Enable trace at request level
@@ -161,23 +161,23 @@ resp, err := client.R().EnableTrace(true).Get("https://api.github.com/users/imro
 if err != nil {
 	log.Fatal(err)
 }
-ti := resp.TraceInfo() // Use `resp.Request.TraceInfo()` to avoid unnecessary copy in production
-fmt.Println(ti)
-fmt.Println("--------")
-k, v := ti.MaxTime()
-fmt.Printf("Max time is %s which tooks %v\n", k, v)
+trace := resp.TraceInfo() // Use `resp.Request.TraceInfo()` to avoid unnecessary struct copy in production.
+fmt.Println(trace.Blame()) // Print out exactly where the http request is slowing down.
+fmt.Println("----------")
+fmt.Println(trace) // Print details
 
 /* Output
-TotalTime         : 1.342805875s
-DNSLookupTime     : 7.549292ms
-TCPConnectTime    : 567.833µs
-TLSHandshakeTime  : 536.604041ms
-FirstResponseTime : 797.466708ms
-ResponseTime      : 374.875µs
+request total time is 1.962598667s, and server respond frist byte since connection ready costs 1.311601416s
+----------
+TotalTime         : 1.962598667s
+DNSLookupTime     : 3.604917ms
+TCPConnectTime    : 610µs
+TLSHandshakeTime  : 644.718542ms
+FirstResponseTime : 1.311601416s
+ResponseTime      : 2.002209ms
 IsConnReused:     : false
-RemoteAddr        : 192.30.255.117:443
---------
-Max time is FirstResponseTime which tooks 797.466708ms
+RemoteAddr        : 98.126.155.187:443
+
 */
 
 // Enable trace at client level
