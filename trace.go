@@ -26,14 +26,17 @@ RemoteAddr        : %v`
 )
 
 func (t TraceInfo) Blame() string {
+	if t.RemoteAddr == nil {
+		return "trace is not enabled"
+	}
 	var mk string
 	var mv time.Duration
 	m := map[string]time.Duration{
-		"dns lookup":    t.DNSLookupTime,
-		"tcp connect":   t.TCPConnectTime,
-		"tls handshake": t.TLSHandshakeTime,
-		"server respond frist byte since connection ready": t.FirstResponseTime,
-		"server respond header and body":                   t.ResponseTime,
+		"on dns lookup":    t.DNSLookupTime,
+		"on tcp connect":   t.TCPConnectTime,
+		"on tls handshake": t.TLSHandshakeTime,
+		"from connection ready to server respond frist byte":   t.FirstResponseTime,
+		"from server respond frist byte to request completion": t.ResponseTime,
 	}
 	for k, v := range m {
 		if v > mv {
@@ -42,14 +45,14 @@ func (t TraceInfo) Blame() string {
 		}
 	}
 	if mk == "" {
-		return ""
+		return "nothing to blame"
 	}
-	return fmt.Sprintf("request total time is %v, and %s costs %v", t.TotalTime, mk, mv)
+	return fmt.Sprintf("the request total time is %v, and costs %v %s", t.TotalTime, mv, mk)
 }
 
 func (t TraceInfo) String() string {
 	if t.RemoteAddr == nil {
-		return "uncompleted request"
+		return "trace is not enabled"
 	}
 	if t.IsConnReused {
 		return fmt.Sprintf(traceReusedFmt, t.TotalTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr)
@@ -72,7 +75,8 @@ type TraceInfo struct {
 	// TLSHandshakeTime is a duration that TLS handshake took place.
 	TLSHandshakeTime time.Duration
 
-	// FirstResponseTime is a duration that server took to respond first byte.
+	// FirstResponseTime is a duration that server took to respond first byte since
+	// connection ready (after tls handshake if it's tls and not a reused connection).
 	FirstResponseTime time.Duration
 
 	// ResponseTime is a duration since first response byte from server to
