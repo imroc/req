@@ -223,6 +223,14 @@ req.SetQueryParam("page", "2").
 	Get("https://api.example.com/repos")
 ```
 
+**Test with MustXXX**
+
+Use `MustXXX` to ignore error handling when test, make it possible to complete a complex test with just one line of code:
+
+```go
+fmt.Println(req.DevMode().MustGet("https://imroc.cc").TraceInfo())
+```
+
 ## <a name="Param">URL Path and Query Parameter</a>
 
 **Set Path Parameter**
