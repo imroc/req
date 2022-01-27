@@ -181,12 +181,12 @@ func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 	return c
 }
 
-func SetCert(certs ...tls.Certificate) *Client {
-	return defaultClient.SetCert(certs...)
+func SetCerts(certs ...tls.Certificate) *Client {
+	return defaultClient.SetCerts(certs...)
 }
 
-// SetCert helps to set client certificates
-func (c *Client) SetCert(certs ...tls.Certificate) *Client {
+// SetCerts helps to set client certificates
+func (c *Client) SetCerts(certs ...tls.Certificate) *Client {
 	config := c.tlsConfig()
 	config.Certificates = append(config.Certificates, certs...)
 	return c
@@ -211,12 +211,12 @@ func (c *Client) SetRootCertFromString(pemContent string) *Client {
 	return c
 }
 
-func SetRootCertFromFile(pemFiles ...string) *Client {
-	return defaultClient.SetRootCertFromFile(pemFiles...)
+func SetRootCertsFromFile(pemFiles ...string) *Client {
+	return defaultClient.SetRootCertsFromFile(pemFiles...)
 }
 
-// SetRootCertFromFile helps to set root cert from files
-func (c *Client) SetRootCertFromFile(pemFiles ...string) *Client {
+// SetRootCertsFromFile helps to set root certs from files
+func (c *Client) SetRootCertsFromFile(pemFiles ...string) *Client {
 	for _, pemFile := range pemFiles {
 		rootPemData, err := ioutil.ReadFile(pemFile)
 		if err != nil {
