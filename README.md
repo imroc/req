@@ -8,7 +8,7 @@
 
 Brand new v2 version is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
 
-If you want to use the older version, check it out in [v1](https://github.com/imroc/req/tree/v1) branch.
+If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
 
 ## Table of Contents
 
