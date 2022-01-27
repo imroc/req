@@ -4,7 +4,13 @@
     <p align="center"><a href="https://pkg.go.dev/github.com/imroc/req"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
 </p>
 
-**Table of Contents**
+## Big News
+
+Brand new v2 version is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
+
+If you want to use the older version, check it out in [v1](https://github.com/imroc/req/tree/v1) branch.
+
+## Table of Contents
 
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
@@ -39,7 +45,7 @@
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2@v2.0.0-beta.4
+go get github.com/imroc/req/v2
 ```
 
 **Import**
