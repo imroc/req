@@ -13,7 +13,7 @@
 * [Form Data](#Form)
 * [Header and Cookie](#Header-Cookie)
 * [Body and Marshal/Unmarshal](#Header-Cookie)
-* [Custom Client and Root Certificates](#Cert)
+* [Custom Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
 * [Download and Upload](#Download-Upload)
 * [Auto-Decode](#AutoDecode)
@@ -238,7 +238,7 @@ client.R().
 */
 
 // You can also set the common PathParam for every request on client
-client.SetPathParam(k1, v1).SetPathParams(pathParams)
+client.SetCommonPathParam(k1, v1).SetCommonPathParams(pathParams)
 	
 resp1, err := client.Get(url1)
 ...
@@ -267,9 +267,9 @@ client.R().
 */
 
 // You can also set the common QueryParam for every request on client
-client.SetQueryParam(k, v).
-    SetQueryParams(queryParams).
-    SetQueryString(queryString).
+client.SetCommonQueryParam(k, v).
+    SetCommonQueryParams(queryParams).
+    SetCommonQueryString(queryString).
 	
 resp1, err := client.Get(url1)
 ...
@@ -278,8 +278,6 @@ resp2, err := client.Get(url2)
 ```
 
 ## <a name="Form">Form Data</a>
-
-Use `SetFormData` or `SetFormDataFromValues` to set form data (`GET`, `HEAD`, and `OPTIONS` requests ignores form data by default).
 
 ```go
 client := req.C().EnableDumpOnlyRequest()
@@ -319,9 +317,12 @@ client.SetCommonFormData(m)
 client.SetCommonFormDataFromValues(v)
 ```
 
+> `GET`, `HEAD`, and `OPTIONS` requests ignores form data by default
+
 ## <a name="Header-Cookie">Header and Cookie</a>
 
 **Set Header**
+
 ```go
 // Let's dump the header to see what's going on
 client := req.C().EnableDumpOnlyHeader() 
@@ -345,7 +346,7 @@ Accept-Encoding: gzip
 */
 
 // You can also set the common header and cookie for every request on client.
-client.SetHeader(header).SetHeaders(headers)
+client.SetCommonHeader(header).SetCommonHeaders(headers)
 
 resp1, err := client.R().Get(url1)
 ...
@@ -400,7 +401,7 @@ Accept-Encoding: gzip
 */
 
 // You can also set the common cookie for every request on client.
-client.SetCookie(cookie).SetCookies(cookies)
+client.SetCommonCookie(cookie).SetCommonCookies(cookies)
 
 resp1, err := client.R().Get(url1)
 ...
@@ -438,7 +439,7 @@ test
 */
 
 // If it cannot determine, like map and struct, then it will wait
-// and marshal to json or xml automatically according to the `Content-Type`
+// and marshal to JSON or XML automatically according to the `Content-Type`
 // header that have been set before or after, default to json if not set.
 type User struct {
     Name  string `json:"name"`
@@ -576,13 +577,13 @@ if err != nil {
 io.Copy(dst, resp.Body)
 ```
 
-## <a name="Cert">Custom Client and Root Certificates</a>
+## <a name="Cert">Custom Certificates</a>
 
 ```go
 client := req.R()
 
 // Set root cert and client cert from file path
-client.SetRootCertFromFile("/path/to/root/certs/pemFile1.pem", "/path/to/root/certs/pemFile2.pem", "/path/to/root/certs/pemFile3.pem"). // Set root cert from one or more pem files
+client.SetRootCertsFromFile("/path/to/root/certs/pemFile1.pem", "/path/to/root/certs/pemFile2.pem", "/path/to/root/certs/pemFile3.pem"). // Set root cert from one or more pem files
     SetCertFromFile("/path/to/client/certs/client.pem", "/path/to/client/certs/client.key") // Set client cert and key cert file
 	
 // You can also set root cert from string
@@ -596,7 +597,7 @@ if err != nil {
 // ...
 
 // you can add more certs if you want
-client.SetCert(cert1, cert2, cert3) 
+client.SetCerts(cert1, cert2, cert3) 
 ```
 
 ## <a name="Auth">Basic Auth and Bearer Token</a>
