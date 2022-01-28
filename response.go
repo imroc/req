@@ -1,25 +1,11 @@
 package req
 
 import (
+	"io/ioutil"
 	"net/http"
 	"strings"
 	"time"
 )
-
-var textContentTypes = []string{"text", "json", "xml", "html", "java"}
-
-var autoDecodeText = autoDecodeContentTypeFunc(textContentTypes...)
-
-func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) bool {
-	return func(contentType string) bool {
-		for _, ct := range contentTypes {
-			if strings.Contains(contentType, ct) {
-				return true
-			}
-		}
-		return false
-	}
-}
 
 // Response is the http response.
 type Response struct {
@@ -75,4 +61,66 @@ func (r *Response) setReceivedAt() {
 	if r.Request.trace != nil {
 		r.Request.trace.endTime = r.receivedAt
 	}
+}
+func (r *Response) UnmarshalJson(v interface{}) error {
+	b, err := r.ToBytes()
+	if err != nil {
+		return err
+	}
+	return r.Request.client.jsonUnmarshal(b, v)
+}
+
+func (r *Response) UnmarshalXml(v interface{}) error {
+	b, err := r.ToBytes()
+	if err != nil {
+		return err
+	}
+	return r.Request.client.xmlUnmarshal(b, v)
+}
+
+func (r *Response) Unmarshal(v interface{}) error {
+	contentType := r.Header.Get("Content-Type")
+	if strings.Contains(contentType, "json") {
+		return r.UnmarshalJson(v)
+	} else if strings.Contains(contentType, "xml") {
+		return r.UnmarshalXml(v)
+	}
+	return r.UnmarshalJson(v)
+}
+
+// Bytes return the response body as []bytes that hava already been read, could be
+// nil if not read, the following cases are already read:
+// 1. `Request.SetResult` or `Request.SetError` is called.
+// 2. `Client.DisableAutoReadResponse(false)` is not called,
+//     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
+func (r *Response) Bytes() []byte {
+	return r.body
+}
+
+// String return the response body as string that hava already been read, could be
+// nil if not read, the following cases are already read:
+// 1. `Request.SetResult` or `Request.SetError` is called.
+// 2. `Client.DisableAutoReadResponse(false)` is not called,
+//     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
+func (r *Response) String() string {
+	return string(r.body)
+}
+
+func (r *Response) ToString() (string, error) {
+	b, err := r.ToBytes()
+	return string(b), err
+}
+
+func (r *Response) ToBytes() ([]byte, error) {
+	if r.body != nil {
+		return r.body, nil
+	}
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	r.setReceivedAt()
+	if err != nil {
+		return nil, err
+	}
+	r.body = body
+	return body, nil
 }

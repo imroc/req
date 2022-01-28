@@ -3,7 +3,23 @@ package req
 import (
 	"github.com/imroc/req/v2/internal/charsetutil"
 	"io"
+	"strings"
 )
+
+var textContentTypes = []string{"text", "json", "xml", "html", "java"}
+
+var autoDecodeText = autoDecodeContentTypeFunc(textContentTypes...)
+
+func autoDecodeContentTypeFunc(contentTypes ...string) func(contentType string) bool {
+	return func(contentType string) bool {
+		for _, ct := range contentTypes {
+			if strings.Contains(contentType, ct) {
+				return true
+			}
+		}
+		return false
+	}
+}
 
 type decodeReaderCloser struct {
 	io.ReadCloser
