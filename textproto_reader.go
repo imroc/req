@@ -26,10 +26,6 @@ func (e *codeError) Error() string {
 	return fmt.Sprintf("%03d %s", e.Code, e.Msg)
 }
 
-func isASCIISpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '\r'
-}
-
 func isASCIILetter(b byte) bool {
 	b |= 0x20 // make lower case
 	return 'a' <= b && b <= 'z'
