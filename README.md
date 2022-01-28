@@ -26,6 +26,8 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * [Request and Response Middleware](#Middleware)
 * [Redirect Policy](#Redirect)
 * [Proxy](#Proxy)
+* [TODO List](#TODO)
+* [License](#License)
 
 ## <a name="Features">Features</a>
 
@@ -773,6 +775,14 @@ client.SetProxy(func(request *http.Request) (*url.URL, error) {
 client.SetProxy(nil)
 ```
 
-## License
+## <a name="TODO">TODO List</a>
+
+* [ ] Add tests.
+* [ ] Wrap more transport settings into client.
+* [ ] Support retry.
+* [ ] Support unix socket.
+* [ ] Support h2c.
+
+## <a name="License">License</a>
 
 `Req` released under MIT license, refer [LICENSE](LICENSE) file.
