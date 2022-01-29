@@ -45,6 +45,7 @@ func (r *Response) TraceInfo() TraceInfo {
 	return r.Request.TraceInfo()
 }
 
+// TotalTime returns the total time of the request, from request we sent to response we received.
 func (r *Response) TotalTime() time.Duration {
 	if r.Request.trace != nil {
 		return r.Request.TraceInfo().TotalTime
@@ -52,6 +53,7 @@ func (r *Response) TotalTime() time.Duration {
 	return r.receivedAt.Sub(r.Request.StartTime)
 }
 
+// ReceivedAt returns the timestamp that response we received.
 func (r *Response) ReceivedAt() time.Time {
 	return r.receivedAt
 }
@@ -62,6 +64,8 @@ func (r *Response) setReceivedAt() {
 		r.Request.trace.endTime = r.receivedAt
 	}
 }
+
+// UnmarshalJson unmarshals JSON response body into the specified object.
 func (r *Response) UnmarshalJson(v interface{}) error {
 	b, err := r.ToBytes()
 	if err != nil {
@@ -70,6 +74,7 @@ func (r *Response) UnmarshalJson(v interface{}) error {
 	return r.Request.client.jsonUnmarshal(b, v)
 }
 
+// UnmarshalXml unmarshals XML response body into the specified object.
 func (r *Response) UnmarshalXml(v interface{}) error {
 	b, err := r.ToBytes()
 	if err != nil {
@@ -78,6 +83,8 @@ func (r *Response) UnmarshalXml(v interface{}) error {
 	return r.Request.client.xmlUnmarshal(b, v)
 }
 
+// Unmarshal unmarshals response body into the specified object according
+// to response `Content-Type`.
 func (r *Response) Unmarshal(v interface{}) error {
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "json") {
@@ -97,7 +104,7 @@ func (r *Response) Bytes() []byte {
 	return r.body
 }
 
-// String return the response body as string that hava already been read, could be
+// String returns the response body as string that hava already been read, could be
 // nil if not read, the following cases are already read:
 // 1. `Request.SetResult` or `Request.SetError` is called.
 // 2. `Client.DisableAutoReadResponse(false)` is not called,
@@ -106,11 +113,13 @@ func (r *Response) String() string {
 	return string(r.body)
 }
 
+// ToString returns the response body as string, read body if not have been read.
 func (r *Response) ToString() (string, error) {
 	b, err := r.ToBytes()
 	return string(b), err
 }
 
+// ToBytes returns the response body as []byte, read body if not have been read.
 func (r *Response) ToBytes() ([]byte, error) {
 	if r.body != nil {
 		return r.body, nil
