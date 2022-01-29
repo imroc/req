@@ -306,6 +306,7 @@ client.R().SetFormData(map[string]string{
 :method: POST
 :path: /post
 :scheme: https
+content-type: application/x-www-form-urlencoded
 accept-encoding: gzip
 user-agent: req/v2 (https://github.com/imroc/req)
 
@@ -322,6 +323,7 @@ client.R().SetFormDataFromValues(v).Post("https://httpbin.org/post")
 :method: POST
 :path: /post
 :scheme: https
+content-type: application/x-www-form-urlencoded
 accept-encoding: gzip
 user-agent: req/v2 (https://github.com/imroc/req)
 

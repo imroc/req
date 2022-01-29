@@ -1086,9 +1086,9 @@ func C() *Client {
 	}
 	beforeRequest := []RequestMiddleware{
 		parseRequestURL,
+		parseRequestBody,
 		parseRequestHeader,
 		parseRequestCookie,
-		parseRequestBody,
 	}
 	afterResponse := []ResponseMiddleware{
 		parseResponseBody,

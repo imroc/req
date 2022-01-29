@@ -92,12 +92,13 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 	pr, pw := io.Pipe()
 	r.RawRequest.Body = pr
 	w := multipart.NewWriter(pw)
-	r.RawRequest.Header.Set(hdrContentTypeKey, w.FormDataContentType())
+	r.SetContentType(w.FormDataContentType())
 	go writeMultiPart(r, w, pw)
 	return
 }
 
 func handleFormData(r *Request) {
+	r.SetContentType(formContentType)
 	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(r.FormData.Encode()))
 }
 
