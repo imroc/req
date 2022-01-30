@@ -1594,7 +1594,7 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 		if trace != nil && trace.TLSHandshakeStart != nil {
 			trace.TLSHandshakeStart()
 		}
-		err := tlsConn.HandshakeContext(ctx)
+		err := tlsConn.Handshake()
 		if timer != nil {
 			timer.Stop()
 		}
@@ -1650,7 +1650,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			if trace != nil && trace.TLSHandshakeStart != nil {
 				trace.TLSHandshakeStart()
 			}
-			if err := tc.HandshakeContext(ctx); err != nil {
+			if err := tc.Handshake(); err != nil {
 				go pconn.conn.Close()
 				if trace != nil && trace.TLSHandshakeDone != nil {
 					trace.TLSHandshakeDone(tls.ConnectionState{}, err)

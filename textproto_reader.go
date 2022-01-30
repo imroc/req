@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v2/internal/util"
 	"io"
+	"io/ioutil"
 	"net/textproto"
 	"strconv"
 	"strings"
@@ -476,7 +477,7 @@ func (r *textprotoReader) closeDot() {
 //
 // See the documentation for the DotReader method for details about dot-encoding.
 func (r *textprotoReader) ReadDotBytes() ([]byte, error) {
-	return io.ReadAll(r.DotReader())
+	return ioutil.ReadAll(r.DotReader())
 }
 
 // ReadDotLines reads a dot-encoding and returns a slice
