@@ -619,7 +619,7 @@ client := req.C()
 client.SetCommonBasicAuth("imroc", "123456")
 
 // Set bearer token for all request
-client.SetCommonBearerToken("MDc0ZTg5YmU4Yzc5MjAzZGJjM2ZiMzkz")
+client.SetCommonBearerAuthToken("MDc0ZTg5YmU4Yzc5MjAzZGJjM2ZiMzkz")
 
 // Set basic auth for a request, will override client's basic auth setting.
 client.R().SetBasicAuth("myusername", "mypassword").Get("https://api.example.com/profile")
