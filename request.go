@@ -345,6 +345,16 @@ func (r *Request) SetQueryParam(key, value string) *Request {
 	return r
 }
 
+// AddQueryParam add an URL query parameter with a key-value
+// pair at request level.
+func (r *Request) AddQueryParam(key, value string) *Request {
+	if r.QueryParams == nil {
+		r.QueryParams = make(urlpkg.Values)
+	}
+	r.QueryParams.Add(key, value)
+	return r
+}
+
 // SetPathParams is a global wrapper methods which delegated
 // to the default client, create a request and SetPathParams for request.
 func SetPathParams(params map[string]string) *Request {
