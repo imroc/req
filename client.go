@@ -385,13 +385,29 @@ func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
 	return c
 }
 
+// AddCommonQueryParam is a global wrapper methods which delegated
+// to the default client's AddCommonQueryParam.
+func AddCommonQueryParam(key, value string) *Client {
+	return defaultClient.AddCommonQueryParam(key, value)
+}
+
+// AddCommonQueryParam add a URL query parameter with a key-value
+// pair at client level
+func (c *Client) AddCommonQueryParam(key, value string) *Client {
+	if c.QueryParams == nil {
+		c.QueryParams = make(urlpkg.Values)
+	}
+	c.QueryParams.Add(key, value)
+	return c
+}
+
 // SetCommonQueryParam is a global wrapper methods which delegated
 // to the default client's SetCommonQueryParam.
 func SetCommonQueryParam(key, value string) *Client {
 	return defaultClient.SetCommonQueryParam(key, value)
 }
 
-// SetCommonQueryParam set an URL query parameter with a key-value
+// SetCommonQueryParam set a URL query parameter with a key-value
 // pair at client level.
 func (c *Client) SetCommonQueryParam(key, value string) *Client {
 	if c.QueryParams == nil {

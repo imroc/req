@@ -345,7 +345,13 @@ func (r *Request) SetQueryParam(key, value string) *Request {
 	return r
 }
 
-// AddQueryParam add an URL query parameter with a key-value
+// AddQueryParam is a global wrapper methods which delegated
+// to the default client, create a request and AddQueryParam for request.
+func AddQueryParam(key, value string) *Request {
+	return defaultClient.R().AddQueryParam(key, value)
+}
+
+// AddQueryParam add a URL query parameter with a key-value
 // pair at request level.
 func (r *Request) AddQueryParam(key, value string) *Request {
 	if r.QueryParams == nil {
