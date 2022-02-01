@@ -235,7 +235,7 @@ fmt.Println(req.DevMode().MustGet("https://imroc.cc").TraceInfo())
 
 ## <a name="Param">URL Path and Query Parameter</a>
 
-**Set Path Parameter**
+**Path Parameter**
 
 Use `SetPathParam` or `SetPathParams` to replace variable in the url path:
 
@@ -263,7 +263,7 @@ resp2, err := client.Get(url2)
 ...
 ```
 
-**Set Query Parameter**
+**Query Parameter**
 
 Use `SetQueryParam`, `SetQueryParams` or `SetQueryString` to append url query parameter:
 
@@ -291,6 +291,12 @@ resp1, err := client.Get(url1)
 ...
 resp2, err := client.Get(url2)
 ...
+
+// And you can add query parameter with multiple values
+client.R().AddQueryParam("key", "value1").AddQueryParam("key", "value2").Get("https://httpbin.org/get")
+
+// Same as client level settings
+client.AddCommonQueryParam("key", "value1").AddCommonQueryParam("key", "value2")
 ```
 
 ## <a name="Form">Form Data</a>
