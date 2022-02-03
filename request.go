@@ -3,8 +3,6 @@ package req
 import (
 	"bytes"
 	"context"
-	"github.com/hashicorp/go-multierror"
-	"github.com/imroc/req/v2/internal/util"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -12,6 +10,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/imroc/req/v2/internal/util"
 )
 
 // Request is the http request
@@ -28,6 +29,7 @@ type Request struct {
 	client      *Client
 	RawRequest  *http.Request
 	StartTime   time.Time
+	Body        []byte
 
 	marshalBody    interface{}
 	ctx            context.Context
@@ -774,4 +776,10 @@ func (r *Request) EnableTrace(enable bool) *Request {
 		r.trace = nil
 	}
 	return r
+}
+
+// String returns the request body as a string
+// if the client has SaveRequestBody enabled
+func (r *Request) String() string {
+	return string(r.Body)
 }

@@ -1,13 +1,12 @@
 package req
 
 import (
+	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/imroc/req/v2/internal/util"
-	"golang.org/x/net/publicsuffix"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -16,6 +15,9 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/imroc/req/v2/internal/util"
+	"golang.org/x/net/publicsuffix"
 )
 
 // DefaultClient returns the global default Client.
@@ -42,6 +44,7 @@ type Client struct {
 	FormData              urlpkg.Values
 	DebugLog              bool
 	AllowGetMethodPayload bool
+	SaveRequest           bool
 
 	jsonMarshal             func(v interface{}) ([]byte, error)
 	jsonUnmarshal           func(data []byte, v interface{}) error
@@ -739,6 +742,18 @@ func (c *Client) DisableAutoReadResponse(disable bool) *Client {
 	return c
 }
 
+// EnableSaveRequest is a global wrapper methods which delegated
+// to the default client's EnableSaveRequest.
+func EnableSaveRequest(enable bool) *Client {
+	return defaultClient.EnableSaveRequest(enable)
+}
+
+// EnableSaveRequest enable storing the request body as bytes on the request
+func (c *Client) EnableSaveRequest(enable bool) *Client {
+	c.SaveRequest = enable
+	return c
+}
+
 // SetAutoDecodeContentType is a global wrapper methods which delegated
 // to the default client's SetAutoDecodeContentType.
 func SetAutoDecodeContentType(contentTypes ...string) *Client {
@@ -1158,12 +1173,21 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		c.log.Debugf("%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
 	}
 
+	var body *bytes.Buffer
+	if c.SaveRequest && r.RawRequest.Body != nil {
+		body = new(bytes.Buffer)
+		r.RawRequest.Body = ioutil.NopCloser(io.TeeReader(r.RawRequest.Body, body))
+	}
+
 	r.StartTime = time.Now()
 	httpResponse, err := c.httpClient.Do(r.RawRequest)
 	if err != nil {
 		return
 	}
 
+	if body != nil {
+		r.Body = body.Bytes()
+	}
 	resp.Request = r
 	resp.Response = httpResponse
 
