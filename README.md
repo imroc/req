@@ -18,7 +18,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * [URL Path and Query Parameter](#Param)
 * [Form Data](#Form)
 * [Header and Cookie](#Header-Cookie)
-* [Body and Marshal/Unmarshal](#Header-Cookie)
+* [Body and Marshal/Unmarshal](#Body)
 * [Custom Certificates](#Cert)
 * [Basic Auth and Bearer Token](#Auth)
 * [Download and Upload](#Download-Upload)
