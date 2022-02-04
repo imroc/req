@@ -958,7 +958,6 @@ type http2Frame interface {
 // A Framer reads and writes Frames.
 type http2Framer struct {
 	cc        *http2ClientConn
-	dump      *dumper
 	r         io.Reader
 	lastFrame http2Frame
 	errDetail error
