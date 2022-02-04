@@ -28,7 +28,11 @@ var respExcludeHeader = map[string]bool{
 // pairs included in the response trailer.
 func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
 	//var tp headReader
-	tp := newTextprotoReader(pc.br, pc.t.dump)
+	dump := pc.t.dump
+	if d, ok := req.Context().Value("dumper").(*dumper); ok {
+		dump = d
+	}
+	tp := newTextprotoReader(pc.br, dump)
 	resp := &http.Response{
 		Request: req,
 	}

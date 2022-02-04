@@ -287,16 +287,20 @@ type Transport struct {
 	Debugf func(format string, v ...interface{})
 }
 
-func (t *Transport) handleResponseBody(res *http.Response) {
+func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 	t.autoDecodeResponseBody(res)
-	t.dumpResponseBody(res)
+	t.dumpResponseBody(res, req)
 }
 
-func (t *Transport) dumpResponseBody(res *http.Response) {
-	if t.dump == nil || !t.dump.ResponseBody {
+func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {
+	dump := t.dump
+	if d, ok := req.Context().Value("dumper").(*dumper); ok {
+		dump = d
+	}
+	if dump == nil || !dump.ResponseBody {
 		return
 	}
-	res.Body = t.dump.WrapReadCloser(res.Body)
+	res.Body = dump.WrapReadCloser(res.Body)
 }
 
 func (t *Transport) autoDecodeResponseBody(res *http.Response) {
@@ -2450,7 +2454,12 @@ func (pc *persistConn) writeLoop() {
 		select {
 		case wr := <-pc.writech:
 			startBytesWritten := pc.nwrite
-			err := requestWrite(wr.req.Request, pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh), pc.t.dump)
+			ctx := wr.req.Request.Context()
+			dump := pc.t.dump
+			if d, ok := ctx.Value("dumper").(*dumper); ok {
+				dump = d
+			}
+			err := requestWrite(wr.req.Request, pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh), dump)
 			if bre, ok := err.(requestBodyReadError); ok {
 				err = bre.error
 				// Errors reading from the user's

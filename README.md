@@ -138,6 +138,10 @@ client.R().Get("https://www.baidu.com/")
 // Change settings dynamiclly
 opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
+
+// Dump single request
+resp, err := client.R().DumpAll().SetBody("test body").Post("https://httpbin.org/post")
+fmt.Println(resp.Dump())
 ```
 
 **Enable DebugLog for Deeper Insights**

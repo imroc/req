@@ -1136,6 +1136,7 @@ func setupRequest(r *Request) {
 	setRequestURL(r.RawRequest, r.URL)
 	setRequestHeaderAndCookie(r)
 	setTrace(r)
+	setContext(r)
 }
 
 func (c *Client) do(r *Request) (resp *Response, err error) {
@@ -1182,16 +1183,19 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 	return
 }
 
-func setTrace(r *Request) {
-	if r.trace == nil {
-		if r.client.trace {
-			r.trace = &clientTrace{}
-		} else {
-			return
-		}
+func setContext(r *Request) {
+	if r.ctx != nil {
+		r.RawRequest = r.RawRequest.WithContext(r.ctx)
 	}
-	r.ctx = r.trace.createContext(r.Context())
-	r.RawRequest = r.RawRequest.WithContext(r.ctx)
+}
+
+func setTrace(r *Request) {
+	if r.trace == nil && r.client.trace {
+		r.trace = &clientTrace{}
+	}
+	if r.trace != nil {
+		r.ctx = r.trace.createContext(r.Context())
+	}
 }
 
 func setRequestHeaderAndCookie(r *Request) {

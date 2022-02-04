@@ -38,6 +38,7 @@ type Request struct {
 	isSaveResponse bool
 	output         io.Writer
 	trace          *clientTrace
+	dumpBuffer     *bytes.Buffer
 }
 
 // TraceInfo returns the trace information, only available when trace is enabled.
@@ -774,4 +775,84 @@ func (r *Request) EnableTrace(enable bool) *Request {
 		r.trace = nil
 	}
 	return r
+}
+
+func (r *Request) getDumpBuffer() *bytes.Buffer {
+	if r.dumpBuffer == nil {
+		r.dumpBuffer = new(bytes.Buffer)
+	}
+	return r.dumpBuffer
+}
+
+// Dump is a global wrapper methods which delegated
+// to the default client, create a request and Dump for request.
+func Dump(reqHeader, reqBody, respHeader, respBody bool) *Request {
+	return defaultClient.R().Dump(reqHeader, reqBody, respHeader, respBody)
+}
+
+// Dump enables the dump for the request and response.
+func (r *Request) Dump(reqHeader, reqBody, respHeader, respBody bool) *Request {
+	opt := &DumpOptions{
+		RequestHeader:  reqHeader,
+		RequestBody:    reqBody,
+		ResponseHeader: respHeader,
+		ResponseBody:   respBody,
+		Output:         r.getDumpBuffer(),
+	}
+	return r.SetContext(context.WithValue(r.Context(), "dumper", newDumper(opt)))
+}
+
+// DumpAll is a global wrapper methods which delegated
+// to the default client, create a request and DumpAll for request.
+func DumpAll() *Request {
+	return defaultClient.R().DumpAll()
+}
+
+// DumpAll enables dump all content for the request and response.
+func (r *Request) DumpAll() *Request {
+	return r.Dump(true, true, true, true)
+}
+
+// DumpOnlyHeader is a global wrapper methods which delegated
+// to the default client, create a request and DumpOnlyHeader for request.
+func DumpOnlyHeader() *Request {
+	return defaultClient.R().DumpOnlyHeader()
+}
+
+// DumpOnlyHeader enables dump only header for the request and response.
+func (r *Request) DumpOnlyHeader() *Request {
+	return r.Dump(true, false, true, false)
+}
+
+// DumpOnlyBody is a global wrapper methods which delegated
+// to the default client, create a request and DumpOnlyBody for request.
+func DumpOnlyBody() *Request {
+	return defaultClient.R().DumpOnlyBody()
+}
+
+// DumpOnlyBody enables dump only body for the request and response.
+func (r *Request) DumpOnlyBody() *Request {
+	return r.Dump(false, true, false, true)
+}
+
+// DumpOnlyRequest is a global wrapper methods which delegated
+// to the default client, create a request and DumpOnlyRequest for request.
+func DumpOnlyRequest() *Request {
+	return defaultClient.R().DumpOnlyRequest()
+}
+
+// DumpOnlyRequest enables dump only request.
+func (r *Request) DumpOnlyRequest() *Request {
+	return r.Dump(true, true, false, false)
+}
+
+// DumpOnlyResponse is a global wrapper methods which delegated
+// to the default client, create a request and DumpOnlyResponse for request.
+func DumpOnlyResponse() *Request {
+	return defaultClient.R().DumpOnlyResponse()
+}
+
+// DumpOnlyResponse enables dump only response.
+func (r *Request) DumpOnlyResponse() *Request {
+	return r.Dump(false, false, true, true)
 }

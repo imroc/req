@@ -133,3 +133,9 @@ func (r *Response) ToBytes() ([]byte, error) {
 	r.body = body
 	return body, nil
 }
+
+// Dump return the string content that have been dumped for the request.
+// `Request.Dump` or `Request.DumpXXX` MUST have been called.
+func (r *Response) Dump() string {
+	return r.Request.getDumpBuffer().String()
+}

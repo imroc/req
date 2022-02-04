@@ -1,6 +1,7 @@
 package req
 
 import (
+	"context"
 	"io"
 	"os"
 )
@@ -168,4 +169,11 @@ func (t *Transport) DisableDump() {
 		t.dump.Stop()
 		t.dump = nil
 	}
+}
+
+func getDumperOverride(dump *dumper, ctx context.Context) *dumper {
+	if d, ok := ctx.Value("dumper").(*dumper); ok {
+		return d
+	}
+	return dump
 }

@@ -20,6 +20,6 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if err != nil {
 		return
 	}
-	t.handleResponseBody(resp)
+	t.handleResponseBody(resp, req)
 	return
 }
