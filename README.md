@@ -147,12 +147,12 @@ client.R().Get("https://www.baidu.com/")
 resp, err := client.R().EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 if err != nil {
     fmt.Println("err:", err)
-    fmt.Println("dump:", resp.Dump())
+    fmt.Println("raw content:\n", resp.Dump())
     return
 }
 if resp.StatusCode > 299 {
     fmt.Println("bad status:", resp.Status)
-    fmt.Println("dump:", resp.Dump())
+    fmt.Println("raw content:\n", resp.Dump())
 }
 
 // Similarly, also support to customize dump settings with predefined convenience settings at request level.
