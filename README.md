@@ -141,7 +141,7 @@ client.R().Get("https://www.baidu.com/")
 opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 
-// You can also enable dump at request level, dump to memory and do not print out
+// You can also enable dump at request level, dump to memory and do not print it out
 // by default, you can call `Response.Dump()` to get the dump result and print
 // only if you want to.
 resp, err := client.R().EnableDump().SetBody("test body").Post("https://httpbin.org/post")
@@ -155,10 +155,10 @@ if resp.StatusCode > 299 {
     fmt.Println("dump:", resp.Dump())
 }
 
-// And also support customize dump settings with predefined convenience settings like client level.
+// Similarly, also support to customize dump settings with predefined convenience settings at request level.
 resp, err = client.R().EnableDumpWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
 // ...
-resp, err = client.R().SetDumpOptions(opt).SetBody("test body").Post("https://httpbin.org/post")
+resp, err = client.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 ```
 
 **Enable DebugLog for Deeper Insights**
