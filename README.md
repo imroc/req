@@ -6,9 +6,11 @@
 
 ## Big News
 
-Brand new v2 version is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
+Brand new v3 version is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
 
 If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
+
+> v2 is a transitional version. the latest version is v3 cuz some API-incompatible changes was involved during v2 refactoring, checkout [v2 branch](https://github.com/imroc/req/tree/v2) if you want.
 
 ## Table of Contents
 
@@ -47,13 +49,13 @@ If you want to use the older version, check it out on [v1 branch](https://github
 **Install**
 
 ``` sh
-go get github.com/imroc/req/v2
+go get github.com/imroc/req/v3
 ```
 
 **Import**
 
 ```go
-import "github.com/imroc/req/v2"
+import "github.com/imroc/req/v3"
 ```
 
 ```go
@@ -82,9 +84,9 @@ Checkout more runnable examples in the [examples](examples) direcotry.
 **Dump the Content**
 
 ```go
-// Set EnableDump to true, dump all content to stdout by default,
+// Enable dump for all requests, including all content to stdout by default,
 // including both the header and body of all request and response
-client := req.C().EnableDump(true)
+client := req.C().EnableDumpAll()
 client.R().Get("https://httpbin.org/get")
 
 /* Output
@@ -117,9 +119,9 @@ access-control-allow-credentials: true
 */
 	
 // Customize dump settings with predefined convenience settings. 
-client.EnableDumpOnlyHeader(). // Only dump the header of request and response
-    EnableDumpAsync(). // Dump asynchronously to improve performance
-    EnableDumpToFile("reqdump.log") // Dump to file without printing it out
+client.EnableDumpAllWithoutBody(). // Only dump the header of request and response
+    EnableDumpAllAsync(). // Dump asynchronously to improve performance
+    EnableDumpAllToFile("reqdump.log") // Dump to file without printing it out
 // Send request to see the content that have been dumpped	
 client.R().Get(url) 
 
@@ -132,24 +134,39 @@ opt := &req.DumpOptions{
             ResponseHeader: false,
             Async:          false,
         }
-client.SetDumpOptions(opt).EnableDump(true)
+client.SetCommonDumpOptions(opt).EnableDumpAll()
 client.R().Get("https://www.baidu.com/")
 
 // Change settings dynamiclly
 opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 
-// Dump single request
-resp, err := client.R().DumpAll().SetBody("test body").Post("https://httpbin.org/post")
-fmt.Println(resp.Dump())
+// You can also enable dump at request level, dump to memory and do not print out
+// by default, you can call `Response.Dump()` to get the dump result and print
+// only if you want to.
+resp, err := client.R().EnableDump().SetBody("test body").Post("https://httpbin.org/post")
+if err != nil {
+    fmt.Println("err:", err)
+    fmt.Println("dump:", resp.Dump())
+    return
+}
+if resp.StatusCode > 299 {
+    fmt.Println("bad status:", resp.Status)
+    fmt.Println("dump:", resp.Dump())
+}
+
+// And also support customize dump settings with predefined convenience settings like client level.
+resp, err = client.R().EnableDumpWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
+// ...
+resp, err = client.R().SetDumpOptions(opt).SetBody("test body").Post("https://httpbin.org/post")
 ```
 
 **Enable DebugLog for Deeper Insights**
 
 ```go
 // Logging is enabled by default, but only output the warning and error message.
-// set `EnableDebugLog` to true to enable debug level logging.
-client := req.C().EnableDebugLog(true)
+// Use `EnableDebugLog` to enable debug level logging.
+client := req.C().EnableDebugLog()
 client.R().Get("http://baidu.com/s?wd=req")
 /* Output
 2022/01/26 15:46:29.279368 DEBUG [req] GET http://baidu.com/s?wd=req
@@ -170,7 +187,7 @@ client.SetLogger(logger)
 ```go
 // Enable trace at request level
 client := req.C()
-resp, err := client.R().EnableTrace(true).Get("https://api.github.com/users/imroc")
+resp, err := client.R().EnableTrace().Get("https://api.github.com/users/imroc")
 if err != nil {
 	log.Fatal(err)
 }
@@ -588,7 +605,7 @@ client.SetXmlMarshal(xmlMarshalFunc).SetXmlUnmarshal(xmlUnmarshalFunc)
 Response body will be read into memory if it's not a download request by default, you can disable it if you want (normally you don't need to do this).
 
 ```go
-client.DisableAutoReadResponse(true)
+client.DisableAutoReadResponse()
 
 resp, err := client.R().Get(url)
 if err != nil {
@@ -696,7 +713,7 @@ Its principle is to detect whether `Content-Type` header at first, if it's not t
 You can also disable if you don't need or care a lot about performance:
 
 ```go
-client.DisableAutoDecode(true)
+client.DisableAutoDecode()
 ```
 
 Also you can make some customization:

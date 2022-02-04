@@ -10,7 +10,7 @@ import (
 )
 
 func tc() *Client {
-	return C().EnableDebugLog(true)
+	return C().EnableDebugLog()
 }
 
 func getTestDataPath() string {

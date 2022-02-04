@@ -326,27 +326,44 @@ func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 
 // DisableKeepAlives is a global wrapper methods which delegated
 // to the default client's DisableKeepAlives.
-func DisableKeepAlives(disable bool) *Client {
-	return defaultClient.DisableKeepAlives(disable)
+func DisableKeepAlives() *Client {
+	return defaultClient.DisableKeepAlives()
 }
 
-// DisableKeepAlives set to true disables HTTP keep-alives and
-// will only use the connection to the server for a single
-// HTTP request.
+// DisableKeepAlives disables HTTP keep-alives (enabled by default)
+// and will only use the connection to the server for a single
+// HTTP request .
 //
 // This is unrelated to the similarly named TCP keep-alives.
-func (c *Client) DisableKeepAlives(disable bool) *Client {
-	c.t.DisableKeepAlives = disable
+func (c *Client) DisableKeepAlives() *Client {
+	c.t.DisableKeepAlives = true
+	return c
+}
+
+// EnableKeepAlives is a global wrapper methods which delegated
+// to the default client's EnableKeepAlives.
+func EnableKeepAlives() *Client {
+	return defaultClient.EnableKeepAlives()
+}
+
+// EnableKeepAlives enables HTTP keep-alives (enabled by default)
+// and will only use the connection to the server for a single
+// HTTP request .
+//
+// This is unrelated to the similarly named TCP keep-alives.
+func (c *Client) EnableKeepAlives() *Client {
+	c.t.DisableKeepAlives = false
 	return c
 }
 
 // DisableCompression is a global wrapper methods which delegated
 // to the default client's DisableCompression.
-func DisableCompression(disable bool) *Client {
-	return defaultClient.DisableCompression(disable)
+func DisableCompression() *Client {
+	return defaultClient.DisableCompression()
 }
 
-// DisableCompression set to true prevents the Transport from
+// DisableCompression disables the compression (enabled by default),
+// which prevents the Transport from
 // requesting compression with an "Accept-Encoding: gzip"
 // request header when the Request contains no existing
 // Accept-Encoding value. If the Transport requests gzip on
@@ -354,8 +371,28 @@ func DisableCompression(disable bool) *Client {
 // decoded in the Response.Body. However, if the user
 // explicitly requested gzip it is not automatically
 // uncompressed.
-func (c *Client) DisableCompression(disable bool) *Client {
-	c.t.DisableCompression = disable
+func (c *Client) DisableCompression() *Client {
+	c.t.DisableCompression = true
+	return c
+}
+
+// EnableCompression is a global wrapper methods which delegated
+// to the default client's EnableCompression.
+func EnableCompression() *Client {
+	return defaultClient.EnableCompression()
+}
+
+// EnableCompression enables the compression (enabled by default),
+// which prevents the Transport from
+// requesting compression with an "Accept-Encoding: gzip"
+// request header when the Request contains no existing
+// Accept-Encoding value. If the Transport requests gzip on
+// its own and gets a gzipped response, it's transparently
+// decoded in the Response.Body. However, if the user
+// explicitly requested gzip it is not automatically
+// uncompressed.
+func (c *Client) EnableCompression() *Client {
+	c.t.DisableCompression = false
 	return c
 }
 
@@ -453,15 +490,27 @@ func (c *Client) SetCommonCookies(cookies ...*http.Cookie) *Client {
 	return c
 }
 
-// EnableDebugLog is a global wrapper methods which delegated
-// to the default client's EnableDebugLog.
-func EnableDebugLog(enable bool) *Client {
-	return defaultClient.EnableDebugLog(enable)
+// DisableDebugLog is a global wrapper methods which delegated
+// to the default client's DisableDebugLog.
+func DisableDebugLog() *Client {
+	return defaultClient.DisableDebugLog()
 }
 
-// EnableDebugLog enables debug level log if set to true.
-func (c *Client) EnableDebugLog(enable bool) *Client {
-	c.DebugLog = enable
+// DisableDebugLog disables debug level log (disabled by default).
+func (c *Client) DisableDebugLog() *Client {
+	c.DebugLog = false
+	return c
+}
+
+// EnableDebugLog is a global wrapper methods which delegated
+// to the default client's EnableDebugLog.
+func EnableDebugLog() *Client {
+	return defaultClient.EnableDebugLog()
+}
+
+// EnableDebugLog enables debug level log (disabled by default).
+func (c *Client) EnableDebugLog() *Client {
+	c.DebugLog = true
 	return c
 }
 
@@ -478,8 +527,8 @@ func DevMode() *Client {
 // 4. Set User-Agent to pretend to be a web browser, avoid returning abnormal data from some sites.
 func (c *Client) DevMode() *Client {
 	return c.EnableDumpAll().
-		EnableDebugLog(true).
-		EnableTraceAll(true).
+		EnableDebugLog().
+		EnableTraceAll().
 		SetUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
 }
 
@@ -540,179 +589,141 @@ func (c *Client) getDumpOptions() *DumpOptions {
 	return c.dumpOptions
 }
 
-func (c *Client) enableDump() {
-	if c.t.dump != nil { // dump already started
-		return
-	}
-	c.t.EnableDump(c.getDumpOptions())
-}
-
-// EnableDumpToFile is a global wrapper methods which delegated
-// to the default client's EnableDumpToFile.
-func EnableDumpToFile(filename string) *Client {
-	return defaultClient.EnableDumpToFile(filename)
-}
-
-// EnableDumpToFile enables dump and save to the specified filename.
-func (c *Client) EnableDumpToFile(filename string) *Client {
-	file, err := os.Create(filename)
-	if err != nil {
-		c.log.Errorf("create dump file error: %v", err)
-		return c
-	}
-	c.getDumpOptions().Output = file
-	c.enableDump()
-	return c
-}
-
-// EnableDumpTo is a global wrapper methods which delegated
-// to the default client's EnableDumpTo.
-func EnableDumpTo(output io.Writer) *Client {
-	return defaultClient.EnableDumpTo(output)
-}
-
-// EnableDumpTo enables dump and save to the specified io.Writer.
-func (c *Client) EnableDumpTo(output io.Writer) *Client {
-	c.getDumpOptions().Output = output
-	c.enableDump()
-	return c
-}
-
-// EnableDumpAsync is a global wrapper methods which delegated
-// to the default client's EnableDumpAsync.
-func EnableDumpAsync() *Client {
-	return defaultClient.EnableDumpAsync()
-}
-
-// EnableDumpAsync enables dump and output asynchronously,
-// can be used for debugging in production environment without
-// affecting performance.
-func (c *Client) EnableDumpAsync() *Client {
-	o := c.getDumpOptions()
-	o.Async = true
-	c.enableDump()
-	return c
-}
-
-// EnableDumpNoRequestBody is a global wrapper methods which delegated
-// to the default client's EnableDumpNoRequestBody.
-func EnableDumpNoRequestBody() *Client {
-	return defaultClient.EnableDumpNoRequestBody()
-}
-
-// EnableDumpNoRequestBody enables dump with request body excluded, can be
-// used in upload request to avoid dump the unreadable binary content.
-func (c *Client) EnableDumpNoRequestBody() *Client {
-	o := c.getDumpOptions()
-	o.ResponseHeader = true
-	o.ResponseBody = true
-	o.RequestBody = false
-	o.RequestHeader = true
-	c.enableDump()
-	return c
-}
-
-// EnableDumpNoResponseBody is a global wrapper methods which delegated
-// to the default client's EnableDumpNoResponseBody.
-func EnableDumpNoResponseBody() *Client {
-	return defaultClient.EnableDumpNoResponseBody()
-}
-
-// EnableDumpNoResponseBody enables dump with response body excluded, can be
-// used in download request to avoid dump the unreadable binary content.
-func (c *Client) EnableDumpNoResponseBody() *Client {
-	o := c.getDumpOptions()
-	o.ResponseHeader = true
-	o.ResponseBody = false
-	o.RequestBody = true
-	o.RequestHeader = true
-	c.enableDump()
-	return c
-}
-
-// EnableDumpOnlyResponse is a global wrapper methods which delegated
-// to the default client's EnableDumpOnlyResponse.
-func EnableDumpOnlyResponse() *Client {
-	return defaultClient.EnableDumpOnlyResponse()
-}
-
-// EnableDumpOnlyResponse enables dump with only response included.
-func (c *Client) EnableDumpOnlyResponse() *Client {
-	o := c.getDumpOptions()
-	o.ResponseHeader = true
-	o.ResponseBody = true
-	o.RequestBody = false
-	o.RequestHeader = false
-	c.enableDump()
-	return c
-}
-
-// EnableDumpOnlyRequest is a global wrapper methods which delegated
-// to the default client's EnableDumpOnlyRequest.
-func EnableDumpOnlyRequest() *Client {
-	return defaultClient.EnableDumpOnlyRequest()
-}
-
-// EnableDumpOnlyRequest enables dump with only request included.
-func (c *Client) EnableDumpOnlyRequest() *Client {
-	o := c.getDumpOptions()
-	o.RequestHeader = true
-	o.RequestBody = true
-	o.ResponseBody = false
-	o.ResponseHeader = false
-	c.enableDump()
-	return c
-}
-
-// EnableDumpOnlyBody is a global wrapper methods which delegated
-// to the default client's EnableDumpOnlyBody.
-func EnableDumpOnlyBody() *Client {
-	return defaultClient.EnableDumpOnlyBody()
-}
-
-// EnableDumpOnlyBody enables dump with only body included.
-func (c *Client) EnableDumpOnlyBody() *Client {
-	o := c.getDumpOptions()
-	o.RequestBody = true
-	o.ResponseBody = true
-	o.RequestHeader = false
-	o.ResponseHeader = false
-	c.enableDump()
-	return c
-}
-
-// EnableDumpOnlyHeader is a global wrapper methods which delegated
-// to the default client's EnableDumpOnlyHeader.
-func EnableDumpOnlyHeader() *Client {
-	return defaultClient.EnableDumpOnlyHeader()
-}
-
-// EnableDumpOnlyHeader enables dump with only header included.
-func (c *Client) EnableDumpOnlyHeader() *Client {
-	o := c.getDumpOptions()
-	o.RequestHeader = true
-	o.ResponseHeader = true
-	o.RequestBody = false
-	o.ResponseBody = false
-	c.enableDump()
-	return c
-}
-
 // EnableDumpAll is a global wrapper methods which delegated
 // to the default client's EnableDumpAll.
 func EnableDumpAll() *Client {
 	return defaultClient.EnableDumpAll()
 }
 
-// EnableDumpAll enables dump with all content included,
-// including both requests and responses' header and body
+// EnableDumpAll enables dump for all requests, including
+// all content for the request and response by default.
 func (c *Client) EnableDumpAll() *Client {
+	if c.t.dump != nil { // dump already started
+		return c
+	}
+	c.t.EnableDump(c.getDumpOptions())
+	return c
+}
+
+// EnableDumpAllToFile is a global wrapper methods which delegated
+// to the default client's EnableDumpAllToFile.
+func EnableDumpAllToFile(filename string) *Client {
+	return defaultClient.EnableDumpAllToFile(filename)
+}
+
+// EnableDumpAllToFile enables dump and save to the specified filename.
+func (c *Client) EnableDumpAllToFile(filename string) *Client {
+	file, err := os.Create(filename)
+	if err != nil {
+		c.log.Errorf("create dump file error: %v", err)
+		return c
+	}
+	c.getDumpOptions().Output = file
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllTo is a global wrapper methods which delegated
+// to the default client's EnableDumpAllTo.
+func EnableDumpAllTo(output io.Writer) *Client {
+	return defaultClient.EnableDumpAllTo(output)
+}
+
+// EnableDumpAllTo enables dump and save to the specified io.Writer.
+func (c *Client) EnableDumpAllTo(output io.Writer) *Client {
+	c.getDumpOptions().Output = output
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllAsync is a global wrapper methods which delegated
+// to the default client's EnableDumpAllAsync.
+func EnableDumpAllAsync() *Client {
+	return defaultClient.EnableDumpAllAsync()
+}
+
+// EnableDumpAllAsync enables dump and output asynchronously,
+// can be used for debugging in production environment without
+// affecting performance.
+func (c *Client) EnableDumpAllAsync() *Client {
 	o := c.getDumpOptions()
-	o.RequestHeader = true
-	o.RequestBody = true
-	o.ResponseHeader = true
-	o.ResponseBody = true
-	c.enableDump()
+	o.Async = true
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllWithoutRequestBody is a global wrapper methods which delegated
+// to the default client's EnableDumpAllWithoutRequestBody.
+func EnableDumpAllWithoutRequestBody() *Client {
+	return defaultClient.EnableDumpAllWithoutRequestBody()
+}
+
+// EnableDumpAllWithoutRequestBody enables dump with request body excluded, can be
+// used in upload request to avoid dump the unreadable binary content.
+func (c *Client) EnableDumpAllWithoutRequestBody() *Client {
+	o := c.getDumpOptions()
+	o.RequestBody = false
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllWithoutResponseBody is a global wrapper methods which delegated
+// to the default client's EnableDumpAllWithoutResponseBody.
+func EnableDumpAllWithoutResponseBody() *Client {
+	return defaultClient.EnableDumpAllWithoutResponseBody()
+}
+
+// EnableDumpAllWithoutResponseBody enables dump with response body excluded, can be
+// used in download request to avoid dump the unreadable binary content.
+func (c *Client) EnableDumpAllWithoutResponseBody() *Client {
+	o := c.getDumpOptions()
+	o.ResponseBody = false
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllWithoutResponse is a global wrapper methods which delegated
+// to the default client's EnableDumpAllWithoutResponse.
+func EnableDumpAllWithoutResponse() *Client {
+	return defaultClient.EnableDumpAllWithoutResponse()
+}
+
+// EnableDumpAllWithoutResponse enables dump with only request included.
+func (c *Client) EnableDumpAllWithoutResponse() *Client {
+	o := c.getDumpOptions()
+	o.ResponseBody = false
+	o.ResponseHeader = false
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllWithoutHeader is a global wrapper methods which delegated
+// to the default client's EnableDumpAllWithoutHeader.
+func EnableDumpAllWithoutHeader() *Client {
+	return defaultClient.EnableDumpAllWithoutHeader()
+}
+
+// EnableDumpAllWithoutHeader enables dump with only body included.
+func (c *Client) EnableDumpAllWithoutHeader() *Client {
+	o := c.getDumpOptions()
+	o.RequestHeader = false
+	o.ResponseHeader = false
+	c.EnableDumpAll()
+	return c
+}
+
+// EnableDumpAllWithoutBody is a global wrapper methods which delegated
+// to the default client's EnableDumpAllWithoutBody.
+func EnableDumpAllWithoutBody() *Client {
+	return defaultClient.EnableDumpAllWithoutBody()
+}
+
+// EnableDumpAllWithoutBody enables dump with only header included.
+func (c *Client) EnableDumpAllWithoutBody() *Client {
+	o := c.getDumpOptions()
+	o.RequestBody = false
+	o.ResponseBody = false
+	c.EnableDumpAll()
 	return c
 }
 
@@ -729,13 +740,25 @@ func (c *Client) NewRequest() *Request {
 
 // DisableAutoReadResponse is a global wrapper methods which delegated
 // to the default client's DisableAutoReadResponse.
-func DisableAutoReadResponse(disable bool) *Client {
-	return defaultClient.DisableAutoReadResponse(disable)
+func DisableAutoReadResponse() *Client {
+	return defaultClient.DisableAutoReadResponse()
 }
 
-// DisableAutoReadResponse disable read response body automatically if set to true.
-func (c *Client) DisableAutoReadResponse(disable bool) *Client {
-	c.disableAutoReadResponse = disable
+// DisableAutoReadResponse disable read response body automatically (enabled by default).
+func (c *Client) DisableAutoReadResponse() *Client {
+	c.disableAutoReadResponse = true
+	return c
+}
+
+// EnableAutoReadResponse is a global wrapper methods which delegated
+// to the default client's EnableAutoReadResponse.
+func EnableAutoReadResponse() *Client {
+	return defaultClient.EnableAutoReadResponse()
+}
+
+// EnableAutoReadResponse enable read response body automatically (enabled by default).
+func (c *Client) EnableAutoReadResponse() *Client {
+	c.disableAutoReadResponse = false
 	return c
 }
 
@@ -784,13 +807,27 @@ func (c *Client) SetAutoDecodeAllType() *Client {
 
 // DisableAutoDecode is a global wrapper methods which delegated
 // to the default client's DisableAutoDecode.
-func DisableAutoDecode(disable bool) *Client {
-	return defaultClient.DisableAutoDecode(disable)
+func DisableAutoDecode() *Client {
+	return defaultClient.DisableAutoDecode()
 }
 
 // DisableAutoDecode disable auto detect charset and decode to utf-8
-func (c *Client) DisableAutoDecode(disable bool) *Client {
-	c.getResponseOptions().DisableAutoDecode = disable
+// (enabled by default)
+func (c *Client) DisableAutoDecode() *Client {
+	c.getResponseOptions().DisableAutoDecode = true
+	return c
+}
+
+// EnableAutoDecode is a global wrapper methods which delegated
+// to the default client's EnableAutoDecode.
+func EnableAutoDecode() *Client {
+	return defaultClient.EnableAutoDecode()
+}
+
+// EnableAutoDecode enables auto detect charset and decode to utf-8
+// (enabled by default)
+func (c *Client) EnableAutoDecode() *Client {
+	c.getResponseOptions().DisableAutoDecode = true
 	return c
 }
 
@@ -869,32 +906,26 @@ func (c *Client) SetCommonContentType(ct string) *Client {
 	return c
 }
 
-// EnableDump is a global wrapper methods which delegated
-// to the default client's EnableDump.
-func EnableDump(enable bool) *Client {
-	return defaultClient.EnableDump(enable)
+// DisableDumpAll is a global wrapper methods which delegated
+// to the default client's DisableDumpAll.
+func DisableDumpAll() *Client {
+	return defaultClient.DisableDumpAll()
 }
 
-// EnableDump enables dump if set to true, will use a default options if
-// not been set before, which dumps all the content of requests and
-// responses to stdout.
-func (c *Client) EnableDump(enable bool) *Client {
-	if !enable {
-		c.t.DisableDump()
-		return c
-	}
-	c.enableDump()
+// DisableDumpAll disables the dump.
+func (c *Client) DisableDumpAll() *Client {
+	c.t.DisableDump()
 	return c
 }
 
-// SetDumpOptions is a global wrapper methods which delegated
-// to the default client's SetDumpOptions.
-func SetDumpOptions(opt *DumpOptions) *Client {
-	return defaultClient.SetDumpOptions(opt)
+// SetCommonDumpOptions is a global wrapper methods which delegated
+// to the default client's SetCommonDumpOptions.
+func SetCommonDumpOptions(opt *DumpOptions) *Client {
+	return defaultClient.SetCommonDumpOptions(opt)
 }
 
-// SetDumpOptions configures the underlying Transport's DumpOptions
-func (c *Client) SetDumpOptions(opt *DumpOptions) *Client {
+// SetCommonDumpOptions configures the underlying Transport's DumpOptions
+func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
 		return c
 	}
@@ -958,15 +989,27 @@ func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	return c
 }
 
-// EnableTraceAll is a global wrapper methods which delegated
-// to the default client's EnableTraceAll.
-func EnableTraceAll(enable bool) *Client {
-	return defaultClient.EnableTraceAll(enable)
+// DisableTraceAll is a global wrapper methods which delegated
+// to the default client's DisableTraceAll.
+func DisableTraceAll() *Client {
+	return defaultClient.DisableTraceAll()
 }
 
-// EnableTraceAll enables the trace at client level if set to true.
-func (c *Client) EnableTraceAll(enable bool) *Client {
-	c.trace = enable
+// DisableTraceAll disables the trace at client level.
+func (c *Client) DisableTraceAll() *Client {
+	c.trace = false
+	return c
+}
+
+// EnableTraceAll is a global wrapper methods which delegated
+// to the default client's EnableTraceAll.
+func EnableTraceAll() *Client {
+	return defaultClient.EnableTraceAll()
+}
+
+// EnableTraceAll enables the trace at client level.
+func (c *Client) EnableTraceAll() *Client {
+	c.trace = true
 	return c
 }
 
@@ -1030,15 +1073,27 @@ func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Cli
 	return c
 }
 
-// EnableAllowGetMethodPayload is a global wrapper methods which delegated
-// to the default client's EnableAllowGetMethodPayload.
-func EnableAllowGetMethodPayload(a bool) *Client {
-	return defaultClient.EnableAllowGetMethodPayload(a)
+// DisableAllowGetMethodPayload is a global wrapper methods which delegated
+// to the default client's DisableAllowGetMethodPayload.
+func DisableAllowGetMethodPayload() *Client {
+	return defaultClient.DisableAllowGetMethodPayload()
 }
 
-// EnableAllowGetMethodPayload allows sending GET method requests with body if set to true.
-func (c *Client) EnableAllowGetMethodPayload(a bool) *Client {
-	c.AllowGetMethodPayload = a
+// DisableAllowGetMethodPayload disables sending GET method requests with body.
+func (c *Client) DisableAllowGetMethodPayload() *Client {
+	c.AllowGetMethodPayload = false
+	return c
+}
+
+// EnableAllowGetMethodPayload is a global wrapper methods which delegated
+// to the default client's EnableAllowGetMethodPayload.
+func EnableAllowGetMethodPayload() *Client {
+	return defaultClient.EnableAllowGetMethodPayload()
+}
+
+// EnableAllowGetMethodPayload allows sending GET method requests with body.
+func (c *Client) EnableAllowGetMethodPayload() *Client {
+	c.AllowGetMethodPayload = true
 	return c
 }
 
