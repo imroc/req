@@ -3,7 +3,7 @@ package req
 import (
 	"bytes"
 	"fmt"
-	"github.com/imroc/req/v2/internal/util"
+	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
 	"mime/multipart"

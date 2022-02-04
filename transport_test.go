@@ -11,7 +11,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/imroc/req/v2/internal/testcert"
+	"github.com/imroc/req/v3/internal/testcert"
 	"io"
 	"net"
 	"net/http"

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/imroc/req/v2/internal/util"
+	"github.com/imroc/req/v3/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
 	"io/ioutil"

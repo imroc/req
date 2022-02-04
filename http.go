@@ -3,7 +3,7 @@ package req
 import (
 	"encoding/base64"
 	"fmt"
-	"github.com/imroc/req/v2/internal/ascii"
+	"github.com/imroc/req/v3/internal/ascii"
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/idna"
 	"io"

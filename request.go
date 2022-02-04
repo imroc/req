@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"github.com/hashicorp/go-multierror"
-	"github.com/imroc/req/v2/internal/util"
+	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
 	"net/http"

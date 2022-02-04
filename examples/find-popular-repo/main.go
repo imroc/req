@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/imroc/req/v2"
+	"github.com/imroc/req/v3"
 )
 
 // Change the name if you want
@@ -21,7 +21,7 @@ func main() {
 }
 
 func init() {
-	req.EnableDumpOnlyHeader().EnableDebugLog(true).EnableTraceAll(true)
+	req.EnableDumpWithoutBody().EnableDebugLog().EnableTraceAll()
 }
 
 type Repo struct {
