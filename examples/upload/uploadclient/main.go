@@ -1,9 +1,11 @@
 package main
 
-import "github.com/imroc/req/v3"
+import (
+	"github.com/imroc/req/v3"
+)
 
 func main() {
-	req.EnableDumpNoRequestBody()
+	req.EnableDumpAllWithoutRequestBody()
 	req.SetFile("files", "../../../README.md").
 		SetFile("files", "../../../LICENSE").
 		SetFormData(map[string]string{

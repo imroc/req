@@ -21,7 +21,7 @@ func main() {
 }
 
 func init() {
-	req.EnableDumpWithoutBody().EnableDebugLog().EnableTraceAll()
+	req.EnableDumpAllWithoutBody().EnableDebugLog().EnableTraceAll()
 }
 
 type Repo struct {
