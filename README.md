@@ -84,8 +84,9 @@ Checkout more runnable examples in the [examples](examples) direcotry.
 **Dump the Content**
 
 ```go
-// Enable dump for all requests, including all content to stdout by default,
-// including both the header and body of all request and response
+// Enable dump at client level, which will dump for all requests,
+// including all content of request and response and output
+// to stdout by default.
 client := req.C().EnableDumpAll()
 client.R().Get("https://httpbin.org/get")
 
@@ -118,14 +119,14 @@ access-control-allow-credentials: true
 }
 */
 	
-// Customize dump settings with predefined convenience settings. 
+// Customize client level dump settings with predefined convenience settings. 
 client.EnableDumpAllWithoutBody(). // Only dump the header of request and response
     EnableDumpAllAsync(). // Dump asynchronously to improve performance
     EnableDumpAllToFile("reqdump.log") // Dump to file without printing it out
 // Send request to see the content that have been dumpped	
 client.R().Get(url) 
 
-// Enable dump with fully customized settings
+// Enable dump with fully customized settings at client level.
 opt := &req.DumpOptions{
             Output:         os.Stdout,
             RequestHeader:  true,
@@ -141,7 +142,7 @@ client.R().Get("https://www.baidu.com/")
 opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 
-// You can also enable dump at request level, dump to memory and do not print it out
+// You can also enable dump at request level, dump to memory and will not print it out
 // by default, you can call `Response.Dump()` to get the dump result and print
 // only if you want to.
 resp, err := client.R().EnableDump().SetBody("test body").Post("https://httpbin.org/post")
@@ -153,6 +154,7 @@ if err != nil {
 if resp.StatusCode > 299 {
     fmt.Println("bad status:", resp.Status)
     fmt.Println("raw content:\n", resp.Dump())
+	return
 }
 
 // Similarly, also support to customize dump settings with predefined convenience settings at request level.
