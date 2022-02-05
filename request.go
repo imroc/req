@@ -844,6 +844,9 @@ func (r *Request) SetDumpOptions(opt *DumpOptions) *Request {
 	if opt == nil {
 		return r
 	}
+	if opt.Output == nil {
+		opt.Output = r.getDumpBuffer()
+	}
 	r.dumpOptions = opt
 	return r
 }
