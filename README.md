@@ -293,6 +293,7 @@ Use `SetQueryParam`, `SetQueryParams` or `SetQueryString` to append url query pa
 ```go
 client := req.C().DevMode()
 
+// Set query parameter at request level.
 client.R().
     SetQueryParam("a", "a"). // Set a query param, which will be encoded as query parameter in url
     SetQueryParams(map[string]string{ // Set multiple query params at once 
@@ -305,7 +306,7 @@ client.R().
 ...
 */
 
-// You can also set the common QueryParam for every request on client
+// You can also set the query parameter at client level.
 client.SetCommonQueryParam(k, v).
     SetCommonQueryParams(queryParams).
     SetCommonQueryString(queryString).
@@ -315,10 +316,15 @@ resp1, err := client.Get(url1)
 resp2, err := client.Get(url2)
 ...
 
-// And you can add query parameter with multiple values
+// Add query parameter with multiple values at request level.
 client.R().AddQueryParam("key", "value1").AddQueryParam("key", "value2").Get("https://httpbin.org/get")
+/* Output
+2022/02/05 08:49:26.260780 DEBUG [req] GET https://httpbin.org/get?key=value1&key=value2
+...
+ */
 
-// Same as client level settings
+
+// Multiple values also supported at client level.
 client.AddCommonQueryParam("key", "value1").AddCommonQueryParam("key", "value2")
 ```
 
