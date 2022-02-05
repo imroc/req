@@ -22,29 +22,38 @@ func createTestServer(fn func(w http.ResponseWriter, r *http.Request)) *httptest
 	return httptest.NewServer(http.HandlerFunc(fn))
 }
 
+func createPostServer(t *testing.T) *httptest.Server {
+	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			w.Write([]byte("TestPost: text response"))
+		}
+	})
+	return ts
+}
+
 func createGetServer(t *testing.T) *httptest.Server {
 	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet {
 			switch r.URL.Path {
 			case "/":
-				_, _ = w.Write([]byte("TestGet: text response"))
+				w.Write([]byte("TestGet: text response"))
 			case "/no-content":
-				_, _ = w.Write([]byte(""))
+				w.Write([]byte(""))
 			case "/json":
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"TestGet": "JSON response"}`))
+				w.Write([]byte(`{"TestGet": "JSON response"}`))
 			case "/json-invalid":
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte("TestGet: Invalid JSON"))
+				w.Write([]byte("TestGet: Invalid JSON"))
 			case "/long-text":
-				_, _ = w.Write([]byte("TestGet: text response with size > 30"))
+				w.Write([]byte("TestGet: text response with size > 30"))
 			case "/long-json":
 				w.Header().Set("Content-Type", "application/json")
-				_, _ = w.Write([]byte(`{"TestGet": "JSON response with size > 30"}`))
+				w.Write([]byte(`{"TestGet": "JSON response with size > 30"}`))
 			case "/bad-request":
 				w.WriteHeader(http.StatusBadRequest)
 			case "/host-header":
-				_, _ = w.Write([]byte(r.Host))
+				w.Write([]byte(r.Host))
 			}
 		}
 	})
