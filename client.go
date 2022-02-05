@@ -405,6 +405,7 @@ func SetTLSClientConfig(conf *tls.Config) *Client {
 // SetTLSClientConfig sets the client tls config.
 func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	c.t.TLSClientConfig = conf
+	c.t2.TLSClientConfig = conf
 	return c
 }
 
