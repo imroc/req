@@ -611,7 +611,8 @@ func EnableDumpAllToFile(filename string) *Client {
 	return defaultClient.EnableDumpAllToFile(filename)
 }
 
-// EnableDumpAllToFile enables dump and save to the specified filename.
+// EnableDumpAllToFile enables dump for all requests and save
+// to the specified filename.
 func (c *Client) EnableDumpAllToFile(filename string) *Client {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -629,7 +630,8 @@ func EnableDumpAllTo(output io.Writer) *Client {
 	return defaultClient.EnableDumpAllTo(output)
 }
 
-// EnableDumpAllTo enables dump and save to the specified io.Writer.
+// EnableDumpAllTo enables dump for all requests and save
+// to the specified io.Writer.
 func (c *Client) EnableDumpAllTo(output io.Writer) *Client {
 	c.getDumpOptions().Output = output
 	c.EnableDumpAll()
@@ -642,9 +644,9 @@ func EnableDumpAllAsync() *Client {
 	return defaultClient.EnableDumpAllAsync()
 }
 
-// EnableDumpAllAsync enables dump and output asynchronously,
-// can be used for debugging in production environment without
-// affecting performance.
+// EnableDumpAllAsync enables dump for all requests and output
+// asynchronously, can be used for debugging in production
+// environment without affecting performance.
 func (c *Client) EnableDumpAllAsync() *Client {
 	o := c.getDumpOptions()
 	o.Async = true
@@ -658,8 +660,9 @@ func EnableDumpAllWithoutRequestBody() *Client {
 	return defaultClient.EnableDumpAllWithoutRequestBody()
 }
 
-// EnableDumpAllWithoutRequestBody enables dump with request body excluded, can be
-// used in upload request to avoid dump the unreadable binary content.
+// EnableDumpAllWithoutRequestBody enables dump for all requests, with
+// request body excluded, can be used in upload request to avoid dump
+// the unreadable binary content.
 func (c *Client) EnableDumpAllWithoutRequestBody() *Client {
 	o := c.getDumpOptions()
 	o.RequestBody = false
@@ -673,8 +676,9 @@ func EnableDumpAllWithoutResponseBody() *Client {
 	return defaultClient.EnableDumpAllWithoutResponseBody()
 }
 
-// EnableDumpAllWithoutResponseBody enables dump with response body excluded, can be
-// used in download request to avoid dump the unreadable binary content.
+// EnableDumpAllWithoutResponseBody enables dump for all requests, with
+// response body excluded, can be used in download request to avoid dump
+// the unreadable binary content.
 func (c *Client) EnableDumpAllWithoutResponseBody() *Client {
 	o := c.getDumpOptions()
 	o.ResponseBody = false
@@ -688,7 +692,8 @@ func EnableDumpAllWithoutResponse() *Client {
 	return defaultClient.EnableDumpAllWithoutResponse()
 }
 
-// EnableDumpAllWithoutResponse enables dump with only request included.
+// EnableDumpAllWithoutResponse enables dump for all requests with only
+// request header and body included.
 func (c *Client) EnableDumpAllWithoutResponse() *Client {
 	o := c.getDumpOptions()
 	o.ResponseBody = false
@@ -703,7 +708,8 @@ func EnableDumpAllWithoutHeader() *Client {
 	return defaultClient.EnableDumpAllWithoutHeader()
 }
 
-// EnableDumpAllWithoutHeader enables dump with only body included.
+// EnableDumpAllWithoutHeader enables dump for all requests with only
+// body of request and response included.
 func (c *Client) EnableDumpAllWithoutHeader() *Client {
 	o := c.getDumpOptions()
 	o.RequestHeader = false
@@ -718,7 +724,8 @@ func EnableDumpAllWithoutBody() *Client {
 	return defaultClient.EnableDumpAllWithoutBody()
 }
 
-// EnableDumpAllWithoutBody enables dump with only header included.
+// EnableDumpAllWithoutBody enables dump for all requests with only header
+// of request and response included.
 func (c *Client) EnableDumpAllWithoutBody() *Client {
 	o := c.getDumpOptions()
 	o.RequestBody = false
