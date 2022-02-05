@@ -10,7 +10,7 @@ Brand new v3 version is out, which is completely rewritten, bringing revolutiona
 
 If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
 
-> v2 is a transitional version. the latest version is v3 cuz some API-incompatible changes was involved during v2 refactoring, checkout [v2 branch](https://github.com/imroc/req/tree/v2) if you want.
+> v2 is a transitional version, cuz some breaking changes were introduced during v2 refactoring, checkout [v2 branch](https://github.com/imroc/req/tree/v2) if you want.
 
 ## Table of Contents
 
