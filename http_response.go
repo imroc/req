@@ -27,11 +27,7 @@ var respExcludeHeader = map[string]bool{
 // After that call, clients can inspect resp.Trailer to find key/value
 // pairs included in the response trailer.
 func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
-	//var tp headReader
-	dump := pc.t.dump
-	if d, ok := req.Context().Value("dumper").(*dumper); ok {
-		dump = d
-	}
+	dump := getDumperOverride(pc.t.dump, req.Context())
 	tp := newTextprotoReader(pc.br, dump)
 	resp := &http.Response{
 		Request: req,

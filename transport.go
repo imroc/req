@@ -293,14 +293,10 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 }
 
 func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {
-	dump := t.dump
-	if d, ok := req.Context().Value("dumper").(*dumper); ok {
-		dump = d
+	dump := getDumperOverride(t.dump, req.Context())
+	if dump != nil && dump.ResponseBody {
+		res.Body = dump.WrapReadCloser(res.Body)
 	}
-	if dump == nil || !dump.ResponseBody {
-		return
-	}
-	res.Body = dump.WrapReadCloser(res.Body)
 }
 
 func (t *Transport) autoDecodeResponseBody(res *http.Response) {
@@ -2455,10 +2451,7 @@ func (pc *persistConn) writeLoop() {
 		case wr := <-pc.writech:
 			startBytesWritten := pc.nwrite
 			ctx := wr.req.Request.Context()
-			dump := pc.t.dump
-			if d, ok := ctx.Value("dumper").(*dumper); ok {
-				dump = d
-			}
+			dump := getDumperOverride(pc.t.dump, ctx)
 			err := requestWrite(wr.req.Request, pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh), dump)
 			if bre, ok := err.(requestBodyReadError); ok {
 				err = bre.error
