@@ -158,19 +158,6 @@ func (d *dumper) Start() {
 	}
 }
 
-func (t *Transport) EnableDump(opt *DumpOptions) {
-	dump := newDumper(opt)
-	t.dump = dump
-	go dump.Start()
-}
-
-func (t *Transport) DisableDump() {
-	if t.dump != nil {
-		t.dump.Stop()
-		t.dump = nil
-	}
-}
-
 func getDumperOverride(dump *dumper, ctx context.Context) *dumper {
 	if d, ok := ctx.Value("dumper").(*dumper); ok {
 		return d

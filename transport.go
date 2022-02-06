@@ -411,6 +411,19 @@ func (t *Transport) Clone() *Transport {
 	return t2
 }
 
+func (t *Transport) EnableDump(opt *DumpOptions) {
+	dump := newDumper(opt)
+	t.dump = dump
+	go dump.Start()
+}
+
+func (t *Transport) DisableDump() {
+	if t.dump != nil {
+		t.dump.Stop()
+		t.dump = nil
+	}
+}
+
 // h2Transport is the interface we expect to be able to call from
 // net/http against an *http2.Transport that's either bundled into
 // h2_bundle.go or supplied by the user via x/net/http2.
