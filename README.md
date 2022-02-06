@@ -16,7 +16,8 @@ If you want to use the older version, check it out on [v1 branch](https://github
 
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
-* [Debugging](#Debugging)
+* [Debugging - Log/Trace/Dump](#Debugging)
+* [Quick HTTP Test](#Test)
 * [URL Path and Query Parameter](#Param)
 * [Form Data](#Form)
 * [Header and Cookie](#Header-Cookie)
@@ -79,7 +80,7 @@ resp, err := client.R(). // Use R() to create a request
 
 Checkout more runnable examples in the [examples](examples) direcotry.
 
-## <a name="Debugging">Debugging</a>
+## <a name="Debugging">Debugging - Log/Trace/Dump</a>
 
 **Dump the Content**
 
@@ -225,6 +226,8 @@ If you want to enable all debug features (dump, debug log and tracing), just cal
 client := req.C().DevMode()
 client.R().Get("https://imroc.cc")
 ```
+
+## <a name="Test">Quick HTTP Test</a>
 
 **Test with Global Wrapper Methods**
 
