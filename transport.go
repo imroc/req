@@ -411,12 +411,14 @@ func (t *Transport) Clone() *Transport {
 	return t2
 }
 
+// EnableDump enables the dump for all requests with specified dump options.
 func (t *Transport) EnableDump(opt *DumpOptions) {
 	dump := newDumper(opt)
 	t.dump = dump
 	go dump.Start()
 }
 
+// DisableDump disables the dump.
 func (t *Transport) DisableDump() {
 	if t.dump != nil {
 		t.dump.Stop()
