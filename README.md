@@ -16,7 +16,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
-* [Debugging - Log/Trace/Dump](#Debugging)
+* [Debugging - Dump/Log/Trace](#Debugging)
 * [Quick HTTP Test](#Test)
 * [URL Path and Query Parameter](#Param)
 * [Form Data](#Form)
@@ -81,7 +81,7 @@ resp, err := client.R(). // Use R() to create a request
 
 Checkout more runnable examples in the [examples](examples) direcotry.
 
-## <a name="Debugging">Debugging - Log/Trace/Dump</a>
+## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
 **Dump the Content**
 
