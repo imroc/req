@@ -129,18 +129,6 @@ type Transport struct {
 	// becomes idle before the later DialContext completes.
 	DialContext func(ctx context.Context, network, addr string) (net.Conn, error)
 
-	// Dial specifies the dial function for creating unencrypted TCP connections.
-	//
-	// Dial runs concurrently with calls to RoundTrip.
-	// A RoundTrip call that initiates a dial may end up using
-	// a connection dialed previously when the earlier connection
-	// becomes idle before the later Dial completes.
-	//
-	// Deprecated: Use DialContext instead, which allows the transport
-	// to cancel dials as soon as they are no longer needed.
-	// If both are set, DialContext takes priority.
-	Dial func(network, addr string) (net.Conn, error)
-
 	// DialTLSContext specifies an optional dial function for creating
 	// TLS connections for non-proxied HTTPS requests.
 	//
@@ -152,14 +140,6 @@ type Transport struct {
 	// are ignored. The returned net.Conn is assumed to already be
 	// past the TLS handshake.
 	DialTLSContext func(ctx context.Context, network, addr string) (net.Conn, error)
-
-	// DialTLS specifies an optional dial function for creating
-	// TLS connections for non-proxied HTTPS requests.
-	//
-	// Deprecated: Use DialTLSContext instead, which allows the transport
-	// to cancel dials as soon as they are no longer needed.
-	// If both are set, DialTLSContext takes priority.
-	DialTLS func(network, addr string) (net.Conn, error)
 
 	// TLSClientConfig specifies the TLS configuration to use with
 	// tls.Client.
@@ -374,8 +354,6 @@ func (t *Transport) Clone() *Transport {
 	t2 := &Transport{
 		Proxy:                  t.Proxy,
 		DialContext:            t.DialContext,
-		Dial:                   t.Dial,
-		DialTLS:                t.DialTLS,
 		DialTLSContext:         t.DialTLSContext,
 		TLSHandshakeTimeout:    t.TLSHandshakeTimeout,
 		DisableKeepAlives:      t.DisableKeepAlives,
@@ -437,7 +415,7 @@ type h2Transport interface {
 }
 
 func (t *Transport) hasCustomTLSDialer() bool {
-	return t.DialTLS != nil || t.DialTLSContext != nil
+	return t.DialTLSContext != nil
 }
 
 // onceSetNextProtoDefaults initializes TLSNextProto.
@@ -468,7 +446,7 @@ func (t *Transport) onceSetNextProtoDefaults() {
 		// Transport.
 		return
 	}
-	if !t.ForceAttemptHTTP2 && (t.TLSClientConfig != nil || t.Dial != nil || t.DialContext != nil || t.hasCustomTLSDialer()) {
+	if !t.ForceAttemptHTTP2 && (t.TLSClientConfig != nil || t.DialContext != nil || t.hasCustomTLSDialer()) {
 		// Be conservative and don't automatically enable
 		// http2 if they've specified a custom TLS config or
 		// custom dialers. Let them opt-in themselves via
@@ -1243,13 +1221,6 @@ func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, e
 	if t.DialContext != nil {
 		return t.DialContext(ctx, network, addr)
 	}
-	if t.Dial != nil {
-		c, err := t.Dial(network, addr)
-		if c == nil && err == nil {
-			err = errors.New("net/http: Transport.Dial hook returned (nil, nil)")
-		}
-		return c, err
-	}
 	return zeroDialer.DialContext(ctx, network, addr)
 }
 
@@ -1388,11 +1359,8 @@ func (q *wantConnQueue) cleanFront() (cleaned bool) {
 }
 
 func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (conn net.Conn, err error) {
-	if t.DialTLSContext != nil {
-		conn, err = t.DialTLSContext(ctx, network, addr)
-	} else {
-		conn, err = t.DialTLS(network, addr)
-	}
+	conn, err = t.DialTLSContext(ctx, network, addr)
+
 	if conn == nil && err == nil {
 		err = errors.New("net/http: Transport.DialTLS or DialTLSContext returned (nil, nil)")
 	}
