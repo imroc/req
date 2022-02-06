@@ -28,7 +28,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/imroc/req/v3/pkg/tlsclient"
 	"io"
 	"io/ioutil"
 	"log"
@@ -2378,7 +2377,7 @@ func http2traceGot1xxResponseFunc(trace *httptrace.ClientTrace) func(int, textpr
 
 // dialTLSWithContext uses tls.Dialer, added in Go 1.15, to open a TLS
 // connection.
-func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (tlsclient.Conn, error) {
+func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (TLSConn, error) {
 	dialer := &tls.Dialer{
 		Config: cfg,
 	}
@@ -2386,7 +2385,7 @@ func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr s
 	if err != nil {
 		return nil, err
 	}
-	tlsCn := cn.(tlsclient.Conn) // DialContext comment promises this will always succeed
+	tlsCn := cn.(TLSConn) // DialContext comment promises this will always succeed
 	return tlsCn, nil
 }
 
@@ -3347,7 +3346,7 @@ func http2ConfigureTransports(t1 *Transport) (*http2Transport, error) {
 	if !http2strSliceContains(t1.TLSClientConfig.NextProtos, "http/1.1") {
 		t1.TLSClientConfig.NextProtos = append(t1.TLSClientConfig.NextProtos, "http/1.1")
 	}
-	upgradeFn := func(authority string, c tlsclient.Conn) http.RoundTripper {
+	upgradeFn := func(authority string, c TLSConn) http.RoundTripper {
 		addr := http2authorityAddr("https", authority)
 		if used, err := connPool.addConnIfNeeded(addr, t2, c); err != nil {
 			go c.Close()
@@ -3362,7 +3361,7 @@ func http2ConfigureTransports(t1 *Transport) (*http2Transport, error) {
 		return t2
 	}
 	if m := t1.TLSNextProto; len(m) == 0 {
-		t1.TLSNextProto = map[string]func(string, tlsclient.Conn) http.RoundTripper{
+		t1.TLSNextProto = map[string]func(string, TLSConn) http.RoundTripper{
 			"h2": upgradeFn,
 		}
 	} else {
@@ -3389,7 +3388,7 @@ func (t *http2Transport) initConnPool() {
 type http2ClientConn struct {
 	currentRequest *http.Request
 	t              *http2Transport
-	tconn          net.Conn             // usually tlsclient.Conn, except specialized impls
+	tconn          net.Conn             // usually TLSConn, except specialized impls
 	tlsState       *tls.ConnectionState // nil only for specialized impls
 	reused         uint32               // whether conn is being reused; atomic
 	singleUse      bool                 // whether being used for a single http.Request

@@ -1104,6 +1104,11 @@ func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (
 	return c
 }
 
+func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
+	c.t.DialContext = fn
+	return c
+}
+
 // DisableAllowGetMethodPayload is a global wrapper methods which delegated
 // to the default client's DisableAllowGetMethodPayload.
 func DisableAllowGetMethodPayload() *Client {

@@ -12,7 +12,6 @@ import (
 	"crypto/tls"
 	"errors"
 	"github.com/imroc/req/v3/internal/testcert"
-	"github.com/imroc/req/v3/pkg/tlsclient"
 	"io"
 	"net"
 	"net/http"
@@ -216,7 +215,7 @@ func TestTransportBodyAltRewind(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			if err := sc.(tlsclient.Conn).Handshake(); err != nil {
+			if err := sc.(TLSConn).Handshake(); err != nil {
 				t.Error(err)
 				return
 			}
@@ -229,8 +228,8 @@ func TestTransportBodyAltRewind(t *testing.T) {
 	roundTripped := false
 	tr := &Transport{
 		DisableKeepAlives: true,
-		TLSNextProto: map[string]func(string, tlsclient.Conn) http.RoundTripper{
-			"foo": func(authority string, c tlsclient.Conn) http.RoundTripper {
+		TLSNextProto: map[string]func(string, TLSConn) http.RoundTripper{
+			"foo": func(authority string, c TLSConn) http.RoundTripper {
 				return roundTripFunc(func(r *http.Request) (*http.Response, error) {
 					n, _ := io.Copy(io.Discard, r.Body)
 					if n == 0 {
