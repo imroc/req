@@ -120,8 +120,7 @@ type Transport struct {
 	Proxy func(*http.Request) (*url.URL, error)
 
 	// DialContext specifies the dial function for creating unencrypted TCP connections.
-	// If DialContext is nil (and the deprecated Dial below is also nil),
-	// then the transport dials using package net.
+	// If DialContext is nil, then the transport dials using package net.
 	//
 	// DialContext runs concurrently with calls to RoundTrip.
 	// A RoundTrip call that initiates a dial may end up using
@@ -132,8 +131,7 @@ type Transport struct {
 	// DialTLSContext specifies an optional dial function for creating
 	// TLS connections for non-proxied HTTPS requests.
 	//
-	// If DialTLSContext is nil (and the deprecated DialTLS below is also nil),
-	// DialContext and TLSClientConfig are used.
+	// If DialTLSContext is nil, DialContext and TLSClientConfig are used.
 	//
 	// If DialTLSContext is set, the Dial and DialContext hooks are not used for HTTPS
 	// requests and the TLSClientConfig and TLSHandshakeTimeout
