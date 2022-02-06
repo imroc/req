@@ -703,6 +703,22 @@ func (c *Client) EnableDumpAllWithoutResponse() *Client {
 	return c
 }
 
+// EnableDumpAllWithoutRequest is a global wrapper methods which delegated
+// to the default client's EnableDumpAllWithoutRequest.
+func EnableDumpAllWithoutRequest() *Client {
+	return defaultClient.EnableDumpAllWithoutRequest()
+}
+
+// EnableDumpAllWithoutRequest enables dump for all requests with only
+// request header and body included.
+func (c *Client) EnableDumpAllWithoutRequest() *Client {
+	o := c.getDumpOptions()
+	o.RequestHeader = false
+	o.RequestBody = false
+	c.EnableDumpAll()
+	return c
+}
+
 // EnableDumpAllWithoutHeader is a global wrapper methods which delegated
 // to the default client's EnableDumpAllWithoutHeader.
 func EnableDumpAllWithoutHeader() *Client {

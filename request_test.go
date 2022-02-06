@@ -26,12 +26,28 @@ func TestRequestDump(t *testing.T) {
 	assertContains(t, dump, "HTTP/1.1 200 OK")
 	assertContains(t, dump, "TestPost: text response")
 
+	resp, err = c.R().EnableDumpWithoutRequestBody().SetBody(`test body`).Post(ts.URL)
+	assertResponse(t, resp, err)
+	dump = resp.Dump()
+	assertContains(t, dump, "POST / HTTP/1.1")
+	assertNotContains(t, dump, "test body")
+	assertContains(t, dump, "HTTP/1.1 200 OK")
+	assertContains(t, dump, "TestPost: text response")
+
 	resp, err = c.R().EnableDumpWithoutResponse().SetBody(`test body`).Post(ts.URL)
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
 	assertContains(t, dump, "test body")
 	assertNotContains(t, dump, "HTTP/1.1 200 OK")
+	assertNotContains(t, dump, "TestPost: text response")
+
+	resp, err = c.R().EnableDumpWithoutResponseBody().SetBody(`test body`).Post(ts.URL)
+	assertResponse(t, resp, err)
+	dump = resp.Dump()
+	assertContains(t, dump, "POST / HTTP/1.1")
+	assertContains(t, dump, "test body")
+	assertContains(t, dump, "HTTP/1.1 200 OK")
 	assertNotContains(t, dump, "TestPost: text response")
 
 	resp, err = c.R().EnableDumpWithoutHeader().SetBody(`test body`).Post(ts.URL)

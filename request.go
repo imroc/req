@@ -917,3 +917,31 @@ func (r *Request) EnableDumpWithoutRequest() *Request {
 	o.RequestBody = false
 	return r.EnableDump()
 }
+
+// EnableDumpWithoutRequestBody is a global wrapper methods which delegated
+// to the default client, create a request and EnableDumpWithoutRequestBody for request.
+func EnableDumpWithoutRequestBody() *Request {
+	return defaultClient.R().EnableDumpWithoutRequestBody()
+}
+
+// EnableDumpWithoutRequestBody enables dump with request body excluded,
+// can be used in upload request to avoid dump the unreadable binary content.
+func (r *Request) EnableDumpWithoutRequestBody() *Request {
+	o := r.getDumpOptions()
+	o.RequestBody = false
+	return r.EnableDump()
+}
+
+// EnableDumpWithoutResponseBody is a global wrapper methods which delegated
+// to the default client, create a request and EnableDumpWithoutResponseBody for request.
+func EnableDumpWithoutResponseBody() *Request {
+	return defaultClient.R().EnableDumpWithoutResponseBody()
+}
+
+// EnableDumpWithoutResponseBody enables dump with response body excluded,
+// can be used in download request to avoid dump the unreadable binary content.
+func (r *Request) EnableDumpWithoutResponseBody() *Request {
+	o := r.getDumpOptions()
+	o.ResponseBody = false
+	return r.EnableDump()
+}
