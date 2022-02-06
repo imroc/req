@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -96,18 +97,35 @@ func assertType(t *testing.T, typ, v interface{}) {
 	}
 }
 
+func assertNotContains(t *testing.T, s, substr string) {
+	if strings.Contains(s, substr) {
+		t.Errorf("%q is included in %s", substr, s)
+	}
+}
+
+func assertContains(t *testing.T, s, substr string) {
+	if !strings.Contains(s, substr) {
+		t.Errorf("%q is not included in %s", substr, s)
+	}
+}
+
 func assertError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error occurred [%v]", err)
 	}
 }
 
-func assertEqual(t *testing.T, e, g interface{}) (r bool) {
+func assertEqual(t *testing.T, e, g interface{}) {
 	if !equal(e, g) {
 		t.Errorf("Expected [%v], got [%v]", e, g)
 	}
-
 	return
+}
+
+func removeEmptyString(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	return s
 }
 
 func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
