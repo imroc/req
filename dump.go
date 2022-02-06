@@ -159,7 +159,7 @@ func (d *dumper) Start() {
 }
 
 func getDumperOverride(dump *dumper, ctx context.Context) *dumper {
-	if d, ok := ctx.Value("dumper").(*dumper); ok {
+	if d, ok := ctx.Value("_dumper").(*dumper); ok {
 		return d
 	}
 	return dump
