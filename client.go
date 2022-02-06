@@ -1,6 +1,7 @@
 package req
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -10,6 +11,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	urlpkg "net/url"
@@ -1094,6 +1096,11 @@ func SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 // SetXmlUnmarshal set the XML unmarshal function which will be used to unmarshal response body.
 func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	c.xmlUnmarshal = fn
+	return c
+}
+
+func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
+	c.t.DialTLSContext = fn
 	return c
 }
 
