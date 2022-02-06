@@ -35,7 +35,8 @@ If you want to use the older version, check it out on [v1 branch](https://github
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, and even provide global wrapper methods to test with minimal code (see [Debugging](#Debugging).
+* Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, and even provide global wrapper methods to test with minimal code (see [Debugging - Log/Trace/Dump](#Debugging).
+* Easy making HTTP test with code instead of tools like curl or postman, `req` provide global wrapper methods and `MustXXX` to test API with minimal code (see [Quick HTTP Test](#Test)).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
 * Automatic marshal and unmarshal for JSON and XML content type and fully customizable.
 * Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support.
@@ -239,6 +240,7 @@ client.R().Get("https://imroc.cc")
 // you don't need to create any client explicitly.
 req.SetTimeout(5 * time.Second).
 	SetCommonBasicAuth("imroc", "123456").
+	SetCommonHeader("Accept", "application/json").
 	SetUserAgent("my api client").
 	DevMode()
 
@@ -247,16 +249,16 @@ req.SetTimeout(5 * time.Second).
 // client, so you can treat package name `req` as a Request,
 // and you don't need to create request explicitly.
 req.SetQueryParam("page", "2").
-	SetHeader("Accept", "application/json").
+	SetHeader("Accept", "text/xml"). // Override client level settings at request level.
 	Get("https://api.example.com/repos")
 ```
 
 **Test with MustXXX**
 
-Use `MustXXX` to ignore error handling when test, make it possible to complete a complex test with just one line of code:
+Use `MustXXX` to ignore error handling during test, make it possible to complete a complex test with just one line of code:
 
 ```go
-fmt.Println(req.DevMode().MustGet("https://imroc.cc").TraceInfo())
+fmt.Println(req.DevMode().R().MustGet("https://imroc.cc").TraceInfo())
 ```
 
 ## <a name="Param">URL Path and Query Parameter</a>
