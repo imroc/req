@@ -1,5 +1,7 @@
 package req
 
+import "io"
+
 const (
 	hdrUserAgentKey   = "User-Agent"
 	hdrUserAgentValue = "req/v3 (https://github.com/imroc/req)"
@@ -9,3 +11,9 @@ const (
 	xmlContentType    = "text/xml; charset=utf-8"
 	formContentType   = "application/x-www-form-urlencoded"
 )
+
+type uploadFile struct {
+	ParamName string
+	FilePath  string
+	io.Reader
+}
