@@ -1123,6 +1123,18 @@ func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net
 	return c
 }
 
+// SetTLSHandshakeTimeout is a global wrapper methods which delegated
+// to the default client's SetTLSHandshakeTimeout.
+func SetTLSHandshakeTimeout(timeout time.Duration) *Client {
+	return defaultClient.SetTLSHandshakeTimeout(timeout)
+}
+
+// SetTLSHandshakeTimeout set the TLS handshake timeout.
+func (c *Client) SetTLSHandshakeTimeout(timeout time.Duration) *Client {
+	c.t.TLSHandshakeTimeout = timeout
+	return c
+}
+
 // EnableForceHTTP1 is a global wrapper methods which delegated
 // to the default client's EnableForceHTTP1.
 func EnableForceHTTP1() *Client {
