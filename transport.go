@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/ascii"
-	"github.com/imroc/req/v3/internal/godebug"
 	"github.com/imroc/req/v3/internal/util"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
@@ -30,7 +29,6 @@ import (
 	"net/http/httptrace"
 	"net/textproto"
 	"net/url"
-	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -40,9 +38,9 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
-// DefaultMaxIdleConnsPerHost is the default value of Transport's
+// defaultMaxIdleConnsPerHost is the default value of Transport's
 // MaxIdleConnsPerHost.
-const DefaultMaxIdleConnsPerHost = 2
+const defaultMaxIdleConnsPerHost = 2
 
 // ResponseOptions determines that how should the response been processed.
 type ResponseOptions struct {
@@ -108,6 +106,9 @@ type Transport struct {
 	connsPerHost     map[connectMethodKey]int
 	connsPerHostWait map[connectMethodKey]wantConnQueue // waiting getConns
 
+	// ForceHTTP1 force using HTTP/1.1
+	ForceHTTP1 bool
+
 	// Proxy specifies a function to return a proxy for a given
 	// Request. If the function returns a non-nil error, the
 	// request is aborted with the provided error.
@@ -172,7 +173,7 @@ type Transport struct {
 
 	// MaxIdleConnsPerHost, if non-zero, controls the maximum idle
 	// (keep-alive) connections to keep per-host. If zero,
-	// DefaultMaxIdleConnsPerHost is used.
+	// defaultMaxIdleConnsPerHost is used.
 	MaxIdleConnsPerHost int
 
 	// MaxConnsPerHost optionally limits the total number of
@@ -246,11 +247,7 @@ type Transport struct {
 	// If zero, a default (currently 4KB) is used.
 	ReadBufferSize int
 
-	// nextProtoOnce guards initialization of TLSNextProto and
-	// h2transport (via onceSetNextProtoDefaults)
-	nextProtoOnce      sync.Once
-	h2transport        h2Transport // non-nil if http2 wired up
-	tlsNextProtoWasNil bool        // whether TLSNextProto was nil when the Once fired
+	t2 *http2Transport // non-nil if http2 wired up
 
 	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero
 	// Dial, DialTLS, or DialContext func or TLSClientConfig is provided.
@@ -347,7 +344,6 @@ func (t *Transport) readBufferSize() int {
 
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
-	t.nextProtoOnce.Do(t.onceSetNextProtoDefaults)
 
 	t2 := &Transport{
 		Proxy:                  t.Proxy,
@@ -369,6 +365,7 @@ func (t *Transport) Clone() *Transport {
 		WriteBufferSize:        t.WriteBufferSize,
 		ReadBufferSize:         t.ReadBufferSize,
 		ResponseOptions:        t.ResponseOptions,
+		ForceHTTP1:             t.ForceHTTP1,
 		dump:                   t.dump.Clone(),
 	}
 	if t.dump != nil {
@@ -377,7 +374,7 @@ func (t *Transport) Clone() *Transport {
 	if t.TLSClientConfig != nil {
 		t2.TLSClientConfig = t.TLSClientConfig.Clone()
 	}
-	if !t.tlsNextProtoWasNil {
+	if t.TLSNextProto != nil {
 		npm := map[string]func(authority string, c TLSConn) http.RoundTripper{}
 		for k, v := range t.TLSNextProto {
 			npm[k] = v
@@ -402,107 +399,8 @@ func (t *Transport) DisableDump() {
 	}
 }
 
-// h2Transport is the interface we expect to be able to call from
-// net/http against an *http2.Transport that's either bundled into
-// h2_bundle.go or supplied by the user via x/net/http2.
-//
-// We name it with the "h2" prefix to stay out of the "http2" prefix
-// namespace used by x/tools/cmd/bundle for h2_bundle.go.
-type h2Transport interface {
-	CloseIdleConnections()
-}
-
 func (t *Transport) hasCustomTLSDialer() bool {
 	return t.DialTLSContext != nil
-}
-
-// onceSetNextProtoDefaults initializes TLSNextProto.
-// It must be called via t.nextProtoOnce.Do.
-func (t *Transport) onceSetNextProtoDefaults() {
-	t.tlsNextProtoWasNil = (t.TLSNextProto == nil)
-	if godebug.Get("http2client") == "0" {
-		return
-	}
-
-	// If they've already configured http2 with
-	// golang.org/x/net/http2 instead of the bundled copy, try to
-	// get at its http2.Transport value (via the "https"
-	// altproto map) so we can call CloseIdleConnections on it if
-	// requested. (Issue 22891)
-	altProto, _ := t.altProto.Load().(map[string]http.RoundTripper)
-	if rv := reflect.ValueOf(altProto["https"]); rv.IsValid() && rv.Type().Kind() == reflect.Struct && rv.Type().NumField() == 1 {
-		if v := rv.Field(0); v.CanInterface() {
-			if h2i, ok := v.Interface().(h2Transport); ok {
-				t.h2transport = h2i
-				return
-			}
-		}
-	}
-
-	if t.TLSNextProto != nil {
-		// This is the documented way to disable http2 on a
-		// Transport.
-		return
-	}
-	if !t.ForceAttemptHTTP2 && (t.TLSClientConfig != nil || t.DialContext != nil || t.hasCustomTLSDialer()) {
-		// Be conservative and don't automatically enable
-		// http2 if they've specified a custom TLS config or
-		// custom dialers. Let them opt-in themselves via
-		// http2.ConfigureTransport so we don't surprise them
-		// by modifying their tls.Config. Issue 14275.
-		// However, if ForceAttemptHTTP2 is true, it overrides the above checks.
-		return
-	}
-	t2, err := http2ConfigureTransports(t)
-	if err != nil {
-		log.Printf("Error enabling Transport HTTP/2 support: %v", err)
-		return
-	}
-	t.h2transport = t2
-
-	// Auto-configure the http2.Transport's MaxHeaderListSize from
-	// the http.Transport's MaxResponseHeaderBytes. They don't
-	// exactly mean the same thing, but they're close.
-	//
-	// TODO: also add this to x/net/http2.Configure Transport, behind
-	// a +build go1.7 build tag:
-	if limit1 := t.MaxResponseHeaderBytes; limit1 != 0 && t2.MaxHeaderListSize == 0 {
-		const h2max = 1<<32 - 1
-		if limit1 >= h2max {
-			t2.MaxHeaderListSize = h2max
-		} else {
-			t2.MaxHeaderListSize = uint32(limit1)
-		}
-	}
-}
-
-// ProxyFromEnvironment returns the URL of the proxy to use for a
-// given request, as indicated by the environment variables
-// HTTP_PROXY, HTTPS_PROXY and NO_PROXY (or the lowercase versions
-// thereof). HTTPS_PROXY takes precedence over HTTP_PROXY for https
-// requests.
-//
-// The environment values may be either a complete URL or a
-// "host[:port]", in which case the "http" scheme is assumed.
-// The schemes "http", "https", and "socks5" are supported.
-// An error is returned if the value is a different form.
-//
-// A nil URL and nil error are returned if no proxy is defined in the
-// environment, or a proxy should not be used for the given request,
-// as defined by NO_PROXY.
-//
-// As a special case, if req.URL.Host is "localhost" (with or without
-// a port number), then a nil URL and nil error will be returned.
-func ProxyFromEnvironment(req *http.Request) (*url.URL, error) {
-	return envProxyFunc()(req.URL)
-}
-
-// ProxyURL returns a proxy function (for use in a Transport)
-// that always returns the same URL.
-func ProxyURL(fixedURL *url.URL) func(*http.Request) (*url.URL, error) {
-	return func(*http.Request) (*url.URL, error) {
-		return fixedURL, nil
-	}
 }
 
 // transportRequest is a wrapper around a *http.Request that adds
@@ -559,7 +457,6 @@ func (t *Transport) alternateRoundTripper(req *http.Request) http.RoundTripper {
 
 // roundTrip implements a http.RoundTripper over HTTP.
 func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
-	t.nextProtoOnce.Do(t.onceSetNextProtoDefaults)
 	ctx := req.Context()
 	trace := httptrace.ContextClientTrace(ctx)
 
@@ -812,7 +709,6 @@ func (t *Transport) RegisterProtocol(scheme string, rt http.RoundTripper) {
 // a "keep-alive" state. It does not interrupt any connections currently
 // in use.
 func (t *Transport) CloseIdleConnections() {
-	t.nextProtoOnce.Do(t.onceSetNextProtoDefaults)
 	t.idleMu.Lock()
 	m := t.idleConn
 	t.idleConn = nil
@@ -824,7 +720,7 @@ func (t *Transport) CloseIdleConnections() {
 			pconn.close(errCloseIdleConns)
 		}
 	}
-	if t2 := t.h2transport; t2 != nil {
+	if t2 := t.t2; t2 != nil {
 		t2.CloseIdleConnections()
 	}
 }
@@ -887,7 +783,7 @@ func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectM
 	if t.Proxy != nil {
 		cm.proxyURL, err = t.Proxy(treq.Request)
 	}
-	cm.onlyH1 = requestRequiresHTTP1(treq.Request)
+	cm.onlyH1 = t.ForceHTTP1 || requestRequiresHTTP1(treq.Request)
 	return cm, err
 }
 
@@ -951,7 +847,7 @@ func (t *Transport) maxIdleConnsPerHost() int {
 	if v := t.MaxIdleConnsPerHost; v != 0 {
 		return v
 	}
-	return DefaultMaxIdleConnsPerHost
+	return defaultMaxIdleConnsPerHost
 }
 
 // tryPutIdleConn adds pconn to the list of idle persistent connections awaiting
@@ -1774,7 +1670,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		}
 	}
 
-	if s := pconn.tlsState; s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
+	if s := pconn.tlsState; !t.ForceHTTP1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
 		if next, ok := t.TLSNextProto[s.NegotiatedProtocol]; ok {
 			alt := next(cm.targetAddr, pconn.conn.(TLSConn))
 			if e, ok := alt.(erringRoundTripper); ok {

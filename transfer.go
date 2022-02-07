@@ -26,10 +26,6 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-// ErrLineTooLong is returned when reading request or response bodies
-// with malformed chunked encoding.
-var ErrLineTooLong = internal.ErrLineTooLong
-
 type errorReader struct {
 	err error
 }
@@ -834,17 +830,11 @@ type body struct {
 	onHitEOF   func() // if non-nil, func to call when EOF is Read
 }
 
-// ErrBodyReadAfterClose is returned when reading a Request or Response
-// Body after the body has been closed. This typically happens when the body is
-// read after an HTTP Handler calls WriteHeader or Write on its
-// ResponseWriter.
-var ErrBodyReadAfterClose = errors.New("http: invalid Read on closed Body")
-
 func (b *body) Read(p []byte) (n int, err error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.closed {
-		return 0, ErrBodyReadAfterClose
+		return 0, http.ErrBodyReadAfterClose
 	}
 	return b.readLocked(p)
 }
@@ -1051,7 +1041,7 @@ type bodyLocked struct {
 
 func (bl bodyLocked) Read(p []byte) (n int, err error) {
 	if bl.b.closed {
-		return 0, ErrBodyReadAfterClose
+		return 0, http.ErrBodyReadAfterClose
 	}
 	return bl.b.readLocked(p)
 }

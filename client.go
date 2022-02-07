@@ -1099,13 +1099,51 @@ func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Cli
 	return c
 }
 
+// SetDialTLS is a global wrapper methods which delegated
+// to the default client's SetDialTLS.
+func SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
+	return defaultClient.SetDialTLS(fn)
+}
+
+// SetDialTLS set the customized DialTLSContext
 func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialTLSContext = fn
 	return c
 }
 
+// SetDial is a global wrapper methods which delegated
+// to the default client's SetDial.
+func SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
+	return defaultClient.SetDial(fn)
+}
+
+// SetDial set the customized Dial function.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialContext = fn
+	return c
+}
+
+// EnableForceHTTP1 is a global wrapper methods which delegated
+// to the default client's EnableForceHTTP1.
+func EnableForceHTTP1() *Client {
+	return defaultClient.EnableForceHTTP1()
+}
+
+// EnableForceHTTP1 enables force using HTTP1 (disabled by default)
+func (c *Client) EnableForceHTTP1() *Client {
+	c.t.ForceHTTP1 = true
+	return c
+}
+
+// DisableForceHTTP1 is a global wrapper methods which delegated
+// to the default client's DisableForceHTTP1.
+func DisableForceHTTP1() *Client {
+	return defaultClient.DisableForceHTTP1()
+}
+
+// DisableForceHTTP1 disable force using HTTP1 (disabled by default)
+func (c *Client) DisableForceHTTP1() *Client {
+	c.t.ForceHTTP1 = false
 	return c
 }
 

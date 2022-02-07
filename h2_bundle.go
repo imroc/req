@@ -3293,12 +3293,19 @@ type http2Transport struct {
 	connPoolOrDef http2ClientConnPool // non-nil version of ConnPool
 }
 
+const h2max = 1<<32 - 1
+
 func (t *http2Transport) maxHeaderListSize() uint32 {
-	if t.MaxHeaderListSize == 0 {
-		return 10 << 20
-	}
 	if t.MaxHeaderListSize == 0xffffffff {
 		return 0
+	}
+	if t.MaxHeaderListSize > 0 {
+		return t.MaxHeaderListSize
+	}
+	if limit := t.t1.MaxResponseHeaderBytes; limit > 0 && limit < h2max {
+		t.MaxHeaderListSize = h2max
+	} else {
+		t.MaxHeaderListSize = 10 << 20
 	}
 	return t.MaxHeaderListSize
 }
@@ -3340,7 +3347,7 @@ func http2ConfigureTransports(t1 *Transport) (*http2Transport, error) {
 	if t1.TLSClientConfig == nil {
 		t1.TLSClientConfig = new(tls.Config)
 	}
-	if !http2strSliceContains(t1.TLSClientConfig.NextProtos, "h2") {
+	if !t1.ForceHTTP1 && !http2strSliceContains(t1.TLSClientConfig.NextProtos, "h2") {
 		t1.TLSClientConfig.NextProtos = append([]string{"h2"}, t1.TLSClientConfig.NextProtos...)
 	}
 	if !http2strSliceContains(t1.TLSClientConfig.NextProtos, "http/1.1") {
