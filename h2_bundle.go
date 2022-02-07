@@ -3347,7 +3347,7 @@ func http2ConfigureTransports(t1 *Transport) (*http2Transport, error) {
 	if t1.TLSClientConfig == nil {
 		t1.TLSClientConfig = new(tls.Config)
 	}
-	if !t1.ForceHTTP1 && !http2strSliceContains(t1.TLSClientConfig.NextProtos, "h2") {
+	if !http2strSliceContains(t1.TLSClientConfig.NextProtos, "h2") {
 		t1.TLSClientConfig.NextProtos = append([]string{"h2"}, t1.TLSClientConfig.NextProtos...)
 	}
 	if !http2strSliceContains(t1.TLSClientConfig.NextProtos, "http/1.1") {
