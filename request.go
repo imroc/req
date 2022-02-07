@@ -148,6 +148,9 @@ func SetQueryString(query string) *Request {
 func (r *Request) SetQueryString(query string) *Request {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
 	if err == nil {
+		if r.QueryParams == nil {
+			r.QueryParams = make(urlpkg.Values)
+		}
 		for p, v := range params {
 			for _, pv := range v {
 				r.QueryParams.Add(p, pv)
