@@ -147,17 +147,17 @@ func SetQueryString(query string) *Request {
 // SetQueryString set URL query parameters using the raw query string.
 func (r *Request) SetQueryString(query string) *Request {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
-	if err == nil {
-		if r.QueryParams == nil {
-			r.QueryParams = make(urlpkg.Values)
+	if err != nil {
+		r.client.log.Warnf("failed to parse query string (%s): %v", query, err)
+		return r
+	}
+	if r.QueryParams == nil {
+		r.QueryParams = make(urlpkg.Values)
+	}
+	for p, v := range params {
+		for _, pv := range v {
+			r.QueryParams.Add(p, pv)
 		}
-		for p, v := range params {
-			for _, pv := range v {
-				r.QueryParams.Add(p, pv)
-			}
-		}
-	} else {
-		r.client.log.Errorf("%v", err)
 	}
 	return r
 }

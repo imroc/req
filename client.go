@@ -466,17 +466,17 @@ func SetCommonQueryString(query string) *Client {
 // SetCommonQueryString set URL query parameters using the raw query string.
 func (c *Client) SetCommonQueryString(query string) *Client {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
-	if err == nil {
-		if c.QueryParams == nil {
-			c.QueryParams = make(urlpkg.Values)
-		}
-		for p, v := range params {
-			for _, pv := range v {
-				c.QueryParams.Add(p, pv)
-			}
-		}
-	} else {
+	if err != nil {
 		c.log.Warnf("failed to parse query string (%s): %v", query, err)
+		return c
+	}
+	if c.QueryParams == nil {
+		c.QueryParams = make(urlpkg.Values)
+	}
+	for p, v := range params {
+		for _, pv := range v {
+			c.QueryParams.Add(p, pv)
+		}
 	}
 	return c
 }
