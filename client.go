@@ -1101,12 +1101,12 @@ func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Cli
 
 // SetDialTLS is a global wrapper methods which delegated
 // to the default client's SetDialTLS.
-func SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
+func SetDialTLS(fn func(ctx context.Context, network, addr string) (TLSConn, error)) *Client {
 	return defaultClient.SetDialTLS(fn)
 }
 
 // SetDialTLS set the customized DialTLSContext
-func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
+func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (TLSConn, error)) *Client {
 	c.t.DialTLSContext = fn
 	return c
 }

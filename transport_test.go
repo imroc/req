@@ -246,7 +246,7 @@ func TestTransportBodyAltRewind(t *testing.T) {
 				})
 			},
 		},
-		DialTLSContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+		DialTLSContext: func(_ context.Context, _, _ string) (TLSConn, error) {
 			tc, err := tls.Dial("tcp", addr, &tls.Config{
 				InsecureSkipVerify: true,
 				NextProtos:         []string{"foo"},

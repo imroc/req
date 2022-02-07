@@ -138,7 +138,7 @@ type Transport struct {
 	// requests and the TLSClientConfig and TLSHandshakeTimeout
 	// are ignored. The returned net.Conn is assumed to already be
 	// past the TLS handshake.
-	DialTLSContext func(ctx context.Context, network, addr string) (net.Conn, error)
+	DialTLSContext func(ctx context.Context, network, addr string) (TLSConn, error)
 
 	// TLSClientConfig specifies the TLS configuration to use with
 	// tls.Client.
@@ -1252,7 +1252,7 @@ func (q *wantConnQueue) cleanFront() (cleaned bool) {
 	}
 }
 
-func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (conn net.Conn, err error) {
+func (t *Transport) customDialTLS(ctx context.Context, network, addr string) (conn TLSConn, err error) {
 	conn, err = t.DialTLSContext(ctx, network, addr)
 
 	if conn == nil && err == nil {
@@ -1517,24 +1517,26 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 	}
 	if cm.scheme() == "https" && t.hasCustomTLSDialer() {
 		var err error
-		pconn.conn, err = t.customDialTLS(ctx, "tcp", cm.addr())
+		var conn TLSConn
+		conn, err = t.customDialTLS(ctx, "tcp", cm.addr())
 		if err != nil {
 			return nil, wrapErr(err)
 		}
-		if tc, ok := pconn.conn.(TLSConn); ok {
+		pconn.conn = conn
+		if conn != nil {
 			// Handshake here, in case DialTLS didn't. TLSNextProto below
 			// depends on it for knowing the connection state.
 			if trace != nil && trace.TLSHandshakeStart != nil {
 				trace.TLSHandshakeStart()
 			}
-			if err := tc.Handshake(); err != nil {
+			if err := conn.Handshake(); err != nil {
 				go pconn.conn.Close()
 				if trace != nil && trace.TLSHandshakeDone != nil {
 					trace.TLSHandshakeDone(tls.ConnectionState{}, err)
 				}
 				return nil, err
 			}
-			cs := tc.ConnectionState()
+			cs := conn.ConnectionState()
 			if trace != nil && trace.TLSHandshakeDone != nil {
 				trace.TLSHandshakeDone(cs, nil)
 			}
