@@ -303,7 +303,9 @@ func SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	return defaultClient.SetRedirectPolicy(policies...)
 }
 
-// SetRedirectPolicy helps to set the RedirectPolicy.
+// SetRedirectPolicy set the RedirectPolicy, see the predefined AllowedDomainRedirectPolicy,
+// AllowedHostRedirectPolicy, MaxRedirectPolicy, NoRedirectPolicy, SameDomainRedirectPolicy
+// and SameHostRedirectPolicy.
 func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	if len(policies) == 0 {
 		return c
@@ -1101,7 +1103,9 @@ func SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, er
 	return defaultClient.SetDialTLS(fn)
 }
 
-// SetDialTLS set the customized DialTLSContext
+// SetDialTLS set the customized `DialTLSContext` function to Transport (make sure the returned
+// `conn` implements [TLSConn](https://pkg.go.dev/github.com/imroc/req/v3#TLSConn) if you want
+// your customized `conn` supports HTTP2).
 func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialTLSContext = fn
 	return c
@@ -1113,7 +1117,7 @@ func SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error
 	return defaultClient.SetDial(fn)
 }
 
-// SetDial set the customized Dial function.
+// SetDial set the customized DialContext function to Transport.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialContext = fn
 	return c
