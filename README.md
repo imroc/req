@@ -269,7 +269,23 @@ Req works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by defau
 You can force using `HTTP/1.1` if you want.
 
 ```go
-client.EnableForceHTTP1()
+client := req.C().EnableForceHTTP1().EnableDumpWithoutBody()
+client.R().MustGet("https://httpbin.org/get")
+/* Output
+GET /get HTTP/1.1
+Host: httpbin.org
+User-Agent: req/v3 (https://github.com/imroc/req)
+Accept-Encoding: gzip
+
+HTTP/1.1 200 OK
+Date: Tue, 08 Feb 2022 02:30:18 GMT
+Content-Type: application/json
+Content-Length: 289
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+*/
 ```
 
 ## <a name="Param">URL Path and Query Parameter</a>
