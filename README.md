@@ -139,11 +139,11 @@ opt := &req.DumpOptions{
             Async:          false,
         }
 client.SetCommonDumpOptions(opt).EnableDumpAll()
-client.R().Get("https://www.baidu.com/")
+client.R().Get("https://httpbin.org/get")
 
 // Change settings dynamiclly
 opt.ResponseBody = false
-client.R().Get("https://www.baidu.com/")
+client.R().Get("https://httpbin.org/get")
 
 // You can also enable dump at request level, which will not override client-level dumpping,
 // dump to memory and will not print it out by default, you can call `Response.Dump()` to get
