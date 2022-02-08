@@ -1,7 +1,8 @@
 <p align="center">
     <h1 align="center">Req API Reference </h1>
-    <p align="center">Here is a brief list of some core APIs, which is convenient to get started quickly. For a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).</p>
 </p>
+
+Here is a brief list of some core APIs, which is convenient to get started quickly. For a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
 
 ## Table of Contents
 
