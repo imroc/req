@@ -6,11 +6,11 @@
 
 ## Big News
 
-Brand new v3 version is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
+Brand-new version v3 is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
 
 If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
 
-> v2 is a transitional version, cuz some breaking changes were introduced during v2 refactoring, checkout [v2 branch](https://github.com/imroc/req/tree/v2) if you want.
+> v2 is a transitional version, due to some breaking changes were introduced during optmize user experience, checkout [v2 branch](https://github.com/imroc/req/tree/v2) if you want.
 
 ## Table of Contents
 
