@@ -802,28 +802,28 @@ func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
 	return c
 }
 
-// SetAutoDecodeAllTypeFunc is a global wrapper methods which delegated
+// SetAutoDecodeContentTypeFunc is a global wrapper methods which delegated
 // to the default client's SetAutoDecodeAllTypeFunc.
-func SetAutoDecodeAllTypeFunc(fn func(contentType string) bool) *Client {
-	return defaultClient.SetAutoDecodeAllTypeFunc(fn)
+func SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
+	return defaultClient.SetAutoDecodeContentTypeFunc(fn)
 }
 
-// SetAutoDecodeAllTypeFunc set the custmize function that determins the content-type
+// SetAutoDecodeContentTypeFunc set the custmize function that determins the content-type
 // whether if should be auto-detected and decode to utf-8
-func (c *Client) SetAutoDecodeAllTypeFunc(fn func(contentType string) bool) *Client {
+func (c *Client) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
 	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = fn
 	return c
 }
 
-// SetAutoDecodeAllType is a global wrapper methods which delegated
-// to the default client's SetAutoDecodeAllType.
-func SetAutoDecodeAllType() *Client {
-	return defaultClient.SetAutoDecodeAllType()
+// SetAutoDecodeAllContentType is a global wrapper methods which delegated
+// to the default client's SetAutoDecodeAllContentType.
+func SetAutoDecodeAllContentType() *Client {
+	return defaultClient.SetAutoDecodeAllContentType()
 }
 
-// SetAutoDecodeAllType enables to try auto-detect and decode all content type to utf-8.
-func (c *Client) SetAutoDecodeAllType() *Client {
+// SetAutoDecodeAllContentType enables to try auto-detect and decode all content type to utf-8.
+func (c *Client) SetAutoDecodeAllContentType() *Client {
 	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = func(contentType string) bool {
 		return true
