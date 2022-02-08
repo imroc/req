@@ -18,6 +18,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * [Quick Start](#Quick-Start)
 * [Debugging - Dump/Log/Trace](#Debugging)
 * [Quick HTTP Test](#Test)
+* [HTTP2 and HTTP1](#HTTP2-HTTP1)
 * [URL Path and Query Parameter](#Param)
 * [Form Data](#Form)
 * [Header and Cookie](#Header-Cookie)
@@ -37,9 +38,9 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
 * Powerful and convenient debug utilites, including debug logs, performance traces, dump complete request and response content, and even provide global wrapper methods to test with minimal code (see [Debugging - Log/Trace/Dump](#Debugging).
 * Easy making HTTP test with code instead of tools like curl or postman, `req` provide global wrapper methods and `MustXXX` to test API with minimal code (see [Quick HTTP Test](#Test)).
+* Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support, and you can also force `HTTP/1.1` if you want (see [HTTP2 and HTTP1](#HTTP2-HTTP1)).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
-* Automatic marshal and unmarshal for JSON and XML content type and fully customizable.
-* Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support.
+* Automatic marshal and unmarshal for JSON and XML content type and fully customizable (see [Body and Marshal/Unmarshal](#Body)).
 * Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
 * Easy [Download and Upload](#Download-Upload).
 * Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token for both client and request level.
@@ -259,6 +260,16 @@ Use `MustXXX` to ignore error handling during test, make it possible to complete
 
 ```go
 fmt.Println(req.DevMode().R().MustGet("https://imroc.cc").TraceInfo())
+```
+
+## <a name="HTTP2-HTTP1">HTTP2 and HTTP1</a>
+
+Req works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support, which is negotiated by TLS handshake.
+
+You can force using `HTTP/1.1` if you want.
+
+```go
+client.EnableForceHTTP1()
 ```
 
 ## <a name="Param">URL Path and Query Parameter</a>
