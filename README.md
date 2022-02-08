@@ -16,6 +16,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 
 * [Features](#Features)
 * [Quick Start](#Quick-Start)
+* [API Reference](#API)
 * [Debugging - Dump/Log/Trace](#Debugging)
 * [Quick HTTP Test](#Test)
 * [HTTP2 and HTTP1](#HTTP2-HTTP1)
@@ -83,7 +84,9 @@ resp, err := client.R(). // Use R() to create a request
 
 Checkout more runnable examples in the [examples](examples) direcotry.
 
-Checkout [Req API Reference](docs/api.md) for a brief list of some core APIs, which is convenient to get started quickly. For a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+## <a name="API">API Reference</a>
+
+Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core API, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
