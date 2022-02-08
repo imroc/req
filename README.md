@@ -31,6 +31,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * [Redirect Policy](#Redirect)
 * [Proxy](#Proxy)
 * [TODO List](#TODO)
+* [API Reference](#API)
 * [License](#License)
 
 ## <a name="Features">Features</a>
@@ -81,6 +82,8 @@ resp, err := client.R(). // Use R() to create a request
 ```
 
 Checkout more runnable examples in the [examples](examples) direcotry.
+
+Checkout [Req API Reference](docs/api.md) for a brief list of some core APIs, which is convenient to get started quickly. For a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
