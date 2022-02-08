@@ -347,7 +347,7 @@ client.AddCommonQueryParam("key", "value1").AddCommonQueryParam("key", "value2")
 ## <a name="Form">Form Data</a>
 
 ```go
-client := req.C().EnableDumpOnlyRequest()
+client := req.C().EnableDumpWithoutResponse()
 client.R().SetFormData(map[string]string{
     "username": "imroc",
     "blog":     "https://imroc.cc",
@@ -394,7 +394,7 @@ client.SetCommonFormDataFromValues(v)
 
 ```go
 // Let's dump the header to see what's going on
-client := req.C().EnableDumpOnlyHeader() 
+client := req.C().EnableDumpWithoutBody() 
 
 // Send a request with multiple headers and cookies
 client.R().
@@ -427,7 +427,7 @@ resp2, err := client.R().Get(url2)
 
 ```go
 // Let's dump the header to see what's going on
-client := req.C().EnableDumpOnlyHeader() 
+client := req.C().EnableDumpWithoutBody() 
 
 // Send a request with multiple headers and cookies
 client.R().
@@ -484,7 +484,7 @@ client.SetCookieJar(nil)
 
 ```go
 // Create a client that dump request
-client := req.C().EnableDumpOnlyRequest()
+client := req.C().EnableDumpWithoutResponse()
 // SetBody accepts string, []byte, io.Reader, use type assertion to
 // determine the data type of body automatically. 
 client.R().SetBody("test").Post("https://httpbin.org/post")
@@ -563,7 +563,7 @@ type ErrorMessage struct {
     Message string `json:"message"`
 }
 // Create a client and dump body to see details
-client := req.C().EnableDumpOnlyBody()
+client := req.C().EnableDumpWithoutHeader()
 
 // Send a request and unmarshal result automatically according to
 // response `Content-Type`
@@ -784,7 +784,7 @@ client.OnAfterResponse(func(c *req.Client, r *req.Response) error {
 ## <a name="Redirect">Redirect Policy</a>
 
 ```go
-client := req.C().EnableDumpOnlyRequest()
+client := req.C().EnableDumpWithoutResponse()
 
 client.SetRedirectPolicy(
     // Only allow up to 5 redirects
