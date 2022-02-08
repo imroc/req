@@ -161,7 +161,7 @@ if resp.StatusCode > 299 {
 }
 
 // Similarly, also support to customize dump settings with predefined convenience settings at request level.
-resp, err = client.R().EnableDumpWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
+resp, err = client.R().EnableDumpAllWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
 // ...
 resp, err = client.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 ```
@@ -269,7 +269,7 @@ Req works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by defau
 You can force using `HTTP/1.1` if you want.
 
 ```go
-client := req.C().EnableForceHTTP1().EnableDumpWithoutBody()
+client := req.C().EnableForceHTTP1().EnableDumpAllWithoutBody()
 client.R().MustGet("https://httpbin.org/get")
 /* Output
 GET /get HTTP/1.1
@@ -363,7 +363,7 @@ client.AddCommonQueryParam("key", "value1").AddCommonQueryParam("key", "value2")
 ## <a name="Form">Form Data</a>
 
 ```go
-client := req.C().EnableDumpWithoutResponse()
+client := req.C().EnableDumpAllWithoutResponse()
 client.R().SetFormData(map[string]string{
     "username": "imroc",
     "blog":     "https://imroc.cc",
@@ -410,7 +410,7 @@ client.SetCommonFormDataFromValues(v)
 
 ```go
 // Let's dump the header to see what's going on
-client := req.C().EnableDumpWithoutBody() 
+client := req.C().EnableForceHTTP1().EnableDumpAllWithoutResponse() 
 
 // Send a request with multiple headers and cookies
 client.R().
@@ -418,12 +418,12 @@ client.R().
     SetHeaders(map[string]string{ // Set multiple headers at once 
         "My-Custom-Header": "My Custom Value",
         "User":             "imroc",
-    }).Get("https://www.baidu.com/")
+    }).Get("https://httpbin.org/get")
 
 /* Output
-GET / HTTP/1.1
-Host: www.baidu.com
-User-Agent: req/v2 (https://github.com/imroc/req)
+GET /get HTTP/1.1
+Host: httpbin.org
+User-Agent: req/v3 (https://github.com/imroc/req)
 Accept: application/json
 My-Custom-Header: My Custom Value
 User: imroc
@@ -443,7 +443,7 @@ resp2, err := client.R().Get(url2)
 
 ```go
 // Let's dump the header to see what's going on
-client := req.C().EnableDumpWithoutBody() 
+client := req.C().EnableForceHTTP1().EnableDumpAllWithoutResponse() 
 
 // Send a request with multiple headers and cookies
 client.R().
@@ -466,13 +466,12 @@ client.R().
             HttpOnly: false,
             Secure:   true,
         },
-    ).Get("https://www.baidu.com/")
+    ).Get("https://httpbin.org/get")
 
 /* Output
-GET / HTTP/1.1
-Host: www.baidu.com
-User-Agent: req/v2 (https://github.com/imroc/req)
-Accept: application/json
+GET /get HTTP/1.1
+Host: httpbin.org
+User-Agent: req/v3 (https://github.com/imroc/req)
 Cookie: testcookie1="testcookie1 value"; testcookie2="testcookie2 value"
 Accept-Encoding: gzip
 */
@@ -500,7 +499,7 @@ client.SetCookieJar(nil)
 
 ```go
 // Create a client that dump request
-client := req.C().EnableDumpWithoutResponse()
+client := req.C().EnableDumpAllWithoutResponse()
 // SetBody accepts string, []byte, io.Reader, use type assertion to
 // determine the data type of body automatically. 
 client.R().SetBody("test").Post("https://httpbin.org/post")
@@ -579,7 +578,7 @@ type ErrorMessage struct {
     Message string `json:"message"`
 }
 // Create a client and dump body to see details
-client := req.C().EnableDumpWithoutHeader()
+client := req.C().EnableDumpAllWithoutHeader()
 
 // Send a request and unmarshal result automatically according to
 // response `Content-Type`
@@ -800,7 +799,7 @@ client.OnAfterResponse(func(c *req.Client, r *req.Response) error {
 ## <a name="Redirect">Redirect Policy</a>
 
 ```go
-client := req.C().EnableDumpWithoutResponse()
+client := req.C().EnableDumpAllWithoutResponse()
 
 client.SetRedirectPolicy(
     // Only allow up to 5 redirects
