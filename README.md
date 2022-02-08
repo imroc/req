@@ -145,16 +145,17 @@ client.R().Get("https://www.baidu.com/")
 opt.ResponseBody = false
 client.R().Get("https://www.baidu.com/")
 
-// You can also enable dump at request level, dump to memory and will not print it out
-// by default, you can call `Response.Dump()` to get the dump result and print
-// only if you want to.
+// You can also enable dump at request level, which will not override client-level dumpping,
+// dump to memory and will not print it out by default, you can call `Response.Dump()` to get
+// the dump result and print only if you want to, typically used in production, only record
+// the content of the request when the request is abnormal to help us troubleshoot problems.
 resp, err := client.R().EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 if err != nil {
     fmt.Println("err:", err)
     fmt.Println("raw content:\n", resp.Dump())
     return
 }
-if resp.StatusCode > 299 {
+if !resp.IsSuccess() { // Status code not beetween 200 and 299
     fmt.Println("bad status:", resp.Status)
     fmt.Println("raw content:\n", resp.Dump())
 	return
@@ -165,6 +166,8 @@ resp, err = client.R().EnableDumpWithoutRequest().SetBody("test body").Post("htt
 // ...
 resp, err = client.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 ```
+
+> Request-level dumpping will not override client-level dumpping, cuz 
 
 **Enable DebugLog for Deeper Insights**
 
