@@ -1,10 +1,21 @@
-# Req API Reference 
+<p align="center">
+    <h1 align="center">Req API Reference </h1>
+    <p align="center">Here is a brief list of some core APIs, which is convenient to get started quickly. For a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).</p>
+</p>
 
-Here is a brief introduction to some core APIs, which is convenient to get started quickly. For a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+## Table of Contents
+
+* [Client Settings](#Client)
+  * [Debug Features](#Debug)
+  * [Common Settings for HTTP Requests](#Common)
+  * [Auto-Decode](#Decode)
+  * [Certificates](#Certs)
+  * [Marshal&Unmarshal](#Marshal)
+  * [Other Settings](#Other)
 
 ## <a name="Client">Client Settings</a>
 
-**Debug Features**
+### <a name="Debug">Debug Features</a>
 
 * [DevMode()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DevMode) - Enable all debug features (Dump, DebugLog and Trace).
 
@@ -12,7 +23,6 @@ Here is a brief introduction to some core APIs, which is convenient to get start
 * [DisableDebugLog()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DisableDebugLog) - Disable debug level log (disabled by default).
 * [SetLogger(log Logger)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetLogger) - Set the customized logger, set to nil to disable logger.
 
-* [SetCommonDumpOptions(opt *DumpOptions)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonDumpOptions) -  Configures the underlying Transport's `DumpOptions` (need to call `EnableDumpAll()` if you want to enable dump).
 * [EnableDumpAll()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableDumpAll) - Enable dump for all requests, including all content for the request and response by default.
 * [DisableDumpAll()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DisableDumpAll) - Disable dump for all requests.
 * [EnableDumpAllWithoutResponseBody()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableDumpAllWithoutResponseBody) - Enable dump for all requests without response body, can be used in download request to avoid dump the unreadable binary content.
@@ -24,11 +34,12 @@ Here is a brief introduction to some core APIs, which is convenient to get start
 * [EnableDumpAllToFile(filename string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableDumpAllToFile) - Enable dump for all requests and save to the specified filename.
 * [EnableDumpAllTo(output io.Writer)](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableDumpAllTo) - Enables dump for all requests and save to the specified `io.Writer`.
 * [EnableDumpAllAsync()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableDumpAllAsync) - Enable dump for all requests and output asynchronously, can be used for debugging in production environment without affecting performance.
+* [SetCommonDumpOptions(opt *DumpOptions)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonDumpOptions) -  Configures the underlying Transport's `DumpOptions` (need to call `EnableDumpAll()` if you want to enable dump).
 
 * [EnableTraceAll()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableTraceAll) - Enable trace for all requests (disabled by default).
 * [DisableTraceAll()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DisableTraceAll) - Disable trace at client level (disabled by default).
 
-**Common Settings for HTTP Requests**
+### <a name="Common">Common Settings for HTTP Requests</a>
 
 * [SetCommonQueryString(query string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonQueryString) - Set a URL query parameters for all requests using the raw query string.
 * [SetCommonHeaders(hdrs map[string]string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonHeaders) - Set headers for all requests from a map.
@@ -44,7 +55,7 @@ Here is a brief introduction to some core APIs, which is convenient to get start
 * [SetCommonFormData(data map[string]string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonFormData) - Set the form data from map for all requests.
 * [SetUserAgent(userAgent string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetUserAgent) - Set the "User-Agent" header for all requests.
 
-**Auto-Decode**
+### <a name="Decode">Auto-Decode</a>
 
 * [EnableAutoDecode()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableAutoDecode) - Enable auto-detect charset and decode to utf-8 (enabled by default).
 * [DisableAutoDecode()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DisableAutoDecode) - Disable auto-detect charset and decode to utf-8 (enabled by default)
@@ -52,21 +63,21 @@ Here is a brief introduction to some core APIs, which is convenient to get start
 * [SetAutoDecodeAllContentType()](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetAutoDecodeAllContentType) - Set try to auto-detect and decode all content type to utf-8.
 * [SetAutoDecodeContentTypeFunc(fn func(contentType string) bool)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetAutoDecodeContentTypeFunc) - Custmize the function that determines the content type whether it should be auto-detected and decode to utf-8.
 
-**Certificates**
+### <a name="Certs">Certificates</a>
 
 * [SetCerts(certs ...tls.Certificate) ](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCerts) - Set client certificates from on one more `tls.Certificate`.
 * [SetCertFromFile(certFile, keyFile string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCertFromFile) - Set client certificates from cert and key file.
 * [SetRootCertsFromFile(pemFiles ...string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetRootCertsFromFile) - Set root certificates from pem files.
 * [SetRootCertFromString(pemContent string)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetRootCertFromString) - Set root certificates from string.
 
-**Marshal&Unmarshal**
+### <a name="Marshal">Marshal&Unmarshal</a>
 
 * [SetJsonUnmarshal(fn func(data []byte, v interface{}) error)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetJsonUnmarshal) - Set the JSON Unmarshal function which will be used to unmarshal response body.
 * [SetJsonMarshal(fn func(v interface{}) ([]byte, error))](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetJsonMarshal) - Set JSON Marshal function which will be used to marshal request body.
 * [SetXmlMarshal(fn func(v interface{}) ([]byte, error))](https://pkg.go.dev/github.com/imroc/req/v3#SetXmlUnmarshal) - Set the XML Unmarshal function which will be used to unmarshal response body.
 * [SetXmlMarshal(fn func(v interface{}) ([]byte, error))](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetXmlMarshal) - Set the XML Marshal function which will be used to marshal request body.
 
-**Other Settings**
+### <a name="Other">Other Settings</a>
 
 * [OnBeforeRequest(m RequestMiddleware)](https://pkg.go.dev/github.com/imroc/req/v3#Client.OnBeforeRequest) - Add a request middleware which hooks before request sent.
 * [OnAfterResponse(m ResponseMiddleware)](https://pkg.go.dev/github.com/imroc/req/v3#Client.OnAfterResponse) - Add a response middleware which hooks after response received.
