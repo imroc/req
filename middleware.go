@@ -136,6 +136,7 @@ func handleMarshalBody(c *Client, r *Request) error {
 
 func parseRequestBody(c *Client, r *Request) (err error) {
 	if c.isPayloadForbid(r.RawRequest.Method) {
+		r.RawRequest.Body = nil
 		return
 	}
 	// handle multipart
