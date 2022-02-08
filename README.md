@@ -248,7 +248,7 @@ req.SetTimeout(5 * time.Second).
 // Call the global method just like the Request's method,
 // which will create request automatically using the default
 // client, so you can treat package name `req` as a Request,
-// and you don't need to create request explicitly.
+// and you don't need to create any request and client explicitly.
 req.SetQueryParam("page", "2").
 	SetHeader("Accept", "text/xml"). // Override client level settings at request level.
 	Get("https://api.example.com/repos")
