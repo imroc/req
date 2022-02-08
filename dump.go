@@ -158,9 +158,13 @@ func (d *dumper) Start() {
 	}
 }
 
-func getDumperOverride(dump *dumper, ctx context.Context) *dumper {
-	if d, ok := ctx.Value("_dumper").(*dumper); ok {
-		return d
+func getDumpers(dump *dumper, ctx context.Context) []*dumper {
+	dumps := []*dumper{}
+	if dump != nil {
+		dumps = append(dumps, dump)
 	}
-	return dump
+	if d, ok := ctx.Value("_dumper").(*dumper); ok {
+		dumps = append(dumps, d)
+	}
+	return dumps
 }

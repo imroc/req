@@ -268,9 +268,11 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 }
 
 func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {
-	dump := getDumperOverride(t.dump, req.Context())
-	if dump != nil && dump.ResponseBody {
-		res.Body = dump.WrapReadCloser(res.Body)
+	dumps := getDumpers(t.dump, req.Context())
+	for _, dump := range dumps {
+		if dump.ResponseBody {
+			res.Body = dump.WrapReadCloser(res.Body)
+		}
 	}
 }
 
@@ -2328,8 +2330,8 @@ func (pc *persistConn) writeLoop() {
 		case wr := <-pc.writech:
 			startBytesWritten := pc.nwrite
 			ctx := wr.req.Request.Context()
-			dump := getDumperOverride(pc.t.dump, ctx)
-			err := requestWrite(wr.req.Request, pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh), dump)
+			dumps := getDumpers(pc.t.dump, ctx)
+			err := requestWrite(wr.req.Request, pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh), dumps)
 			if bre, ok := err.(requestBodyReadError); ok {
 				err = bre.error
 				// Errors reading from the user's

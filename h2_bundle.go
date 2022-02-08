@@ -1218,10 +1218,21 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 		fr.debugReadLoggerf("http2: Framer %p: read %v", fr, http2summarizeFrame(f))
 	}
 	if fh.Type == http2FrameHeaders && fr.ReadMetaHeaders != nil {
-		dump := getDumperOverride(fr.cc.t.t1.dump, fr.cc.currentRequest.Context())
-		hr, err := fr.readMetaFrame(f.(*http2HeadersFrame), dump)
-		if err == nil && dump != nil && dump.ResponseHeader {
-			dump.dump([]byte("\r\n"))
+		dumps := getDumpers(fr.cc.t.t1.dump, fr.cc.currentRequest.Context())
+		if len(dumps) > 0 {
+			dd := []*dumper{}
+			for _, dump := range dumps {
+				if dump.ResponseHeader {
+					dd = append(dd, dump)
+				}
+			}
+			dumps = dd
+		}
+		hr, err := fr.readMetaFrame(f.(*http2HeadersFrame), dumps)
+		if err == nil && len(dumps) > 0 {
+			for _, dump := range dumps {
+				dump.dump([]byte("\r\n"))
+			}
 		}
 		return hr, err
 	}
@@ -2216,7 +2227,7 @@ func (fr *http2Framer) maxHeaderStringLen() int {
 // readMetaFrame returns 0 or more CONTINUATION frames from fr and
 // merge them into the provided hf and returns a MetaHeadersFrame
 // with the decoded hpack values.
-func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame, dump *dumper) (*http2MetaHeadersFrame, error) {
+func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame, dumps []*dumper) (*http2MetaHeadersFrame, error) {
 	if fr.AllowIllegalReads {
 		return nil, errors.New("illegal use of AllowIllegalReads with ReadMetaHeaders")
 	}
@@ -2265,12 +2276,16 @@ func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame, dump *dumper) (*http
 		mh.Fields = append(mh.Fields, hf)
 	}
 	emitFunc := rawEmitFunc
-	if dump != nil && dump.ResponseHeader {
+
+	if len(dumps) > 0 {
 		emitFunc = func(hf hpack.HeaderField) {
-			dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
+			for _, dump := range dumps {
+				dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
+			}
 			rawEmitFunc(hf)
 		}
 	}
+
 	hdec.SetEmitFunc(emitFunc)
 	// Lose reference to MetaHeadersFrame:
 	defer hdec.SetEmitFunc(func(hf hpack.HeaderField) {})
@@ -4409,13 +4424,13 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 		}
 	}
 
-	dump := getDumperOverride(cs.cc.t.t1.dump, req.Context())
+	dumps := getDumpers(cs.cc.t.t1.dump, req.Context())
 
 	// Past this point (where we send request headers), it is possible for
 	// RoundTrip to return successfully. Since the RoundTrip contract permits
 	// the caller to "mutate or reuse" the Request after closing the Response's Body,
 	// we must take care when referencing the Request from here on.
-	err = cs.encodeAndWriteHeaders(req, dump)
+	err = cs.encodeAndWriteHeaders(req, dumps)
 	<-cc.reqHeaderMu
 	if err != nil {
 		return err
@@ -4447,14 +4462,24 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 			}
 		}
 
-		if err = cs.writeRequestBody(req, dump); err != nil {
+		if len(dumps) > 0 {
+			dd := []*dumper{}
+			for _, dump := range dumps {
+				if dump.RequestBody {
+					dd = append(dd, dump)
+				}
+			}
+			dumps = dd
+		}
+
+		if err = cs.writeRequestBody(req, dumps); err != nil {
 			if err != http2errStopReqBodyWrite {
 				http2traceWroteRequest(cs.trace, err)
 				return err
 			}
 		} else {
 			cs.sentEndStream = true
-			if dump != nil && dump.RequestBody {
+			for _, dump := range dumps {
 				dump.dump([]byte("\r\n\r\n"))
 			}
 		}
@@ -4492,7 +4517,7 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 	}
 }
 
-func (cs *http2clientStream) encodeAndWriteHeaders(req *http.Request, dump *dumper) error {
+func (cs *http2clientStream) encodeAndWriteHeaders(req *http.Request, dumps []*dumper) error {
 	cc := cs.cc
 	ctx := cs.ctx
 
@@ -4522,7 +4547,7 @@ func (cs *http2clientStream) encodeAndWriteHeaders(req *http.Request, dump *dump
 	hasTrailers := trailers != ""
 	contentLen := http2actualContentLength(req)
 	hasBody := contentLen != 0
-	hdrs, err := cc.encodeHeaders(req, cs.requestedGzip, trailers, contentLen, dump)
+	hdrs, err := cc.encodeHeaders(req, cs.requestedGzip, trailers, contentLen, dumps)
 	if err != nil {
 		return err
 	}
@@ -4687,7 +4712,7 @@ func (cs *http2clientStream) frameScratchBufferLen(maxFrameSize int) int {
 
 var http2bufPool sync.Pool // of *[]byte
 
-func (cs *http2clientStream) writeRequestBody(req *http.Request, dump *dumper) (err error) {
+func (cs *http2clientStream) writeRequestBody(req *http.Request, dumps []*dumper) (err error) {
 	cc := cs.cc
 	body := cs.reqBody
 	sentEnd := false // whether we sent the final DATA frame w/ END_STREAM
@@ -4712,9 +4737,11 @@ func (cs *http2clientStream) writeRequestBody(req *http.Request, dump *dumper) (
 	}
 
 	writeData := cc.fr.WriteData
-	if dump != nil && dump.RequestBody {
+	if len(dumps) > 0 {
 		writeData = func(streamID uint32, endStream bool, data []byte) error {
-			dump.dump(data)
+			for _, dump := range dumps {
+				dump.dump(data)
+			}
 			return cc.fr.WriteData(streamID, endStream, data)
 		}
 	}
@@ -4807,7 +4834,7 @@ func (cs *http2clientStream) writeRequestBody(req *http.Request, dump *dumper) (
 	defer cc.wmu.Unlock()
 	var trls []byte
 	if len(trailer) > 0 {
-		trls, err = cc.encodeTrailers(trailer, dump)
+		trls, err = cc.encodeTrailers(trailer, dumps)
 		if err != nil {
 			return err
 		}
@@ -4870,7 +4897,7 @@ func (cs *http2clientStream) awaitFlowControl(maxBytes int) (taken int32, err er
 var http2errNilRequestURL = errors.New("http2: Request.URI is nil")
 
 // requires cc.wmu be held.
-func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trailers string, contentLength int64, dump *dumper) ([]byte, error) {
+func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trailers string, contentLength int64, dumps []*dumper) ([]byte, error) {
 	cc.hbuf.Reset()
 	if req.URL == nil {
 		return nil, http2errNilRequestURL
@@ -5022,10 +5049,21 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 	traceHeaders := http2traceHasWroteHeaderField(trace)
 
 	writeHeader := cc.writeHeader
-	if dump != nil && dump.RequestHeader {
-		writeHeader = func(name, value string) {
-			dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
-			cc.writeHeader(name, value)
+	if len(dumps) > 0 {
+		dd := []*dumper{}
+		for _, dump := range dumps {
+			if dump.RequestHeader {
+				dd = append(dd, dump)
+			}
+		}
+		dumps = dd
+		if len(dumps) > 0 {
+			writeHeader = func(name, value string) {
+				for _, dump := range dumps {
+					dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
+				}
+				cc.writeHeader(name, value)
+			}
 		}
 	}
 
@@ -5043,7 +5081,7 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 		}
 	})
 
-	if dump != nil && dump.RequestHeader {
+	for _, dump := range dumps {
 		dump.dump([]byte("\r\n"))
 	}
 
@@ -5073,7 +5111,7 @@ func http2shouldSendReqContentLength(method string, contentLength int64) bool {
 }
 
 // requires cc.wmu be held.
-func (cc *http2ClientConn) encodeTrailers(trailer http.Header, dump *dumper) ([]byte, error) {
+func (cc *http2ClientConn) encodeTrailers(trailer http.Header, dumps []*dumper) ([]byte, error) {
 	cc.hbuf.Reset()
 
 	hlSize := uint64(0)
@@ -5088,9 +5126,11 @@ func (cc *http2ClientConn) encodeTrailers(trailer http.Header, dump *dumper) ([]
 	}
 
 	writeHeader := cc.writeHeader
-	if dump != nil && dump.RequestBody {
+	if len(dumps) > 0 {
 		writeHeader = func(name, value string) {
-			dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
+			for _, dump := range dumps {
+				dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
+			}
 			cc.writeHeader(name, value)
 		}
 	}

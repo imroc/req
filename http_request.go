@@ -85,7 +85,7 @@ var errMissingHost = errors.New("http: Request.Write on Request with no Host or 
 // extraHeaders may be nil
 // waitForContinue may be nil
 // always closes body
-func requestWrite(r *http.Request, w io.Writer, usingProxy bool, extraHeaders http.Header, waitForContinue func() bool, dump *dumper) (err error) {
+func requestWrite(r *http.Request, w io.Writer, usingProxy bool, extraHeaders http.Header, waitForContinue func() bool, dumps []*dumper) (err error) {
 	trace := httptrace.ContextClientTrace(r.Context())
 	if trace != nil && trace.WroteRequest != nil {
 		defer func() {
@@ -149,8 +149,10 @@ func requestWrite(r *http.Request, w io.Writer, usingProxy bool, extraHeaders ht
 	}
 
 	rw := w // raw writer
-	if dump != nil && dump.RequestHeader {
-		w = dump.WrapWriter(w)
+	for _, dump := range dumps {
+		if dump.RequestHeader {
+			w = dump.WrapWriter(w)
+		}
 	}
 
 	_, err = fmt.Fprintf(w, "%s %s HTTP/1.1\r\n", valueOrDefault(r.Method, "GET"), ruri)
@@ -240,7 +242,7 @@ func requestWrite(r *http.Request, w io.Writer, usingProxy bool, extraHeaders ht
 
 	// Write body and trailer
 	closed = true
-	err = tw.writeBody(rw, dump)
+	err = tw.writeBody(rw, dumps)
 	if err != nil {
 		if tw.bodyReadError == err {
 			err = requestBodyReadError{err}

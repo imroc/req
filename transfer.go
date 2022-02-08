@@ -330,7 +330,7 @@ func (t *transferWriter) writeHeader(w io.Writer, trace *httptrace.ClientTrace) 
 }
 
 // always closes t.BodyCloser
-func (t *transferWriter) writeBody(w io.Writer, dump *dumper) (err error) {
+func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
 	var ncopy int64
 	closed := false
 	defer func() {
@@ -343,8 +343,10 @@ func (t *transferWriter) writeBody(w io.Writer, dump *dumper) (err error) {
 	}()
 
 	rw := w // raw writer
-	if dump != nil && dump.RequestBody {
-		w = dump.WrapWriter(w)
+	for _, dump := range dumps {
+		if dump.RequestBody {
+			w = dump.WrapWriter(w)
+		}
 	}
 
 	// Write body. We "unwrap" the body first if it was wrapped in a
@@ -358,8 +360,10 @@ func (t *transferWriter) writeBody(w io.Writer, dump *dumper) (err error) {
 				rw = &internal.FlushAfterChunkWriter{Writer: bw}
 			}
 			cw := internal.NewChunkedWriter(rw)
-			if dump != nil && dump.RequestBody {
-				cw = dump.WrapWriteCloser(cw)
+			for _, dump := range dumps {
+				if dump.RequestBody {
+					cw = dump.WrapWriteCloser(cw)
+				}
 			}
 			_, err = t.doBodyCopy(cw, body)
 			if err == nil {
@@ -383,8 +387,10 @@ func (t *transferWriter) writeBody(w io.Writer, dump *dumper) (err error) {
 		if err != nil {
 			return err
 		}
-		if dump != nil && dump.RequestBody {
-			dump.dump([]byte("\r\n"))
+		for _, dump := range dumps {
+			if dump.RequestBody {
+				dump.dump([]byte("\r\n"))
+			}
 		}
 	}
 	if t.BodyCloser != nil {
