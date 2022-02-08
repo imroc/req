@@ -45,7 +45,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * Easy [Download and Upload](#Download-Upload).
 * Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token for both client and request level.
 * Easy set timeout, proxy, certs, redirect policy, cookie jar, compression, keepalives etc for client.
-* Support middleware before request sent and after got response.
+* Support middleware before request sent and after got response (see [Request and Response Middleware](#Middleware)).
 
 ## <a name="Quick-Start">Quick Start</a>
 
