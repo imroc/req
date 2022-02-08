@@ -15,6 +15,8 @@
 
 ## <a name="Client">Client Settings</a>
 
+The following are the chainable settings Client, all of which have corresponding global wrappers.
+
 ### <a name="Debug">Debug Features</a>
 
 * [DevMode()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DevMode) - Enable all debug features (Dump, DebugLog and Trace).
