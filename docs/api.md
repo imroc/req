@@ -26,6 +26,8 @@ Here is a brief list of some core APIs, which is convenient to get started quick
 
 The following are the chainable settings of Client, all of which have corresponding global wrappers.
 
+Basically, you can know the meaning of most settings directly from the method name.
+
 ### <a name="Debug">Debug Features</a>
 
 * [DevMode()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DevMode) - Enable all debug features (Dump, DebugLog and Trace).
@@ -132,6 +134,8 @@ The following are the chainable settings of Client, all of which have correspond
 ## <a name="Request">Request Settings</a>
 
 The following are the chainable settings of Request, all of which have corresponding global wrappers.
+
+Basically, you can know the meaning of most settings directly from the method name.
 
 ### <a name="Query">URL Query and Path Parameter</a>
 
