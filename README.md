@@ -161,7 +161,7 @@ if resp.StatusCode > 299 {
 }
 
 // Similarly, also support to customize dump settings with predefined convenience settings at request level.
-resp, err = client.R().EnableDumpAllWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
+resp, err = client.R().EnableDumpWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
 // ...
 resp, err = client.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 ```
