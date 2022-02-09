@@ -124,6 +124,9 @@ func (r *Response) ToBytes() ([]byte, error) {
 	if r.body != nil {
 		return r.body, nil
 	}
+	if r.Response == nil || r.Response.Body == nil {
+		return []byte{}, nil
+	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	r.setReceivedAt()

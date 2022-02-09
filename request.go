@@ -10,11 +10,14 @@ import (
 	"net/http"
 	urlpkg "net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
-// Request is the http request
+// Request struct is used to compose and fire individual request from
+// req client. Request provides lots of chainable settings which can
+// override client level settings.
 type Request struct {
 	URL         string
 	PathParams  map[string]string
@@ -33,7 +36,7 @@ type Request struct {
 	marshalBody    interface{}
 	ctx            context.Context
 	isMultiPart    bool
-	uploadFiles    []*uploadFile
+	uploadFiles    []*FileUpload
 	uploadReader   []io.ReadCloser
 	outputFile     string
 	isSaveResponse bool
@@ -42,7 +45,8 @@ type Request struct {
 	dumpBuffer     *bytes.Buffer
 }
 
-// TraceInfo returns the trace information, only available when trace is enabled.
+// TraceInfo returns the trace information, only available if trace is enabled
+// (see Request.EnableTrace and Client.EnableTraceAll).
 func (r *Request) TraceInfo() TraceInfo {
 	ct := r.trace
 
@@ -96,7 +100,8 @@ func SetFormDataFromValues(data urlpkg.Values) *Request {
 	return defaultClient.R().SetFormDataFromValues(data)
 }
 
-// SetFormDataFromValues set the form data from url.Values, not used if method not allow payload.
+// SetFormDataFromValues set the form data from url.Values, will not
+// been used if request method does not allow payload.
 func (r *Request) SetFormDataFromValues(data urlpkg.Values) *Request {
 	if r.FormData == nil {
 		r.FormData = urlpkg.Values{}
@@ -115,7 +120,8 @@ func SetFormData(data map[string]string) *Request {
 	return defaultClient.R().SetFormData(data)
 }
 
-// SetFormData set the form data from map, not used if method not allow payload.
+// SetFormData set the form data from a map, will not been used
+// if request method does not allow payload.
 func (r *Request) SetFormData(data map[string]string) *Request {
 	if r.FormData == nil {
 		r.FormData = urlpkg.Values{}
@@ -132,7 +138,7 @@ func SetCookies(cookies ...*http.Cookie) *Request {
 	return defaultClient.R().SetCookies(cookies...)
 }
 
-// SetCookies set cookies at request level.
+// SetCookies set http cookies for the request.
 func (r *Request) SetCookies(cookies ...*http.Cookie) *Request {
 	r.Cookies = append(r.Cookies, cookies...)
 	return r
@@ -144,7 +150,8 @@ func SetQueryString(query string) *Request {
 	return defaultClient.R().SetQueryString(query)
 }
 
-// SetQueryString set URL query parameters using the raw query string.
+// SetQueryString set URL query parameters for the request using
+// raw query string.
 func (r *Request) SetQueryString(query string) *Request {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
 	if err != nil {
@@ -168,15 +175,29 @@ func SetFileReader(paramName, filePath string, reader io.Reader) *Request {
 	return defaultClient.R().SetFileReader(paramName, filePath, reader)
 }
 
-// SetFileReader sets up a multipart form with a reader to upload file.
-func (r *Request) SetFileReader(paramName, filePath string, reader io.Reader) *Request {
+// SetFileReader set up a multipart form with a reader to upload file.
+func (r *Request) SetFileReader(paramName, filename string, reader io.Reader) *Request {
 	r.isMultiPart = true
-	r.uploadFiles = append(r.uploadFiles, &uploadFile{
-		ParamName: paramName,
-		FilePath:  filePath,
-		Reader:    reader,
+	contentDisposition := map[string]interface{}{
+		"name":     paramName,
+		"filename": filename,
+	}
+	r.uploadFiles = append(r.uploadFiles, &FileUpload{
+		ContentDisposition: contentDisposition,
+		File:               reader,
 	})
 	return r
+}
+
+// SetFileBytes is a global wrapper methods which delegated
+// to the default client, create a request and SetFileBytes for request.
+func SetFileBytes(paramName, filename string, content []byte) *Request {
+	return defaultClient.R().SetFileBytes(paramName, filename, content)
+}
+
+// SetFileBytes set up a multipart form with given []byte to upload.
+func (r *Request) SetFileBytes(paramName, filename string, content []byte) *Request {
+	return r.SetFileReader(paramName, filename, bytes.NewReader(content))
 }
 
 // SetFiles is a global wrapper methods which delegated
@@ -185,8 +206,8 @@ func SetFiles(files map[string]string) *Request {
 	return defaultClient.R().SetFiles(files)
 }
 
-// SetFiles sets up a multipart form from a map, which key is the param
-// name, value is the file path.
+// SetFiles set up a multipart form from a map to upload, which
+// key is the parameter name, and value is the file path.
 func (r *Request) SetFiles(files map[string]string) *Request {
 	for k, v := range files {
 		r.SetFile(k, v)
@@ -200,7 +221,8 @@ func SetFile(paramName, filePath string) *Request {
 	return defaultClient.R().SetFile(paramName, filePath)
 }
 
-// SetFile sets up a multipart form, read file from filePath automatically to upload.
+// SetFile set up a multipart form from file path to upload,
+// which read file from filePath automatically to upload.
 func (r *Request) SetFile(paramName, filePath string) *Request {
 	r.isMultiPart = true
 	file, err := os.Open(filePath)
@@ -209,11 +231,18 @@ func (r *Request) SetFile(paramName, filePath string) *Request {
 		r.appendError(err)
 		return r
 	}
-	r.uploadFiles = append(r.uploadFiles, &uploadFile{
-		ParamName: paramName,
-		FilePath:  filePath,
-		Reader:    file,
-	})
+	return r.SetFileReader(paramName, filepath.Base(filePath), file)
+}
+
+// SetFileUpload is a global wrapper methods which delegated
+// to the default client, create a request and SetFileUpload for request.
+func SetFileUpload(f FileUpload) *Request {
+	return defaultClient.R().SetFileUpload(f)
+}
+
+// SetFileUpload set the fully custimized multipart file upload options.
+func (r *Request) SetFileUpload(f FileUpload) *Request {
+	r.uploadFiles = append(r.uploadFiles, &f)
 	return r
 }
 
@@ -249,7 +278,7 @@ func SetBearerAuthToken(token string) *Request {
 	return defaultClient.R().SetBearerAuthToken(token)
 }
 
-// SetBearerAuthToken set the bearer auth token at request level.
+// SetBearerAuthToken set bearer auth token for the request.
 func (r *Request) SetBearerAuthToken(token string) *Request {
 	return r.SetHeader("Authorization", "Bearer "+token)
 }
@@ -260,7 +289,7 @@ func SetBasicAuth(username, password string) *Request {
 	return defaultClient.R().SetBasicAuth(username, password)
 }
 
-// SetBasicAuth set the basic auth at request level.
+// SetBasicAuth set basic auth for the request.
 func (r *Request) SetBasicAuth(username, password string) *Request {
 	return r.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
 }
@@ -271,7 +300,7 @@ func SetHeaders(hdrs map[string]string) *Request {
 	return defaultClient.R().SetHeaders(hdrs)
 }
 
-// SetHeaders set the header at request level.
+// SetHeaders set headers from a map for the request.
 func (r *Request) SetHeaders(hdrs map[string]string) *Request {
 	for k, v := range hdrs {
 		r.SetHeader(k, v)
@@ -285,7 +314,7 @@ func SetHeader(key, value string) *Request {
 	return defaultClient.R().SetHeader(key, value)
 }
 
-// SetHeader set a header at request level.
+// SetHeader set a header for the request.
 func (r *Request) SetHeader(key, value string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
@@ -300,7 +329,7 @@ func SetOutputFile(file string) *Request {
 	return defaultClient.R().SetOutputFile(file)
 }
 
-// SetOutputFile the file that response body will be downloaded to.
+// SetOutputFile set the file that response body will be downloaded to.
 func (r *Request) SetOutputFile(file string) *Request {
 	r.isSaveResponse = true
 	r.outputFile = file
@@ -313,7 +342,7 @@ func SetOutput(output io.Writer) *Request {
 	return defaultClient.R().SetOutput(output)
 }
 
-// SetOutput the io.Writer that response body will be downloaded to.
+// SetOutput set the io.Writer that response body will be downloaded to.
 func (r *Request) SetOutput(output io.Writer) *Request {
 	r.output = output
 	r.isSaveResponse = true
@@ -326,7 +355,7 @@ func SetQueryParams(params map[string]string) *Request {
 	return defaultClient.R().SetQueryParams(params)
 }
 
-// SetQueryParams sets the URL query parameters with a map at client level.
+// SetQueryParams set URL query parameters from a map for the request.
 func (r *Request) SetQueryParams(params map[string]string) *Request {
 	for k, v := range params {
 		r.SetQueryParam(k, v)
@@ -340,8 +369,7 @@ func SetQueryParam(key, value string) *Request {
 	return defaultClient.R().SetQueryParam(key, value)
 }
 
-// SetQueryParam set an URL query parameter with a key-value
-// pair at request level.
+// SetQueryParam set an URL query parameter for the request.
 func (r *Request) SetQueryParam(key, value string) *Request {
 	if r.QueryParams == nil {
 		r.QueryParams = make(urlpkg.Values)
@@ -356,8 +384,7 @@ func AddQueryParam(key, value string) *Request {
 	return defaultClient.R().AddQueryParam(key, value)
 }
 
-// AddQueryParam add a URL query parameter with a key-value
-// pair at request level.
+// AddQueryParam add a URL query parameter for the request.
 func (r *Request) AddQueryParam(key, value string) *Request {
 	if r.QueryParams == nil {
 		r.QueryParams = make(urlpkg.Values)
@@ -372,7 +399,7 @@ func SetPathParams(params map[string]string) *Request {
 	return defaultClient.R().SetPathParams(params)
 }
 
-// SetPathParams sets the URL path parameters from a map at request level.
+// SetPathParams set URL path parameters from a map for the request.
 func (r *Request) SetPathParams(params map[string]string) *Request {
 	for key, value := range params {
 		r.SetPathParam(key, value)
@@ -386,7 +413,7 @@ func SetPathParam(key, value string) *Request {
 	return defaultClient.R().SetPathParam(key, value)
 }
 
-// SetPathParam sets the URL path parameters from a key-value paire at request level.
+// SetPathParam set a URL path parameter for the request.
 func (r *Request) SetPathParam(key, value string) *Request {
 	if r.PathParams == nil {
 		r.PathParams = make(map[string]string)
@@ -399,7 +426,8 @@ func (r *Request) appendError(err error) {
 	r.error = multierror.Append(r.error, err)
 }
 
-// Send sends the http request.
+// Send fires http request and return the *Response which is always
+// not nil, and the error is not nil if some error happens.
 func (r *Request) Send(method, url string) (*Response, error) {
 	if r.error != nil {
 		return &Response{}, r.error
@@ -415,7 +443,8 @@ func MustGet(url string) *Response {
 	return defaultClient.R().MustGet(url)
 }
 
-// MustGet like Get, panic if error happens, should only be used to test without error handling.
+// MustGet like Get, panic if error happens, should only be used to
+// test without error handling.
 func (r *Request) MustGet(url string) *Response {
 	resp, err := r.Get(url)
 	if err != nil {
@@ -430,7 +459,7 @@ func Get(url string) (*Response, error) {
 	return defaultClient.R().Get(url)
 }
 
-// Get Send the request with GET method and specified url.
+// Get fires http request with GET method and the specified URL.
 func (r *Request) Get(url string) (*Response, error) {
 	return r.Send(http.MethodGet, url)
 }
@@ -441,7 +470,8 @@ func MustPost(url string) *Response {
 	return defaultClient.R().MustPost(url)
 }
 
-// MustPost like Post, panic if error happens.
+// MustPost like Post, panic if error happens. should only be used to
+// test without error handling.
 func (r *Request) MustPost(url string) *Response {
 	resp, err := r.Post(url)
 	if err != nil {
@@ -456,7 +486,7 @@ func Post(url string) (*Response, error) {
 	return defaultClient.R().Post(url)
 }
 
-// Post Send the request with POST method and specified url.
+// Post fires http request with POST method and the specified URL.
 func (r *Request) Post(url string) (*Response, error) {
 	return r.Send(http.MethodPost, url)
 }
@@ -467,7 +497,8 @@ func MustPut(url string) *Response {
 	return defaultClient.R().MustPut(url)
 }
 
-// MustPut like Put, panic if error happens, should only be used to test without error handling.
+// MustPut like Put, panic if error happens, should only be used to
+// test without error handling.
 func (r *Request) MustPut(url string) *Response {
 	resp, err := r.Put(url)
 	if err != nil {
@@ -482,7 +513,7 @@ func Put(url string) (*Response, error) {
 	return defaultClient.R().Put(url)
 }
 
-// Put Send the request with Put method and specified url.
+// Put fires http request with PUT method and the specified URL.
 func (r *Request) Put(url string) (*Response, error) {
 	return r.Send(http.MethodPut, url)
 }
@@ -493,7 +524,8 @@ func MustPatch(url string) *Response {
 	return defaultClient.R().MustPatch(url)
 }
 
-// MustPatch like Patch, panic if error happens, should only be used to test without error handling.
+// MustPatch like Patch, panic if error happens, should only be used
+// to test without error handling.
 func (r *Request) MustPatch(url string) *Response {
 	resp, err := r.Patch(url)
 	if err != nil {
@@ -508,7 +540,7 @@ func Patch(url string) (*Response, error) {
 	return defaultClient.R().Patch(url)
 }
 
-// Patch Send the request with PATCH method and specified url.
+// Patch fires http request with PATCH method and the specified URL.
 func (r *Request) Patch(url string) (*Response, error) {
 	return r.Send(http.MethodPatch, url)
 }
@@ -519,7 +551,8 @@ func MustDelete(url string) *Response {
 	return defaultClient.R().MustDelete(url)
 }
 
-// MustDelete like Delete, panic if error happens, should only be used to test without error handling.
+// MustDelete like Delete, panic if error happens, should only be used
+// to test without error handling.
 func (r *Request) MustDelete(url string) *Response {
 	resp, err := r.Delete(url)
 	if err != nil {
@@ -534,7 +567,7 @@ func Delete(url string) (*Response, error) {
 	return defaultClient.R().Delete(url)
 }
 
-// Delete Send the request with DELETE method and specified url.
+// Delete fires http request with DELETE method and the specified URL.
 func (r *Request) Delete(url string) (*Response, error) {
 	return r.Send(http.MethodDelete, url)
 }
@@ -545,7 +578,8 @@ func MustOptions(url string) *Response {
 	return defaultClient.R().MustOptions(url)
 }
 
-// MustOptions like Options, panic if error happens, should only be used to test without error handling.
+// MustOptions like Options, panic if error happens, should only be
+// used to test without error handling.
 func (r *Request) MustOptions(url string) *Response {
 	resp, err := r.Options(url)
 	if err != nil {
@@ -560,7 +594,7 @@ func Options(url string) (*Response, error) {
 	return defaultClient.R().Options(url)
 }
 
-// Options Send the request with OPTIONS method and specified url.
+// Options fires http request with OPTIONS method and the specified URL.
 func (r *Request) Options(url string) (*Response, error) {
 	return r.Send(http.MethodOptions, url)
 }
@@ -571,7 +605,8 @@ func MustHead(url string) *Response {
 	return defaultClient.R().MustHead(url)
 }
 
-// MustHead like Head, panic if error happens, should only be used to test without error handling.
+// MustHead like Head, panic if error happens, should only be used
+// to test without error handling.
 func (r *Request) MustHead(url string) *Response {
 	resp, err := r.Send(http.MethodHead, url)
 	if err != nil {
@@ -586,7 +621,7 @@ func Head(url string) (*Response, error) {
 	return defaultClient.R().Head(url)
 }
 
-// Head Send the request with HEAD method and specified url.
+// Head fires http request with HEAD method and the specified URL.
 func (r *Request) Head(url string) (*Response, error) {
 	return r.Send(http.MethodHead, url)
 }

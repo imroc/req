@@ -1155,7 +1155,8 @@ func EnableForceHTTP2() *Client {
 	return defaultClient.EnableForceHTTP2()
 }
 
-// EnableForceHTTP2 enable force using HTTP2 (disabled by default).
+// EnableForceHTTP2 enable force using HTTP2 for https requests
+// (disabled by default).
 func (c *Client) EnableForceHTTP2() *Client {
 	c.t.ForceHttpVersion = HTTP2
 	return c

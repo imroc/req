@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-// Logger interface is to abstract the logging from Resty. Gives control to
-// the Resty users, choice of the logger.
+// Logger is the abstract logging interface, gives control to
+// the Req users, choice of the logger.
 type Logger interface {
 	Errorf(format string, v ...interface{})
 	Warnf(format string, v ...interface{})

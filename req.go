@@ -12,8 +12,9 @@ const (
 	formContentType   = "application/x-www-form-urlencoded"
 )
 
-type uploadFile struct {
-	ParamName string
-	FilePath  string
-	io.Reader
+type FileUpload struct {
+	ParamName          string
+	FileName           string
+	ContentDisposition map[string]interface{}
+	File               io.Reader
 }

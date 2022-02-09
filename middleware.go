@@ -29,15 +29,12 @@ func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
 }
 
-func createMultipartHeader(param, fileName, contentType string) textproto.MIMEHeader {
+func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEHeader {
 	hdr := make(textproto.MIMEHeader)
 
-	var contentDispositionValue string
-	if util.IsStringEmpty(fileName) {
-		contentDispositionValue = fmt.Sprintf(`form-data; name="%s"`, param)
-	} else {
-		contentDispositionValue = fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			param, escapeQuotes(fileName))
+	contentDispositionValue := "form-data"
+	for k, v := range file.ContentDisposition {
+		contentDispositionValue += fmt.Sprintf(`; %s="%v"`, k, v)
 	}
 	hdr.Set("Content-Disposition", contentDispositionValue)
 
@@ -53,16 +50,16 @@ func closeq(v interface{}) {
 	}
 }
 
-func writeMultipartFormFile(w *multipart.Writer, fieldName, fileName string, r io.Reader) error {
-	defer closeq(r)
+func writeMultipartFormFile(w *multipart.Writer, file *FileUpload) error {
+	defer closeq(file.File)
 	// Auto detect actual multipart content type
 	cbuf := make([]byte, 512)
-	size, err := r.Read(cbuf)
+	size, err := file.File.Read(cbuf)
 	if err != nil && err != io.EOF {
 		return err
 	}
 
-	pw, err := w.CreatePart(createMultipartHeader(fieldName, fileName, http.DetectContentType(cbuf)))
+	pw, err := w.CreatePart(createMultipartHeader(file, http.DetectContentType(cbuf)))
 	if err != nil {
 		return err
 	}
@@ -71,7 +68,7 @@ func writeMultipartFormFile(w *multipart.Writer, fieldName, fileName string, r i
 		return err
 	}
 
-	_, err = io.Copy(pw, r)
+	_, err = io.Copy(pw, file.File)
 	return err
 }
 
@@ -82,7 +79,7 @@ func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
 		}
 	}
 	for _, file := range r.uploadFiles {
-		writeMultipartFormFile(w, file.ParamName, file.FilePath, file.Reader)
+		writeMultipartFormFile(w, file)
 	}
 	w.Close()  // close multipart to write tailer boundary
 	pw.Close() // close pipe writer so that pipe reader could get EOF, and stop upload
