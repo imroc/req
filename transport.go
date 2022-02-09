@@ -1500,9 +1500,17 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 	pconn.tlsState = &cs
 	pconn.conn = tlsConn
 	if pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
-		return fmt.Errorf("http2: unexpected ALPN protocol %q; want %q", cs.NegotiatedProtocol, http2NextProtoTLS)
+		return newHttp2NotSupportedError(cs.NegotiatedProtocol)
 	}
 	return nil
+}
+
+func newHttp2NotSupportedError(negotiatedProtocol string) error {
+	errMsg := "server does not support http2"
+	if negotiatedProtocol != "" {
+		errMsg += fmt.Sprintf(", you can use %s which is supported", negotiatedProtocol)
+	}
+	return errors.New(errMsg)
 }
 
 type erringRoundTripper interface {
@@ -1552,7 +1560,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			}
 			pconn.tlsState = &cs
 			if pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
-				return nil, fmt.Errorf("http2: unexpected ALPN protocol %q; want %q", cs.NegotiatedProtocol, http2NextProtoTLS)
+				return nil, newHttp2NotSupportedError(cs.NegotiatedProtocol)
 			}
 		}
 	} else {

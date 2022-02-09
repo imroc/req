@@ -299,6 +299,16 @@ Access-Control-Allow-Credentials: true
 */
 ```
 
+And also you can force using `HTTP/2` if you want, will return error if server does not support:
+
+```go
+client := req.C().EnableForceHTTP2()
+client.R().MustGet("https://baidu.com")
+/* Output
+panic: Get "https://baidu.com": server does not support http2, you can use http/1.1 which is supported
+*/
+```
+
 ## <a name="Param">URL Path and Query Parameter</a>
 
 **Path Parameter**
