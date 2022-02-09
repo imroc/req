@@ -38,6 +38,13 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
+type HttpVersion string
+
+const (
+	HTTP1 HttpVersion = "1.1"
+	HTTP2 HttpVersion = "2"
+)
+
 // defaultMaxIdleConnsPerHost is the default value of Transport's
 // MaxIdleConnsPerHost.
 const defaultMaxIdleConnsPerHost = 2
@@ -106,8 +113,8 @@ type Transport struct {
 	connsPerHost     map[connectMethodKey]int
 	connsPerHostWait map[connectMethodKey]wantConnQueue // waiting getConns
 
-	// ForceHTTP1 force using HTTP/1.1
-	ForceHTTP1 bool
+	// Force using specific http version
+	ForceHttpVersion HttpVersion
 
 	// Proxy specifies a function to return a proxy for a given
 	// Request. If the function returns a non-nil error, the
@@ -367,7 +374,7 @@ func (t *Transport) Clone() *Transport {
 		WriteBufferSize:        t.WriteBufferSize,
 		ReadBufferSize:         t.ReadBufferSize,
 		ResponseOptions:        t.ResponseOptions,
-		ForceHTTP1:             t.ForceHTTP1,
+		ForceHttpVersion:       t.ForceHttpVersion,
 		dump:                   t.dump.Clone(),
 	}
 	if t.dump != nil {
@@ -785,7 +792,7 @@ func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectM
 	if t.Proxy != nil {
 		cm.proxyURL, err = t.Proxy(treq.Request)
 	}
-	cm.onlyH1 = t.ForceHTTP1 || requestRequiresHTTP1(treq.Request)
+	cm.onlyH1 = t.ForceHttpVersion == HTTP1 || requestRequiresHTTP1(treq.Request)
 	return cm, err
 }
 
@@ -1492,6 +1499,9 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 	}
 	pconn.tlsState = &cs
 	pconn.conn = tlsConn
+	if pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+		return fmt.Errorf("http2: unexpected ALPN protocol %q; want %q", cs.NegotiatedProtocol, http2NextProtoTLS)
+	}
 	return nil
 }
 
@@ -1541,6 +1551,9 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 				trace.TLSHandshakeDone(cs, nil)
 			}
 			pconn.tlsState = &cs
+			if pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+				return nil, fmt.Errorf("http2: unexpected ALPN protocol %q; want %q", cs.NegotiatedProtocol, http2NextProtoTLS)
+			}
 		}
 	} else {
 		conn, err := t.dial(ctx, "tcp", cm.addr())
@@ -1672,7 +1685,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		}
 	}
 
-	if s := pconn.tlsState; !t.ForceHTTP1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
+	if s := pconn.tlsState; t.ForceHttpVersion != HTTP1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
 		if next, ok := t.TLSNextProto[s.NegotiatedProtocol]; ok {
 			alt := next(cm.targetAddr, pconn.conn.(TLSConn))
 			if e, ok := alt.(erringRoundTripper); ok {

@@ -1145,19 +1145,31 @@ func EnableForceHTTP1() *Client {
 
 // EnableForceHTTP1 enable force using HTTP1 (disabled by default).
 func (c *Client) EnableForceHTTP1() *Client {
-	c.t.ForceHTTP1 = true
+	c.t.ForceHttpVersion = HTTP1
 	return c
 }
 
-// DisableForceHTTP1 is a global wrapper methods which delegated
-// to the default client's DisableForceHTTP1.
-func DisableForceHTTP1() *Client {
-	return defaultClient.DisableForceHTTP1()
+// EnableForceHTTP2 is a global wrapper methods which delegated
+// to the default client's EnableForceHTTP2.
+func EnableForceHTTP2() *Client {
+	return defaultClient.EnableForceHTTP2()
 }
 
-// DisableForceHTTP1 disable force using HTTP1 (disabled by default).
-func (c *Client) DisableForceHTTP1() *Client {
-	c.t.ForceHTTP1 = false
+// EnableForceHTTP2 enable force using HTTP2 (disabled by default).
+func (c *Client) EnableForceHTTP2() *Client {
+	c.t.ForceHttpVersion = HTTP2
+	return c
+}
+
+// DisableForceHttpVersion is a global wrapper methods which delegated
+// to the default client's DisableForceHttpVersion.
+func DisableForceHttpVersion() *Client {
+	return defaultClient.DisableForceHttpVersion()
+}
+
+// DisableForceHttpVersion disable force using HTTP1 (disabled by default).
+func (c *Client) DisableForceHttpVersion() *Client {
+	c.t.ForceHttpVersion = ""
 	return c
 }
 
