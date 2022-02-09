@@ -3234,10 +3234,6 @@ type http2Transport struct {
 	// it will be used to set http.Response.TLS.
 	DialTLS func(network, addr string, cfg *tls.Config) (net.Conn, error)
 
-	// TLSClientConfig specifies the TLS configuration to use with
-	// tls.Client. If nil, the default configuration is used.
-	TLSClientConfig *tls.Config
-
 	// ConnPool optionally specifies an alternate connection pool to use.
 	// If nil, the default is used.
 	ConnPool http2ClientConnPool
@@ -3762,8 +3758,8 @@ func (t *http2Transport) dialClientConn(ctx context.Context, addr string, single
 
 func (t *http2Transport) newTLSConfig(host string) *tls.Config {
 	cfg := new(tls.Config)
-	if t.TLSClientConfig != nil {
-		*cfg = *t.TLSClientConfig.Clone()
+	if t.t1.TLSClientConfig != nil {
+		*cfg = *t.t1.TLSClientConfig.Clone()
 	}
 	if !http2strSliceContains(cfg.NextProtos, http2NextProtoTLS) {
 		cfg.NextProtos = append([]string{http2NextProtoTLS}, cfg.NextProtos...)

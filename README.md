@@ -252,7 +252,7 @@ client.R().Get("https://imroc.cc")
 // you don't need to create any client explicitly.
 req.SetTimeout(5 * time.Second).
 	SetCommonBasicAuth("imroc", "123456").
-	SetCommonHeader("Accept", "application/json").
+	SetCommonHeader("Accept", "text/xml").
 	SetUserAgent("my api client").
 	DevMode()
 
@@ -261,8 +261,8 @@ req.SetTimeout(5 * time.Second).
 // client, so you can treat package name `req` as a Request,
 // and you don't need to create any request and client explicitly.
 req.SetQueryParam("page", "2").
-	SetHeader("Accept", "text/xml"). // Override client level settings at request level.
-	Get("https://api.example.com/repos")
+	SetHeader("Accept", "application/json"). // Override client level settings at request level.
+	Get("https://httpbin.org/get")
 ```
 
 **Test with MustXXX**

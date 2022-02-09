@@ -154,7 +154,8 @@ func SetCommonFormDataFromValues(data urlpkg.Values) *Client {
 	return defaultClient.SetCommonFormDataFromValues(data)
 }
 
-// SetCommonFormDataFromValues set the form data from url.Values for all requests which method allows payload.
+// SetCommonFormDataFromValues set the form data from url.Values for all requests
+// which request method allows payload.
 func (c *Client) SetCommonFormDataFromValues(data urlpkg.Values) *Client {
 	if c.FormData == nil {
 		c.FormData = urlpkg.Values{}
@@ -173,7 +174,8 @@ func SetCommonFormData(data map[string]string) *Client {
 	return defaultClient.SetCommonFormData(data)
 }
 
-// SetCommonFormData set the form data from map for all requests which method allows payload.
+// SetCommonFormData set the form data from map for all requests
+// which request method allows payload.
 func (c *Client) SetCommonFormData(data map[string]string) *Client {
 	if c.FormData == nil {
 		c.FormData = urlpkg.Values{}
@@ -190,8 +192,8 @@ func SetBaseURL(u string) *Client {
 	return defaultClient.SetBaseURL(u)
 }
 
-// SetBaseURL set the default base url, will be used if request url is
-// a relative url.
+// SetBaseURL set the default base URL, will be used if request URL is
+// a relative URL.
 func (c *Client) SetBaseURL(u string) *Client {
 	c.BaseURL = strings.TrimRight(u, "/")
 	return c
@@ -203,7 +205,8 @@ func SetOutputDirectory(dir string) *Client {
 	return defaultClient.SetOutputDirectory(dir)
 }
 
-// SetOutputDirectory set output directory that response will be downloaded to.
+// SetOutputDirectory set output directory that response will
+// be downloaded to.
 func (c *Client) SetOutputDirectory(dir string) *Client {
 	c.outputDirectory = dir
 	return c
@@ -215,7 +218,7 @@ func SetCertFromFile(certFile, keyFile string) *Client {
 	return defaultClient.SetCertFromFile(certFile, keyFile)
 }
 
-// SetCertFromFile helps to set client certificates from cert and key file
+// SetCertFromFile helps to set client certificates from cert and key file.
 func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
@@ -233,7 +236,7 @@ func SetCerts(certs ...tls.Certificate) *Client {
 	return defaultClient.SetCerts(certs...)
 }
 
-// SetCerts helps to set client certificates
+// SetCerts set client certificates.
 func (c *Client) SetCerts(certs ...tls.Certificate) *Client {
 	config := c.tlsConfig()
 	config.Certificates = append(config.Certificates, certs...)
@@ -255,7 +258,7 @@ func SetRootCertFromString(pemContent string) *Client {
 	return defaultClient.SetRootCertFromString(pemContent)
 }
 
-// SetRootCertFromString helps to set root CA cert from string
+// SetRootCertFromString set root certificates from string.
 func (c *Client) SetRootCertFromString(pemContent string) *Client {
 	c.appendRootCertData([]byte(pemContent))
 	return c
@@ -267,7 +270,7 @@ func SetRootCertsFromFile(pemFiles ...string) *Client {
 	return defaultClient.SetRootCertsFromFile(pemFiles...)
 }
 
-// SetRootCertsFromFile helps to set root certs from files
+// SetRootCertsFromFile set root certificates from files.
 func (c *Client) SetRootCertsFromFile(pemFiles ...string) *Client {
 	for _, pemFile := range pemFiles {
 		rootPemData, err := ioutil.ReadFile(pemFile)
@@ -303,9 +306,10 @@ func SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	return defaultClient.SetRedirectPolicy(policies...)
 }
 
-// SetRedirectPolicy set the RedirectPolicy, see the predefined AllowedDomainRedirectPolicy,
-// AllowedHostRedirectPolicy, MaxRedirectPolicy, NoRedirectPolicy, SameDomainRedirectPolicy
-// and SameHostRedirectPolicy.
+// SetRedirectPolicy set the RedirectPolicy which controls the behavior of receiving redirect
+// responses (usually responses with 301 and 302 status code), see the predefined
+// AllowedDomainRedirectPolicy, AllowedHostRedirectPolicy, MaxRedirectPolicy, NoRedirectPolicy,
+// SameDomainRedirectPolicy and SameHostRedirectPolicy.
 func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	if len(policies) == 0 {
 		return c
@@ -334,9 +338,9 @@ func DisableKeepAlives() *Client {
 	return defaultClient.DisableKeepAlives()
 }
 
-// DisableKeepAlives disables HTTP keep-alives (enabled by default)
+// DisableKeepAlives disable the HTTP keep-alives (enabled by default)
 // and will only use the connection to the server for a single
-// HTTP request .
+// HTTP request.
 //
 // This is unrelated to the similarly named TCP keep-alives.
 func (c *Client) DisableKeepAlives() *Client {
@@ -350,11 +354,7 @@ func EnableKeepAlives() *Client {
 	return defaultClient.EnableKeepAlives()
 }
 
-// EnableKeepAlives enables HTTP keep-alives (enabled by default)
-// and will only use the connection to the server for a single
-// HTTP request .
-//
-// This is unrelated to the similarly named TCP keep-alives.
+// EnableKeepAlives enables HTTP keep-alives (enabled by default).
 func (c *Client) EnableKeepAlives() *Client {
 	c.t.DisableKeepAlives = false
 	return c
@@ -367,14 +367,13 @@ func DisableCompression() *Client {
 }
 
 // DisableCompression disables the compression (enabled by default),
-// which prevents the Transport from
-// requesting compression with an "Accept-Encoding: gzip"
-// request header when the Request contains no existing
-// Accept-Encoding value. If the Transport requests gzip on
-// its own and gets a gzipped response, it's transparently
-// decoded in the Response.Body. However, if the user
-// explicitly requested gzip it is not automatically
-// uncompressed.
+// which prevents the Transport from requesting compression
+// with an "Accept-Encoding: gzip" request header when the
+// Request contains no existing Accept-Encoding value. If
+// the Transport requests gzip on its own and gets a gzipped
+// response, it's transparently decoded in the Response.Body.
+// However, if the user explicitly requested gzip it is not
+// automatically uncompressed.
 func (c *Client) DisableCompression() *Client {
 	c.t.DisableCompression = true
 	return c
@@ -386,15 +385,7 @@ func EnableCompression() *Client {
 	return defaultClient.EnableCompression()
 }
 
-// EnableCompression enables the compression (enabled by default),
-// which prevents the Transport from
-// requesting compression with an "Accept-Encoding: gzip"
-// request header when the Request contains no existing
-// Accept-Encoding value. If the Transport requests gzip on
-// its own and gets a gzipped response, it's transparently
-// decoded in the Response.Body. However, if the user
-// explicitly requested gzip it is not automatically
-// uncompressed.
+// EnableCompression enables the compression (enabled by default).
 func (c *Client) EnableCompression() *Client {
 	c.t.DisableCompression = false
 	return c
@@ -406,10 +397,9 @@ func SetTLSClientConfig(conf *tls.Config) *Client {
 	return defaultClient.SetTLSClientConfig(conf)
 }
 
-// SetTLSClientConfig sets the client tls config.
+// SetTLSClientConfig set the TLS client config.
 func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	c.t.TLSClientConfig = conf
-	c.t2.TLSClientConfig = conf
 	return c
 }
 
@@ -419,7 +409,8 @@ func SetCommonQueryParams(params map[string]string) *Client {
 	return defaultClient.SetCommonQueryParams(params)
 }
 
-// SetCommonQueryParams sets the URL query parameters with a map at client level.
+// SetCommonQueryParams set URL query parameters with a map
+// for all requests.
 func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
 	for k, v := range params {
 		c.SetCommonQueryParam(k, v)
@@ -434,7 +425,7 @@ func AddCommonQueryParam(key, value string) *Client {
 }
 
 // AddCommonQueryParam add a URL query parameter with a key-value
-// pair at client level
+// pair for all requests.
 func (c *Client) AddCommonQueryParam(key, value string) *Client {
 	if c.QueryParams == nil {
 		c.QueryParams = make(urlpkg.Values)
@@ -450,7 +441,7 @@ func SetCommonQueryParam(key, value string) *Client {
 }
 
 // SetCommonQueryParam set a URL query parameter with a key-value
-// pair at client level.
+// pair for all requests.
 func (c *Client) SetCommonQueryParam(key, value string) *Client {
 	if c.QueryParams == nil {
 		c.QueryParams = make(urlpkg.Values)
@@ -465,7 +456,8 @@ func SetCommonQueryString(query string) *Client {
 	return defaultClient.SetCommonQueryString(query)
 }
 
-// SetCommonQueryString set URL query parameters using the raw query string.
+// SetCommonQueryString set URL query parameters with a raw query string
+// for all requests.
 func (c *Client) SetCommonQueryString(query string) *Client {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
 	if err != nil {
@@ -489,7 +481,7 @@ func SetCommonCookies(cookies ...*http.Cookie) *Client {
 	return defaultClient.SetCommonCookies(cookies...)
 }
 
-// SetCommonCookies set cookies at client level.
+// SetCommonCookies set HTTP cookies for all requests.
 func (c *Client) SetCommonCookies(cookies ...*http.Cookie) *Client {
 	c.Cookies = append(c.Cookies, cookies...)
 	return c
@@ -501,7 +493,7 @@ func DisableDebugLog() *Client {
 	return defaultClient.DisableDebugLog()
 }
 
-// DisableDebugLog disables debug level log (disabled by default).
+// DisableDebugLog disable debug level log (disabled by default).
 func (c *Client) DisableDebugLog() *Client {
 	c.DebugLog = false
 	return c
@@ -513,7 +505,7 @@ func EnableDebugLog() *Client {
 	return defaultClient.EnableDebugLog()
 }
 
-// EnableDebugLog enables debug level log (disabled by default).
+// EnableDebugLog enable debug level log (disabled by default).
 func (c *Client) EnableDebugLog() *Client {
 	c.DebugLog = true
 	return c
@@ -527,7 +519,7 @@ func DevMode() *Client {
 
 // DevMode enables:
 // 1. Dump content of all requests and responses to see details.
-// 2. Output debug log for deeper insights.
+// 2. Output debug level log for deeper insights.
 // 3. Trace all requests, so you can get trace info to analyze performance.
 // 4. Set User-Agent to pretend to be a web browser, avoid returning abnormal data from some sites.
 func (c *Client) DevMode() *Client {
@@ -543,8 +535,8 @@ func SetScheme(scheme string) *Client {
 	return defaultClient.SetScheme(scheme)
 }
 
-// SetScheme sets custom default scheme in the client, will be used when
-// there is no scheme in the request url.
+// SetScheme set the default scheme for client, will be used when
+// there is no scheme in the request URL (e.g. "github.com/imroc/req").
 func (c *Client) SetScheme(scheme string) *Client {
 	if !util.IsStringEmpty(scheme) {
 		c.scheme = strings.TrimSpace(scheme)
@@ -558,7 +550,7 @@ func SetLogger(log Logger) *Client {
 	return defaultClient.SetLogger(log)
 }
 
-// SetLogger set the logger for req, set to nil to disable logger.
+// SetLogger set the customized logger for client, will disable log if set to nil.
 func (c *Client) SetLogger(log Logger) *Client {
 	if log == nil {
 		c.log = &disableLogger{}
@@ -581,7 +573,7 @@ func SetTimeout(d time.Duration) *Client {
 	return defaultClient.SetTimeout(d)
 }
 
-// SetTimeout set the timeout for all requests.
+// SetTimeout set timeout for all requests.
 func (c *Client) SetTimeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
 	return c
@@ -600,7 +592,7 @@ func EnableDumpAll() *Client {
 	return defaultClient.EnableDumpAll()
 }
 
-// EnableDumpAll enables dump for all requests, including
+// EnableDumpAll enable dump for all requests, including
 // all content for the request and response by default.
 func (c *Client) EnableDumpAll() *Client {
 	if c.t.dump != nil { // dump already started
@@ -616,8 +608,8 @@ func EnableDumpAllToFile(filename string) *Client {
 	return defaultClient.EnableDumpAllToFile(filename)
 }
 
-// EnableDumpAllToFile enables dump for all requests and save
-// to the specified filename.
+// EnableDumpAllToFile enable dump for all requests and output
+// to the specified file.
 func (c *Client) EnableDumpAllToFile(filename string) *Client {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -635,8 +627,8 @@ func EnableDumpAllTo(output io.Writer) *Client {
 	return defaultClient.EnableDumpAllTo(output)
 }
 
-// EnableDumpAllTo enables dump for all requests and save
-// to the specified io.Writer.
+// EnableDumpAllTo enable dump for all requests and output to
+// the specified io.Writer.
 func (c *Client) EnableDumpAllTo(output io.Writer) *Client {
 	c.getDumpOptions().Output = output
 	c.EnableDumpAll()
@@ -649,7 +641,7 @@ func EnableDumpAllAsync() *Client {
 	return defaultClient.EnableDumpAllAsync()
 }
 
-// EnableDumpAllAsync enables dump for all requests and output
+// EnableDumpAllAsync enable dump for all requests and output
 // asynchronously, can be used for debugging in production
 // environment without affecting performance.
 func (c *Client) EnableDumpAllAsync() *Client {
@@ -665,9 +657,9 @@ func EnableDumpAllWithoutRequestBody() *Client {
 	return defaultClient.EnableDumpAllWithoutRequestBody()
 }
 
-// EnableDumpAllWithoutRequestBody enables dump for all requests, without
-// request body, can be used in upload request to avoid dump the unreadable
-// binary content.
+// EnableDumpAllWithoutRequestBody enable dump for all requests without
+// request body, can be used in the upload request to avoid dumping the
+// unreadable binary content.
 func (c *Client) EnableDumpAllWithoutRequestBody() *Client {
 	o := c.getDumpOptions()
 	o.RequestBody = false
@@ -681,9 +673,9 @@ func EnableDumpAllWithoutResponseBody() *Client {
 	return defaultClient.EnableDumpAllWithoutResponseBody()
 }
 
-// EnableDumpAllWithoutResponseBody enables dump for all requests, without
-// response body, can be used in download request to avoid dump the unreadable
-// binary content.
+// EnableDumpAllWithoutResponseBody enable dump for all requests without
+// response body, can be used in the download request to avoid dumping the
+// unreadable binary content.
 func (c *Client) EnableDumpAllWithoutResponseBody() *Client {
 	o := c.getDumpOptions()
 	o.ResponseBody = false
@@ -697,7 +689,8 @@ func EnableDumpAllWithoutResponse() *Client {
 	return defaultClient.EnableDumpAllWithoutResponse()
 }
 
-// EnableDumpAllWithoutResponse enables dump for all requests without response.
+// EnableDumpAllWithoutResponse enable dump for all requests without response,
+// can be used if you only care about the request.
 func (c *Client) EnableDumpAllWithoutResponse() *Client {
 	o := c.getDumpOptions()
 	o.ResponseBody = false
@@ -712,7 +705,8 @@ func EnableDumpAllWithoutRequest() *Client {
 	return defaultClient.EnableDumpAllWithoutRequest()
 }
 
-// EnableDumpAllWithoutRequest enables dump for all requests without request.
+// EnableDumpAllWithoutRequest enables dump for all requests without request,
+// can be used if you only care about the response.
 func (c *Client) EnableDumpAllWithoutRequest() *Client {
 	o := c.getDumpOptions()
 	o.RequestHeader = false
@@ -727,7 +721,8 @@ func EnableDumpAllWithoutHeader() *Client {
 	return defaultClient.EnableDumpAllWithoutHeader()
 }
 
-// EnableDumpAllWithoutHeader enables dump for all requests without header.
+// EnableDumpAllWithoutHeader enable dump for all requests without header,
+// can be used if you only care about the body.
 func (c *Client) EnableDumpAllWithoutHeader() *Client {
 	o := c.getDumpOptions()
 	o.RequestHeader = false
@@ -742,7 +737,8 @@ func EnableDumpAllWithoutBody() *Client {
 	return defaultClient.EnableDumpAllWithoutBody()
 }
 
-// EnableDumpAllWithoutBody enables dump for all requests without body.
+// EnableDumpAllWithoutBody enable dump for all requests without body,
+// can be used if you only care about the header.
 func (c *Client) EnableDumpAllWithoutBody() *Client {
 	o := c.getDumpOptions()
 	o.RequestBody = false
@@ -793,7 +789,7 @@ func SetAutoDecodeContentType(contentTypes ...string) *Client {
 }
 
 // SetAutoDecodeContentType set the content types that will be auto-detected and decode
-// to utf-8
+// to utf-8 (e.g. "json", "xml", "html", "text").
 func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
 	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
@@ -806,8 +802,8 @@ func SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
 	return defaultClient.SetAutoDecodeContentTypeFunc(fn)
 }
 
-// SetAutoDecodeContentTypeFunc set the custmize function that determins the content-type
-// whether if should be auto-detected and decode to utf-8
+// SetAutoDecodeContentTypeFunc set the function that determines whether the
+// specified `Content-Type` should be auto-detected and decode to utf-8.
 func (c *Client) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
 	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = fn
@@ -820,7 +816,8 @@ func SetAutoDecodeAllContentType() *Client {
 	return defaultClient.SetAutoDecodeAllContentType()
 }
 
-// SetAutoDecodeAllContentType enables to try auto-detect and decode all content type to utf-8.
+// SetAutoDecodeAllContentType enable try auto-detect charset and decode all
+// content type to utf-8.
 func (c *Client) SetAutoDecodeAllContentType() *Client {
 	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = func(contentType string) bool {
@@ -835,8 +832,8 @@ func DisableAutoDecode() *Client {
 	return defaultClient.DisableAutoDecode()
 }
 
-// DisableAutoDecode disable auto detect charset and decode to utf-8
-// (enabled by default)
+// DisableAutoDecode disable auto-detect charset and decode to utf-8
+// (enabled by default).
 func (c *Client) DisableAutoDecode() *Client {
 	c.getResponseOptions().DisableAutoDecode = true
 	return c
@@ -848,8 +845,8 @@ func EnableAutoDecode() *Client {
 	return defaultClient.EnableAutoDecode()
 }
 
-// EnableAutoDecode enables auto detect charset and decode to utf-8
-// (enabled by default)
+// EnableAutoDecode enable auto-detect charset and decode to utf-8
+// (enabled by default).
 func (c *Client) EnableAutoDecode() *Client {
 	c.getResponseOptions().DisableAutoDecode = true
 	return c
@@ -936,7 +933,7 @@ func DisableDumpAll() *Client {
 	return defaultClient.DisableDumpAll()
 }
 
-// DisableDumpAll disables the dump.
+// DisableDumpAll disable dump for all requests.
 func (c *Client) DisableDumpAll() *Client {
 	c.t.DisableDump()
 	return c
@@ -949,6 +946,7 @@ func SetCommonDumpOptions(opt *DumpOptions) *Client {
 }
 
 // SetCommonDumpOptions configures the underlying Transport's DumpOptions
+// for all requests.
 func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
 		return c
@@ -1002,7 +1000,7 @@ func SetProxyURL(proxyUrl string) *Client {
 	return defaultClient.SetProxyURL(proxyUrl)
 }
 
-// SetProxyURL set a proxy from the proxy url.
+// SetProxyURL set proxy from the proxy URL.
 func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	u, err := urlpkg.Parse(proxyUrl)
 	if err != nil {
@@ -1019,7 +1017,7 @@ func DisableTraceAll() *Client {
 	return defaultClient.DisableTraceAll()
 }
 
-// DisableTraceAll disables the trace at client level.
+// DisableTraceAll disable trace for all requests.
 func (c *Client) DisableTraceAll() *Client {
 	c.trace = false
 	return c
@@ -1031,7 +1029,7 @@ func EnableTraceAll() *Client {
 	return defaultClient.EnableTraceAll()
 }
 
-// EnableTraceAll enables the trace at client level.
+// EnableTraceAll enable trace for all requests.
 func (c *Client) EnableTraceAll() *Client {
 	c.trace = true
 	return c
@@ -1043,7 +1041,7 @@ func SetCookieJar(jar http.CookieJar) *Client {
 	return defaultClient.SetCookieJar(jar)
 }
 
-// SetCookieJar set the `CookeJar` to the underlying `http.Client`
+// SetCookieJar set the `CookeJar` to the underlying `http.Client`.
 func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	c.httpClient.Jar = jar
 	return c
@@ -1055,7 +1053,8 @@ func SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
 	return defaultClient.SetJsonMarshal(fn)
 }
 
-// SetJsonMarshal set json marshal function which will be used to marshal request body.
+// SetJsonMarshal set the JSON marshal function which will be used
+// to marshal request body.
 func (c *Client) SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
 	c.jsonMarshal = fn
 	return c
@@ -1067,7 +1066,8 @@ func SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	return defaultClient.SetJsonUnmarshal(fn)
 }
 
-// SetJsonUnmarshal set the JSON unmarshal function which will be used to unmarshal response body.
+// SetJsonUnmarshal set the JSON unmarshal function which will be used
+// to unmarshal response body.
 func (c *Client) SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	c.jsonUnmarshal = fn
 	return c
@@ -1079,7 +1079,8 @@ func SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
 	return defaultClient.SetXmlMarshal(fn)
 }
 
-// SetXmlMarshal set the XML marshal function which will be used to marshal request body.
+// SetXmlMarshal set the XML marshal function which will be used
+// to marshal request body.
 func (c *Client) SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
 	c.xmlMarshal = fn
 	return c
@@ -1091,7 +1092,8 @@ func SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	return defaultClient.SetXmlUnmarshal(fn)
 }
 
-// SetXmlUnmarshal set the XML unmarshal function which will be used to unmarshal response body.
+// SetXmlUnmarshal set the XML unmarshal function which will be used
+// to unmarshal response body.
 func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	c.xmlUnmarshal = fn
 	return c
@@ -1103,9 +1105,9 @@ func SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, er
 	return defaultClient.SetDialTLS(fn)
 }
 
-// SetDialTLS set the customized `DialTLSContext` function to Transport (make sure the returned
-// `conn` implements [TLSConn](https://pkg.go.dev/github.com/imroc/req/v3#TLSConn) if you want
-// your customized `conn` supports HTTP2).
+// SetDialTLS set the customized `DialTLSContext` function to Transport.
+// Make sure the returned `conn` implements TLSConn if you want your
+// customized `conn` supports HTTP2.
 func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialTLSContext = fn
 	return c
@@ -1117,7 +1119,7 @@ func SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error
 	return defaultClient.SetDial(fn)
 }
 
-// SetDial set the customized DialContext function to Transport.
+// SetDial set the customized `DialContext` function to Transport.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialContext = fn
 	return c
@@ -1141,7 +1143,7 @@ func EnableForceHTTP1() *Client {
 	return defaultClient.EnableForceHTTP1()
 }
 
-// EnableForceHTTP1 enables force using HTTP1 (disabled by default)
+// EnableForceHTTP1 enable force using HTTP1 (disabled by default).
 func (c *Client) EnableForceHTTP1() *Client {
 	c.t.ForceHTTP1 = true
 	return c
@@ -1153,7 +1155,7 @@ func DisableForceHTTP1() *Client {
 	return defaultClient.DisableForceHTTP1()
 }
 
-// DisableForceHTTP1 disable force using HTTP1 (disabled by default)
+// DisableForceHTTP1 disable force using HTTP1 (disabled by default).
 func (c *Client) DisableForceHTTP1() *Client {
 	c.t.ForceHTTP1 = false
 	return c
@@ -1165,7 +1167,7 @@ func DisableAllowGetMethodPayload() *Client {
 	return defaultClient.DisableAllowGetMethodPayload()
 }
 
-// DisableAllowGetMethodPayload disables sending GET method requests with body.
+// DisableAllowGetMethodPayload disable sending GET method requests with body.
 func (c *Client) DisableAllowGetMethodPayload() *Client {
 	c.AllowGetMethodPayload = false
 	return c
