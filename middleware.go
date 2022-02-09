@@ -2,7 +2,6 @@ package req
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
@@ -33,8 +32,20 @@ func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEH
 	hdr := make(textproto.MIMEHeader)
 
 	contentDispositionValue := "form-data"
-	for k, v := range file.ContentDisposition {
-		contentDispositionValue += fmt.Sprintf(`; %s="%v"`, k, v)
+	cd := new(ContentDisposition)
+	if file.ParamName != "" {
+		cd.Add("name", file.ParamName)
+	}
+	if file.FileName != "" {
+		cd.Add("filename", file.FileName)
+	}
+	if file.ExtraContentDisposition != nil {
+		for _, kv := range file.ExtraContentDisposition.kv {
+			cd.Add(kv.Key, kv.Value)
+		}
+	}
+	if c := cd.String(); c != "" {
+		contentDispositionValue += c
 	}
 	hdr.Set("Content-Disposition", contentDispositionValue)
 
