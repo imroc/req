@@ -4,9 +4,9 @@
     <p align="center"><a href="https://pkg.go.dev/github.com/imroc/req/v3"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
 </p>
 
-## Big News
+## News
 
-Brand-new version v3 is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
+Brand-New version v3 is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
 
 If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
 
@@ -38,7 +38,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging - Log/Trace/Dump](#Debugging).
+* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging - Dump/Log/Trace](#Debugging).
 * Easy making HTTP test with code instead of tools like curl or postman, `req` provide global wrapper methods and `MustXXX` to test API with minimal code (see [Quick HTTP Test](#Test)).
 * Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support, and you can also force `HTTP/1.1` if you want (see [HTTP2 and HTTP1](#HTTP2-HTTP1)).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
@@ -86,7 +86,7 @@ Checkout more runnable examples in the [examples](examples) direcotry.
 
 ## <a name="API">API Reference</a>
 
-Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core API, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core APIs, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
@@ -128,11 +128,11 @@ access-control-allow-credentials: true
 }
 */
 	
-// Customize client level dump settings with predefined convenience settings. 
+// Customize dump settings with predefined and convenient settings at client level. 
 client.EnableDumpAllWithoutBody(). // Only dump the header of request and response
     EnableDumpAllAsync(). // Dump asynchronously to improve performance
     EnableDumpAllToFile("reqdump.log") // Dump to file without printing it out
-// Send request to see the content that have been dumpped	
+// Send request to see the content that have been dumped	
 client.R().Get(url) 
 
 // Enable dump with fully customized settings at client level.
@@ -151,29 +151,31 @@ client.R().Get("https://httpbin.org/get")
 opt.ResponseBody = false
 client.R().Get("https://httpbin.org/get")
 
-// You can also enable dump at request level, which will not override client-level dumpping,
-// dump to memory and will not print it out by default, you can call `Response.Dump()` to get
-// the dump result and print only if you want to, typically used in production, only record
+// You can also enable dump at request level, which will not override client-level dumping,
+// dump to the internal buffer and will not print it out by default, you can call `Response.Dump()`
+// to get the dump result and print only if you want to, typically used in production, only record
 // the content of the request when the request is abnormal to help us troubleshoot problems.
 resp, err := client.R().EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 if err != nil {
     fmt.Println("err:", err)
-    fmt.Println("raw content:\n", resp.Dump())
+	if resp.Dump() != "" {
+        fmt.Println("raw content:")
+        fmt.Println(resp.Dump())
+    }
     return
 }
 if !resp.IsSuccess() { // Status code not beetween 200 and 299
     fmt.Println("bad status:", resp.Status)
-    fmt.Println("raw content:\n", resp.Dump())
-	return
+    fmt.Println("raw content:")
+    fmt.Println(resp.Dump())
+    return
 }
 
-// Similarly, also support to customize dump settings with predefined convenience settings at request level.
+// Similarly, also support to customize dump settings with the predefined and convenient settings at request level.
 resp, err = client.R().EnableDumpWithoutRequest().SetBody("test body").Post("https://httpbin.org/post")
 // ...
 resp, err = client.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post("https://httpbin.org/post")
 ```
-
-> Request-level dumpping will not override client-level dumpping, cuz 
 
 **Enable DebugLog for Deeper Insights**
 
@@ -245,7 +247,7 @@ client.R().Get("https://imroc.cc")
 `req` wrap methods of both `Client` and `Request` with global methods, which is delegated to the default client behind the scenes, so you can just treat the package name `req` as a Client or Request to test quickly without create one explicitly.
 
 ```go
-// Call the global methods just like the Client's methods,
+// Call the global methods just like the Client's method,
 // so you can treat package name `req` as a Client, and
 // you don't need to create any client explicitly.
 req.SetTimeout(5 * time.Second).
@@ -756,19 +758,19 @@ client.R().SetFileReader("avatar", "avatar.png", avatarImgFile).Post(url)
 
 `Req` detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default.
 
-Its principle is to detect whether `Content-Type` header at first, if it's not the text content type (json, xml, html and so on), `req` will not try to decode. If it is, then `req` will try to find the charset information, if it's not included in the header, it will try to sniff the body's content to determine the charset, if found and is not utf-8, then decode it to utf-8 automatically, if the charset is not sure, it will not decode, and leave the body untouched.
+Its principle is to detect `Content-Type` header at first, if it's not the text content type (json, xml, html and so on), `req` will not try to decode. If it is, then `req` will try to find the charset information. And `req` also will try to sniff the body's content to determine the charset if the charset information is not included in the header, if sniffed out and not utf-8, then decode it to utf-8 automatically, and `req` will not try to decode if the charset is not sure, just leave the body untouched.
 
-You can also disable if you don't need or care a lot about performance:
+You can also disable it if you don't need or care a lot about performance:
 
 ```go
 client.DisableAutoDecode()
 ```
 
-Also you can make some customization:
+And also you can make some customization:
 
 ```go
 // Try to auto-detect and decode all content types (some server may return incorrect Content-Type header)
-client.SetAutoDecodeAllType()
+client.SetAutoDecodeAllContentType()
 
 // Only auto-detect and decode content which `Content-Type` header contains "html" or "json"
 client.SetAutoDecodeContentType("html", "json")
@@ -780,7 +782,7 @@ fn := func(contentType string) bool {
     }
     return false
 }
-client.SetAutoDecodeAllTypeFunc(fn)
+client.SetAutoDecodeContentTypeFunc(fn)
 ```
 
 ## <a name="Middleware">Request and Response Middleware</a>
