@@ -38,7 +38,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump complete request and response content (see [Debugging - Log/Trace/Dump](#Debugging).
+* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging - Log/Trace/Dump](#Debugging).
 * Easy making HTTP test with code instead of tools like curl or postman, `req` provide global wrapper methods and `MustXXX` to test API with minimal code (see [Quick HTTP Test](#Test)).
 * Works fine both with `HTTP/2` and `HTTP/1.1`, `HTTP/2` is preferred by default if server support, and you can also force `HTTP/1.1` if you want (see [HTTP2 and HTTP1](#HTTP2-HTTP1)).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
@@ -242,7 +242,7 @@ client.R().Get("https://imroc.cc")
 
 **Test with Global Wrapper Methods**
 
-`req` wrap methods of both `Client` and `Request` with global methods, which is delegated to default client, it's very convenient when making API test.
+`req` wrap methods of both `Client` and `Request` with global methods, which is delegated to the default client behind the scenes, so you can just treat the package name `req` as a Client or Request to test quickly without create one explicitly.
 
 ```go
 // Call the global methods just like the Client's methods,

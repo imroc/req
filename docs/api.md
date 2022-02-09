@@ -2,7 +2,7 @@
     <h1 align="center">Req API Reference </h1>
 </p>
 
-Here is a brief and categorized list of the core API, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+Here is a brief and categorized list of the core APIs, for a more detailed and complete list, please refer to the [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
 
 ## Table of Contents
 
@@ -24,7 +24,7 @@ Here is a brief and categorized list of the core API, for a more detailed and co
 
 ## <a name="Client">Client Settings</a>
 
-The following are the chainable settings of Client, all of which have corresponding global wrappers.
+The following are the chainable settings of Client, all of which have corresponding global wrappers (Just treat the package name `req` as a Client to test, set up the Client without create any Client explicitly).
 
 Basically, you can know the meaning of most settings directly from the method name.
 
