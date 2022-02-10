@@ -1458,7 +1458,7 @@ func (t *Transport) decConnsPerHost(key connectMethodKey) {
 // Add TLS to a persistent connection, i.e. negotiate a TLS session. If pconn is already a TLS
 // tunnel, this function establishes a nested TLS session inside the encrypted channel.
 // The remote endpoint's name may be overridden by TLSClientConfig.ServerName.
-func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptrace.ClientTrace) error {
+func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptrace.ClientTrace, forProxy bool) error {
 	// Initiate TLS and check remote host name against certificate.
 	cfg := cloneTLSConfig(pconn.t.TLSClientConfig)
 	if cfg.ServerName == "" {
@@ -1499,7 +1499,7 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 	}
 	pconn.tlsState = &cs
 	pconn.conn = tlsConn
-	if pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+	if !forProxy && pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
 		return newHttp2NotSupportedError(cs.NegotiatedProtocol)
 	}
 	return nil
@@ -1559,7 +1559,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 				trace.TLSHandshakeDone(cs, nil)
 			}
 			pconn.tlsState = &cs
-			if pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+			if cm.proxyURL == nil && pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
 				return nil, newHttp2NotSupportedError(cs.NegotiatedProtocol)
 			}
 		}
@@ -1574,7 +1574,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			if firstTLSHost, _, err = net.SplitHostPort(cm.addr()); err != nil {
 				return nil, wrapErr(err)
 			}
-			if err = pconn.addTLS(ctx, firstTLSHost, trace); err != nil {
+			if err = pconn.addTLS(ctx, firstTLSHost, trace, cm.proxyURL != nil); err != nil {
 				return nil, wrapErr(err)
 			}
 		}
@@ -1688,7 +1688,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 	}
 
 	if cm.proxyURL != nil && cm.targetScheme == "https" {
-		if err := pconn.addTLS(ctx, cm.tlsHost(), trace); err != nil {
+		if err := pconn.addTLS(ctx, cm.tlsHost(), trace, false); err != nil {
 			return nil, err
 		}
 	}
