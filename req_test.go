@@ -74,7 +74,6 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.URL.RawQuery))
 	default:
 		if strings.HasPrefix(r.URL.Path, "/user") {
-			r.Cookies()
 			handleGetUserProfile(w, r)
 		}
 	}

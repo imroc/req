@@ -98,6 +98,22 @@ func TestBadRequest(t *testing.T) {
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
 }
 
+func TestCookie(t *testing.T) {
+	headers := make(http.Header)
+	resp, err := tr().SetCookies(
+		&http.Cookie{
+			Name:  "cookie1",
+			Value: "value1",
+		},
+		&http.Cookie{
+			Name:  "cookie2",
+			Value: "value2",
+		},
+	).SetResult(&headers).Get("/header")
+	assertSucess(t, resp, err)
+	assertEqual(t, "cookie1=value1; cookie2=value2", headers.Get("Cookie"))
+}
+
 func TestHeader(t *testing.T) {
 	// Set User-Agent
 	customUserAgent := "My Custom User Agent"
