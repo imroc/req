@@ -1,8 +1,10 @@
 package req
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -96,6 +98,107 @@ func TestGet(t *testing.T) {
 func TestBadRequest(t *testing.T) {
 	resp, err := tr().Get("/bad-request")
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
+}
+
+func TestSetBodyJson(t *testing.T) {
+	type User struct {
+		Username string `json:"username"`
+	}
+
+	assertUsername := func(username string) func(e *echo) {
+		return func(e *echo) {
+			var user User
+			err := json.Unmarshal([]byte(e.Body), &user)
+			assertError(t, err)
+			assertEqual(t, username, user.Username)
+		}
+	}
+	testCases := []struct {
+		Set    func(r *Request)
+		Assert func(e *echo)
+	}{
+		{ // SetBody with map
+			Set: func(r *Request) {
+				m := map[string]interface{}{
+					"username": "imroc",
+				}
+				r.SetBody(&m)
+			},
+			Assert: assertUsername("imroc"),
+		},
+		{ // SetBodyJsonMarshal with map
+			Set: func(r *Request) {
+				m := map[string]interface{}{
+					"username": "imroc",
+				}
+				r.SetBodyJsonMarshal(&m)
+			},
+			Assert: assertUsername("imroc"),
+		},
+		{ // SetBody with struct
+			Set: func(r *Request) {
+				var user User
+				user.Username = "imroc"
+				r.SetBody(&user)
+			},
+			Assert: assertUsername("imroc"),
+		},
+		{ // SetBodyJsonMarshal with struct
+			Set: func(r *Request) {
+				var user User
+				user.Username = "imroc"
+				r.SetBodyJsonMarshal(&user)
+			},
+			Assert: assertUsername("imroc"),
+		},
+	}
+
+	for _, c := range testCases {
+		r := tr()
+		c.Set(r)
+		var e echo
+		resp, err := r.SetResult(&e).Post("/echo")
+		assertSucess(t, resp, err)
+		c.Assert(&e)
+	}
+}
+
+func TestSetBodyContent(t *testing.T) {
+	var e echo
+	testBody := "test body"
+
+	testCases := []func(r *Request){
+		func(r *Request) { // SetBody with string
+			r.SetBody(testBody)
+		},
+		func(r *Request) { // SetBody with []byte
+			r.SetBody([]byte(testBody))
+		},
+		func(r *Request) { // SetBodyString
+			r.SetBodyString(testBody)
+		},
+		func(r *Request) { // SetBodyBytes
+			r.SetBodyBytes([]byte(testBody))
+		},
+	}
+
+	for _, fn := range testCases {
+		r := tr()
+		fn(r)
+		var e echo
+		resp, err := r.SetResult(&e).Post("/echo")
+		assertSucess(t, resp, err)
+		assertEqual(t, plainTextContentType, e.Header.Get(hdrContentTypeKey))
+		assertEqual(t, testBody, e.Body)
+	}
+
+	// Set Reader
+	testBodyReader := strings.NewReader(testBody)
+	e = echo{}
+	resp, err := tr().SetBody(testBodyReader).SetResult(&e).Post("/echo")
+	assertSucess(t, resp, err)
+	assertEqual(t, testBody, e.Body)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
 }
 
 func TestCookie(t *testing.T) {

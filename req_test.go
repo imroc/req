@@ -3,6 +3,7 @@ package req
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -41,10 +42,24 @@ func getTestServerURL() string {
 	return testServer.URL
 }
 
+type echo struct {
+	Header http.Header `json:"header"`
+	Body   string      `json:"body"`
+}
+
 func handlePost(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
 		w.Write([]byte("TestPost: text response"))
+	case "/echo":
+		b, _ := ioutil.ReadAll(r.Body)
+		e := echo{
+			Header: r.Header,
+			Body:   string(b),
+		}
+		result, _ := json.Marshal(&e)
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Write(result)
 	}
 }
 
