@@ -11,8 +11,12 @@ import (
 	"testing"
 )
 
+func tr() *Request {
+	return tc().R()
+}
+
 func tc() *Client {
-	return C().EnableDebugLog()
+	return C().SetBaseURL(getTestServerURL())
 }
 
 var testDataPath string
@@ -36,26 +40,16 @@ func getTestServerURL() string {
 }
 
 func handlePost(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("TestPost: text response"))
+	switch r.URL.Path {
+	case "/":
+		w.Write([]byte("TestPost: text response"))
+	}
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
 		w.Write([]byte("TestGet: text response"))
-	case "/no-content":
-		w.Write([]byte(""))
-	case "/json":
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"TestGet": "JSON response"}`))
-	case "/json-invalid":
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte("TestGet: Invalid JSON"))
-	case "/long-text":
-		w.Write([]byte("TestGet: text response with size > 30"))
-	case "/long-json":
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"TestGet": "JSON response with size > 30"}`))
 	case "/bad-request":
 		w.WriteHeader(http.StatusBadRequest)
 	case "/host-header":
@@ -115,9 +109,16 @@ func assertNotContains(t *testing.T, s, substr string) {
 	}
 }
 
-func assertContains(t *testing.T, s, substr string) {
-	if !strings.Contains(s, substr) {
-		t.Errorf("%q is not included in %s", substr, s)
+func assertContains(t *testing.T, s, substr string, shouldContain bool) {
+	isContain := strings.Contains(s, substr)
+	if shouldContain {
+		if !isContain {
+			t.Errorf("%q is not included in %s", substr, s)
+		}
+	} else {
+		if isContain {
+			t.Errorf("%q is included in %s", substr, s)
+		}
 	}
 }
 
@@ -146,7 +147,6 @@ func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
 	} else {
 		r = true
 	}
-
 	return
 }
 
