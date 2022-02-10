@@ -107,6 +107,15 @@ func TestCustomUserAgent(t *testing.T) {
 func TestQueryParam(t *testing.T) {
 	c := tc()
 
+	// Set query param at client level, should be overwritten at request level
+	c.SetCommonQueryParam("key1", "client").
+		SetCommonQueryParams(map[string]string{
+			"key2": "client",
+			"key3": "client",
+		}).
+		SetCommonQueryString("key4=client&key5=client").
+		AddCommonQueryParam("key5", "extra")
+
 	// SetQueryParam
 	resp, err := c.R().
 		SetQueryParam("key1", "value1").
@@ -114,14 +123,14 @@ func TestQueryParam(t *testing.T) {
 		SetQueryParam("key3", "value3").
 		Get("/query-parameter")
 	assertSucess(t, resp, err)
-	assertEqual(t, "key1=value1&key2=value2&key3=value3", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryString
 	resp, err = c.R().
 		SetQueryString("key1=value1&key2=value2&key3=value3").
 		Get("/query-parameter")
 	assertSucess(t, resp, err)
-	assertEqual(t, "key1=value1&key2=value2&key3=value3", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryParams
 	resp, err = c.R().
@@ -132,7 +141,7 @@ func TestQueryParam(t *testing.T) {
 		}).
 		Get("/query-parameter")
 	assertSucess(t, resp, err)
-	assertEqual(t, "key1=value1&key2=value2&key3=value3", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryParam & SetQueryParams & SetQueryString
 	resp, err = c.R().
