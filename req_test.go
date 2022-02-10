@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -14,52 +15,63 @@ func tc() *Client {
 	return C().EnableDebugLog()
 }
 
-func getTestDataPath() string {
+var testDataPath string
+
+func init() {
 	pwd, _ := os.Getwd()
-	return filepath.Join(pwd, ".testdata")
+	testDataPath = filepath.Join(pwd, ".testdata")
 }
 
-func createTestServer(fn func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(fn))
+var testServerMu sync.Mutex
+var testServer *httptest.Server
+
+func getTestServerURL() string {
+	if testServer != nil {
+		return testServer.URL
+	}
+	testServerMu.Lock()
+	defer testServerMu.Unlock()
+	testServer = createTestServer()
+	return testServer.URL
 }
 
-func createPostServer(t *testing.T) *httptest.Server {
-	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			w.Write([]byte("TestPost: text response"))
+func handlePost(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("TestPost: text response"))
+}
+
+func handleGet(w http.ResponseWriter, r *http.Request) {
+	switch r.URL.Path {
+	case "/":
+		w.Write([]byte("TestGet: text response"))
+	case "/no-content":
+		w.Write([]byte(""))
+	case "/json":
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"TestGet": "JSON response"}`))
+	case "/json-invalid":
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte("TestGet: Invalid JSON"))
+	case "/long-text":
+		w.Write([]byte("TestGet: text response with size > 30"))
+	case "/long-json":
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"TestGet": "JSON response with size > 30"}`))
+	case "/bad-request":
+		w.WriteHeader(http.StatusBadRequest)
+	case "/host-header":
+		w.Write([]byte(r.Host))
+	}
+}
+
+func createTestServer() *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			handleGet(w, r)
+		case http.MethodPost:
+			handlePost(w, r)
 		}
-	})
-	return ts
-}
-
-func createGetServer(t *testing.T) *httptest.Server {
-	ts := createTestServer(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			switch r.URL.Path {
-			case "/":
-				w.Write([]byte("TestGet: text response"))
-			case "/no-content":
-				w.Write([]byte(""))
-			case "/json":
-				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`{"TestGet": "JSON response"}`))
-			case "/json-invalid":
-				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte("TestGet: Invalid JSON"))
-			case "/long-text":
-				w.Write([]byte("TestGet: text response with size > 30"))
-			case "/long-json":
-				w.Header().Set("Content-Type", "application/json")
-				w.Write([]byte(`{"TestGet": "JSON response with size > 30"}`))
-			case "/bad-request":
-				w.WriteHeader(http.StatusBadRequest)
-			case "/host-header":
-				w.Write([]byte(r.Host))
-			}
-		}
-	})
-
-	return ts
+	}))
 }
 
 func assertStatus(t *testing.T, resp *Response, err error, statusCode int, status string) {

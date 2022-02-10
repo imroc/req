@@ -6,11 +6,8 @@ import (
 )
 
 func TestRequestDump(t *testing.T) {
-	ts := createPostServer(t)
-	defer ts.Close()
-
 	c := tc()
-	resp, err := c.R().EnableDump().SetBody(`test body`).Post(ts.URL)
+	resp, err := c.R().EnableDump().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump := resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
@@ -18,7 +15,7 @@ func TestRequestDump(t *testing.T) {
 	assertContains(t, dump, "HTTP/1.1 200 OK")
 	assertContains(t, dump, "TestPost: text response")
 
-	resp, err = c.R().EnableDumpWithoutRequest().SetBody(`test body`).Post(ts.URL)
+	resp, err = c.R().EnableDumpWithoutRequest().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertNotContains(t, dump, "POST / HTTP/1.1")
@@ -26,7 +23,7 @@ func TestRequestDump(t *testing.T) {
 	assertContains(t, dump, "HTTP/1.1 200 OK")
 	assertContains(t, dump, "TestPost: text response")
 
-	resp, err = c.R().EnableDumpWithoutRequestBody().SetBody(`test body`).Post(ts.URL)
+	resp, err = c.R().EnableDumpWithoutRequestBody().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
@@ -34,7 +31,7 @@ func TestRequestDump(t *testing.T) {
 	assertContains(t, dump, "HTTP/1.1 200 OK")
 	assertContains(t, dump, "TestPost: text response")
 
-	resp, err = c.R().EnableDumpWithoutResponse().SetBody(`test body`).Post(ts.URL)
+	resp, err = c.R().EnableDumpWithoutResponse().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
@@ -42,7 +39,7 @@ func TestRequestDump(t *testing.T) {
 	assertNotContains(t, dump, "HTTP/1.1 200 OK")
 	assertNotContains(t, dump, "TestPost: text response")
 
-	resp, err = c.R().EnableDumpWithoutResponseBody().SetBody(`test body`).Post(ts.URL)
+	resp, err = c.R().EnableDumpWithoutResponseBody().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
@@ -50,7 +47,7 @@ func TestRequestDump(t *testing.T) {
 	assertContains(t, dump, "HTTP/1.1 200 OK")
 	assertNotContains(t, dump, "TestPost: text response")
 
-	resp, err = c.R().EnableDumpWithoutHeader().SetBody(`test body`).Post(ts.URL)
+	resp, err = c.R().EnableDumpWithoutHeader().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertNotContains(t, dump, "POST / HTTP/1.1")
@@ -58,7 +55,7 @@ func TestRequestDump(t *testing.T) {
 	assertNotContains(t, dump, "HTTP/1.1 200 OK")
 	assertContains(t, dump, "TestPost: text response")
 
-	resp, err = c.R().EnableDumpWithoutBody().SetBody(`test body`).Post(ts.URL)
+	resp, err = c.R().EnableDumpWithoutBody().SetBody(`test body`).Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
@@ -72,7 +69,7 @@ func TestRequestDump(t *testing.T) {
 		ResponseHeader: false,
 		ResponseBody:   true,
 	}
-	resp, err = c.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(ts.URL)
+	resp, err = c.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
 	assertResponse(t, resp, err)
 	dump = resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1")
@@ -82,28 +79,26 @@ func TestRequestDump(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	ts := createGetServer(t)
-	defer ts.Close()
 
 	c := tc()
-	resp, err := c.R().Get(ts.URL)
+	resp, err := c.R().Get(getTestServerURL())
 	assertResponse(t, resp, err)
 	assertEqual(t, "TestGet: text response", resp.String())
 
-	resp, err = c.R().Get(ts.URL + "/no-content")
+	resp, err = c.R().Get(getTestServerURL() + "/no-content")
 	assertResponse(t, resp, err)
 	assertEqual(t, "", resp.String())
 
-	resp, err = c.R().Get(ts.URL + "/json")
+	resp, err = c.R().Get(getTestServerURL() + "/json")
 	assertResponse(t, resp, err)
 	assertEqual(t, `{"TestGet": "JSON response"}`, resp.String())
 	assertEqual(t, resp.GetContentType(), "application/json")
 
-	resp, err = c.R().Get(ts.URL + "/json-invalid")
+	resp, err = c.R().Get(getTestServerURL() + "/json-invalid")
 	assertResponse(t, resp, err)
 	assertEqual(t, `TestGet: Invalid JSON`, resp.String())
 	assertEqual(t, resp.GetContentType(), "application/json")
 
-	resp, err = c.R().Get(ts.URL + "/bad-request")
+	resp, err = c.R().Get(getTestServerURL() + "/bad-request")
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
 }
