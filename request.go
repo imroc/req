@@ -658,7 +658,7 @@ func SetBodyBytes(body []byte) *Request {
 // SetBodyBytes set the request body as []byte.
 func (r *Request) SetBodyBytes(body []byte) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
-	return r
+	return r.SetContentType(plainTextContentType)
 }
 
 // SetBodyString is a global wrapper methods which delegated
@@ -670,7 +670,7 @@ func SetBodyString(body string) *Request {
 // SetBodyString set the request body as string.
 func (r *Request) SetBodyString(body string) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(body))
-	return r
+	return r.SetContentType(plainTextContentType)
 }
 
 // SetBodyJsonString is a global wrapper methods which delegated
@@ -713,7 +713,8 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	return r.SetContentType(jsonContentType).SetBodyBytes(b)
+	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(b))
+	return r.SetContentType(jsonContentType)
 }
 
 // SetBodyXmlString is a global wrapper methods which delegated
@@ -756,7 +757,8 @@ func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	return r.SetContentType(xmlContentType).SetBodyBytes(b)
+	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(b))
+	return r.SetContentType(xmlContentType)
 }
 
 // SetContentType is a global wrapper methods which delegated
@@ -767,8 +769,7 @@ func SetContentType(contentType string) *Request {
 
 // SetContentType set the `Content-Type` for the request.
 func (r *Request) SetContentType(contentType string) *Request {
-	r.SetHeader(hdrContentTypeKey, contentType)
-	return r
+	return r.SetHeader(hdrContentTypeKey, contentType)
 }
 
 // Context method returns the Context if its already set in request
