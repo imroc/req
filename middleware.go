@@ -107,7 +107,7 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 
 func handleFormData(r *Request) {
 	r.SetContentType(formContentType)
-	r.RawRequest.Body = ioutil.NopCloser(strings.NewReader(r.FormData.Encode()))
+	r.setBodyBytes([]byte(r.FormData.Encode()))
 }
 
 func handleMarshalBody(c *Client, r *Request) error {
@@ -124,13 +124,13 @@ func handleMarshalBody(c *Client, r *Request) error {
 			if err != nil {
 				return err
 			}
-			r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
+			r.setBodyBytes(body)
 		} else {
 			body, err := c.jsonMarshal(r.marshalBody)
 			if err != nil {
 				return err
 			}
-			r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
+			r.setBodyBytes(body)
 		}
 		return nil
 	}
