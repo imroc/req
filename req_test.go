@@ -54,6 +54,12 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	case "/host-header":
 		w.Write([]byte(r.Host))
+	case "/user-agent":
+		w.Write([]byte(r.Header.Get(hdrUserAgentKey)))
+	case "/content-type":
+		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
+	case "/query-parameter":
+		w.Write([]byte(r.URL.RawQuery))
 	}
 }
 
@@ -76,7 +82,7 @@ func assertStatus(t *testing.T, resp *Response, err error, statusCode int, statu
 	assertEqual(t, status, resp.Status)
 }
 
-func assertResponse(t *testing.T, resp *Response, err error) {
+func assertSucess(t *testing.T, resp *Response, err error) {
 	assertError(t, err)
 	assertNotNil(t, resp)
 	assertNotNil(t, resp.Body)
@@ -100,12 +106,6 @@ func assertNotNil(t *testing.T, v interface{}) {
 func assertType(t *testing.T, typ, v interface{}) {
 	if reflect.DeepEqual(reflect.TypeOf(typ), reflect.TypeOf(v)) {
 		t.Errorf("Expected type %t, got %t", typ, v)
-	}
-}
-
-func assertNotContains(t *testing.T, s, substr string) {
-	if strings.Contains(s, substr) {
-		t.Errorf("%q is included in %s", substr, s)
 	}
 }
 
@@ -158,7 +158,6 @@ func isNil(v interface{}) bool {
 	if v == nil {
 		return true
 	}
-
 	rv := reflect.ValueOf(v)
 	kind := rv.Kind()
 	if kind >= reflect.Chan && kind <= reflect.Slice && rv.IsNil() {
