@@ -1,16 +1,16 @@
 <p align="center">
     <h1 align="center">Req</h1>
-    <p align="center">Simplified Golang HTTP client library with Black Magic, Less Code and More Efficiency.</p>
+    <p align="center">Simplified Golang HTTP client library with Black Magic, Less code and More efficiency.</p>
     <p align="center"><a href="https://pkg.go.dev/github.com/imroc/req/v3"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
 </p>
 
 ## News
 
-Brand-New version v3 is out, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
+Brand-New version v3 is released, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
 
 If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
 
-> v2 is a transitional version, due to some breaking changes were introduced during optmize user experience, checkout [v2 branch](https://github.com/imroc/req/tree/v2) if you want.
+> v2 is a transitional version, due to some breaking changes were introduced during optmize user experience, checkout v2 branch if you want.
 
 ## Table of Contents
 
