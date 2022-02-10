@@ -55,5 +55,5 @@ type FileUpload struct {
 	// but some servers may not follow the specification and
 	// requires `Content-Disposition` parameters more than just
 	// "name" and "filename".
-	ExtraContentDisposition *ContentDisposition // Usually
+	ExtraContentDisposition *ContentDisposition
 }
