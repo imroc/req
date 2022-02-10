@@ -1,6 +1,7 @@
 package req
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -46,6 +47,12 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleGetUserProfile(w http.ResponseWriter, r *http.Request) {
+	user := strings.TrimLeft(r.URL.Path, "/user")
+	user = strings.TrimSuffix(user, "/profile")
+	w.Write([]byte(fmt.Sprintf("%s's profile", user)))
+}
+
 func handleGet(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
@@ -60,6 +67,10 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
 	case "/query-parameter":
 		w.Write([]byte(r.URL.RawQuery))
+	default:
+		if strings.HasPrefix(r.URL.Path, "/user") {
+			handleGetUserProfile(w, r)
+		}
 	}
 }
 

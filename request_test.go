@@ -1,6 +1,7 @@
 package req
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 )
@@ -184,4 +185,13 @@ func TestQueryParam(t *testing.T) {
 		Get("/query-parameter")
 	assertSucess(t, resp, err)
 	assertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5", resp.String())
+}
+
+func TestPathParam(t *testing.T) {
+	username := "imroc"
+	resp, err := tr().
+		SetPathParam("username", username).
+		Get("/user/{username}/profile")
+	assertSucess(t, resp, err)
+	assertEqual(t, fmt.Sprintf("%s's profile", username), resp.String())
 }
