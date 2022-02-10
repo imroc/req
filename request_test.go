@@ -2,6 +2,7 @@ package req
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"strings"
@@ -66,7 +67,7 @@ func TestRequestDump(t *testing.T) {
 		var reqHeader, reqBody, respHeader, respBody bool
 		fn(r, &reqHeader, &reqBody, &respHeader, &respBody)
 		resp, err := r.SetBody(`test body`).Post("/")
-		assertSucess(t, resp, err)
+		assertSuccess(t, resp, err)
 		dump := resp.Dump()
 		assertContains(t, dump, "POST / HTTP/1.1", reqHeader)
 		assertContains(t, dump, "test body", reqBody)
@@ -81,7 +82,7 @@ func TestRequestDump(t *testing.T) {
 		ResponseBody:   true,
 	}
 	resp, err := tr().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	dump := resp.Dump()
 	assertContains(t, dump, "POST / HTTP/1.1", true)
 	assertContains(t, dump, "test body", false)
@@ -91,7 +92,7 @@ func TestRequestDump(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	resp, err := tr().Get("/")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "TestGet: text response", resp.String())
 }
 
@@ -100,15 +101,23 @@ func TestBadRequest(t *testing.T) {
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
 }
 
-func TestSetBodyJson(t *testing.T) {
+func TestSetBodyMarshal(t *testing.T) {
 	type User struct {
-		Username string `json:"username"`
+		Username string `json:"username" xml:"username"`
 	}
 
 	assertUsername := func(username string) func(e *echo) {
 		return func(e *echo) {
 			var user User
 			err := json.Unmarshal([]byte(e.Body), &user)
+			assertError(t, err)
+			assertEqual(t, username, user.Username)
+		}
+	}
+	assertUsernameXml := func(username string) func(e *echo) {
+		return func(e *echo) {
+			var user User
+			err := xml.Unmarshal([]byte(e.Body), &user)
 			assertError(t, err)
 			assertEqual(t, username, user.Username)
 		}
@@ -143,6 +152,14 @@ func TestSetBodyJson(t *testing.T) {
 			},
 			Assert: assertUsername("imroc"),
 		},
+		{ // SetBody with struct use xml
+			Set: func(r *Request) {
+				var user User
+				user.Username = "imroc"
+				r.SetBody(&user).SetContentType(xmlContentType)
+			},
+			Assert: assertUsernameXml("imroc"),
+		},
 		{ // SetBodyJsonMarshal with struct
 			Set: func(r *Request) {
 				var user User
@@ -151,6 +168,14 @@ func TestSetBodyJson(t *testing.T) {
 			},
 			Assert: assertUsername("imroc"),
 		},
+		{ // SetBodyXmlMarshal with struct
+			Set: func(r *Request) {
+				var user User
+				user.Username = "imroc"
+				r.SetBodyXmlMarshal(&user)
+			},
+			Assert: assertUsernameXml("imroc"),
+		},
 	}
 
 	for _, c := range testCases {
@@ -158,7 +183,7 @@ func TestSetBodyJson(t *testing.T) {
 		c.Set(r)
 		var e echo
 		resp, err := r.SetResult(&e).Post("/echo")
-		assertSucess(t, resp, err)
+		assertSuccess(t, resp, err)
 		c.Assert(&e)
 	}
 }
@@ -187,7 +212,7 @@ func TestSetBodyContent(t *testing.T) {
 		fn(r)
 		var e echo
 		resp, err := r.SetResult(&e).Post("/echo")
-		assertSucess(t, resp, err)
+		assertSuccess(t, resp, err)
 		assertEqual(t, plainTextContentType, e.Header.Get(hdrContentTypeKey))
 		assertEqual(t, testBody, e.Body)
 	}
@@ -196,7 +221,7 @@ func TestSetBodyContent(t *testing.T) {
 	testBodyReader := strings.NewReader(testBody)
 	e = echo{}
 	resp, err := tr().SetBody(testBodyReader).SetResult(&e).Post("/echo")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, testBody, e.Body)
 	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
 }
@@ -213,7 +238,7 @@ func TestCookie(t *testing.T) {
 			Value: "value2",
 		},
 	).SetResult(&headers).Get("/header")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "cookie1=value1; cookie2=value2", headers.Get("Cookie"))
 }
 
@@ -223,7 +248,7 @@ func TestAuth(t *testing.T) {
 		SetBasicAuth("imroc", "123456").
 		SetResult(&headers).
 		Get("/header")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", headers.Get("Authorization"))
 
 	token := "NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4"
@@ -232,7 +257,7 @@ func TestAuth(t *testing.T) {
 		SetBearerAuthToken(token).
 		SetResult(&headers).
 		Get("/header")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "Bearer "+token, headers.Get("Authorization"))
 }
 
@@ -240,7 +265,7 @@ func TestHeader(t *testing.T) {
 	// Set User-Agent
 	customUserAgent := "My Custom User Agent"
 	resp, err := tr().SetHeader(hdrUserAgentKey, customUserAgent).Get("/user-agent")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, customUserAgent, resp.String())
 
 	// Set custom header
@@ -252,7 +277,7 @@ func TestHeader(t *testing.T) {
 			"header3": "value3",
 		}).SetResult(&headers).
 		Get("/header")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "value1", headers.Get("header1"))
 	assertEqual(t, "value2", headers.Get("header2"))
 	assertEqual(t, "value3", headers.Get("header3"))
@@ -276,14 +301,14 @@ func TestQueryParam(t *testing.T) {
 		SetQueryParam("key2", "value2").
 		SetQueryParam("key3", "value3").
 		Get("/query-parameter")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryString
 	resp, err = c.R().
 		SetQueryString("key1=value1&key2=value2&key3=value3").
 		Get("/query-parameter")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryParams
@@ -294,7 +319,7 @@ func TestQueryParam(t *testing.T) {
 			"key3": "value3",
 		}).
 		Get("/query-parameter")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryParam & SetQueryParams & SetQueryString
@@ -306,7 +331,7 @@ func TestQueryParam(t *testing.T) {
 		}).
 		SetQueryString("key4=value4&key5=value5").
 		Get("/query-parameter")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=value4&key5=value5", resp.String())
 
 	// Set same param to override
@@ -321,7 +346,7 @@ func TestQueryParam(t *testing.T) {
 		SetQueryParam("key2", "value22").
 		SetQueryParam("key4", "value44").
 		Get("/query-parameter")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "key1=value11&key2=value22&key3=value3&key4=value44&key5=value5", resp.String())
 
 	// Add same param without override
@@ -336,7 +361,7 @@ func TestQueryParam(t *testing.T) {
 		AddQueryParam("key2", "value22").
 		AddQueryParam("key4", "value44").
 		Get("/query-parameter")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5", resp.String())
 }
 
@@ -345,6 +370,6 @@ func TestPathParam(t *testing.T) {
 	resp, err := tr().
 		SetPathParam("username", username).
 		Get("/user/{username}/profile")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertEqual(t, fmt.Sprintf("%s's profile", username), resp.String())
 }

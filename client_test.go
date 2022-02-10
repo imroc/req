@@ -65,7 +65,7 @@ func TestClientDump(t *testing.T) {
 		var reqHeader, reqBody, respHeader, respBody bool
 		fn(c, &reqHeader, &reqBody, &respHeader, &respBody)
 		resp, err := c.R().SetBody(`test body`).Post("/")
-		assertSucess(t, resp, err)
+		assertSuccess(t, resp, err)
 		dump := buf.String()
 		assertContains(t, dump, "POST / HTTP/1.1", reqHeader)
 		assertContains(t, dump, "test body", reqBody)
@@ -84,7 +84,7 @@ func TestClientDump(t *testing.T) {
 	}
 	c.SetCommonDumpOptions(opt).EnableDumpAll()
 	resp, err := c.R().SetBody("test body").Post("/")
-	assertSucess(t, resp, err)
+	assertSuccess(t, resp, err)
 	assertContains(t, buf.String(), "POST / HTTP/1.1", true)
 	assertContains(t, buf.String(), "test body", false)
 	assertContains(t, buf.String(), "HTTP/1.1 200 OK", false)

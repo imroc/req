@@ -5,23 +5,17 @@ import (
 	"encoding/base64"
 	"os"
 	"reflect"
-	"regexp"
 	"strings"
-)
-
-var (
-	jsonCheck = regexp.MustCompile(`(?i:(application|text)/(json|.*\+json|json\-.*)(;|$))`)
-	xmlCheck  = regexp.MustCompile(`(?i:(application|text)/(xml|.*\+xml)(;|$))`)
 )
 
 // IsJSONType method is to check JSON content type or not
 func IsJSONType(ct string) bool {
-	return jsonCheck.MatchString(ct)
+	return strings.Contains(ct, "json")
 }
 
 // IsXMLType method is to check XML content type or not
 func IsXMLType(ct string) bool {
-	return xmlCheck.MatchString(ct)
+	return strings.Contains(ct, "xml")
 }
 
 func GetPointer(v interface{}) interface{} {

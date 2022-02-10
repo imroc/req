@@ -124,13 +124,13 @@ func handleMarshalBody(c *Client, r *Request) error {
 			if err != nil {
 				return err
 			}
-			r.SetBodyBytes(body)
+			r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 		} else {
 			body, err := c.jsonMarshal(r.marshalBody)
 			if err != nil {
 				return err
 			}
-			r.SetBodyBytes(body)
+			r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 		}
 		return nil
 	}

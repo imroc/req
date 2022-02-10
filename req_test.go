@@ -43,8 +43,8 @@ func getTestServerURL() string {
 }
 
 type echo struct {
-	Header http.Header `json:"header"`
-	Body   string      `json:"body"`
+	Header http.Header `json:"header" xml:"header"`
+	Body   string      `json:"body" xml:"body"`
 }
 
 func handlePost(w http.ResponseWriter, r *http.Request) {
@@ -57,8 +57,8 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 			Header: r.Header,
 			Body:   string(b),
 		}
-		result, _ := json.Marshal(&e)
 		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		result, _ := json.Marshal(&e)
 		w.Write(result)
 	}
 }
@@ -113,7 +113,7 @@ func assertStatus(t *testing.T, resp *Response, err error, statusCode int, statu
 	assertEqual(t, status, resp.Status)
 }
 
-func assertSucess(t *testing.T, resp *Response, err error) {
+func assertSuccess(t *testing.T, resp *Response, err error) {
 	assertError(t, err)
 	assertNotNil(t, resp)
 	assertNotNil(t, resp.Body)
