@@ -98,11 +98,26 @@ func TestBadRequest(t *testing.T) {
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
 }
 
-func TestCustomUserAgent(t *testing.T) {
+func TestHeader(t *testing.T) {
+	// Set User-Agent
 	customUserAgent := "My Custom User Agent"
 	resp, err := tr().SetHeader(hdrUserAgentKey, customUserAgent).Get("/user-agent")
 	assertSucess(t, resp, err)
 	assertEqual(t, customUserAgent, resp.String())
+
+	// Set custom header
+	headers := make(http.Header)
+	resp, err = tr().
+		SetHeader("header1", "value1").
+		SetHeaders(map[string]string{
+			"header2": "value2",
+			"header3": "value3",
+		}).SetResult(&headers).
+		Get("/header")
+	assertSucess(t, resp, err)
+	assertEqual(t, "value1", headers.Get("header1"))
+	assertEqual(t, "value2", headers.Get("header2"))
+	assertEqual(t, "value3", headers.Get("header3"))
 }
 
 func TestQueryParam(t *testing.T) {

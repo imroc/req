@@ -1,6 +1,7 @@
 package req
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -61,6 +62,10 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	case "/host-header":
 		w.Write([]byte(r.Host))
+	case "/header":
+		b, _ := json.Marshal(r.Header)
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Write(b)
 	case "/user-agent":
 		w.Write([]byte(r.Header.Get(hdrUserAgentKey)))
 	case "/content-type":
@@ -69,6 +74,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.URL.RawQuery))
 	default:
 		if strings.HasPrefix(r.URL.Path, "/user") {
+			r.Cookies()
 			handleGetUserProfile(w, r)
 		}
 	}
