@@ -10,7 +10,7 @@ Brand-New version v3 is released, which is completely rewritten, bringing revolu
 
 If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
 
-> v2 is a transitional version, due to some breaking changes were introduced during optmize user experience, checkout v2 branch if you want.
+> v2 is a transitional version, due to some breaking changes were introduced during optmize user experience
 
 ## Table of Contents
 
