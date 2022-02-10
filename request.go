@@ -177,8 +177,7 @@ func SetFileReader(paramName, filePath string, reader io.Reader) *Request {
 
 // SetFileReader set up a multipart form with a reader to upload file.
 func (r *Request) SetFileReader(paramName, filename string, reader io.Reader) *Request {
-	r.isMultiPart = true
-	r.uploadFiles = append(r.uploadFiles, &FileUpload{
+	r.SetFileUpload(FileUpload{
 		ParamName: paramName,
 		FileName:  filename,
 		File:      reader,
