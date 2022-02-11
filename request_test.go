@@ -597,3 +597,21 @@ func TestAutoDetectRequestContentType(t *testing.T) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, "image/png", resp.Request.Headers.Get(hdrContentTypeKey))
 }
+
+func TestUploadMultipart(t *testing.T) {
+	m := make(map[string]interface{})
+	resp, err := tc().R().
+		SetFile("file", getTestFilePath("sample-image.png")).
+		SetFile("file", getTestFilePath("sample-file.txt")).
+		SetFormData(map[string]string{
+			"param1": "value1",
+			"param2": "value2",
+		}).
+		SetResult(&m).
+		Post("/multipart")
+	assertSuccess(t, resp, err)
+	assertContains(t, resp.String(), "sample-image.png", true)
+	assertContains(t, resp.String(), "sample-file.txt", true)
+	assertContains(t, resp.String(), "value1", true)
+	assertContains(t, resp.String(), "value2", true)
+}

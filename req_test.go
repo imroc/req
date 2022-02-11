@@ -59,9 +59,13 @@ func getTestServerURL() string {
 }
 
 func getTestFileContent(t *testing.T, filename string) []byte {
-	b, err := ioutil.ReadFile(filepath.Join(testDataPath, filename))
+	b, err := ioutil.ReadFile(getTestFilePath(filename))
 	assertError(t, err)
 	return b
+}
+
+func getTestFilePath(filename string) string {
+	return filepath.Join(testDataPath, filename)
 }
 
 type echo struct {
@@ -75,6 +79,14 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("TestPost: text response"))
 	case "/raw-upload":
 		io.Copy(ioutil.Discard, r.Body)
+	case "/multipart":
+		r.ParseMultipartForm(10e6)
+		m := make(map[string]interface{})
+		m["values"] = r.MultipartForm.Value
+		m["files"] = r.MultipartForm.File
+		ret, _ := json.Marshal(&m)
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Write(ret)
 	case "/search":
 		handleSearch(w, r)
 	case "/redirect":
