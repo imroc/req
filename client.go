@@ -1297,9 +1297,9 @@ func C() *Client {
 		Timeout:   2 * time.Minute,
 	}
 	beforeRequest := []RequestMiddleware{
+		parseRequestHeader,
 		parseRequestURL,
 		parseRequestBody,
-		parseRequestHeader,
 		parseRequestCookie,
 	}
 	afterResponse := []ResponseMiddleware{
@@ -1329,7 +1329,7 @@ func C() *Client {
 }
 
 func setupRequest(r *Request) {
-	setRequestURL(r.RawRequest, r.URL)
+	setRequestURL(r, r.URL)
 	setRequestHeaderAndCookie(r)
 	setTrace(r)
 	setContext(r)
@@ -1405,14 +1405,18 @@ func setRequestHeaderAndCookie(r *Request) {
 	}
 }
 
-func setRequestURL(r *http.Request, url string) error {
+func setRequestURL(r *Request, url string) error {
 	// The host's colon:port should be normalized. See Issue 14836.
 	u, err := urlpkg.Parse(url)
 	if err != nil {
 		return err
 	}
 	u.Host = removeEmptyPort(u.Host)
-	r.URL = u
-	r.Host = u.Host
+	if host := r.getHeader("Host"); host != "" {
+		r.RawRequest.Host = host // Host header override
+	} else {
+		r.RawRequest.Host = u.Host
+	}
+	r.RawRequest.URL = u
 	return nil
 }

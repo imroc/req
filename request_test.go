@@ -506,3 +506,14 @@ func testForm(t *testing.T, c *Client) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, "roc@imroc.cc", userInfo.Email)
 }
+
+func TestHostHeaderOverride(t *testing.T) {
+	testHostHeaderOverride(t, tc())
+	testHostHeaderOverride(t, tc().EnableForceHTTP1())
+}
+
+func testHostHeaderOverride(t *testing.T, c *Client) {
+	resp, err := c.R().SetHeader("Host", "testhostname").Get("/host-header")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "testhostname", resp.String())
+}

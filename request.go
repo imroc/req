@@ -45,6 +45,13 @@ type Request struct {
 	dumpBuffer     *bytes.Buffer
 }
 
+func (r *Request) getHeader(key string) string {
+	if r.Headers == nil {
+		return ""
+	}
+	return r.Headers.Get(key)
+}
+
 // TraceInfo returns the trace information, only available if trace is enabled
 // (see Request.EnableTrace and Client.EnableTraceAll).
 func (r *Request) TraceInfo() TraceInfo {
