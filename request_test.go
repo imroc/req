@@ -517,3 +517,37 @@ func testHostHeaderOverride(t *testing.T, c *Client) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, "testhostname", resp.String())
 }
+
+func TestTraceInfo(t *testing.T) {
+	testTraceInfo(t, tc())
+	testTraceInfo(t, tc().EnableForceHTTP1())
+}
+
+func testTraceInfo(t *testing.T, c *Client) {
+	// enable trace at client level
+	c.EnableTraceAll()
+	resp, err := c.R().Get("/")
+	assertSuccess(t, resp, err)
+	ti := resp.TraceInfo()
+	assertEqual(t, true, ti.TotalTime > 0)
+	assertEqual(t, true, ti.TCPConnectTime > 0)
+	assertEqual(t, true, ti.ConnectTime > 0)
+	assertEqual(t, true, ti.FirstResponseTime > 0)
+	assertEqual(t, true, ti.ResponseTime > 0)
+	assertNotNil(t, ti.RemoteAddr)
+
+	// disable trace at client level
+	c.DisableTraceAll()
+	resp, err = c.R().Get("/")
+	assertSuccess(t, resp, err)
+	ti = resp.TraceInfo()
+	assertEqual(t, false, ti.TotalTime > 0)
+	assertNil(t, ti.RemoteAddr)
+
+	// enable trace at request level
+	resp, err = c.R().EnableTrace().Get("/")
+	assertSuccess(t, resp, err)
+	ti = resp.TraceInfo()
+	assertEqual(t, true, ti.TotalTime > 0)
+	assertNotNil(t, ti.RemoteAddr)
+}
