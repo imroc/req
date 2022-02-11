@@ -32,17 +32,18 @@ type Request struct {
 	RawRequest  *http.Request
 	StartTime   time.Time
 
-	dumpOptions    *DumpOptions
-	marshalBody    interface{}
-	ctx            context.Context
-	isMultiPart    bool
-	uploadFiles    []*FileUpload
-	uploadReader   []io.ReadCloser
-	outputFile     string
-	isSaveResponse bool
-	output         io.Writer
-	trace          *clientTrace
-	dumpBuffer     *bytes.Buffer
+	dumpOptions        *DumpOptions
+	marshalBody        interface{}
+	ctx                context.Context
+	isMultiPart        bool
+	uploadFiles        []*FileUpload
+	uploadReader       []io.ReadCloser
+	outputFile         string
+	isSaveResponse     bool
+	output             io.Writer
+	trace              *clientTrace
+	dumpBuffer         *bytes.Buffer
+	responseReturnTime time.Time
 }
 
 func (r *Request) getHeader(key string) string {
@@ -62,20 +63,32 @@ func (r *Request) TraceInfo() TraceInfo {
 	}
 
 	ti := TraceInfo{
-		DNSLookupTime:     ct.dnsDone.Sub(ct.dnsStart),
-		TLSHandshakeTime:  ct.tlsHandshakeDone.Sub(ct.tlsHandshakeStart),
-		FirstResponseTime: ct.gotFirstResponseByte.Sub(ct.gotConn),
-		IsConnReused:      ct.gotConnInfo.Reused,
-		IsConnWasIdle:     ct.gotConnInfo.WasIdle,
-		ConnIdleTime:      ct.gotConnInfo.IdleTime,
+		IsConnReused:  ct.gotConnInfo.Reused,
+		IsConnWasIdle: ct.gotConnInfo.WasIdle,
+		ConnIdleTime:  ct.gotConnInfo.IdleTime,
 	}
 
-	// Calculate the total time accordingly,
-	// when connection is reused
+	endTime := ct.endTime
+	if endTime.IsZero() { // in case timeout
+		endTime = r.responseReturnTime
+	}
+
+	if !ct.tlsHandshakeStart.IsZero() {
+		if !ct.tlsHandshakeDone.IsZero() {
+			ti.TLSHandshakeTime = ct.tlsHandshakeDone.Sub(ct.tlsHandshakeStart)
+		} else {
+			ti.TLSHandshakeTime = endTime.Sub(ct.tlsHandshakeStart)
+		}
+	}
+
 	if ct.gotConnInfo.Reused {
-		ti.TotalTime = ct.endTime.Sub(ct.getConn)
+		ti.TotalTime = endTime.Sub(ct.getConn)
 	} else {
-		ti.TotalTime = ct.endTime.Sub(ct.dnsStart)
+		if ct.dnsStart.IsZero() {
+			ti.TotalTime = endTime.Sub(r.StartTime)
+		} else {
+			ti.TotalTime = endTime.Sub(ct.dnsStart)
+		}
 	}
 
 	// Only calculate on successful connections
@@ -90,7 +103,8 @@ func (r *Request) TraceInfo() TraceInfo {
 
 	// Only calculate on successful connections
 	if !ct.gotFirstResponseByte.IsZero() {
-		ti.ResponseTime = ct.endTime.Sub(ct.gotFirstResponseByte)
+		ti.FirstResponseTime = ct.gotFirstResponseByte.Sub(ct.gotConn)
+		ti.ResponseTime = endTime.Sub(ct.gotFirstResponseByte)
 	}
 
 	// Capture remote address info when connection is non-nil
@@ -433,8 +447,11 @@ func (r *Request) appendError(err error) {
 // Send fires http request and return the *Response which is always
 // not nil, and the error is not nil if some error happens.
 func (r *Request) Send(method, url string) (*Response, error) {
+	defer func() {
+		r.responseReturnTime = time.Now()
+	}()
 	if r.error != nil {
-		return &Response{}, r.error
+		return &Response{Request: r}, r.error
 	}
 	r.RawRequest.Method = method
 	r.URL = url

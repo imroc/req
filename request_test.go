@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRequestDump(t *testing.T) {
@@ -531,6 +532,7 @@ func testTraceInfo(t *testing.T, c *Client) {
 	ti := resp.TraceInfo()
 	assertEqual(t, true, ti.TotalTime > 0)
 	assertEqual(t, true, ti.TCPConnectTime > 0)
+	assertEqual(t, true, ti.TLSHandshakeTime > 0)
 	assertEqual(t, true, ti.ConnectTime > 0)
 	assertEqual(t, true, ti.FirstResponseTime > 0)
 	assertEqual(t, true, ti.ResponseTime > 0)
@@ -550,4 +552,27 @@ func testTraceInfo(t *testing.T, c *Client) {
 	ti = resp.TraceInfo()
 	assertEqual(t, true, ti.TotalTime > 0)
 	assertNotNil(t, ti.RemoteAddr)
+}
+
+func TestTraceOnTimeout(t *testing.T) {
+	testTraceOnTimeout(t, C())
+	testTraceOnTimeout(t, C().EnableForceHTTP1())
+}
+
+func testTraceOnTimeout(t *testing.T, c *Client) {
+	c.EnableTraceAll().SetTimeout(100 * time.Millisecond)
+
+	resp, err := c.R().Get("http://req-nowhere.local")
+	assertNotNil(t, err)
+	assertNotNil(t, resp)
+
+	tr := resp.TraceInfo()
+	assertEqual(t, true, tr.DNSLookupTime >= 0)
+	assertEqual(t, true, tr.ConnectTime == 0)
+	assertEqual(t, true, tr.TLSHandshakeTime == 0)
+	assertEqual(t, true, tr.TCPConnectTime == 0)
+	assertEqual(t, true, tr.FirstResponseTime == 0)
+	assertEqual(t, true, tr.ResponseTime == 0)
+	assertEqual(t, true, tr.TotalTime > 0)
+	assertEqual(t, true, tr.TotalTime == resp.TotalTime())
 }
