@@ -10,6 +10,11 @@ import (
 )
 
 func TestRequestDump(t *testing.T) {
+	testRequestDump(t, tc())
+	testRequestDump(t, tc().EnableForceHTTP1())
+}
+
+func testRequestDump(t *testing.T, c *Client) {
 	testCases := []func(r *Request, reqHeader, reqBody, respHeader, respBody *bool){
 		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
 			r.EnableDump()
@@ -63,7 +68,7 @@ func TestRequestDump(t *testing.T) {
 	}
 
 	for _, fn := range testCases {
-		r := tr()
+		r := c.R()
 		var reqHeader, reqBody, respHeader, respBody bool
 		fn(r, &reqHeader, &reqBody, &respHeader, &respBody)
 		resp, err := r.SetBody(`test body`).Post("/")
@@ -81,7 +86,7 @@ func TestRequestDump(t *testing.T) {
 		ResponseHeader: false,
 		ResponseBody:   true,
 	}
-	resp, err := tr().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
+	resp, err := c.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
 	assertSuccess(t, resp, err)
 	dump := resp.Dump()
 	assertContains(t, dump, "user-agent", true)
@@ -91,17 +96,32 @@ func TestRequestDump(t *testing.T) {
 }
 
 func TestGet(t *testing.T) {
-	resp, err := tr().Get("/")
+	testGet(t, tc())
+	testGet(t, tc().EnableForceHTTP1())
+}
+
+func testGet(t *testing.T, c *Client) {
+	resp, err := c.R().Get("/")
 	assertSuccess(t, resp, err)
 	assertEqual(t, "TestGet: text response", resp.String())
 }
 
 func TestBadRequest(t *testing.T) {
-	resp, err := tr().Get("/bad-request")
+	testBadRequest(t, tc())
+	testBadRequest(t, tc().EnableForceHTTP1())
+}
+
+func testBadRequest(t *testing.T, c *Client) {
+	resp, err := c.R().Get("/bad-request")
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
 }
 
 func TestSetBodyMarshal(t *testing.T) {
+	testSetBodyMarshal(t, tc())
+	testSetBodyMarshal(t, tc().EnableForceHTTP1())
+}
+
+func testSetBodyMarshal(t *testing.T, c *Client) {
 	type User struct {
 		Username string `json:"username" xml:"username"`
 	}
@@ -178,17 +198,22 @@ func TestSetBodyMarshal(t *testing.T) {
 		},
 	}
 
-	for _, c := range testCases {
-		r := tr()
-		c.Set(r)
+	for _, cs := range testCases {
+		r := c.R()
+		cs.Set(r)
 		var e echo
 		resp, err := r.SetResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
-		c.Assert(&e)
+		cs.Assert(&e)
 	}
 }
 
 func TestSetBodyContent(t *testing.T) {
+	testSetBodyContent(t, tc())
+	testSetBodyContent(t, tc().EnableForceHTTP1())
+}
+
+func testSetBodyContent(t *testing.T, c *Client) {
 	var e echo
 	testBody := "test body"
 
@@ -208,7 +233,7 @@ func TestSetBodyContent(t *testing.T) {
 	}
 
 	for _, fn := range testCases {
-		r := tr()
+		r := c.R()
 		fn(r)
 		var e echo
 		resp, err := r.SetResult(&e).Post("/echo")
@@ -220,15 +245,20 @@ func TestSetBodyContent(t *testing.T) {
 	// Set Reader
 	testBodyReader := strings.NewReader(testBody)
 	e = echo{}
-	resp, err := tr().SetBody(testBodyReader).SetResult(&e).Post("/echo")
+	resp, err := c.R().SetBody(testBodyReader).SetResult(&e).Post("/echo")
 	assertSuccess(t, resp, err)
 	assertEqual(t, testBody, e.Body)
 	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
 }
 
 func TestCookie(t *testing.T) {
+	testCookie(t, tc())
+	testCookie(t, tc().EnableForceHTTP1())
+}
+
+func testCookie(t *testing.T, c *Client) {
 	headers := make(http.Header)
-	resp, err := tr().SetCookies(
+	resp, err := c.R().SetCookies(
 		&http.Cookie{
 			Name:  "cookie1",
 			Value: "value1",
@@ -243,8 +273,13 @@ func TestCookie(t *testing.T) {
 }
 
 func TestAuth(t *testing.T) {
+	testAuth(t, tc())
+	testAuth(t, tc().EnableForceHTTP1())
+}
+
+func testAuth(t *testing.T, c *Client) {
 	headers := make(http.Header)
-	resp, err := tr().
+	resp, err := c.R().
 		SetBasicAuth("imroc", "123456").
 		SetResult(&headers).
 		Get("/header")
@@ -253,7 +288,7 @@ func TestAuth(t *testing.T) {
 
 	token := "NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4"
 	headers = make(http.Header)
-	resp, err = tr().
+	resp, err = c.R().
 		SetBearerAuthToken(token).
 		SetResult(&headers).
 		Get("/header")
@@ -262,15 +297,20 @@ func TestAuth(t *testing.T) {
 }
 
 func TestHeader(t *testing.T) {
+	testHeader(t, tc())
+	testHeader(t, tc().EnableForceHTTP1())
+}
+
+func testHeader(t *testing.T, c *Client) {
 	// Set User-Agent
 	customUserAgent := "My Custom User Agent"
-	resp, err := tr().SetHeader(hdrUserAgentKey, customUserAgent).Get("/user-agent")
+	resp, err := c.R().SetHeader(hdrUserAgentKey, customUserAgent).Get("/user-agent")
 	assertSuccess(t, resp, err)
 	assertEqual(t, customUserAgent, resp.String())
 
 	// Set custom header
 	headers := make(http.Header)
-	resp, err = tr().
+	resp, err = c.R().
 		SetHeader("header1", "value1").
 		SetHeaders(map[string]string{
 			"header2": "value2",
@@ -284,8 +324,11 @@ func TestHeader(t *testing.T) {
 }
 
 func TestQueryParam(t *testing.T) {
-	c := tc()
+	testQueryParam(t, tc())
+	testQueryParam(t, tc().EnableForceHTTP1())
+}
 
+func testQueryParam(t *testing.T, c *Client) {
 	// Set query param at client level, should be overwritten at request level
 	c.SetCommonQueryParam("key1", "client").
 		SetCommonQueryParams(map[string]string{
@@ -366,8 +409,13 @@ func TestQueryParam(t *testing.T) {
 }
 
 func TestPathParam(t *testing.T) {
+	testPathParam(t, tc())
+	testPathParam(t, tc().EnableForceHTTP1())
+}
+
+func testPathParam(t *testing.T, c *Client) {
 	username := "imroc"
-	resp, err := tr().
+	resp, err := c.R().
 		SetPathParam("username", username).
 		Get("/user/{username}/profile")
 	assertSuccess(t, resp, err)

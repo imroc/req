@@ -6,6 +6,15 @@ import (
 )
 
 func TestClientDump(t *testing.T) {
+	testClientDump(t, func() *Client {
+		return tc()
+	})
+	testClientDump(t, func() *Client {
+		return tc().EnableForceHTTP1()
+	})
+}
+
+func testClientDump(t *testing.T, newClient func() *Client) {
 	testCases := []func(r *Client, reqHeader, reqBody, respHeader, respBody *bool){
 		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
 			r.EnableDumpAll()
@@ -59,7 +68,7 @@ func TestClientDump(t *testing.T) {
 	}
 
 	for _, fn := range testCases {
-		c := tc()
+		c := newClient()
 		buf := new(bytes.Buffer)
 		c.EnableDumpAllTo(buf)
 		var reqHeader, reqBody, respHeader, respBody bool
@@ -73,7 +82,7 @@ func TestClientDump(t *testing.T) {
 		assertContains(t, dump, "testpost: text response", respBody)
 	}
 
-	c := tc()
+	c := newClient()
 	buf := new(bytes.Buffer)
 	opt := &DumpOptions{
 		RequestHeader:  true,
