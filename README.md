@@ -856,7 +856,7 @@ client.SetProxyURL("http://myproxy:8080")
 
 // Custmize the proxy function with your own implementation
 client.SetProxy(func(request *http.Request) (*url.URL, error) {
-    //...
+    // ...
 })
 
 // Disable proxy

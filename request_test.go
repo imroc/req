@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -476,4 +477,32 @@ func testError(t *testing.T, c *Client) {
 		Get("/search")
 	assertIsError(t, resp, err)
 	assertEqual(t, 10001, errMsg.ErrorCode)
+}
+
+func TestForm(t *testing.T) {
+	testForm(t, tc())
+	testForm(t, tc().EnableForceHTTP1())
+}
+
+func testForm(t *testing.T, c *Client) {
+	var userInfo UserInfo
+	resp, err := c.R().
+		SetFormData(map[string]string{
+			"username": "imroc",
+			"type":     "xml",
+		}).
+		SetResult(&userInfo).
+		Post("/search")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
+
+	v := make(url.Values)
+	v.Add("username", "imroc")
+	v.Add("type", "xml")
+	resp, err = c.R().
+		SetFormDataFromValues(v).
+		SetResult(&userInfo).
+		Post("/search")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
 }
