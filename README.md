@@ -870,6 +870,8 @@ client.SetProxy(nil)
 * [ ] Support retry.
 * [ ] Support unix socket.
 * [ ] Support h2c.
+* [ ] Make videos.
+* [ ] Design a logo.
 * [ ] Support HTTP3.
 
 ## <a name="License">License</a>
