@@ -2,6 +2,7 @@ package req
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -65,6 +66,8 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
 		w.Write([]byte("TestPost: text response"))
+	case "/search":
+		handleSearch(w, r)
 	case "/echo":
 		b, _ := ioutil.ReadAll(r.Body)
 		e := echo{
@@ -81,6 +84,53 @@ func handleGetUserProfile(w http.ResponseWriter, r *http.Request) {
 	user := strings.TrimLeft(r.URL.Path, "/user")
 	user = strings.TrimSuffix(user, "/profile")
 	w.Write([]byte(fmt.Sprintf("%s's profile", user)))
+}
+
+type UserInfo struct {
+	Username string `json:"username" xml:"username"`
+	Email    string `json:"email" xml:"email"`
+}
+
+type ErrorMessage struct {
+	ErrorCode    int    `json:"error_code" xml:"ErrorCode"`
+	ErrorMessage string `json:"error_message" xml:"ErrorMessage"`
+}
+
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	username := r.FormValue("username")
+	tp := r.FormValue("type")
+	var marshalFunc func(v interface{}) ([]byte, error)
+	if tp == "xml" {
+		w.Header().Set(hdrContentTypeKey, xmlContentType)
+		marshalFunc = xml.Marshal
+	} else {
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		marshalFunc = json.Marshal
+	}
+	var result interface{}
+	switch username {
+	case "":
+		w.WriteHeader(http.StatusBadRequest)
+		result = &ErrorMessage{
+			ErrorCode:    10000,
+			ErrorMessage: "need username",
+		}
+	case "imroc":
+		w.WriteHeader(http.StatusOK)
+		result = &UserInfo{
+			Username: "imroc",
+			Email:    "roc@imroc.cc",
+		}
+	default:
+		w.WriteHeader(http.StatusNotFound)
+		result = &ErrorMessage{
+			ErrorCode:    10001,
+			ErrorMessage: "username not exists",
+		}
+	}
+	data, _ := marshalFunc(result)
+	w.Write(data)
 }
 
 func handleGet(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +151,8 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
 	case "/query-parameter":
 		w.Write([]byte(r.URL.RawQuery))
+	case "/search":
+		handleSearch(w, r)
 	default:
 		if strings.HasPrefix(r.URL.Path, "/user") {
 			handleGetUserProfile(w, r)
@@ -122,6 +174,18 @@ func assertSuccess(t *testing.T, resp *Response, err error) {
 	assertNotNil(t, resp.Body)
 	assertEqual(t, http.StatusOK, resp.StatusCode)
 	assertEqual(t, "200 OK", resp.Status)
+	if !resp.IsSuccess() {
+		t.Error("Response.IsSuccess should return true")
+	}
+}
+
+func assertIsError(t *testing.T, resp *Response, err error) {
+	assertError(t, err)
+	assertNotNil(t, resp)
+	assertNotNil(t, resp.Body)
+	if !resp.IsError() {
+		t.Error("Response.IsError should return true")
+	}
 }
 
 func assertNil(t *testing.T, v interface{}) {

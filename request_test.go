@@ -421,3 +421,59 @@ func testPathParam(t *testing.T, c *Client) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, fmt.Sprintf("%s's profile", username), resp.String())
 }
+
+func TestSuccess(t *testing.T) {
+	testSuccess(t, tc())
+	testSuccess(t, tc().EnableForceHTTP1())
+}
+
+func testSuccess(t *testing.T, c *Client) {
+	var userInfo UserInfo
+	resp, err := c.R().
+		SetQueryParam("username", "imroc").
+		SetResult(&userInfo).
+		Get("/search")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
+
+	userInfo = UserInfo{}
+	resp, err = c.R().
+		SetQueryParam("username", "imroc").
+		SetQueryParam("type", "xml"). // auto unmarshal to xml
+		SetResult(&userInfo).EnableDump().
+		Get("/search")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
+}
+
+func TestError(t *testing.T) {
+	testError(t, tc())
+	testError(t, tc().EnableForceHTTP1())
+}
+
+func testError(t *testing.T, c *Client) {
+	var errMsg ErrorMessage
+	resp, err := c.R().
+		SetQueryParam("username", "").
+		SetError(&errMsg).
+		Get("/search")
+	assertIsError(t, resp, err)
+	assertEqual(t, 10000, errMsg.ErrorCode)
+
+	errMsg = ErrorMessage{}
+	resp, err = c.R().
+		SetQueryParam("username", "test").
+		SetError(&errMsg).
+		Get("/search")
+	assertIsError(t, resp, err)
+	assertEqual(t, 10001, errMsg.ErrorCode)
+
+	errMsg = ErrorMessage{}
+	resp, err = c.R().
+		SetQueryParam("username", "test").
+		SetQueryParam("type", "xml"). // auto unmarshal to xml
+		SetError(&errMsg).
+		Get("/search")
+	assertIsError(t, resp, err)
+	assertEqual(t, 10001, errMsg.ErrorCode)
+}
