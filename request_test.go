@@ -591,3 +591,9 @@ func testRedirect(t *testing.T, c *Client) {
 	assertNotNil(t, err)
 	assertContains(t, err.Error(), "redirect is disabled", true)
 }
+
+func TestAutoDetectRequestContentType(t *testing.T) {
+	resp, err := tc().R().SetBody(getTestFileContent(t, "sample-image.png")).Post("/raw-upload")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "image/png", resp.Request.Headers.Get(hdrContentTypeKey))
+}

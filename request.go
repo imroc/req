@@ -32,6 +32,7 @@ type Request struct {
 	RawRequest  *http.Request
 	StartTime   time.Time
 
+	body               []byte
 	dumpOptions        *DumpOptions
 	marshalBody        interface{}
 	ctx                context.Context
@@ -681,12 +682,8 @@ func SetBodyBytes(body []byte) *Request {
 
 // SetBodyBytes set the request body as []byte.
 func (r *Request) SetBodyBytes(body []byte) *Request {
-	r.setBodyBytes(body)
-	return r.SetContentType(plainTextContentType)
-}
-
-func (r *Request) setBodyBytes(body []byte) *Request {
 	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
+	r.body = body
 	return r
 }
 
@@ -698,7 +695,7 @@ func SetBodyString(body string) *Request {
 
 // SetBodyString set the request body as string.
 func (r *Request) SetBodyString(body string) *Request {
-	r.setBodyBytes([]byte(body))
+	r.SetBodyBytes([]byte(body))
 	return r.SetContentType(plainTextContentType)
 }
 
@@ -711,7 +708,7 @@ func SetBodyJsonString(body string) *Request {
 // SetBodyJsonString set the request body as string and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonString(body string) *Request {
-	r.setBodyBytes([]byte(body))
+	r.SetBodyBytes([]byte(body))
 	return r.SetContentType(jsonContentType)
 }
 
@@ -724,7 +721,7 @@ func SetBodyJsonBytes(body []byte) *Request {
 // SetBodyJsonBytes set the request body as []byte and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
-	r.setBodyBytes(body)
+	r.SetBodyBytes(body)
 	return r.SetContentType(jsonContentType)
 }
 
@@ -742,7 +739,7 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	r.setBodyBytes(b)
+	r.SetBodyBytes(b)
 	return r.SetContentType(jsonContentType)
 }
 
@@ -755,7 +752,7 @@ func SetBodyXmlString(body string) *Request {
 // SetBodyXmlString set the request body as string and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlString(body string) *Request {
-	r.setBodyBytes([]byte(body))
+	r.SetBodyBytes([]byte(body))
 	return r.SetContentType(xmlContentType)
 }
 
@@ -768,7 +765,7 @@ func SetBodyXmlBytes(body []byte) *Request {
 // SetBodyXmlBytes set the request body as []byte and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlBytes(body []byte) *Request {
-	r.setBodyBytes(body)
+	r.SetBodyBytes(body)
 	return r.SetContentType(xmlContentType)
 }
 
@@ -786,7 +783,7 @@ func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	r.setBodyBytes(b)
+	r.SetBodyBytes(b)
 	return r.SetContentType(xmlContentType)
 }
 

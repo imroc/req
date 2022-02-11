@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -57,6 +58,12 @@ func getTestServerURL() string {
 	return testServer.URL
 }
 
+func getTestFileContent(t *testing.T, filename string) []byte {
+	b, err := ioutil.ReadFile(filepath.Join(testDataPath, filename))
+	assertError(t, err)
+	return b
+}
+
 type echo struct {
 	Header http.Header `json:"header" xml:"header"`
 	Body   string      `json:"body" xml:"body"`
@@ -66,6 +73,8 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
 		w.Write([]byte("TestPost: text response"))
+	case "/raw-upload":
+		io.Copy(ioutil.Discard, r.Body)
 	case "/search":
 		handleSearch(w, r)
 	case "/redirect":

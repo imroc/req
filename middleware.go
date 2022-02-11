@@ -107,7 +107,7 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 
 func handleFormData(r *Request) {
 	r.SetContentType(formContentType)
-	r.setBodyBytes([]byte(r.FormData.Encode()))
+	r.SetBodyBytes([]byte(r.FormData.Encode()))
 }
 
 func handleMarshalBody(c *Client, r *Request) error {
@@ -124,13 +124,13 @@ func handleMarshalBody(c *Client, r *Request) error {
 			if err != nil {
 				return err
 			}
-			r.setBodyBytes(body)
+			r.SetBodyBytes(body)
 		} else {
 			body, err := c.jsonMarshal(r.marshalBody)
 			if err != nil {
 				return err
 			}
-			r.setBodyBytes(body)
+			r.SetBodyBytes(body)
 		}
 		return nil
 	}
@@ -164,6 +164,13 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 	// handle marshal body
 	if r.marshalBody != nil {
 		handleMarshalBody(c, r)
+	}
+
+	if r.getHeader(hdrContentTypeKey) == "" && r.body != nil {
+		ct := http.DetectContentType(r.body)
+		if ct != "application/octet-stream" {
+			r.SetContentType(ct)
+		}
 	}
 	return
 }
