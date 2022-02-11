@@ -69,10 +69,10 @@ func TestRequestDump(t *testing.T) {
 		resp, err := r.SetBody(`test body`).Post("/")
 		assertSuccess(t, resp, err)
 		dump := resp.Dump()
-		assertContains(t, dump, "POST / HTTP/1.1", reqHeader)
+		assertContains(t, dump, "user-agent", reqHeader)
 		assertContains(t, dump, "test body", reqBody)
-		assertContains(t, dump, "HTTP/1.1 200 OK", respHeader)
-		assertContains(t, dump, "TestPost: text response", respBody)
+		assertContains(t, dump, "date", respHeader)
+		assertContains(t, dump, "testpost: text response", respBody)
 	}
 
 	opt := &DumpOptions{
@@ -84,10 +84,10 @@ func TestRequestDump(t *testing.T) {
 	resp, err := tr().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
 	assertSuccess(t, resp, err)
 	dump := resp.Dump()
-	assertContains(t, dump, "POST / HTTP/1.1", true)
+	assertContains(t, dump, "user-agent", true)
 	assertContains(t, dump, "test body", false)
-	assertContains(t, dump, "HTTP/1.1 200 OK", false)
-	assertContains(t, dump, "TestPost: text response", true)
+	assertContains(t, dump, "date", false)
+	assertContains(t, dump, "testpost: text response", true)
 }
 
 func TestGet(t *testing.T) {

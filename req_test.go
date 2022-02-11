@@ -19,7 +19,9 @@ func tr() *Request {
 }
 
 func tc() *Client {
-	return C().SetBaseURL(getTestServerURL())
+	return C().
+		SetBaseURL(getTestServerURL()).
+		EnableInsecureSkipVerify()
 }
 
 var testDataPath string
@@ -94,15 +96,29 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		handleGet(w, r)
+	case http.MethodPost:
+		handlePost(w, r)
+	}
+}
+
 func createTestServer() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			handleGet(w, r)
-		case http.MethodPost:
-			handlePost(w, r)
-		}
-	}))
+	server := httptest.NewUnstartedServer(http.HandlerFunc(handleHTTP))
+	// certFile := filepath.Join(testDataPath, "sample-server.pem")
+	// keyFile := filepath.Join(testDataPath, "sample-server-key.pem")
+	// cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	// if err != nil {
+	// 	panic(fmt.Sprintf("failed to load client cert: %v", err))
+	// }
+	// config := &tls.Config{}
+	// config.Certificates = append(config.Certificates, cert)
+	// server.TLS = config
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	return server
 }
 
 func assertStatus(t *testing.T, resp *Response, err error, statusCode int, status string) {
@@ -119,7 +135,6 @@ func assertSuccess(t *testing.T, resp *Response, err error) {
 	assertNotNil(t, resp.Body)
 	assertEqual(t, http.StatusOK, resp.StatusCode)
 	assertEqual(t, "200 OK", resp.Status)
-	assertEqual(t, "HTTP/1.1", resp.Proto)
 }
 
 func assertNil(t *testing.T, v interface{}) {
@@ -141,6 +156,7 @@ func assertType(t *testing.T, typ, v interface{}) {
 }
 
 func assertContains(t *testing.T, s, substr string, shouldContain bool) {
+	s = strings.ToLower(s)
 	isContain := strings.Contains(s, substr)
 	if shouldContain {
 		if !isContain {
