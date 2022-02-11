@@ -32,7 +32,6 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * [Redirect Policy](#Redirect)
 * [Proxy](#Proxy)
 * [TODO List](#TODO)
-* [API Reference](#API)
 * [License](#License)
 
 ## <a name="Features">Features</a>
