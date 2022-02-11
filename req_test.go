@@ -68,6 +68,9 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("TestPost: text response"))
 	case "/search":
 		handleSearch(w, r)
+	case "/redirect":
+		w.Header().Set(hdrLocationKey, "/")
+		w.WriteHeader(http.StatusMovedPermanently)
 	case "/echo":
 		b, _ := ioutil.ReadAll(r.Body)
 		e := echo{
