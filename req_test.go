@@ -14,10 +14,6 @@ import (
 	"testing"
 )
 
-func tr() *Request {
-	return tc().R()
-}
-
 func tc() *Client {
 	return C().
 		SetBaseURL(getTestServerURL()).
@@ -29,6 +25,22 @@ var testDataPath string
 func init() {
 	pwd, _ := os.Getwd()
 	testDataPath = filepath.Join(pwd, ".testdata")
+}
+
+func createTestServer() *httptest.Server {
+	server := httptest.NewUnstartedServer(http.HandlerFunc(handleHTTP))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	return server
+}
+
+func handleHTTP(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		handleGet(w, r)
+	case http.MethodPost:
+		handlePost(w, r)
+	}
 }
 
 var testServerMu sync.Mutex
@@ -94,31 +106,6 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 			handleGetUserProfile(w, r)
 		}
 	}
-}
-
-func handleHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		handleGet(w, r)
-	case http.MethodPost:
-		handlePost(w, r)
-	}
-}
-
-func createTestServer() *httptest.Server {
-	server := httptest.NewUnstartedServer(http.HandlerFunc(handleHTTP))
-	// certFile := filepath.Join(testDataPath, "sample-server.pem")
-	// keyFile := filepath.Join(testDataPath, "sample-server-key.pem")
-	// cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-	// if err != nil {
-	// 	panic(fmt.Sprintf("failed to load client cert: %v", err))
-	// }
-	// config := &tls.Config{}
-	// config.Certificates = append(config.Certificates, cert)
-	// server.TLS = config
-	server.EnableHTTP2 = true
-	server.StartTLS()
-	return server
 }
 
 func assertStatus(t *testing.T, resp *Response, err error, statusCode int, status string) {
