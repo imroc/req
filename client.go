@@ -225,7 +225,7 @@ func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 		c.log.Errorf("failed to load client cert: %v", err)
 		return c
 	}
-	config := c.tlsConfig()
+	config := c.GetTLSClientConfig()
 	config.Certificates = append(config.Certificates, cert)
 	return c
 }
@@ -238,13 +238,13 @@ func SetCerts(certs ...tls.Certificate) *Client {
 
 // SetCerts set client certificates.
 func (c *Client) SetCerts(certs ...tls.Certificate) *Client {
-	config := c.tlsConfig()
+	config := c.GetTLSClientConfig()
 	config.Certificates = append(config.Certificates, certs...)
 	return c
 }
 
 func (c *Client) appendRootCertData(data []byte) {
-	config := c.tlsConfig()
+	config := c.GetTLSClientConfig()
 	if config.RootCAs == nil {
 		config.RootCAs = x509.NewCertPool()
 	}
@@ -283,9 +283,18 @@ func (c *Client) SetRootCertsFromFile(pemFiles ...string) *Client {
 	return c
 }
 
-func (c *Client) tlsConfig() *tls.Config {
+// GetTLSClientConfig is a global wrapper methods which delegated
+// to the default client's GetTLSClientConfig.
+func GetTLSClientConfig() *tls.Config {
+	return defaultClient.GetTLSClientConfig()
+}
+
+// GetTLSClientConfig return the underlying tls.Config.
+func (c *Client) GetTLSClientConfig() *tls.Config {
 	if c.t.TLSClientConfig == nil {
-		c.t.TLSClientConfig = &tls.Config{}
+		c.t.TLSClientConfig = &tls.Config{
+			NextProtos: []string{"h2", "http/1.1"},
+		}
 	}
 	return c.t.TLSClientConfig
 }
@@ -397,9 +406,40 @@ func SetTLSClientConfig(conf *tls.Config) *Client {
 	return defaultClient.SetTLSClientConfig(conf)
 }
 
-// SetTLSClientConfig set the TLS client config.
+// SetTLSClientConfig set the TLS client config. Be careful! Usually
+// you don't need this, you can directly set the tls configuration with
+// methods like EnableInsecureSkipVerify, SetCerts etc. Or you can call
+// GetTLSClientConfig to get the current tls configuration to avoid
+// overwriting some important configurations, such as not setting NextProtos
+// will not use http2 by default.
 func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	c.t.TLSClientConfig = conf
+	return c
+}
+
+// EnableInsecureSkipVerify is a global wrapper methods which delegated
+// to the default client's EnableInsecureSkipVerify.
+func EnableInsecureSkipVerify() *Client {
+	return defaultClient.EnableInsecureSkipVerify()
+}
+
+// EnableInsecureSkipVerify enable send https without verifing
+// the server's certificates (disabled by default).
+func (c *Client) EnableInsecureSkipVerify() *Client {
+	c.GetTLSClientConfig().InsecureSkipVerify = true
+	return c
+}
+
+// DisableInsecureSkipVerify is a global wrapper methods which delegated
+// to the default client's DisableInsecureSkipVerify.
+func DisableInsecureSkipVerify() *Client {
+	return defaultClient.DisableInsecureSkipVerify()
+}
+
+// DisableInsecureSkipVerify disable send https without verifing
+// the server's certificates (disabled by default).
+func (c *Client) DisableInsecureSkipVerify() *Client {
+	c.GetTLSClientConfig().InsecureSkipVerify = false
 	return c
 }
 
