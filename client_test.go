@@ -2,8 +2,29 @@ package req
 
 import (
 	"bytes"
+	"io/ioutil"
 	"testing"
 )
+
+func TestDisableAutoReadResponse(t *testing.T) {
+	testDisableAutoReadResponse(t, tc())
+	testDisableAutoReadResponse(t, tc().EnableForceHTTP1())
+}
+
+func testDisableAutoReadResponse(t *testing.T, c *Client) {
+	c.DisableAutoReadResponse()
+	resp, err := c.R().Get("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "", resp.String())
+	result, err := resp.ToString()
+	assertError(t, err)
+	assertEqual(t, "TestGet: text response", result)
+
+	resp, err = c.R().Get("/")
+	assertSuccess(t, resp, err)
+	_, err = ioutil.ReadAll(resp.Body)
+	assertError(t, err)
+}
 
 func TestClientDump(t *testing.T) {
 	testClientDump(t, func() *Client {
