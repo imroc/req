@@ -866,11 +866,12 @@ client.SetProxy(nil)
 
 ## <a name="TODO">TODO List</a>
 
-* [ ] Add tests.
+* [ ] Add more tests.
 * [ ] Wrap more transport settings into client.
 * [ ] Support retry.
 * [ ] Support unix socket.
 * [ ] Support h2c.
+* [ ] Support HTTP3.
 
 ## <a name="License">License</a>
 
