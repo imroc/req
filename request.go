@@ -92,9 +92,18 @@ func (r *Request) TraceInfo() TraceInfo {
 		}
 	}
 
+	dnsDone := ct.dnsDone
+	if dnsDone.IsZero() {
+		dnsDone = endTime
+	}
+
+	if !ct.dnsStart.IsZero() {
+		ti.DNSLookupTime = dnsDone.Sub(ct.dnsStart)
+	}
+
 	// Only calculate on successful connections
 	if !ct.connectDone.IsZero() {
-		ti.TCPConnectTime = ct.connectDone.Sub(ct.dnsDone)
+		ti.TCPConnectTime = ct.connectDone.Sub(dnsDone)
 	}
 
 	// Only calculate on successful connections
