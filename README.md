@@ -15,7 +15,8 @@ If you want to use the older version, check it out on [v1 branch](https://github
 ## Table of Contents
 
 * [Features](#Features)
-* [Quick Start](#Quick-Start)
+* [Get Started](#Get-Started)
+* [Videos](#Videos)
 * [API Reference](#API)
 * [Debugging - Dump/Log/Trace](#Debugging)
 * [Quick HTTP Test](#Test)
@@ -48,7 +49,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * Easy set timeout, proxy, certs, redirect policy, cookie jar, compression, keepalives etc for client.
 * Support middleware before request sent and after got response (see [Request and Response Middleware](#Middleware)).
 
-## <a name="Quick-Start">Quick Start</a>
+## <a name="Get-Started">Get Started</a>
 
 **Install**
 
@@ -86,6 +87,12 @@ Checkout more runnable examples in the [examples](examples) direcotry.
 ## <a name="API">API Reference</a>
 
 Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core APIs, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+
+## <a name="Videos">Videos</a>
+
+Only the Chinese version is available for now, there will be more in the future.
+
+* [快速上手 req](https://www.bilibili.com/video/BV1Xq4y1b7UR) (Chinese, BiliBili)
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
