@@ -1,0 +1,46 @@
+package req
+
+// flow is the flow control window's size.
+type http2flow struct {
+	_ http2incomparable
+
+	// n is the number of DATA bytes we're allowed to send.
+	// A flow is kept both on a conn and a per-stream.
+	n int32
+
+	// conn points to the shared connection-level flow that is
+	// shared by all streams on that conn. It is nil for the flow
+	// that's on the conn directly.
+	conn *http2flow
+}
+
+func (f *http2flow) setConnFlow(cf *http2flow) { f.conn = cf }
+
+func (f *http2flow) available() int32 {
+	n := f.n
+	if f.conn != nil && f.conn.n < n {
+		n = f.conn.n
+	}
+	return n
+}
+
+func (f *http2flow) take(n int32) {
+	if n > f.available() {
+		panic("internal error: took too much")
+	}
+	f.n -= n
+	if f.conn != nil {
+		f.conn.n -= n
+	}
+}
+
+// add adds n bytes (positive or negative) to the flow control window.
+// It returns false if the sum would exceed 2^31-1.
+func (f *http2flow) add(n int32) bool {
+	sum := f.n + n
+	if (sum > n) == (f.n > 0) {
+		f.n = sum
+		return true
+	}
+	return false
+}
