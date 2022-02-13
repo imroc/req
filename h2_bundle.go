@@ -29,6 +29,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/internal/ascii"
 	"io"
 	"io/ioutil"
 	"log"
@@ -2580,12 +2581,12 @@ func http2buildCommonHeaderMaps() {
 	}
 }
 
-func http2lowerHeader(v string) (lower string, ascii bool) {
+func http2lowerHeader(v string) (lower string, isAscii bool) {
 	http2buildCommonHeaderMapsOnce()
 	if s, ok := http2commonLowerHeader[v]; ok {
 		return s, true
 	}
-	return http2asciiToLower(v)
+	return ascii.ToLower(v)
 }
 
 var (
@@ -3971,7 +3972,7 @@ func http2checkConnHeaders(req *http.Request) error {
 	if vv := req.Header["Transfer-Encoding"]; len(vv) > 0 && (len(vv) > 1 || vv[0] != "" && vv[0] != "chunked") {
 		return fmt.Errorf("http2: invalid Transfer-Encoding request header: %q", vv)
 	}
-	if vv := req.Header["Connection"]; len(vv) > 0 && (len(vv) > 1 || vv[0] != "" && !http2asciiEqualFold(vv[0], "close") && !http2asciiEqualFold(vv[0], "keep-alive")) {
+	if vv := req.Header["Connection"]; len(vv) > 0 && (len(vv) > 1 || vv[0] != "" && !ascii.EqualFold(vv[0], "close") && !ascii.EqualFold(vv[0], "keep-alive")) {
 		return fmt.Errorf("http2: invalid Connection request header: %q", vv)
 	}
 	return nil
@@ -4707,21 +4708,21 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 
 		var didUA bool
 		for k, vv := range req.Header {
-			if http2asciiEqualFold(k, "host") || http2asciiEqualFold(k, "content-length") {
+			if ascii.EqualFold(k, "host") || ascii.EqualFold(k, "content-length") {
 				// Host is :authority, already sent.
 				// Content-Length is automatic, set below.
 				continue
-			} else if http2asciiEqualFold(k, "connection") ||
-				http2asciiEqualFold(k, "proxy-connection") ||
-				http2asciiEqualFold(k, "transfer-encoding") ||
-				http2asciiEqualFold(k, "upgrade") ||
-				http2asciiEqualFold(k, "keep-alive") {
+			} else if ascii.EqualFold(k, "connection") ||
+				ascii.EqualFold(k, "proxy-connection") ||
+				ascii.EqualFold(k, "transfer-encoding") ||
+				ascii.EqualFold(k, "upgrade") ||
+				ascii.EqualFold(k, "keep-alive") {
 				// Per 8.1.2.2 Connection-Specific Header
 				// Fields, don't send connection-specific
 				// fields. We have already checked if any
 				// are error-worthy so just ignore the rest.
 				continue
-			} else if http2asciiEqualFold(k, "user-agent") {
+			} else if ascii.EqualFold(k, "user-agent") {
 				// Match Go's http1 behavior: at most one
 				// User-Agent. If set to nil or empty string,
 				// then omit it. Otherwise if not mentioned,
@@ -4734,7 +4735,7 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 				if vv[0] == "" {
 					continue
 				}
-			} else if http2asciiEqualFold(k, "cookie") {
+			} else if ascii.EqualFold(k, "cookie") {
 				// Per 8.1.2.5 To allow for better compression efficiency, the
 				// Cookie header field MAY be split into separate header fields,
 				// each with one or more cookie-pairs.
@@ -4812,7 +4813,7 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 
 	// Header list size is ok. Write the headers.
 	enumerateHeaders(func(name, value string) {
-		name, ascii := http2asciiToLower(name)
+		name, ascii := ascii.ToLower(name)
 		if !ascii {
 			// Skip writing invalid headers. Per RFC 7540, Section 8.1.2, header
 			// field names have to be ASCII characters (just as in HTTP/1.x).
@@ -4879,7 +4880,7 @@ func (cc *http2ClientConn) encodeTrailers(trailer http.Header, dumps []*dumper) 
 	}
 
 	for k, vv := range trailer {
-		lowKey, ascii := http2asciiToLower(k)
+		lowKey, ascii := ascii.ToLower(k)
 		if !ascii {
 			// Skip writing invalid headers. Per RFC 7540, Section 8.1.2, header
 			// field names have to be ASCII characters (just as in HTTP/1.x).
@@ -5295,7 +5296,7 @@ func (rl *http2clientConnReadLoop) handleResponse(cs *http2clientStream, f *http
 	cs.bytesRemain = res.ContentLength
 	res.Body = http2transportResponseBody{cs}
 
-	if cs.requestedGzip && http2asciiEqualFold(res.Header.Get("Content-Encoding"), "gzip") {
+	if cs.requestedGzip && ascii.EqualFold(res.Header.Get("Content-Encoding"), "gzip") {
 		res.Header.Del("Content-Encoding")
 		res.Header.Del("Content-Length")
 		res.ContentLength = -1
@@ -6042,8 +6043,8 @@ func http2encodeHeaders(enc *hpack.Encoder, h http.Header, keys []string) {
 	}
 	for _, k := range keys {
 		vv := h[k]
-		k, ascii := http2lowerHeader(k)
-		if !ascii {
+		k, isAscii := http2lowerHeader(k)
+		if !isAscii {
 			// Skip writing invalid headers. Per RFC 7540, Section 8.1.2, header
 			// field names have to be ASCII characters (just as in HTTP/1.x).
 			continue
