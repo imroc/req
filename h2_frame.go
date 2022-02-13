@@ -523,7 +523,10 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 		fr.debugReadLoggerf("http2: Framer %p: read %v", fr, http2summarizeFrame(f))
 	}
 	if fh.Type == http2FrameHeaders && fr.ReadMetaHeaders != nil {
-		dumps := getDumpers(fr.cc.t.t1.dump, fr.cc.currentRequest.Context())
+		var dumps []*dumper
+		if fr.cc != nil {
+			dumps = getDumpers(fr.cc.t.t1.dump, fr.cc.currentRequest.Context())
+		}
 		if len(dumps) > 0 {
 			dd := []*dumper{}
 			for _, dump := range dumps {
