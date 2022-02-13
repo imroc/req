@@ -52,23 +52,6 @@ import (
 	"golang.org/x/net/idna"
 )
 
-func http2traceHasWroteHeaderField(trace *httptrace.ClientTrace) bool {
-	return trace != nil && trace.WroteHeaderField != nil
-}
-
-func http2traceWroteHeaderField(trace *httptrace.ClientTrace, k, v string) {
-	if trace != nil && trace.WroteHeaderField != nil {
-		trace.WroteHeaderField(k, []string{v})
-	}
-}
-
-func http2traceGot1xxResponseFunc(trace *httptrace.ClientTrace) func(int, textproto.MIMEHeader) error {
-	if trace != nil {
-		return trace.Got1xxResponse
-	}
-	return nil
-}
-
 // dialTLSWithContext uses tls.Dialer, added in Go 1.15, to open a TLS
 // connection.
 func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (TLSConn, error) {

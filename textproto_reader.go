@@ -531,7 +531,7 @@ var colon = []byte(":")
 // ReadMIMEHeader reads a MIME-style header from r.
 // The header is a sequence of possibly continued Key: Value lines
 // ending in a blank line.
-// The returned map m maps Canonicaltextproto.MIMEHeaderKey(key) to a
+// The returned map m maps CanonicalMIMEHeaderKey(key) to a
 // sequence of values in the same order encountered in the input.
 //
 // For example, consider this input:
@@ -541,7 +541,7 @@ var colon = []byte(":")
 //	       Longer Value
 //	My-Key: Value 2
 //
-// Given that input, Readtextproto.MIMEHeader returns the map:
+// Given that input, ReadMIMEHeader returns the map:
 //
 //	map[string][]string{
 //		"My-Key": {"Value 1", "Value 2"},
@@ -682,7 +682,7 @@ func validHeaderFieldByte(b byte) bool {
 	return int(b) < len(isTokenTable) && isTokenTable[b]
 }
 
-// canonicalMIMEHeaderKey is like Canonicaltextproto.MIMEHeaderKey but is
+// canonicalMIMEHeaderKey is like CanonicalMIMEHeaderKey but is
 // allowed to mutate the provided byte slice before returning the
 // string.
 //
