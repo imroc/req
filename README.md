@@ -82,8 +82,6 @@ resp, err := client.R(). // Use R() to create a request
     Get("https://api.github.com/users/{username}/repos")
 ```
 
-Checkout more runnable examples in the [examples](examples) direcotry.
-
 **Videos**
 
 * [Get Started With Req](https://www.youtube.com/watch?v=k47i0CKBVrA) (English, Youtube)
@@ -92,6 +90,10 @@ Checkout more runnable examples in the [examples](examples) direcotry.
 **API Reference**
 
 Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core APIs, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+
+**Examples**
+
+Checkout more examples below or runnable examples in the [examples](examples) direcotry.
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
