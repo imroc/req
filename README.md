@@ -84,15 +84,14 @@ resp, err := client.R(). // Use R() to create a request
 
 Checkout more runnable examples in the [examples](examples) direcotry.
 
+## <a name="Videos">Videos</a>
+
+* [Get Started With Req](https://www.youtube.com/watch?v=k47i0CKBVrA) (English, Youtube)
+* [快速上手 req](https://www.bilibili.com/video/BV1Xq4y1b7UR) (Chinese, BiliBili)
+
 ## <a name="API">API Reference</a>
 
 Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core APIs, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
-
-## <a name="Videos">Videos</a>
-
-Only the Chinese version is available for now, there will be more in the future.
-
-* [快速上手 req](https://www.bilibili.com/video/BV1Xq4y1b7UR) (Chinese, BiliBili)
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
