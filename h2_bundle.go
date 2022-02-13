@@ -65,54 +65,6 @@ func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr s
 	return tlsCn, nil
 }
 
-// TrailerPrefix is a magic prefix for ResponseWriter.Header map keys
-// that, if present, signals that the map entry is actually for
-// the response trailers, and not the response headers. The prefix
-// is stripped after the ServeHTTP call finishes and the values are
-// sent in the trailers.
-//
-// This mechanism is intended only for trailers that are not known
-// prior to the headers being written. If the set of trailers is fixed
-// or known before the header is written, the normal Go trailers mechanism
-// is preferred:
-//    https://golang.org/pkg/net/http/#ResponseWriter
-//    https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
-const http2TrailerPrefix = "Trailer:"
-
-// checkWriteHeaderCode is a copy of net/http's checkWriteHeaderCode.
-func http2checkWriteHeaderCode(code int) {
-	// Issue 22880: require valid WriteHeader status codes.
-	// For now we only enforce that it's three digits.
-	// In the future we might block things over 599 (600 and above aren't defined
-	// at http://httpwg.org/specs/rfc7231.html#status.codes)
-	// and we might block under 200 (once we have more mature 1xx support).
-	// But for now any three digits.
-	//
-	// We used to send "HTTP/1.1 000 0" on the wire in responses but there's
-	// no equivalent bogus thing we can realistically send in HTTP/2,
-	// so we'll consistently panic instead and help people find their bugs
-	// early. (We can't return an error from WriteHeader even if we wanted to.)
-	if code < 100 || code > 999 {
-		panic(fmt.Sprintf("invalid WriteHeader code %v", code))
-	}
-}
-
-func http2cloneHeader(h http.Header) http.Header {
-	h2 := make(http.Header, len(h))
-	for k, vv := range h {
-		vv2 := make([]string, len(vv))
-		copy(vv2, vv)
-		h2[k] = vv2
-	}
-	return h2
-}
-
-// Push errors.
-var (
-	http2ErrRecursivePush    = errors.New("http2: recursive push not allowed")
-	http2ErrPushLimitReached = errors.New("http2: push would exceed peer's SETTINGS_MAX_CONCURRENT_STREAMS")
-)
-
 // foreachHeaderElement splits v according to the "#rule" construction
 // in RFC 7230 section 7 and calls fn for each non-empty element.
 func http2foreachHeaderElement(v string, fn func(string)) {
@@ -129,51 +81,6 @@ func http2foreachHeaderElement(v string, fn func(string)) {
 			fn(f)
 		}
 	}
-}
-
-// From http://httpwg.org/specs/rfc7540.html#rfc.section.8.1.2.2
-var http2connHeaders = []string{
-	"Connection",
-	"Keep-Alive",
-	"Proxy-Connection",
-	"Transfer-Encoding",
-	"Upgrade",
-}
-
-// checkValidHTTP2RequestHeaders checks whether h is a valid HTTP/2 request,
-// per RFC 7540 Section 8.1.2.2.
-// The returned error is reported to users.
-func http2checkValidHTTP2RequestHeaders(h http.Header) error {
-	for _, k := range http2connHeaders {
-		if _, ok := h[k]; ok {
-			return fmt.Errorf("request header %q is not valid in HTTP/2", k)
-		}
-	}
-	te := h["Te"]
-	if len(te) > 0 && (len(te) > 1 || (te[0] != "trailers" && te[0] != "")) {
-		return errors.New(`request header "TE" may only be "trailers" in HTTP/2`)
-	}
-	return nil
-}
-
-func http2new400Handler(err error) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-}
-
-// h1ServerKeepAlivesDisabled reports whether hs has its keep-alives
-// disabled. See comments on h1ServerShutdownChan above for why
-// the code is written this way.
-func http2h1ServerKeepAlivesDisabled(hs *http.Server) bool {
-	var x interface{} = hs
-	type I interface {
-		doKeepAlives() bool
-	}
-	if hs, ok := x.(I); ok {
-		return !hs.doKeepAlives()
-	}
-	return false
 }
 
 const (
@@ -3173,77 +3080,4 @@ func (t *http2Transport) idleConnTimeout() time.Duration {
 		return t.t1.IdleConnTimeout
 	}
 	return 0
-}
-
-// writeContext is the interface needed by the various frame writer
-// types below. All the writeFrame methods below are scheduled via the
-// frame writing scheduler (see writeScheduler in writesched.go).
-//
-// This interface is implemented by *serverConn.
-//
-// TODO: decide whether to a) use this in the client code (which didn't
-// end up using this yet, because it has a simpler design, not
-// currently implementing priorities), or b) delete this and
-// make the server code a bit more concrete.
-type http2writeContext interface {
-	Framer() *http2Framer
-	Flush() error
-	CloseConn() error
-	// HeaderEncoder returns an HPACK encoder that writes to the
-	// returned buffer.
-	HeaderEncoder() (*hpack.Encoder, *bytes.Buffer)
-}
-
-func (se http2StreamError) writeFrame(ctx http2writeContext) error {
-	return ctx.Framer().WriteRSTStream(se.StreamID, se.Code)
-}
-
-func (se http2StreamError) staysWithinBuffer(max int) bool { return http2frameHeaderLen+4 <= max }
-
-func http2encKV(enc *hpack.Encoder, k, v string) {
-	if http2VerboseLogs {
-		log.Printf("http2: server encoding header %q = %q", k, v)
-	}
-	enc.WriteField(hpack.HeaderField{Name: k, Value: v})
-}
-
-// encodeHeaders encodes an http.Header. If keys is not nil, then (k, h[k])
-// is encoded only if k is in keys.
-func http2encodeHeaders(enc *hpack.Encoder, h http.Header, keys []string) {
-	if keys == nil {
-		sorter := http2sorterPool.Get().(*http2sorter)
-		// Using defer here, since the returned keys from the
-		// sorter.Keys method is only valid until the sorter
-		// is returned:
-		defer http2sorterPool.Put(sorter)
-		keys = sorter.Keys(h)
-	}
-	for _, k := range keys {
-		vv := h[k]
-		k, isAscii := http2lowerHeader(k)
-		if !isAscii {
-			// Skip writing invalid headers. Per RFC 7540, Section 8.1.2, header
-			// field names have to be ASCII characters (just as in HTTP/1.x).
-			continue
-		}
-		if !http2validWireHeaderFieldName(k) {
-			// Skip it as backup paranoia. Per
-			// golang.org/issue/14048, these should
-			// already be rejected at a higher level.
-			continue
-		}
-		isTE := k == "transfer-encoding"
-		for _, v := range vv {
-			if !httpguts.ValidHeaderFieldValue(v) {
-				// TODO: return an error? golang.org/issue/14048
-				// For now just omit it.
-				continue
-			}
-			// TODO: more of "8.1.2.2 Connection-Specific Header Fields"
-			if isTE && v != "trailers" {
-				continue
-			}
-			http2encKV(enc, k, v)
-		}
-	}
 }

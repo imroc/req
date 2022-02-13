@@ -92,15 +92,6 @@ func (e http2StreamError) Error() string {
 	return fmt.Sprintf("stream error: stream ID %d; %v", e.StreamID, e.Code)
 }
 
-// 6.9.1 The Flow Control Window
-// "If a sender receives a WINDOW_UPDATE that causes a flow control
-// window to exceed this maximum it MUST terminate either the stream
-// or the connection, as appropriate. For streams, [...]; for the
-// connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code."
-type http2goAwayFlowError struct{}
-
-func (http2goAwayFlowError) Error() string { return "connection exceeded flow control window size" }
-
 // connError represents an HTTP/2 ConnectionError error code, along
 // with a string (for debugging) explaining why.
 //
