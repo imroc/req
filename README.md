@@ -36,7 +36,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 ## <a name="Features">Features</a>
 
 * Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging - Dump/Log/Trace](#Debugging).
+* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging - Dump/Log/Trace](#Debugging)).
 * Easy making HTTP test with code instead of tools like curl or postman, `req` provide global wrapper methods and `MustXXX` to test API with minimal code (see [Quick HTTP Test](#Test)).
 * Works fine with both `HTTP/2` and `HTTP/1.1`, which `HTTP/2` is preferred by default if server support, and you can also force `HTTP/1.1` if you want (see [HTTP2 and HTTP1](#HTTP2-HTTP1)).
 * Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
