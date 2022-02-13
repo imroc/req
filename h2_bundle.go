@@ -2878,46 +2878,6 @@ func http2validPseudoPath(v string) bool {
 // any size (as long as it's first).
 type http2incomparable [0]func()
 
-const (
-	http2prefaceTimeout         = 10 * time.Second
-	http2firstSettingsTimeout   = 2 * time.Second // should be in-flight with preface anyway
-	http2handlerChunkWriteSize  = 4 << 10
-	http2defaultMaxStreams      = 250 // TODO: make this 100 as the GFE seems to?
-	http2maxQueuedControlFrames = 10000
-)
-
-type http2readFrameResult struct {
-	f   http2Frame // valid until readMore is called
-	err error
-
-	// readMore should be called once the consumer no longer needs or
-	// retains f. After readMore, f is invalid and more frames can be
-	// read.
-	readMore func()
-}
-
-type http2serverMessage int
-
-// Message values sent to serveMsgCh.
-var (
-	http2settingsTimerMsg    = new(http2serverMessage)
-	http2idleTimerMsg        = new(http2serverMessage)
-	http2shutdownTimerMsg    = new(http2serverMessage)
-	http2gracefulShutdownMsg = new(http2serverMessage)
-)
-
-var http2errPrefaceTimeout = errors.New("timeout waiting for client preface")
-
-var http2errChanPool = sync.Pool{
-	New: func() interface{} { return make(chan error, 1) },
-}
-
-type http2requestParam struct {
-	method                  string
-	scheme, authority, path string
-	header                  http.Header
-}
-
 // TrailerPrefix is a magic prefix for ResponseWriter.Header map keys
 // that, if present, signals that the map entry is actually for
 // the response trailers, and not the response headers. The prefix
