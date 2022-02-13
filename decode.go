@@ -1,7 +1,7 @@
 package req
 
 import (
-	"github.com/imroc/req/v3/internal/charsetutil"
+	"github.com/imroc/req/v3/internal/charsets"
 	"io"
 	"strings"
 )
@@ -48,7 +48,7 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc, name := charsetutil.FindEncoding(p)
+	enc, name := charsets.FindEncoding(p)
 	if enc == nil {
 		return
 	}

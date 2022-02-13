@@ -1,4 +1,4 @@
-package charsetutil
+package charsets
 
 import (
 	"bytes"
