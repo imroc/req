@@ -18,6 +18,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/imroc/req/v3/internal/socks"
 	"github.com/imroc/req/v3/internal/util"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
@@ -1587,15 +1588,15 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		// Do nothing. Not using a proxy.
 	case cm.proxyURL.Scheme == "socks5":
 		conn := pconn.conn
-		d := socksNewDialer("tcp", conn.RemoteAddr().String())
+		d := socks.NewDialer("tcp", conn.RemoteAddr().String())
 		if u := cm.proxyURL.User; u != nil {
-			auth := &socksUsernamePassword{
+			auth := &socks.UsernamePassword{
 				Username: u.Username(),
 			}
 			auth.Password, _ = u.Password()
-			d.AuthMethods = []socksAuthMethod{
-				socksAuthMethodNotRequired,
-				socksAuthMethodUsernamePassword,
+			d.AuthMethods = []socks.AuthMethod{
+				socks.AuthMethodNotRequired,
+				socks.AuthMethodUsernamePassword,
 			}
 			d.Authenticate = auth.Authenticate
 		}
