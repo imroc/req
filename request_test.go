@@ -615,3 +615,9 @@ func TestUploadMultipart(t *testing.T) {
 	assertContains(t, resp.String(), "value1", true)
 	assertContains(t, resp.String(), "value2", true)
 }
+
+func TestFixPragmaCache(t *testing.T) {
+	resp, err := tc().EnableForceHTTP1().R().Get("/pragma")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "no-cache", resp.Header.Get("Cache-Control"))
+}

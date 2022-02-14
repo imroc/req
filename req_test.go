@@ -165,6 +165,8 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	case "/host-header":
 		w.Write([]byte(r.Host))
+	case "/pragma":
+		w.Header().Add("Pragma", "no-cache")
 	case "/header":
 		b, _ := json.Marshal(r.Header)
 		w.Header().Set(hdrContentTypeKey, jsonContentType)
