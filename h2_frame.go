@@ -524,7 +524,7 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 	}
 	if fh.Type == http2FrameHeaders && fr.ReadMetaHeaders != nil {
 		var dumps []*dumper
-		if fr.cc != nil {
+		if fr.cc != nil && fr.cc.t.t1 != nil {
 			dumps = getDumpers(fr.cc.t.t1.dump, fr.cc.currentRequest.Context())
 		}
 		if len(dumps) > 0 {

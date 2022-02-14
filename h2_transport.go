@@ -146,19 +146,12 @@ type http2Transport struct {
 	connPoolOrDef http2ClientConnPool // non-nil version of ConnPool
 }
 
-const h2max = 1<<32 - 1
-
 func (t *http2Transport) maxHeaderListSize() uint32 {
+	if t.MaxHeaderListSize == 0 {
+		return 10 << 20
+	}
 	if t.MaxHeaderListSize == 0xffffffff {
 		return 0
-	}
-	if t.MaxHeaderListSize > 0 {
-		return t.MaxHeaderListSize
-	}
-	if limit := t.t1.MaxResponseHeaderBytes; limit > 0 && limit < h2max {
-		t.MaxHeaderListSize = h2max
-	} else {
-		t.MaxHeaderListSize = 10 << 20
 	}
 	return t.MaxHeaderListSize
 }
@@ -600,7 +593,7 @@ func (t *http2Transport) dialClientConn(ctx context.Context, addr string, single
 
 func (t *http2Transport) newTLSConfig(host string) *tls.Config {
 	cfg := new(tls.Config)
-	if t.t1.TLSClientConfig != nil {
+	if t.t1 != nil && t.t1.TLSClientConfig != nil {
 		*cfg = *t.t1.TLSClientConfig.Clone()
 	}
 	if !http2strSliceContains(cfg.NextProtos, http2NextProtoTLS) {
@@ -1262,7 +1255,10 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 		}
 	}
 
-	dumps := getDumpers(cs.cc.t.t1.dump, req.Context())
+	var dumps []*dumper
+	if t1 := cs.cc.t.t1; t1 != nil {
+		dumps = getDumpers(t1.dump, req.Context())
+	}
 
 	// Past this point (where we send request headers), it is possible for
 	// RoundTrip to return successfully. Since the RoundTrip contract permits
