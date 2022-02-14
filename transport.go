@@ -375,6 +375,7 @@ func (t *Transport) Clone() *Transport {
 		ReadBufferSize:         t.ReadBufferSize,
 		ResponseOptions:        t.ResponseOptions,
 		ForceHttpVersion:       t.ForceHttpVersion,
+		Debugf:                 t.Debugf,
 		dump:                   t.dump.Clone(),
 	}
 	if t.dump != nil {

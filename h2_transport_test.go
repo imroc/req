@@ -624,7 +624,7 @@ func shortString(v string) string {
 	return fmt.Sprintf("%v[...%d bytes omitted...]%v", v[:maxLen/2], len(v)-maxLen, v[len(v)-maxLen/2:])
 }
 
-func TestTransportDialTLS(t *testing.T) {
+func TestTransportDialTLSh2(t *testing.T) {
 	var mu sync.Mutex // guards following
 	var gotReq, didDial bool
 

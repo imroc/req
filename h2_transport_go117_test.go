@@ -17,7 +17,7 @@ import (
 	"testing"
 )
 
-func TestTransportDialTLSContext(t *testing.T) {
+func TestTransportDialTLSContexth2(t *testing.T) {
 	blockCh := make(chan struct{})
 	serverTLSConfigFunc := func(ts *httptest.Server) {
 		ts.Config.TLSConfig = &tls.Config{
