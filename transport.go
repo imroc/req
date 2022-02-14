@@ -30,6 +30,7 @@ import (
 	"net/http/httptrace"
 	"net/textproto"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -1872,6 +1873,75 @@ type persistConn struct {
 	// headers on each outbound request before it's written. (the
 	// original Request given to RoundTrip is not modified)
 	mutateHeaderFunc func(http.Header)
+}
+
+// RFC 7234, section 5.4: Should treat
+//	Pragma: no-cache
+// like
+//	Cache-Control: no-cache
+func fixPragmaCacheControl(header http.Header) {
+	if hp, ok := header["Pragma"]; ok && len(hp) > 0 && hp[0] == "no-cache" {
+		if _, presentcc := header["Cache-Control"]; !presentcc {
+			header["Cache-Control"] = []string{"no-cache"}
+		}
+	}
+}
+
+// readResponse reads an HTTP response (or two, in the case of "Expect:
+// 100-continue") from the server. It returns the final non-100 one.
+// trace is optional.
+func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
+	dumps := getDumpers(pc.t.dump, req.Context())
+	tp := newTextprotoReader(pc.br, dumps)
+	resp := &http.Response{
+		Request: req,
+	}
+
+	// Parse the first line of the response.
+	line, err := tp.ReadLine()
+	if err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return nil, err
+	}
+	proto, status, ok := util.CutString(line, " ")
+	if !ok {
+		return nil, badStringError("malformed HTTP response", line)
+	}
+	resp.Proto = proto
+	resp.Status = strings.TrimLeft(status, " ")
+
+	statusCode, _, _ := util.CutString(resp.Status, " ")
+	if len(statusCode) != 3 {
+		return nil, badStringError("malformed HTTP status code", statusCode)
+	}
+	resp.StatusCode, err = strconv.Atoi(statusCode)
+	if err != nil || resp.StatusCode < 0 {
+		return nil, badStringError("malformed HTTP status code", statusCode)
+	}
+	if resp.ProtoMajor, resp.ProtoMinor, ok = http.ParseHTTPVersion(resp.Proto); !ok {
+		return nil, badStringError("malformed HTTP version", resp.Proto)
+	}
+
+	// Parse the response headers.
+	mimeHeader, err := tp.ReadMIMEHeader()
+	if err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return nil, err
+	}
+	resp.Header = http.Header(mimeHeader)
+
+	fixPragmaCacheControl(resp.Header)
+
+	err = readTransfer(resp, pc.br)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }
 
 func (pc *persistConn) maxHeaderResponseSize() int64 {
