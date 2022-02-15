@@ -1,22 +1,28 @@
 package req
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"go/token"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 	"io"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+	"time"
 	"unsafe"
 )
 
@@ -373,4 +379,219 @@ func isNil(v interface{}) bool {
 		return true
 	}
 	return false
+}
+
+func TestGlobalWrapper(t *testing.T) {
+
+	SetCookieJar(nil)
+	assertEqual(t, nil, DefaultClient().httpClient.Jar)
+
+	testErr := errors.New("test")
+	testDial := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return nil, testErr
+	}
+	testDialTLS := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return nil, testErr
+	}
+	SetDialTLS(testDialTLS)
+	SetDial(testDial)
+	_, err := DefaultClient().t.DialTLSContext(nil, "", "")
+	assertEqual(t, testErr, err)
+	_, err = DefaultClient().t.DialContext(nil, "", "")
+	assertEqual(t, testErr, err)
+
+	timeout := 2 * time.Second
+	SetTLSHandshakeTimeout(timeout)
+	assertEqual(t, timeout, DefaultClient().t.TLSHandshakeTimeout)
+
+	EnableAllowGetMethodPayload()
+	assertEqual(t, true, DefaultClient().AllowGetMethodPayload)
+
+	marshalFunc := func(v interface{}) ([]byte, error) {
+		return nil, testErr
+	}
+	unmarshalFunc := func(data []byte, v interface{}) error {
+		return testErr
+	}
+	SetJsonMarshal(marshalFunc)
+	SetJsonUnmarshal(unmarshalFunc)
+	SetXmlMarshal(marshalFunc)
+	SetXmlUnmarshal(unmarshalFunc)
+	_, err = DefaultClient().jsonMarshal(nil)
+	assertEqual(t, testErr, err)
+	err = DefaultClient().jsonUnmarshal(nil, nil)
+	assertEqual(t, testErr, err)
+	_, err = DefaultClient().xmlMarshal(nil)
+	assertEqual(t, testErr, err)
+	err = DefaultClient().xmlUnmarshal(nil, nil)
+	assertEqual(t, testErr, err)
+
+	EnableTraceAll()
+	assertEqual(t, true, DefaultClient().trace)
+	DisableTraceAll()
+	assertEqual(t, false, DefaultClient().trace)
+
+	len1 := len(DefaultClient().afterResponse)
+	OnAfterResponse(func(client *Client, response *Response) error {
+		return nil
+	})
+	len2 := len(DefaultClient().afterResponse)
+	assertEqual(t, true, len1+1 == len2)
+
+	OnBeforeRequest(func(client *Client, request *Request) error {
+		return nil
+	})
+	assertEqual(t, true, len(DefaultClient().udBeforeRequest) == 1)
+
+	SetProxyURL("http://dummy.proxy.local")
+	u, err := DefaultClient().t.Proxy(nil)
+	assertError(t, err)
+	assertEqual(t, "http://dummy.proxy.local", u.String())
+
+	u, _ = url.Parse("http://dummy.proxy.local")
+	proxy := http.ProxyURL(u)
+	SetProxy(proxy)
+	uu, err := DefaultClient().t.Proxy(nil)
+	assertError(t, err)
+	assertEqual(t, u.String(), uu.String())
+
+	SetCommonContentType(jsonContentType)
+	assertEqual(t, jsonContentType, DefaultClient().Headers.Get(hdrContentTypeKey))
+
+	SetCommonHeader("my-header", "my-value")
+	assertEqual(t, "my-value", DefaultClient().Headers.Get("my-header"))
+
+	SetCommonHeaders(map[string]string{
+		"header1": "value1",
+		"header2": "value2",
+	})
+	assertEqual(t, "value1", DefaultClient().Headers.Get("header1"))
+	assertEqual(t, "value2", DefaultClient().Headers.Get("header2"))
+
+	SetCommonBasicAuth("imroc", "123456")
+	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", DefaultClient().Headers.Get("Authorization"))
+
+	SetCommonBearerAuthToken("123456")
+	assertEqual(t, "Bearer 123456", DefaultClient().Headers.Get("Authorization"))
+
+	SetUserAgent("test")
+	assertEqual(t, "test", DefaultClient().Headers.Get(hdrUserAgentKey))
+
+	SetTimeout(timeout)
+	assertEqual(t, timeout, DefaultClient().httpClient.Timeout)
+
+	l := createDefaultLogger()
+	SetLogger(l)
+	assertEqual(t, l, DefaultClient().log)
+
+	SetScheme("https")
+	assertEqual(t, "https", DefaultClient().scheme)
+
+	EnableDebugLog()
+	assertEqual(t, true, DefaultClient().DebugLog)
+
+	DisableDebugLog()
+	assertEqual(t, false, DefaultClient().DebugLog)
+
+	SetCommonCookies(&http.Cookie{Name: "test", Value: "test"})
+	assertEqual(t, "test", DefaultClient().Cookies[0].Name)
+
+	SetCommonQueryString("test1=test1")
+	assertEqual(t, "test1", DefaultClient().QueryParams.Get("test1"))
+
+	SetCommonPathParams(map[string]string{"test1": "test1"})
+	assertEqual(t, "test1", DefaultClient().PathParams["test1"])
+
+	SetCommonPathParam("test2", "test2")
+	assertEqual(t, "test2", DefaultClient().PathParams["test2"])
+
+	AddCommonQueryParam("test1", "test11")
+	assertEqual(t, []string{"test1", "test11"}, DefaultClient().QueryParams["test1"])
+
+	SetCommonQueryParam("test1", "test111")
+	assertEqual(t, "test111", DefaultClient().QueryParams.Get("test1"))
+
+	SetCommonQueryParams(map[string]string{"test1": "test1"})
+	assertEqual(t, "test1", DefaultClient().QueryParams.Get("test1"))
+
+	EnableInsecureSkipVerify()
+	assertEqual(t, true, DefaultClient().t.TLSClientConfig.InsecureSkipVerify)
+
+	DisableInsecureSkipVerify()
+	assertEqual(t, false, DefaultClient().t.TLSClientConfig.InsecureSkipVerify)
+
+	DisableCompression()
+	assertEqual(t, true, DefaultClient().t.DisableCompression)
+
+	EnableCompression()
+	assertEqual(t, false, DefaultClient().t.DisableCompression)
+
+	DisableKeepAlives()
+	assertEqual(t, true, DefaultClient().t.DisableKeepAlives)
+
+	EnableKeepAlives()
+	assertEqual(t, false, DefaultClient().t.DisableKeepAlives)
+
+	config := GetTLSClientConfig()
+	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
+
+	SetRootCertsFromFile(getTestFilePath("sample-root.pem"))
+	assertEqual(t, true, DefaultClient().t.TLSClientConfig.RootCAs != nil)
+
+	SetRootCertFromString(string(getTestFileContent(t, "sample-root.pem")))
+	assertEqual(t, true, DefaultClient().t.TLSClientConfig.RootCAs != nil)
+
+	SetCerts(tls.Certificate{}, tls.Certificate{})
+	assertEqual(t, true, len(DefaultClient().t.TLSClientConfig.Certificates) == 2)
+
+	SetCertFromFile(
+		getTestFilePath("sample-client.pem"),
+		getTestFilePath("sample-client-key.pem"),
+	)
+	assertEqual(t, true, len(DefaultClient().t.TLSClientConfig.Certificates) == 3)
+
+	SetOutputDirectory(testDataPath)
+	assertEqual(t, testDataPath, DefaultClient().outputDirectory)
+
+	baseURL := "http://dummy-req.local/test"
+	SetBaseURL(baseURL)
+	assertEqual(t, baseURL, DefaultClient().BaseURL)
+
+	form := make(url.Values)
+	form.Add("test", "test")
+	SetCommonFormDataFromValues(form)
+	assertEqual(t, form, DefaultClient().FormData)
+
+	SetCommonFormData(map[string]string{"test2": "test2"})
+	assertEqual(t, "test2", DefaultClient().FormData.Get("test2"))
+
+	DisableAutoReadResponse()
+	assertEqual(t, true, DefaultClient().disableAutoReadResponse)
+	EnableAutoReadResponse()
+	assertEqual(t, false, DefaultClient().disableAutoReadResponse)
+
+	EnableDumpAll()
+	opt := DefaultClient().getDumpOptions()
+	assertEqual(t, true, opt.RequestHeader == true && opt.RequestBody == true && opt.ResponseHeader == true && opt.ResponseBody == true)
+	EnableDumpAllAsync()
+	assertEqual(t, true, opt.Async)
+	EnableDumpAllWithoutBody()
+	assertEqual(t, true, opt.ResponseBody == false && opt.RequestBody == false)
+	opt.ResponseBody = true
+	opt.RequestBody = true
+	EnableDumpAllWithoutResponse()
+	assertEqual(t, true, opt.ResponseBody == false && opt.ResponseHeader == false)
+	opt.ResponseBody = true
+	opt.ResponseHeader = true
+	EnableDumpAllWithoutRequest()
+	assertEqual(t, true, opt.RequestHeader == false && opt.RequestBody == false)
+	opt.RequestHeader = true
+	opt.RequestBody = true
+	EnableDumpAllWithoutHeader()
+	assertEqual(t, true, opt.RequestHeader == false && opt.ResponseHeader == false)
+	SetCommonDumpOptions(&DumpOptions{
+		RequestHeader: true,
+	})
+	opt = DefaultClient().getDumpOptions()
+	assertEqual(t, true, opt.RequestHeader == true && opt.ResponseHeader == false)
 }
