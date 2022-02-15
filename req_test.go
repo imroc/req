@@ -263,9 +263,14 @@ func assertEqualStruct(t *testing.T, e, g interface{}, onlyExported bool, exclud
 	for _, exclude := range excludes {
 		m[exclude] = true
 	}
-	if et.Kind() != gt.Kind() {
-		t.Fatalf("Expected kind [%s], got [%s]", et.Kind().String(), gt.Kind().String())
+	if et.Kind() != reflect.Struct {
+		t.Fatalf("expect object should be struct instead of %v", et.Kind().String())
 	}
+
+	if gt.Kind() != reflect.Struct {
+		t.Fatalf("got object should be struct instead of %v", gt.Kind().String())
+	}
+
 	if et.Name() != gt.Name() {
 		t.Fatalf("Expected type [%s], got [%s]", et.Name(), gt.Name())
 	}
@@ -334,29 +339,3 @@ func isNil(v interface{}) bool {
 	}
 	return false
 }
-
-// func equalClient(t *testing.T, c1, c2 *Client) bool {
-// 	if !notZero(t, c2) {
-// 		return false
-// 	}
-// }
-
-// func equalTransport(t1, t2 *Transport) bool {
-// 	if !equal(t1.TLSClientConfig, t2.TLSClientConfig) {
-// 		return false
-// 	}
-// }
-
-// func notZero(t *testing.T, v interface{}) bool {
-// 	rv := reflect.ValueOf(v).Elem()
-// 	rt := rv.Type()
-// 	for i := 0; i < rt.NumField(); i++ {
-// 		sf := rt.Field(i)
-// 		if !token.IsExported(sf.Name) {
-// 			continue
-// 		}
-// 		if rv.Field(i).IsZero() {
-// 			t.Errorf("cloned field %s.%s is zero", reflect.TypeOf(v).Name(), sf.Name)
-// 		}
-// 	}
-// }
