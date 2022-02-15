@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"go/token"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 )
 
 func tc() *Client {
@@ -252,6 +254,49 @@ func assertError(t *testing.T, err error) {
 	}
 }
 
+func assertEqualStruct(t *testing.T, e, g interface{}, onlyExported bool, excludes ...string) {
+	ev := reflect.ValueOf(e).Elem()
+	gv := reflect.ValueOf(g).Elem()
+	et := ev.Type()
+	gt := gv.Type()
+	m := map[string]bool{}
+	for _, exclude := range excludes {
+		m[exclude] = true
+	}
+	if et.Kind() != gt.Kind() {
+		t.Fatalf("Expected kind [%s], got [%s]", et.Kind().String(), gt.Kind().String())
+	}
+	if et.Name() != gt.Name() {
+		t.Fatalf("Expected type [%s], got [%s]", et.Name(), gt.Name())
+	}
+
+	for i := 0; i < ev.NumField(); i++ {
+		sf := ev.Field(i)
+		if sf.Kind() == reflect.Func || sf.Kind() == reflect.Slice {
+			continue
+		}
+		st := et.Field(i)
+		if m[st.Name] {
+			continue
+		}
+		if onlyExported && !token.IsExported(st.Name) {
+			continue
+		}
+		var ee, gg interface{}
+		if !token.IsExported(st.Name) {
+			ee = reflect.NewAt(sf.Type(), unsafe.Pointer(sf.UnsafeAddr())).Elem().Interface()
+			gg = reflect.NewAt(sf.Type(), unsafe.Pointer(gv.Field(i).UnsafeAddr())).Elem().Interface()
+		} else {
+			ee = sf.Interface()
+			gg = gv.Field(i).Interface()
+		}
+		if !reflect.DeepEqual(ee, gg) {
+			t.Errorf("Field %s.%s is not equal, expected [%v], got [%v]", et.Name(), et.Field(i).Name, ee, gg)
+		}
+	}
+
+}
+
 func assertEqual(t *testing.T, e, g interface{}) {
 	if !equal(e, g) {
 		t.Errorf("Expected [%+v], got [%+v]", e, g)
@@ -289,3 +334,29 @@ func isNil(v interface{}) bool {
 	}
 	return false
 }
+
+// func equalClient(t *testing.T, c1, c2 *Client) bool {
+// 	if !notZero(t, c2) {
+// 		return false
+// 	}
+// }
+
+// func equalTransport(t1, t2 *Transport) bool {
+// 	if !equal(t1.TLSClientConfig, t2.TLSClientConfig) {
+// 		return false
+// 	}
+// }
+
+// func notZero(t *testing.T, v interface{}) bool {
+// 	rv := reflect.ValueOf(v).Elem()
+// 	rt := rv.Type()
+// 	for i := 0; i < rt.NumField(); i++ {
+// 		sf := rt.Field(i)
+// 		if !token.IsExported(sf.Name) {
+// 			continue
+// 		}
+// 		if rv.Field(i).IsZero() {
+// 			t.Errorf("cloned field %s.%s is zero", reflect.TypeOf(v).Name(), sf.Name)
+// 		}
+// 	}
+// }

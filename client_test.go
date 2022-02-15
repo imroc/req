@@ -17,12 +17,7 @@ func TestClientClone(t *testing.T) {
 		SetCommonPathParam("test", "test")
 
 	c2 := c1.Clone()
-	assertEqual(t, c1.Headers, c2.Headers)
-	assertEqual(t, c1.Cookies, c2.Cookies)
-	assertEqual(t, c1.BaseURL, c2.BaseURL)
-	assertEqual(t, c1.DebugLog, c2.DebugLog)
-	assertEqual(t, c1.PathParams, c2.PathParams)
-	assertEqual(t, c1.QueryParams, c2.QueryParams)
+	assertEqualStruct(t, c1, c2, false, "t", "t2", "httpClient")
 }
 
 func TestDisableAutoReadResponse(t *testing.T) {
