@@ -1,6 +1,38 @@
 package req
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
+
+func TestForeachHeaderElement(t *testing.T) {
+	tests := []struct {
+		in   string
+		want []string
+	}{
+		{"Foo", []string{"Foo"}},
+		{" Foo", []string{"Foo"}},
+		{"Foo ", []string{"Foo"}},
+		{" Foo ", []string{"Foo"}},
+
+		{"foo", []string{"foo"}},
+		{"anY-cAsE", []string{"anY-cAsE"}},
+
+		{"", nil},
+		{",,,,  ,  ,,   ,,, ,", nil},
+
+		{" Foo,Bar, Baz,lower,,Quux ", []string{"Foo", "Bar", "Baz", "lower", "Quux"}},
+	}
+	for _, tt := range tests {
+		var got []string
+		foreachHeaderElement(tt.in, func(v string) {
+			got = append(got, v)
+		})
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("foreachHeaderElement(%q) = %q; want %q", tt.in, got, tt.want)
+		}
+	}
+}
 
 func TestCleanHost(t *testing.T) {
 	tests := []struct {

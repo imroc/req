@@ -104,20 +104,6 @@ func newTransferWriter(r interface{}) (t *transferWriter, err error) {
 		}
 
 		atLeastHTTP11 = true // Transport requests are always 1.1 or 2.0
-	case *http.Response:
-		t.IsResponse = true
-		if rr.Request != nil {
-			t.Method = rr.Request.Method
-		}
-		t.Body = rr.Body
-		t.BodyCloser = rr.Body
-		t.ContentLength = rr.ContentLength
-		t.Close = rr.Close
-		t.TransferEncoding = rr.TransferEncoding
-		t.Header = rr.Header
-		t.Trailer = rr.Trailer
-		atLeastHTTP11 = rr.ProtoAtLeast(1, 1)
-		t.ResponseToHEAD = noResponseBodyExpected(t.Method)
 	}
 
 	// Sanitize Body,ContentLength,TransferEncoding
