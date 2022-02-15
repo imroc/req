@@ -23,7 +23,7 @@ func MaxRedirectPolicy(noOfRedirect int) RedirectPolicy {
 // NoRedirectPolicy disable redirect behaviour
 func NoRedirectPolicy() RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
-		return errors.New("auto redirect is disabled")
+		return errors.New("redirect is disabled")
 	}
 }
 
@@ -57,8 +57,9 @@ func AllowedHostRedirectPolicy(hosts ...string) RedirectPolicy {
 	}
 
 	return func(req *http.Request, via []*http.Request) error {
-		if _, ok := m[getHostname(req.URL.Host)]; !ok {
-			return errors.New("redirect host is not allowed")
+		h := getHostname(req.URL.Host)
+		if _, ok := m[h]; !ok {
+			return fmt.Errorf("redirect host [%s] is not allowed", h)
 		}
 		return nil
 	}
@@ -73,8 +74,9 @@ func AllowedDomainRedirectPolicy(hosts ...string) RedirectPolicy {
 	}
 
 	return func(req *http.Request, via []*http.Request) error {
-		if _, ok := domains[getDomain(req.URL.Host)]; !ok {
-			return errors.New("redirect domain is not allowed")
+		domain := getDomain(req.URL.Host)
+		if _, ok := domains[domain]; !ok {
+			return fmt.Errorf("redirect domain [%s] is not allowed", domain)
 		}
 		return nil
 	}

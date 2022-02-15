@@ -5,6 +5,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"go/token"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -81,6 +83,11 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("TestPost: text response"))
 	case "/raw-upload":
 		io.Copy(ioutil.Discard, r.Body)
+	case "/form":
+		r.ParseForm()
+		ret, _ := json.Marshal(&r.Form)
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Write(ret)
 	case "/multipart":
 		r.ParseMultipartForm(10e6)
 		m := make(map[string]interface{})
@@ -159,6 +166,15 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func toGbk(s string) []byte {
+	reader := transform.NewReader(strings.NewReader(s), simplifiedchinese.GBK.NewEncoder())
+	d, e := ioutil.ReadAll(reader)
+	if e != nil {
+		panic(e)
+	}
+	return d
+}
+
 func handleGet(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
@@ -167,8 +183,17 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	case "/host-header":
 		w.Write([]byte(r.Host))
+	case "/unlimited-redirect":
+		w.Header().Set("Location", "/unlimited-redirect")
+		w.WriteHeader(http.StatusMovedPermanently)
+	case "/redirect-to-other":
+		w.Header().Set("Location", "http://dummy.local/test")
+		w.WriteHeader(http.StatusMovedPermanently)
 	case "/pragma":
 		w.Header().Add("Pragma", "no-cache")
+	case "/gbk":
+		w.Header().Set(hdrContentTypeKey, "text/plain; charset=gbk")
+		w.Write(toGbk("我是roc"))
 	case "/header":
 		b, _ := json.Marshal(r.Header)
 		w.Header().Set(hdrContentTypeKey, jsonContentType)

@@ -857,7 +857,7 @@ func EnableAutoDecode() *Client {
 // EnableAutoDecode enable auto-detect charset and decode to utf-8
 // (enabled by default).
 func (c *Client) EnableAutoDecode() *Client {
-	c.getResponseOptions().DisableAutoDecode = true
+	c.getResponseOptions().DisableAutoDecode = false
 	return c
 }
 

@@ -577,21 +577,6 @@ func testTraceOnTimeout(t *testing.T, c *Client) {
 	assertEqual(t, true, tr.TotalTime == resp.TotalTime())
 }
 
-func TestRedirect(t *testing.T) {
-	testRedirect(t, tc())
-	testRedirect(t, tc().EnableForceHTTP1())
-}
-
-func testRedirect(t *testing.T, c *Client) {
-	resp, err := c.R().SetBody("test").Post("/redirect")
-	assertSuccess(t, resp, err)
-
-	c.SetRedirectPolicy(NoRedirectPolicy())
-	resp, err = c.R().SetBody("test").Post("/redirect")
-	assertNotNil(t, err)
-	assertContains(t, err.Error(), "redirect is disabled", true)
-}
-
 func TestAutoDetectRequestContentType(t *testing.T) {
 	resp, err := tc().R().SetBody(getTestFileContent(t, "sample-image.png")).Post("/raw-upload")
 	assertSuccess(t, resp, err)
