@@ -254,7 +254,7 @@ func assertError(t *testing.T, err error) {
 
 func assertEqual(t *testing.T, e, g interface{}) {
 	if !equal(e, g) {
-		t.Errorf("Expected [%v], got [%v]", e, g)
+		t.Errorf("Expected [%+v], got [%+v]", e, g)
 	}
 	return
 }

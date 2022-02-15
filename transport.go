@@ -381,7 +381,7 @@ func (t *Transport) Clone() *Transport {
 		dump:                   t.dump.Clone(),
 	}
 	if t.dump != nil {
-		t.dump.Start()
+		go t.dump.Start()
 	}
 	if t.TLSClientConfig != nil {
 		t2.TLSClientConfig = t.TLSClientConfig.Clone()

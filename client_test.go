@@ -3,8 +3,27 @@ package req
 import (
 	"bytes"
 	"io/ioutil"
+	"net/http"
 	"testing"
 )
+
+func TestClientClone(t *testing.T) {
+	c1 := tc().DevMode().
+		SetCommonHeader("test", "test").
+		SetCommonCookies(&http.Cookie{
+			Name:  "test",
+			Value: "test",
+		}).SetCommonQueryParam("test", "test").
+		SetCommonPathParam("test", "test")
+
+	c2 := c1.Clone()
+	assertEqual(t, c1.Headers, c2.Headers)
+	assertEqual(t, c1.Cookies, c2.Cookies)
+	assertEqual(t, c1.BaseURL, c2.BaseURL)
+	assertEqual(t, c1.DebugLog, c2.DebugLog)
+	assertEqual(t, c1.PathParams, c2.PathParams)
+	assertEqual(t, c1.QueryParams, c2.QueryParams)
+}
 
 func TestDisableAutoReadResponse(t *testing.T) {
 	testDisableAutoReadResponse(t, tc())

@@ -409,6 +409,40 @@ func (c *Client) AddCommonQueryParam(key, value string) *Client {
 	return c
 }
 
+func (c *Client) pathParams() map[string]string {
+	if c.PathParams == nil {
+		c.PathParams = make(map[string]string)
+	}
+	return c.PathParams
+}
+
+// SetCommonPathParam is a global wrapper methods which delegated
+// to the default client's SetCommonPathParam.
+func SetCommonPathParam(key, value string) *Client {
+	return defaultClient.SetCommonPathParam(key, value)
+}
+
+// SetCommonPathParam set a path parameter for all requests.
+func (c *Client) SetCommonPathParam(key, value string) *Client {
+	c.pathParams()[key] = value
+	return c
+}
+
+// SetCommonPathParams is a global wrapper methods which delegated
+// to the default client's SetCommonPathParams.
+func SetCommonPathParams(pathParams map[string]string) *Client {
+	return defaultClient.SetCommonPathParams(pathParams)
+}
+
+// SetCommonPathParams set path parameters for all requests.
+func (c *Client) SetCommonPathParams(pathParams map[string]string) *Client {
+	m := c.pathParams()
+	for k, v := range pathParams {
+		m[k] = v
+	}
+	return c
+}
+
 // SetCommonQueryParam is a global wrapper methods which delegated
 // to the default client's SetCommonQueryParam.
 func SetCommonQueryParam(key, value string) *Client {
