@@ -2,8 +2,11 @@ package req
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
+	"errors"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,6 +14,158 @@ import (
 	"testing"
 	"time"
 )
+
+func TestAllowGetMethodPayload(t *testing.T) {
+	c := tc()
+	resp, err := c.R().SetBody("test").Get("/payload")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "", resp.String())
+
+	c.EnableAllowGetMethodPayload()
+	resp, err = c.R().SetBody("test").Get("/payload")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "test", resp.String())
+
+	c.DisableAllowGetMethodPayload()
+	resp, err = c.R().SetBody("test").Get("/payload")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "", resp.String())
+}
+
+func TestSetTLSHandshakeTimeout(t *testing.T) {
+	timeout := 2 * time.Second
+	c := tc().SetTLSHandshakeTimeout(timeout)
+	assertEqual(t, timeout, c.t.TLSHandshakeTimeout)
+}
+
+func TestSetDial(t *testing.T) {
+	testErr := errors.New("test")
+	testDial := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return nil, testErr
+	}
+	c := tc().SetDial(testDial)
+	_, err := c.t.DialContext(nil, "", "")
+	assertEqual(t, testErr, err)
+}
+
+func TestSetDialTLS(t *testing.T) {
+	testErr := errors.New("test")
+	testDialTLS := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		return nil, testErr
+	}
+	c := tc().SetDialTLS(testDialTLS)
+	_, err := c.t.DialTLSContext(nil, "", "")
+	assertEqual(t, testErr, err)
+}
+
+func TestSetFuncs(t *testing.T) {
+	testErr := errors.New("test")
+	marshalFunc := func(v interface{}) ([]byte, error) {
+		return nil, testErr
+	}
+	unmarshalFunc := func(data []byte, v interface{}) error {
+		return testErr
+	}
+	c := tc().
+		SetJsonMarshal(marshalFunc).
+		SetJsonUnmarshal(unmarshalFunc).
+		SetXmlMarshal(marshalFunc).
+		SetXmlUnmarshal(unmarshalFunc)
+
+	_, err := c.jsonMarshal(nil)
+	assertEqual(t, testErr, err)
+	err = c.jsonUnmarshal(nil, nil)
+	assertEqual(t, testErr, err)
+
+	_, err = c.xmlMarshal(nil)
+	assertEqual(t, testErr, err)
+	err = c.xmlUnmarshal(nil, nil)
+	assertEqual(t, testErr, err)
+}
+
+func TestSetCookieJar(t *testing.T) {
+	c := tc().SetCookieJar(nil)
+	assertEqual(t, nil, c.httpClient.Jar)
+}
+
+func TestTraceAll(t *testing.T) {
+	c := tc().EnableTraceAll()
+	resp, err := c.R().Get("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, resp.TraceInfo().TotalTime > 0)
+
+	c.DisableTraceAll()
+	resp, err = c.R().Get("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, resp.TraceInfo().TotalTime == 0)
+}
+
+func TestOnAfterResponse(t *testing.T) {
+	c := tc()
+	len1 := len(c.afterResponse)
+	c.OnAfterResponse(func(client *Client, response *Response) error {
+		return nil
+	})
+	len2 := len(c.afterResponse)
+	assertEqual(t, true, len1+1 == len2)
+}
+
+func TestOnBeforeRequest(t *testing.T) {
+	c := tc().OnBeforeRequest(func(client *Client, request *Request) error {
+		return nil
+	})
+	assertEqual(t, true, len(c.udBeforeRequest) == 1)
+}
+
+func TestSetProxyURL(t *testing.T) {
+	c := tc().SetProxyURL("http://dummy.proxy.local")
+	u, err := c.t.Proxy(nil)
+	assertError(t, err)
+	assertEqual(t, "http://dummy.proxy.local", u.String())
+}
+
+func TestSetProxy(t *testing.T) {
+	u, _ := url.Parse("http://dummy.proxy.local")
+	proxy := http.ProxyURL(u)
+	c := tc().SetProxy(proxy)
+	uu, err := c.t.Proxy(nil)
+	assertError(t, err)
+	assertEqual(t, u.String(), uu.String())
+}
+
+func TestSetCommonContentType(t *testing.T) {
+	c := tc().SetCommonContentType(jsonContentType)
+	assertEqual(t, jsonContentType, c.Headers.Get(hdrContentTypeKey))
+}
+
+func TestSetCommonHeader(t *testing.T) {
+	c := tc().SetCommonHeader("my-header", "my-value")
+	assertEqual(t, "my-value", c.Headers.Get("my-header"))
+}
+
+func TestSetCommonHeaders(t *testing.T) {
+	c := tc().SetCommonHeaders(map[string]string{
+		"header1": "value1",
+		"header2": "value2",
+	})
+	assertEqual(t, "value1", c.Headers.Get("header1"))
+	assertEqual(t, "value2", c.Headers.Get("header2"))
+}
+
+func TestSetCommonBasicAuth(t *testing.T) {
+	c := tc().SetCommonBasicAuth("imroc", "123456")
+	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", c.Headers.Get("Authorization"))
+}
+
+func TestSetCommonBearerAuthToken(t *testing.T) {
+	c := tc().SetCommonBearerAuthToken("123456")
+	assertEqual(t, "Bearer 123456", c.Headers.Get("Authorization"))
+}
+
+func TestSetUserAgent(t *testing.T) {
+	c := tc().SetUserAgent("test")
+	assertEqual(t, "test", c.Headers.Get(hdrUserAgentKey))
+}
 
 func TestAutoDecode(t *testing.T) {
 	c := tc().DisableAutoDecode()

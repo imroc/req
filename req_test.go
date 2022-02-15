@@ -191,6 +191,9 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMovedPermanently)
 	case "/pragma":
 		w.Header().Add("Pragma", "no-cache")
+	case "/payload":
+		b, _ := ioutil.ReadAll(r.Body)
+		w.Write(b)
 	case "/gbk":
 		w.Header().Set(hdrContentTypeKey, "text/plain; charset=gbk")
 		w.Write(toGbk("我是roc"))
