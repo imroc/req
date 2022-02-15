@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -20,6 +21,25 @@ func TestAutoDecode(t *testing.T) {
 	resp, err = c.EnableAutoDecode().R().Get("/gbk")
 	assertSuccess(t, resp, err)
 	assertEqual(t, "我是roc", resp.String())
+
+	resp, err = c.SetAutoDecodeContentType("html").R().Get("/gbk")
+	assertSuccess(t, resp, err)
+	assertEqual(t, toGbk("我是roc"), resp.Bytes())
+	resp, err = c.SetAutoDecodeContentType("text").R().Get("/gbk")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "我是roc", resp.String())
+	resp, err = c.SetAutoDecodeContentTypeFunc(func(contentType string) bool {
+		if strings.Contains(contentType, "text") {
+			return true
+		}
+		return false
+	}).R().Get("/gbk")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "我是roc", resp.String())
+
+	resp, err = c.SetAutoDecodeAllContentType().R().Get("/gbk-no-charset")
+	assertSuccess(t, resp, err)
+	assertContains(t, resp.String(), "我是roc", true)
 }
 
 func TestSetTimeout(t *testing.T) {

@@ -194,6 +194,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	case "/gbk":
 		w.Header().Set(hdrContentTypeKey, "text/plain; charset=gbk")
 		w.Write(toGbk("我是roc"))
+	case "/gbk-no-charset":
+		b, err := ioutil.ReadFile(getTestFilePath("sample-gbk.html"))
+		if err != nil {
+			panic(err)
+		}
+		w.Header().Set(hdrContentTypeKey, "text/html")
+		w.Write(b)
 	case "/header":
 		b, _ := json.Marshal(r.Header)
 		w.Header().Set(hdrContentTypeKey, jsonContentType)
