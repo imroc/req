@@ -587,7 +587,7 @@ func TestUploadMultipart(t *testing.T) {
 	m := make(map[string]interface{})
 	resp, err := tc().R().
 		SetFile("file", getTestFilePath("sample-image.png")).
-		SetFile("file", getTestFilePath("sample-file.txt")).
+		SetFiles(map[string]string{"file": getTestFilePath("sample-file.txt")}).
 		SetFormData(map[string]string{
 			"param1": "value1",
 			"param2": "value2",
@@ -605,4 +605,10 @@ func TestFixPragmaCache(t *testing.T) {
 	resp, err := tc().EnableForceHTTP1().R().Get("/pragma")
 	assertSuccess(t, resp, err)
 	assertEqual(t, "no-cache", resp.Header.Get("Cache-Control"))
+}
+
+func TestSetFileBytes(t *testing.T) {
+	resp, err := tc().R().SetFileBytes("file", "file.txt", []byte("test")).Post("/file-text")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "test", resp.String())
 }

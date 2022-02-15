@@ -89,6 +89,12 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("TestPost: text response"))
 	case "/raw-upload":
 		io.Copy(ioutil.Discard, r.Body)
+	case "/file-text":
+		r.ParseMultipartForm(10e6)
+		files := r.MultipartForm.File["file"]
+		file, _ := files[0].Open()
+		b, _ := ioutil.ReadAll(file)
+		w.Write(b)
 	case "/form":
 		r.ParseForm()
 		ret, _ := json.Marshal(&r.Form)
