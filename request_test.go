@@ -11,65 +11,78 @@ import (
 	"time"
 )
 
-func TestRequestDump(t *testing.T) {
-	testRequestDump(t, tc())
-	testRequestDump(t, tc().EnableForceHTTP1())
+func TestEnableDump(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDump()
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = true
+		*respBody = true
+	})
 }
 
-func testRequestDump(t *testing.T, c *Client) {
-	testCases := []func(r *Request, reqHeader, reqBody, respHeader, respBody *bool){
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDump()
-			*reqHeader = true
-			*reqBody = true
-			*respHeader = true
-			*respBody = true
-		},
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpWithoutRequest()
-			*reqHeader = false
-			*reqBody = false
-			*respHeader = true
-			*respBody = true
-		},
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpWithoutRequestBody()
-			*reqHeader = true
-			*reqBody = false
-			*respHeader = true
-			*respBody = true
-		},
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpWithoutResponse()
-			*reqHeader = true
-			*reqBody = true
-			*respHeader = false
-			*respBody = false
-		},
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpWithoutResponseBody()
-			*reqHeader = true
-			*reqBody = true
-			*respHeader = true
-			*respBody = false
-		},
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpWithoutHeader()
-			*reqHeader = false
-			*reqBody = true
-			*respHeader = false
-			*respBody = true
-		},
-		func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpWithoutBody()
-			*reqHeader = true
-			*reqBody = false
-			*respHeader = true
-			*respBody = false
-		},
-	}
+func TestEnableDumpWithoutRequest(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDumpWithoutRequest()
+		*reqHeader = false
+		*reqBody = false
+		*respHeader = true
+		*respBody = true
+	})
+}
 
-	for _, fn := range testCases {
+func TestEnableDumpWithoutRequestBody(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDumpWithoutRequestBody()
+		*reqHeader = true
+		*reqBody = false
+		*respHeader = true
+		*respBody = true
+	})
+}
+
+func TestEnableDumpWithoutResponse(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDumpWithoutResponse()
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = false
+		*respBody = false
+	})
+}
+
+func TestEnableDumpWithoutResponseBody(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDumpWithoutResponseBody()
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = true
+		*respBody = false
+	})
+}
+
+func TestEnableDumpWithoutHeader(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDumpWithoutHeader()
+		*reqHeader = false
+		*reqBody = true
+		*respHeader = false
+		*respBody = true
+	})
+}
+
+func TestEnableDumpWithoutBody(t *testing.T) {
+	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
+		r.EnableDumpWithoutBody()
+		*reqHeader = true
+		*reqBody = false
+		*respHeader = true
+		*respBody = false
+	})
+}
+
+func testEnableDump(t *testing.T, fn func(r *Request, reqHeader, reqBody, respHeader, respBody *bool)) {
+	testDump := func(c *Client) {
 		r := c.R()
 		var reqHeader, reqBody, respHeader, respBody bool
 		fn(r, &reqHeader, &reqBody, &respHeader, &respBody)
@@ -81,7 +94,16 @@ func testRequestDump(t *testing.T, c *Client) {
 		assertContains(t, dump, "date", respHeader)
 		assertContains(t, dump, "testpost: text response", respBody)
 	}
+	testDump(tc())
+	testDump(tc().EnableForceHTTP1())
+}
 
+func TestSetDumpOptions(t *testing.T) {
+	testSetDumpOptions(t, tc())
+	testSetDumpOptions(t, tc().EnableForceHTTP1())
+}
+
+func testSetDumpOptions(t *testing.T, c *Client) {
 	opt := &DumpOptions{
 		RequestHeader:  true,
 		RequestBody:    false,
