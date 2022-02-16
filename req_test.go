@@ -47,6 +47,7 @@ func createTestServer() *httptest.Server {
 }
 
 func handleHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Method", r.Method)
 	switch r.Method {
 	case http.MethodGet:
 		handleGet(w, r)

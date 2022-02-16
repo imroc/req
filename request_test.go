@@ -11,6 +11,55 @@ import (
 	"time"
 )
 
+func TestMethods(t *testing.T) {
+	testMethods(t, tc())
+	testMethods(t, tc().EnableForceHTTP1())
+}
+
+func testMethods(t *testing.T, c *Client) {
+	resp, err := c.R().Put("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
+	resp = c.R().MustPut("/")
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
+
+	resp, err = c.R().Patch("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
+	resp = c.R().MustPatch("/")
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
+
+	resp, err = c.R().Delete("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
+	resp = c.R().MustDelete("/")
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
+
+	resp, err = c.R().Options("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	resp = c.R().MustOptions("/")
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+
+	resp, err = c.R().Head("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
+	resp = c.R().MustHead("/")
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
+
+	resp, err = c.R().Get("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "GET", resp.Header.Get("Method"))
+	resp = c.R().MustGet("/")
+	assertEqual(t, "GET", resp.Header.Get("Method"))
+
+	resp, err = c.R().Post("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "POST", resp.Header.Get("Method"))
+	resp = c.R().MustPost("/")
+	assertEqual(t, "POST", resp.Header.Get("Method"))
+}
+
 func TestEnableDump(t *testing.T) {
 	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
 		r.EnableDump()
