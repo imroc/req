@@ -1,7 +1,13 @@
 <p align="center">
     <h1 align="center">Req</h1>
     <p align="center">Simple Go HTTP client with Black Magic (Less code and More efficiency).</p>
-    <p align="center"><a href="https://pkg.go.dev/github.com/imroc/req/v3"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
+    <p align="center">
+        <a href="https://github.com/imroc/req/actions/workflows/ci.yml?query=branch%3Amaster"><img src="https://github.com/imroc/req/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
+        <a href="https://codecov.io/gh/imroc/req/branch/master"><img src="https://codecov.io/gh/imroc/req/branch/master/graph/badge.svg" alt="Code Coverage"></a>
+        <a href="https://goreportcard.com/report/imroc/req"><img src="https://goreportcard.com/badge/imroc/req" alt="Go Report Card"></a>
+        <a href="https://pkg.go.dev/github.com/imroc/req/v3"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a>
+        <a href="LICENSE"><img src="https://img.shields.io/github/license/imroc/req.svg" alt="License"></a>
+    </p> 
 </p>
 
 ## News
