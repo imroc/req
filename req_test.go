@@ -388,8 +388,77 @@ func isNil(v interface{}) bool {
 	return false
 }
 
-func TestGlobalWrapper(t *testing.T) {
-	EnableInsecureSkipVerify()
+func testGlobalWrapperEnableDumps(t *testing.T) {
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = true
+		*respBody = true
+		return EnableDump()
+	})
+
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = false
+		*reqBody = false
+		*respHeader = true
+		*respBody = true
+		return EnableDumpWithoutRequest()
+	})
+
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = true
+		*reqBody = false
+		*respHeader = true
+		*respBody = true
+		return EnableDumpWithoutRequestBody()
+	})
+
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = false
+		*respBody = false
+		return EnableDumpWithoutResponse()
+	})
+
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = true
+		*respBody = false
+		return EnableDumpWithoutResponseBody()
+	})
+
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = false
+		*reqBody = true
+		*respHeader = false
+		*respBody = true
+		return EnableDumpWithoutHeader()
+	})
+
+	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
+		*reqHeader = true
+		*reqBody = false
+		*respHeader = true
+		*respBody = false
+		return EnableDumpWithoutBody()
+	})
+}
+
+func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
+	var reqHeader, reqBody, respHeader, respBody bool
+	r := fn(&reqHeader, &reqBody, &respHeader, &respBody)
+	resp, err := r.SetBody(`test body`).Post(getTestServerURL() + "/")
+	assertSuccess(t, resp, err)
+	dump := resp.Dump()
+	assertContains(t, dump, "user-agent", reqHeader)
+	assertContains(t, dump, "test body", reqBody)
+	assertContains(t, dump, "date", respHeader)
+	assertContains(t, dump, "testpost: text response", respBody)
+}
+
+func testGlobalWrapperSendRequest(t *testing.T) {
 	testURL := getTestServerURL() + "/"
 
 	resp, err := Put(testURL)
@@ -433,7 +502,12 @@ func TestGlobalWrapper(t *testing.T) {
 	assertEqual(t, "POST", resp.Header.Get("Method"))
 	resp = MustPost(testURL)
 	assertEqual(t, "POST", resp.Header.Get("Method"))
+}
 
+func TestGlobalWrapper(t *testing.T) {
+	EnableInsecureSkipVerify()
+	testGlobalWrapperSendRequest(t)
+	testGlobalWrapperEnableDumps(t)
 	DisableInsecureSkipVerify()
 
 	SetCookieJar(nil)
@@ -448,7 +522,7 @@ func TestGlobalWrapper(t *testing.T) {
 	}
 	SetDialTLS(testDialTLS)
 	SetDial(testDial)
-	_, err = DefaultClient().t.DialTLSContext(nil, "", "")
+	_, err := DefaultClient().t.DialTLSContext(nil, "", "")
 	assertEqual(t, testErr, err)
 	_, err = DefaultClient().t.DialContext(nil, "", "")
 	assertEqual(t, testErr, err)
