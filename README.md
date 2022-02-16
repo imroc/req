@@ -1,6 +1,6 @@
 <p align="center">
     <h1 align="center">Req</h1>
-    <p align="center">Simplified Golang HTTP client library with Black Magic, Less code and More efficiency.</p>
+    <p align="center">Simple Go HTTP client with Black Magic (Less code and More efficiency).</p>
     <p align="center"><a href="https://pkg.go.dev/github.com/imroc/req/v3"><img src="https://pkg.go.dev/badge/github.com/imroc/req.svg"></a></p>
 </p>
 
