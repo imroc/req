@@ -251,13 +251,13 @@ func SetFile(paramName, filePath string) *Request {
 // SetFile set up a multipart form from file path to upload,
 // which read file from filePath automatically to upload.
 func (r *Request) SetFile(paramName, filePath string) *Request {
-	r.isMultiPart = true
 	file, err := os.Open(filePath)
 	if err != nil {
 		r.client.log.Errorf("failed to open %s: %v", filePath, err)
 		r.appendError(err)
 		return r
 	}
+	r.isMultiPart = true
 	return r.SetFileReader(paramName, filepath.Base(filePath), file)
 }
 
@@ -372,6 +372,10 @@ func SetOutput(output io.Writer) *Request {
 
 // SetOutput set the io.Writer that response body will be downloaded to.
 func (r *Request) SetOutput(output io.Writer) *Request {
+	if output == nil {
+		r.client.log.Warnf("nil io.Writer is not allowed in SetOutput")
+		return r
+	}
 	r.output = output
 	r.isSaveResponse = true
 	return r

@@ -1,6 +1,7 @@
 package req
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -504,6 +505,98 @@ func testGlobalWrapperSendRequest(t *testing.T) {
 	assertEqual(t, "POST", resp.Header.Get("Method"))
 }
 
+func TestGlobalWrapperSetRequest(t *testing.T) {
+	testFilePath := getTestFilePath("sample-file.txt")
+	r := SetFiles(map[string]string{"test": testFilePath})
+	assertEqual(t, 1, len(r.uploadFiles))
+	assertEqual(t, true, r.isMultiPart)
+
+	r = SetFile("test", getTestFilePath("sample-file.txt"))
+	assertEqual(t, 1, len(r.uploadFiles))
+	assertEqual(t, true, r.isMultiPart)
+
+	SetLogger(nil)
+	r = SetFile("test", getTestFilePath("file-not-exists.txt"))
+	assertEqual(t, 0, len(r.uploadFiles))
+	assertEqual(t, false, r.isMultiPart)
+	assertNotNil(t, r.error)
+
+	r = SetFileReader("test", "test.txt", bytes.NewBufferString("test"))
+	assertEqual(t, 1, len(r.uploadFiles))
+	assertEqual(t, true, r.isMultiPart)
+
+	r = SetFileBytes("test", "test.txt", []byte("test"))
+	assertEqual(t, 1, len(r.uploadFiles))
+	assertEqual(t, true, r.isMultiPart)
+
+	r = SetFileUpload(FileUpload{})
+	assertEqual(t, 1, len(r.uploadFiles))
+	assertEqual(t, true, r.isMultiPart)
+
+	var result string
+	r = SetError(&result)
+	assertEqual(t, true, r.Error != nil)
+
+	r = SetResult(&result)
+	assertEqual(t, true, r.Result != nil)
+
+	r = SetOutput(nil)
+	assertEqual(t, false, r.isSaveResponse)
+
+	r = SetOutput(bytes.NewBufferString("test"))
+	assertEqual(t, true, r.isSaveResponse)
+
+	r = SetHeader("test", "test")
+	assertEqual(t, "test", r.Headers.Get("test"))
+
+	r = SetHeaders(map[string]string{"test": "test"})
+	assertEqual(t, "test", r.Headers.Get("test"))
+
+	r = SetCookies(&http.Cookie{
+		Name:  "test",
+		Value: "test",
+	})
+	assertEqual(t, 1, len(r.Cookies))
+
+	r = SetBasicAuth("imroc", "123456")
+	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", r.Headers.Get("Authorization"))
+
+	r = SetBearerAuthToken("123456")
+	assertEqual(t, "Bearer 123456", r.Headers.Get("Authorization"))
+
+	r = SetQueryString("test=test")
+	assertEqual(t, "test", r.QueryParams.Get("test"))
+
+	r = SetQueryString("ksjlfjk?")
+	assertEqual(t, "", r.QueryParams.Get("test"))
+
+	r = SetQueryParam("test", "test")
+	assertEqual(t, "test", r.QueryParams.Get("test"))
+
+	r = AddQueryParam("test", "test")
+	assertEqual(t, "test", r.QueryParams.Get("test"))
+
+	r = SetQueryParams(map[string]string{"test": "test"})
+	assertEqual(t, "test", r.QueryParams.Get("test"))
+
+	r = SetPathParam("test", "test")
+	assertEqual(t, "test", r.PathParams["test"])
+
+	r = SetPathParams(map[string]string{"test": "test"})
+	assertEqual(t, "test", r.PathParams["test"])
+
+	r = SetFormData(map[string]string{"test": "test"})
+	assertEqual(t, "test", r.FormData.Get("test"))
+
+	values := make(url.Values)
+	values.Add("test", "test")
+	r = SetFormDataFromValues(values)
+	assertEqual(t, "test", r.FormData.Get("test"))
+
+	r = SetContentType(jsonContentType)
+	assertEqual(t, jsonContentType, r.Headers.Get(hdrContentTypeKey))
+}
+
 func TestGlobalWrapper(t *testing.T) {
 	EnableInsecureSkipVerify()
 	testGlobalWrapperSendRequest(t)
@@ -574,6 +667,11 @@ func TestGlobalWrapper(t *testing.T) {
 	u, err := DefaultClient().t.Proxy(nil)
 	assertError(t, err)
 	assertEqual(t, "http://dummy.proxy.local", u.String())
+
+	SetProxyURL("bad url")
+	u, err = DefaultClient().t.Proxy(nil)
+	assertError(t, err)
+	assertNotEqual(t, "bad url", u.String())
 
 	u, _ = url.Parse("http://dummy.proxy.local")
 	proxy := http.ProxyURL(u)
@@ -716,9 +814,22 @@ func TestGlobalWrapper(t *testing.T) {
 	opt.RequestBody = true
 	EnableDumpAllWithoutHeader()
 	assertEqual(t, true, opt.RequestHeader == false && opt.ResponseHeader == false)
+
+	DefaultClient().getDumpOptions().Output = nil
+	SetLogger(nil)
+	EnableDumpAllToFile(filepath.Join(testDataPath, "path-not-exists", "dump.out"))
+	assertEqual(t, true, DefaultClient().getDumpOptions().Output == nil)
+
+	dumpFile := getTestFilePath("tmpdump.out")
+	EnableDumpAllToFile(dumpFile)
+	assertEqual(t, true, DefaultClient().getDumpOptions().Output != nil)
+	os.Remove(dumpFile)
+
 	SetCommonDumpOptions(&DumpOptions{
 		RequestHeader: true,
 	})
 	opt = DefaultClient().getDumpOptions()
 	assertEqual(t, true, opt.RequestHeader == true && opt.ResponseHeader == false)
+	DisableDumpAll()
+	assertEqual(t, true, DefaultClient().t.dump == nil)
 }
