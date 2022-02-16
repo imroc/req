@@ -389,6 +389,52 @@ func isNil(v interface{}) bool {
 }
 
 func TestGlobalWrapper(t *testing.T) {
+	EnableInsecureSkipVerify()
+	testURL := getTestServerURL() + "/"
+
+	resp, err := Put(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
+	resp = MustPut(testURL)
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
+
+	resp, err = Patch(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
+	resp = MustPatch(testURL)
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
+
+	resp, err = Delete(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
+	resp = MustDelete(testURL)
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
+
+	resp, err = Options(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	resp = MustOptions(testURL)
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+
+	resp, err = Head(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
+	resp = MustHead(testURL)
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
+
+	resp, err = Get(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "GET", resp.Header.Get("Method"))
+	resp = MustGet(testURL)
+	assertEqual(t, "GET", resp.Header.Get("Method"))
+
+	resp, err = Post(testURL)
+	assertSuccess(t, resp, err)
+	assertEqual(t, "POST", resp.Header.Get("Method"))
+	resp = MustPost(testURL)
+	assertEqual(t, "POST", resp.Header.Get("Method"))
+
+	DisableInsecureSkipVerify()
 
 	SetCookieJar(nil)
 	assertEqual(t, nil, DefaultClient().httpClient.Jar)
@@ -402,7 +448,7 @@ func TestGlobalWrapper(t *testing.T) {
 	}
 	SetDialTLS(testDialTLS)
 	SetDial(testDial)
-	_, err := DefaultClient().t.DialTLSContext(nil, "", "")
+	_, err = DefaultClient().t.DialTLSContext(nil, "", "")
 	assertEqual(t, testErr, err)
 	_, err = DefaultClient().t.DialContext(nil, "", "")
 	assertEqual(t, testErr, err)
