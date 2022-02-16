@@ -521,7 +521,8 @@ func testEnableDumpAll(t *testing.T, fn func(c *Client, reqHeader, reqBody, resp
 		assertContains(t, dump, "testpost: text response", respBody)
 	}
 	testDump(c)
-	c.EnableForceHTTP1()
+	buf = new(bytes.Buffer)
+	c = tc().EnableDumpAllTo(buf).EnableDumpAllTo(buf).EnableForceHTTP1()
 	testDump(c)
 }
 
