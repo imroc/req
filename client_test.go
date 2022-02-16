@@ -436,72 +436,80 @@ func testDisableAutoReadResponse(t *testing.T, c *Client) {
 	assertError(t, err)
 }
 
-func TestClientDump(t *testing.T) {
-	testClientDump(t, func() *Client {
-		return tc()
-	})
-	testClientDump(t, func() *Client {
-		return tc().EnableForceHTTP1()
+func TestEnableDumpAll(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAll()
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = true
+		*respBody = true
 	})
 }
 
-func testClientDump(t *testing.T, newClient func() *Client) {
-	testCases := []func(r *Client, reqHeader, reqBody, respHeader, respBody *bool){
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAll()
-			*reqHeader = true
-			*reqBody = true
-			*respHeader = true
-			*respBody = true
-		},
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAllWithoutRequest()
-			*reqHeader = false
-			*reqBody = false
-			*respHeader = true
-			*respBody = true
-		},
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAllWithoutRequestBody()
-			*reqHeader = true
-			*reqBody = false
-			*respHeader = true
-			*respBody = true
-		},
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAllWithoutResponse()
-			*reqHeader = true
-			*reqBody = true
-			*respHeader = false
-			*respBody = false
-		},
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAllWithoutResponseBody()
-			*reqHeader = true
-			*reqBody = true
-			*respHeader = true
-			*respBody = false
-		},
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAllWithoutHeader()
-			*reqHeader = false
-			*reqBody = true
-			*respHeader = false
-			*respBody = true
-		},
-		func(r *Client, reqHeader, reqBody, respHeader, respBody *bool) {
-			r.EnableDumpAllWithoutBody()
-			*reqHeader = true
-			*reqBody = false
-			*respHeader = true
-			*respBody = false
-		},
-	}
+func TestEnableDumpAllWithoutRequest(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAllWithoutRequest()
+		*reqHeader = false
+		*reqBody = false
+		*respHeader = true
+		*respBody = true
+	})
+}
 
-	for _, fn := range testCases {
-		c := newClient()
-		buf := new(bytes.Buffer)
-		c.EnableDumpAllTo(buf)
+func TestEnableDumpAllWithoutRequestBody(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAllWithoutRequestBody()
+		*reqHeader = true
+		*reqBody = false
+		*respHeader = true
+		*respBody = true
+	})
+}
+
+func TestEnableDumpAllWithoutResponse(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAllWithoutResponse()
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = false
+		*respBody = false
+	})
+}
+
+func TestEnableDumpAllWithoutResponseBody(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAllWithoutResponseBody()
+		*reqHeader = true
+		*reqBody = true
+		*respHeader = true
+		*respBody = false
+	})
+}
+
+func TestEnableDumpAllWithoutHeader(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAllWithoutHeader()
+		*reqHeader = false
+		*reqBody = true
+		*respHeader = false
+		*respBody = true
+	})
+}
+
+func TestEnableDumpAllWithoutBody(t *testing.T) {
+	testEnableDumpAll(t, func(c *Client, reqHeader, reqBody, respHeader, respBody *bool) {
+		c.EnableDumpAllWithoutBody()
+		*reqHeader = true
+		*reqBody = false
+		*respHeader = true
+		*respBody = false
+	})
+}
+
+func testEnableDumpAll(t *testing.T, fn func(c *Client, reqHeader, reqBody, respHeader, respBody *bool)) {
+	buf := new(bytes.Buffer)
+	c := tc().EnableDumpAllTo(buf)
+	testDump := func(c *Client) {
 		var reqHeader, reqBody, respHeader, respBody bool
 		fn(c, &reqHeader, &reqBody, &respHeader, &respBody)
 		resp, err := c.R().SetBody(`test body`).Post("/")
@@ -512,8 +520,13 @@ func testClientDump(t *testing.T, newClient func() *Client) {
 		assertContains(t, dump, "date", respHeader)
 		assertContains(t, dump, "testpost: text response", respBody)
 	}
+	testDump(c)
+	c.EnableForceHTTP1()
+	testDump(c)
+}
 
-	c := newClient()
+func TestSetCommonDumpOptions(t *testing.T) {
+	c := tc()
 	buf := new(bytes.Buffer)
 	opt := &DumpOptions{
 		RequestHeader:  true,
@@ -529,25 +542,25 @@ func testClientDump(t *testing.T, newClient func() *Client) {
 	assertContains(t, buf.String(), "test body", false)
 	assertContains(t, buf.String(), "date", false)
 	assertContains(t, buf.String(), "testpost: text response", true)
+}
 
+func TestEnableDumpAllToFile(t *testing.T) {
+	c := tc()
 	dumpFile := "tmp_test_dump_file"
 	c.EnableDumpAllToFile(getTestFilePath(dumpFile))
-	resp, err = c.R().SetBody("test body").Post("/")
+	resp, err := c.R().SetBody("test body").Post("/")
 	assertSuccess(t, resp, err)
 	dump := string(getTestFileContent(t, dumpFile))
 	os.Remove(getTestFilePath(dumpFile))
 	assertContains(t, dump, "user-agent", true)
-	assertContains(t, dump, "test body", false)
-	assertContains(t, dump, "date", false)
+	assertContains(t, dump, "test body", true)
+	assertContains(t, dump, "date", true)
 	assertContains(t, dump, "testpost: text response", true)
+}
 
-	buf = new(bytes.Buffer)
+func TestEnableDumpAllAsync(t *testing.T) {
+	c := tc()
+	buf := new(bytes.Buffer)
 	c.EnableDumpAllTo(buf).EnableDumpAllAsync()
-	resp, err = c.R().SetBody("test body").Post("/")
-	assertSuccess(t, resp, err)
-	time.Sleep(10 * time.Millisecond)
-	assertContains(t, buf.String(), "user-agent", true)
-	assertContains(t, buf.String(), "test body", false)
-	assertContains(t, buf.String(), "date", false)
-	assertContains(t, buf.String(), "testpost: text response", true)
+	assertEqual(t, true, c.getDumpOptions().Async)
 }
