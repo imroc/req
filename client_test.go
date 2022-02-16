@@ -522,7 +522,7 @@ func testEnableDumpAll(t *testing.T, fn func(c *Client, reqHeader, reqBody, resp
 	}
 	testDump(c)
 	buf = new(bytes.Buffer)
-	c = tc().EnableDumpAllTo(buf).EnableDumpAllTo(buf).EnableForceHTTP1()
+	c = tc().EnableDumpAllTo(buf).EnableForceHTTP1()
 	testDump(c)
 }
 

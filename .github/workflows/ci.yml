@@ -35,7 +35,7 @@ jobs:
           go-version: ${{ matrix.go }}
 
       - name: Test
-        run: go test ./... -coverprofile=coverage.txt
+        run: go test -p=1 ./... -coverprofile=coverage.txt
 
       - name: Coverage
         env:
