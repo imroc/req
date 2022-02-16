@@ -197,6 +197,18 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	case "/host-header":
 		w.Write([]byte(r.Host))
+	case "/json":
+		r.ParseForm()
+		if r.FormValue("type") != "no" {
+			w.Header().Set(hdrContentTypeKey, jsonContentType)
+		}
+		w.Write([]byte(`{"name": "roc"}`))
+	case "/xml":
+		r.ParseForm()
+		if r.FormValue("type") != "no" {
+			w.Header().Set(hdrContentTypeKey, xmlContentType)
+		}
+		w.Write([]byte(`<user><name>roc</name></user>`))
 	case "/unlimited-redirect":
 		w.Header().Set("Location", "/unlimited-redirect")
 		w.WriteHeader(http.StatusMovedPermanently)
