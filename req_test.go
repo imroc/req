@@ -450,13 +450,22 @@ func testGlobalWrapperEnableDumps(t *testing.T) {
 func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
 	var reqHeader, reqBody, respHeader, respBody bool
 	r := fn(&reqHeader, &reqBody, &respHeader, &respBody)
-	resp, err := r.SetBody(`test body`).Post(getTestServerURL() + "/")
-	assertSuccess(t, resp, err)
-	dump := resp.Dump()
-	assertContains(t, dump, "user-agent", reqHeader)
-	assertContains(t, dump, "test body", reqBody)
-	assertContains(t, dump, "date", respHeader)
-	assertContains(t, dump, "testpost: text response", respBody)
+	dump, ok := r.Context().Value("_dumper").(*dumper)
+	if !ok {
+		t.Fatal("no dumper found in request context")
+	}
+	if reqHeader != dump.DumpOptions.RequestHeader {
+		t.Errorf("Unexpected RequestHeader dump option, expected [%v], got [%v]", reqHeader, dump.DumpOptions.RequestHeader)
+	}
+	if reqBody != dump.DumpOptions.RequestBody {
+		t.Errorf("Unexpected RequestBody dump option, expected [%v], got [%v]", reqBody, dump.DumpOptions.RequestBody)
+	}
+	if respHeader != dump.DumpOptions.ResponseHeader {
+		t.Errorf("Unexpected RequestHeader dump option, expected [%v], got [%v]", respHeader, dump.DumpOptions.ResponseHeader)
+	}
+	if respBody != dump.DumpOptions.ResponseBody {
+		t.Errorf("Unexpected RequestHeader dump option, expected [%v], got [%v]", respBody, dump.DumpOptions.ResponseBody)
+	}
 }
 
 func testGlobalWrapperSendRequest(t *testing.T) {

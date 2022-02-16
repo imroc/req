@@ -1270,6 +1270,13 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 		return err
 	}
 
+	bodyDumps := []*dumper{}
+	for _, dump := range dumps {
+		if dump.RequestBody {
+			bodyDumps = append(bodyDumps, dump)
+		}
+	}
+
 	hasBody := cs.reqBodyContentLength != 0
 	if !hasBody {
 		cs.sentEndStream = true
@@ -1295,25 +1302,14 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 				return err
 			}
 		}
-
-		if len(dumps) > 0 {
-			dd := []*dumper{}
-			for _, dump := range dumps {
-				if dump.RequestBody {
-					dd = append(dd, dump)
-				}
-			}
-			dumps = dd
-		}
-
-		if err = cs.writeRequestBody(req, dumps); err != nil {
+		if err = cs.writeRequestBody(req, bodyDumps); err != nil {
 			if err != http2errStopReqBodyWrite {
 				http2traceWroteRequest(cs.trace, err)
 				return err
 			}
 		} else {
 			cs.sentEndStream = true
-			for _, dump := range dumps {
+			for _, dump := range bodyDumps {
 				dump.dump([]byte("\r\n\r\n"))
 			}
 		}
@@ -1883,17 +1879,16 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 	traceHeaders := http2traceHasWroteHeaderField(trace)
 
 	writeHeader := cc.writeHeader
+	headerDumps := []*dumper{}
 	if len(dumps) > 0 {
-		dd := []*dumper{}
 		for _, dump := range dumps {
 			if dump.RequestHeader {
-				dd = append(dd, dump)
+				headerDumps = append(headerDumps, dump)
 			}
 		}
-		dumps = dd
-		if len(dumps) > 0 {
+		if len(headerDumps) > 0 {
 			writeHeader = func(name, value string) {
-				for _, dump := range dumps {
+				for _, dump := range headerDumps {
 					dump.dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
 				}
 				cc.writeHeader(name, value)
@@ -1915,7 +1910,7 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 		}
 	})
 
-	for _, dump := range dumps {
+	for _, dump := range headerDumps {
 		dump.dump([]byte("\r\n"))
 	}
 
