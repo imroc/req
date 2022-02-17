@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/imroc/req/v3/internal/tests"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -338,12 +339,12 @@ func TestGetTLSClientConfig(t *testing.T) {
 }
 
 func TestSetRootCertFromFile(t *testing.T) {
-	c := tc().SetRootCertsFromFile(getTestFilePath("sample-root.pem"))
+	c := tc().SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem"))
 	assertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
 }
 
 func TestSetRootCertFromString(t *testing.T) {
-	c := tc().SetRootCertFromString(string(getTestFileContent(t, "sample-root.pem")))
+	c := tc().SetRootCertFromString(string(tests.GetTestFileContent(t, "sample-root.pem")))
 	assertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
 }
 
@@ -354,8 +355,8 @@ func TestSetCerts(t *testing.T) {
 
 func TestSetCertFromFile(t *testing.T) {
 	c := tc().SetCertFromFile(
-		getTestFilePath("sample-client.pem"),
-		getTestFilePath("sample-client-key.pem"),
+		tests.GetTestFilePath("sample-client.pem"),
+		tests.GetTestFilePath("sample-client-key.pem"),
 	)
 	assertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 1)
 }
@@ -367,8 +368,8 @@ func TestSetOutputDirectory(t *testing.T) {
 		R().SetOutputFile(outFile).
 		Get("/")
 	assertSuccess(t, resp, err)
-	content := string(getTestFileContent(t, outFile))
-	os.Remove(getTestFilePath(outFile))
+	content := string(tests.GetTestFileContent(t, outFile))
+	os.Remove(tests.GetTestFilePath(outFile))
 	assertEqual(t, "TestGet: text response", content)
 }
 
@@ -548,11 +549,11 @@ func TestSetCommonDumpOptions(t *testing.T) {
 func TestEnableDumpAllToFile(t *testing.T) {
 	c := tc()
 	dumpFile := "tmp_test_dump_file"
-	c.EnableDumpAllToFile(getTestFilePath(dumpFile))
+	c.EnableDumpAllToFile(tests.GetTestFilePath(dumpFile))
 	resp, err := c.R().SetBody("test body").Post("/")
 	assertSuccess(t, resp, err)
-	dump := string(getTestFileContent(t, dumpFile))
-	os.Remove(getTestFilePath(dumpFile))
+	dump := string(tests.GetTestFileContent(t, dumpFile))
+	os.Remove(tests.GetTestFilePath(dumpFile))
 	assertContains(t, dump, "user-agent", true)
 	assertContains(t, dump, "test body", true)
 	assertContains(t, dump, "date", true)

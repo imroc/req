@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"go/token"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
@@ -68,16 +69,6 @@ func getTestServerURL() string {
 	defer testServerMu.Unlock()
 	testServer = createTestServer()
 	return testServer.URL
-}
-
-func getTestFileContent(t *testing.T, filename string) []byte {
-	b, err := ioutil.ReadFile(getTestFilePath(filename))
-	assertError(t, err)
-	return b
-}
-
-func getTestFilePath(filename string) string {
-	return filepath.Join(testDataPath, filename)
 }
 
 type echo struct {
@@ -229,7 +220,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(hdrContentTypeKey, "text/plain; charset=gbk")
 		w.Write(toGbk("我是roc"))
 	case "/gbk-no-charset":
-		b, err := ioutil.ReadFile(getTestFilePath("sample-gbk.html"))
+		b, err := ioutil.ReadFile(tests.GetTestFilePath("sample-gbk.html"))
 		if err != nil {
 			panic(err)
 		}
@@ -520,17 +511,17 @@ func testGlobalWrapperSendRequest(t *testing.T) {
 }
 
 func TestGlobalWrapperSetRequest(t *testing.T) {
-	testFilePath := getTestFilePath("sample-file.txt")
+	testFilePath := tests.GetTestFilePath("sample-file.txt")
 	r := SetFiles(map[string]string{"test": testFilePath})
 	assertEqual(t, 1, len(r.uploadFiles))
 	assertEqual(t, true, r.isMultiPart)
 
-	r = SetFile("test", getTestFilePath("sample-file.txt"))
+	r = SetFile("test", tests.GetTestFilePath("sample-file.txt"))
 	assertEqual(t, 1, len(r.uploadFiles))
 	assertEqual(t, true, r.isMultiPart)
 
 	SetLogger(nil)
-	r = SetFile("test", getTestFilePath("file-not-exists.txt"))
+	r = SetFile("test", tests.GetTestFilePath("file-not-exists.txt"))
 	assertEqual(t, 0, len(r.uploadFiles))
 	assertEqual(t, false, r.isMultiPart)
 	assertNotNil(t, r.error)
@@ -774,18 +765,18 @@ func TestGlobalWrapper(t *testing.T) {
 	config := GetTLSClientConfig()
 	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
 
-	SetRootCertsFromFile(getTestFilePath("sample-root.pem"))
+	SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem"))
 	assertEqual(t, true, DefaultClient().t.TLSClientConfig.RootCAs != nil)
 
-	SetRootCertFromString(string(getTestFileContent(t, "sample-root.pem")))
+	SetRootCertFromString(string(tests.GetTestFileContent(t, "sample-root.pem")))
 	assertEqual(t, true, DefaultClient().t.TLSClientConfig.RootCAs != nil)
 
 	SetCerts(tls.Certificate{}, tls.Certificate{})
 	assertEqual(t, true, len(DefaultClient().t.TLSClientConfig.Certificates) == 2)
 
 	SetCertFromFile(
-		getTestFilePath("sample-client.pem"),
-		getTestFilePath("sample-client-key.pem"),
+		tests.GetTestFilePath("sample-client.pem"),
+		tests.GetTestFilePath("sample-client-key.pem"),
 	)
 	assertEqual(t, true, len(DefaultClient().t.TLSClientConfig.Certificates) == 3)
 
@@ -834,7 +825,7 @@ func TestGlobalWrapper(t *testing.T) {
 	EnableDumpAllToFile(filepath.Join(testDataPath, "path-not-exists", "dump.out"))
 	assertEqual(t, true, DefaultClient().getDumpOptions().Output == nil)
 
-	dumpFile := getTestFilePath("tmpdump.out")
+	dumpFile := tests.GetTestFilePath("tmpdump.out")
 	EnableDumpAllToFile(dumpFile)
 	assertEqual(t, true, DefaultClient().getDumpOptions().Output != nil)
 	os.Remove(dumpFile)

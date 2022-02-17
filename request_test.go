@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"net/url"
 	"strings"
@@ -660,7 +661,7 @@ func testTraceOnTimeout(t *testing.T, c *Client) {
 }
 
 func TestAutoDetectRequestContentType(t *testing.T) {
-	resp, err := tc().R().SetBody(getTestFileContent(t, "sample-image.png")).Post("/raw-upload")
+	resp, err := tc().R().SetBody(tests.GetTestFileContent(t, "sample-image.png")).Post("/raw-upload")
 	assertSuccess(t, resp, err)
 	assertEqual(t, "image/png", resp.Request.Headers.Get(hdrContentTypeKey))
 }
@@ -668,8 +669,8 @@ func TestAutoDetectRequestContentType(t *testing.T) {
 func TestUploadMultipart(t *testing.T) {
 	m := make(map[string]interface{})
 	resp, err := tc().R().
-		SetFile("file", getTestFilePath("sample-image.png")).
-		SetFiles(map[string]string{"file": getTestFilePath("sample-file.txt")}).
+		SetFile("file", tests.GetTestFilePath("sample-image.png")).
+		SetFiles(map[string]string{"file": tests.GetTestFilePath("sample-file.txt")}).
 		SetFormData(map[string]string{
 			"param1": "value1",
 			"param2": "value2",
