@@ -88,6 +88,7 @@ type echo struct {
 func handlePost(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
+		io.Copy(ioutil.Discard, r.Body)
 		w.Write([]byte("TestPost: text response"))
 	case "/raw-upload":
 		io.Copy(ioutil.Discard, r.Body)
@@ -113,6 +114,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	case "/search":
 		handleSearch(w, r)
 	case "/redirect":
+		io.Copy(ioutil.Discard, r.Body)
 		w.Header().Set(hdrLocationKey, "/")
 		w.WriteHeader(http.StatusMovedPermanently)
 	case "/echo":
@@ -195,6 +197,9 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("TestGet: text response"))
 	case "/bad-request":
 		w.WriteHeader(http.StatusBadRequest)
+	case "/chunked":
+		w.Header().Add("Trailer", "Expires")
+		w.Write([]byte(`This is a chunked body`))
 	case "/host-header":
 		w.Write([]byte(r.Host))
 	case "/json":
@@ -259,8 +264,8 @@ func assertStatus(t *testing.T, resp *Response, err error, statusCode int, statu
 
 func assertSuccess(t *testing.T, resp *Response, err error) {
 	assertError(t, err)
-	assertNotNil(t, resp)
-	assertNotNil(t, resp.Body)
+	assertNotNil(t, resp.Response)
+	assertNotNil(t, resp.Response.Body)
 	assertEqual(t, http.StatusOK, resp.StatusCode)
 	assertEqual(t, "200 OK", resp.Status)
 	if !resp.IsSuccess() {
@@ -285,13 +290,7 @@ func assertNil(t *testing.T, v interface{}) {
 
 func assertNotNil(t *testing.T, v interface{}) {
 	if isNil(v) {
-		t.Errorf("[%v] was expected to be non-nil", v)
-	}
-}
-
-func assertType(t *testing.T, typ, v interface{}) {
-	if reflect.DeepEqual(reflect.TypeOf(typ), reflect.TypeOf(v)) {
-		t.Errorf("Expected type %t, got %t", typ, v)
+		t.Fatalf("[%v] was expected to be non-nil", v)
 	}
 }
 
@@ -368,12 +367,6 @@ func assertEqual(t *testing.T, e, g interface{}) {
 		t.Errorf("Expected [%+v], got [%+v]", e, g)
 	}
 	return
-}
-
-func removeEmptyString(s string) string {
-	s = strings.ReplaceAll(s, "\r", "")
-	s = strings.ReplaceAll(s, "\n", "")
-	return s
 }
 
 func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
@@ -853,4 +846,13 @@ func TestGlobalWrapper(t *testing.T) {
 	assertEqual(t, true, opt.RequestHeader == true && opt.ResponseHeader == false)
 	DisableDumpAll()
 	assertEqual(t, true, DefaultClient().t.dump == nil)
+}
+
+func TestTrailer(t *testing.T) {
+	resp, err := tc().EnableForceHTTP1().R().Get("/chunked")
+	assertSuccess(t, resp, err)
+	_, ok := resp.Trailer["Expires"]
+	if !ok {
+		t.Error("trailer not exists")
+	}
 }

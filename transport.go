@@ -37,7 +37,6 @@ import (
 	"time"
 
 	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http/httpproxy"
 )
 
 type HttpVersion string
@@ -763,30 +762,8 @@ func (t *Transport) cancelRequest(key cancelKey, err error) bool {
 	return cancel != nil
 }
 
-//
-// Private implementation past this point.
-//
-
-var (
-	// proxyConfigOnce guards proxyConfig
-	envProxyOnce      sync.Once
-	envProxyFuncValue func(*url.URL) (*url.URL, error)
-)
-
-// defaultProxyConfig returns a ProxyConfig value looked up
-// from the environment. This mitigates expensive lookups
-// on some platforms (e.g. Windows).
-func envProxyFunc() func(*url.URL) (*url.URL, error) {
-	envProxyOnce.Do(func() {
-		envProxyFuncValue = httpproxy.FromEnvironment().ProxyFunc()
-	})
-	return envProxyFuncValue
-}
-
 // resetProxyConfig is used by tests.
 func resetProxyConfig() {
-	envProxyOnce = sync.Once{}
-	envProxyFuncValue = nil
 }
 
 func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectMethod, err error) {
