@@ -7,6 +7,7 @@ package req
 import (
 	"bytes"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"reflect"
 	"strings"
@@ -1281,4 +1282,25 @@ func TestSettingsDuplicates(t *testing.T) {
 		}
 	}
 
+}
+
+func TestParseSettingsFrame(t *testing.T) {
+	fh := http2FrameHeader{}
+	fh.Flags = http2FlagSettingsAck
+	fh.Length = 1
+	countErr := func(s string) {}
+	_, err := http2parseSettingsFrame(nil, fh, countErr, nil)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+
+	fh = http2FrameHeader{StreamID: 1}
+	_, err = http2parseSettingsFrame(nil, fh, countErr, nil)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+
+	fh = http2FrameHeader{}
+	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("roc"))
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+
+	fh = http2FrameHeader{valid: true}
+	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("rocroc"))
+	tests.AssertNoError(t, err)
 }
