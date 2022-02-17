@@ -465,22 +465,6 @@ func bodyAllowedForStatus(status int) bool {
 	return true
 }
 
-var (
-	suppressedHeaders304    = []string{"Content-Type", "Content-Length", "Transfer-Encoding"}
-	suppressedHeadersNoBody = []string{"Content-Length", "Transfer-Encoding"}
-)
-
-func suppressedHeaders(status int) []string {
-	switch {
-	case status == 304:
-		// RFC 7232 section 4.1
-		return suppressedHeaders304
-	case !bodyAllowedForStatus(status):
-		return suppressedHeadersNoBody
-	}
-	return nil
-}
-
 // msg is *http.Request or *http.Response.
 func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 	t := &transferReader{RequestMethod: "GET"}
@@ -498,15 +482,6 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		if rr.Request != nil {
 			t.RequestMethod = rr.Request.Method
 		}
-	case *http.Request:
-		t.Header = rr.Header
-		t.RequestMethod = rr.Method
-		t.ProtoMajor = rr.ProtoMajor
-		t.ProtoMinor = rr.ProtoMinor
-		// Transfer semantics for Requests are exactly like those for
-		// Responses with status code 200, responding to a GET method
-		t.StatusCode = 200
-		t.Close = rr.Close
 	default:
 		panic("unexpected type")
 	}
@@ -545,7 +520,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 	// and the status is not 1xx, 204 or 304, then the body is unbounded.
 	// See RFC 7230, section 3.3.
 	switch msg.(type) {
-	case *Response:
+	case *http.Response:
 		if realLength == -1 && !t.Chunked && bodyAllowedForStatus(t.StatusCode) {
 			// Unbounded body.
 			t.Close = true
@@ -578,14 +553,6 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 
 	// Unify output
 	switch rr := msg.(type) {
-	case *http.Request:
-		rr.Body = t.Body
-		rr.ContentLength = t.ContentLength
-		if t.Chunked {
-			rr.TransferEncoding = []string{"chunked"}
-		}
-		rr.Close = t.Close
-		rr.Trailer = t.Trailer
 	case *http.Response:
 		rr.Body = t.Body
 		rr.ContentLength = t.ContentLength
@@ -612,13 +579,6 @@ type unsupportedTEError struct {
 
 func (uste *unsupportedTEError) Error() string {
 	return uste.err
-}
-
-// isUnsupportedTEError checks if the error is of type
-// unsupportedTEError. It is usually invoked with a non-nil err.
-func isUnsupportedTEError(err error) bool {
-	_, ok := err.(*unsupportedTEError)
-	return ok
 }
 
 // parseTransferEncoding sets t.Chunked based on the Transfer-Encoding header.
@@ -666,7 +626,6 @@ func (t *transferReader) parseTransferEncoding() error {
 // function is not a method, because ultimately it should be shared by
 // ReadResponse and ReadRequest.
 func fixLength(isResponse bool, status int, requestMethod string, header http.Header, chunked bool) (int64, error) {
-	isRequest := !isResponse
 	contentLens := header["Content-Length"]
 
 	// Hardening against HTTP request smuggling
@@ -691,13 +650,6 @@ func fixLength(isResponse bool, status int, requestMethod string, header http.He
 
 	// Logic based on response type or status
 	if noResponseBodyExpected(requestMethod) {
-		// For HTTP requests, as part of hardening against request
-		// smuggling (RFC 7230), don't allow a Content-Length header for
-		// methods which don't permit bodies. As an exception, allow
-		// exactly one Content-Length header if its value is "0".
-		if isRequest && len(contentLens) > 0 && !(len(contentLens) == 1 && contentLens[0] == "0") {
-			return 0, fmt.Errorf("http: method cannot contain a Content-Length; got %q", contentLens)
-		}
 		return 0, nil
 	}
 	if status/100 == 1 {
@@ -727,18 +679,6 @@ func fixLength(isResponse bool, status int, requestMethod string, header http.He
 	}
 	header.Del("Content-Length")
 
-	if isRequest {
-		// RFC 7230 neither explicitly permits nor forbids an
-		// entity-body on a GET request so we permit one if
-		// declared, but we default to 0 here (not -1 below)
-		// if there's no mention of a body.
-		// Likewise, all other request methods are assumed to have
-		// no body if neither Transfer-Encoding chunked nor a
-		// Content-Length are set.
-		return 0, nil
-	}
-
-	// Body-EOF logic based on other methods (like closing, or chunked coding)
 	return -1, nil
 }
 
