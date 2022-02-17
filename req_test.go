@@ -285,20 +285,6 @@ func assertNotNil(t *testing.T, v interface{}) {
 	}
 }
 
-func assertContains(t *testing.T, s, substr string, shouldContain bool) {
-	s = strings.ToLower(s)
-	isContain := strings.Contains(s, substr)
-	if shouldContain {
-		if !isContain {
-			t.Errorf("%q is not included in %s", substr, s)
-		}
-	} else {
-		if isContain {
-			t.Errorf("%q is included in %s", substr, s)
-		}
-	}
-}
-
 func assertError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error occurred [%v]", err)

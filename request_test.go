@@ -139,10 +139,10 @@ func testEnableDump(t *testing.T, fn func(r *Request, reqHeader, reqBody, respHe
 		resp, err := r.SetBody(`test body`).Post("/")
 		assertSuccess(t, resp, err)
 		dump := resp.Dump()
-		assertContains(t, dump, "user-agent", reqHeader)
-		assertContains(t, dump, "test body", reqBody)
-		assertContains(t, dump, "date", respHeader)
-		assertContains(t, dump, "testpost: text response", respBody)
+		tests.AssertContains(t, dump, "user-agent", reqHeader)
+		tests.AssertContains(t, dump, "test body", reqBody)
+		tests.AssertContains(t, dump, "date", respHeader)
+		tests.AssertContains(t, dump, "testpost: text response", respBody)
 	}
 	testDump(tc())
 	testDump(tc().EnableForceHTTP1())
@@ -163,10 +163,10 @@ func testSetDumpOptions(t *testing.T, c *Client) {
 	resp, err := c.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
 	assertSuccess(t, resp, err)
 	dump := resp.Dump()
-	assertContains(t, dump, "user-agent", true)
-	assertContains(t, dump, "test body", false)
-	assertContains(t, dump, "date", false)
-	assertContains(t, dump, "testpost: text response", true)
+	tests.AssertContains(t, dump, "user-agent", true)
+	tests.AssertContains(t, dump, "test body", false)
+	tests.AssertContains(t, dump, "date", false)
+	tests.AssertContains(t, dump, "testpost: text response", true)
 }
 
 func TestGet(t *testing.T) {
@@ -597,14 +597,14 @@ func TestTraceInfo(t *testing.T) {
 	resp, err := tc().R().Get("/")
 	assertSuccess(t, resp, err)
 	ti := resp.TraceInfo()
-	assertContains(t, ti.String(), "not enabled", true)
-	assertContains(t, ti.Blame(), "not enabled", true)
+	tests.AssertContains(t, ti.String(), "not enabled", true)
+	tests.AssertContains(t, ti.Blame(), "not enabled", true)
 
 	resp, err = tc().EnableTraceAll().R().Get("/")
 	assertSuccess(t, resp, err)
 	ti = resp.TraceInfo()
-	assertContains(t, ti.String(), "not enabled", false)
-	assertContains(t, ti.Blame(), "not enabled", false)
+	tests.AssertContains(t, ti.String(), "not enabled", false)
+	tests.AssertContains(t, ti.Blame(), "not enabled", false)
 }
 
 func testTraceInfo(t *testing.T, c *Client) {
@@ -678,10 +678,10 @@ func TestUploadMultipart(t *testing.T) {
 		SetResult(&m).
 		Post("/multipart")
 	assertSuccess(t, resp, err)
-	assertContains(t, resp.String(), "sample-image.png", true)
-	assertContains(t, resp.String(), "sample-file.txt", true)
-	assertContains(t, resp.String(), "value1", true)
-	assertContains(t, resp.String(), "value2", true)
+	tests.AssertContains(t, resp.String(), "sample-image.png", true)
+	tests.AssertContains(t, resp.String(), "sample-file.txt", true)
+	tests.AssertContains(t, resp.String(), "value1", true)
+	tests.AssertContains(t, resp.String(), "value2", true)
 }
 
 func TestFixPragmaCache(t *testing.T) {

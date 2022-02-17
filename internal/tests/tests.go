@@ -20,3 +20,17 @@ func AssertErrorContains(t *testing.T, err error, s string) {
 		t.Errorf("%q is not included in error %q", s, err.Error())
 	}
 }
+
+func AssertContains(t *testing.T, s, substr string, shouldContain bool) {
+	s = strings.ToLower(s)
+	isContain := strings.Contains(s, substr)
+	if shouldContain {
+		if !isContain {
+			t.Errorf("%q is not included in %s", substr, s)
+		}
+	} else {
+		if isContain {
+			t.Errorf("%q is included in %s", substr, s)
+		}
+	}
+}

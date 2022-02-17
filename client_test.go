@@ -195,7 +195,7 @@ func TestAutoDecode(t *testing.T) {
 
 	resp, err = c.SetAutoDecodeAllContentType().R().Get("/gbk-no-charset")
 	assertSuccess(t, resp, err)
-	assertContains(t, resp.String(), "我是roc", true)
+	tests.AssertContains(t, resp.String(), "我是roc", true)
 }
 
 func TestSetTimeout(t *testing.T) {
@@ -308,27 +308,27 @@ func TestKeepAlives(t *testing.T) {
 func TestRedirect(t *testing.T) {
 	_, err := tc().SetRedirectPolicy(NoRedirectPolicy()).R().Get("/unlimited-redirect")
 	assertNotNil(t, err)
-	assertContains(t, err.Error(), "redirect is disabled", true)
+	tests.AssertContains(t, err.Error(), "redirect is disabled", true)
 
 	_, err = tc().SetRedirectPolicy(MaxRedirectPolicy(3)).R().Get("/unlimited-redirect")
 	assertNotNil(t, err)
-	assertContains(t, err.Error(), "stopped after 3 redirects", true)
+	tests.AssertContains(t, err.Error(), "stopped after 3 redirects", true)
 
 	_, err = tc().SetRedirectPolicy(SameDomainRedirectPolicy()).R().Get("/redirect-to-other")
 	assertNotNil(t, err)
-	assertContains(t, err.Error(), "different domain name is not allowed", true)
+	tests.AssertContains(t, err.Error(), "different domain name is not allowed", true)
 
 	_, err = tc().SetRedirectPolicy(SameHostRedirectPolicy()).R().Get("/redirect-to-other")
 	assertNotNil(t, err)
-	assertContains(t, err.Error(), "different host name is not allowed", true)
+	tests.AssertContains(t, err.Error(), "different host name is not allowed", true)
 
 	_, err = tc().SetRedirectPolicy(AllowedHostRedirectPolicy("localhost", "127.0.0.1")).R().Get("/redirect-to-other")
 	assertNotNil(t, err)
-	assertContains(t, err.Error(), "redirect host [dummy.local] is not allowed", true)
+	tests.AssertContains(t, err.Error(), "redirect host [dummy.local] is not allowed", true)
 
 	_, err = tc().SetRedirectPolicy(AllowedDomainRedirectPolicy("localhost", "127.0.0.1")).R().Get("/redirect-to-other")
 	assertNotNil(t, err)
-	assertContains(t, err.Error(), "redirect domain [dummy.local] is not allowed", true)
+	tests.AssertContains(t, err.Error(), "redirect domain [dummy.local] is not allowed", true)
 }
 
 func TestGetTLSClientConfig(t *testing.T) {
@@ -516,10 +516,10 @@ func testEnableDumpAll(t *testing.T, fn func(c *Client, reqHeader, reqBody, resp
 		resp, err := c.R().SetBody(`test body`).Post("/")
 		assertSuccess(t, resp, err)
 		dump := buf.String()
-		assertContains(t, dump, "user-agent", reqHeader)
-		assertContains(t, dump, "test body", reqBody)
-		assertContains(t, dump, "date", respHeader)
-		assertContains(t, dump, "testpost: text response", respBody)
+		tests.AssertContains(t, dump, "user-agent", reqHeader)
+		tests.AssertContains(t, dump, "test body", reqBody)
+		tests.AssertContains(t, dump, "date", respHeader)
+		tests.AssertContains(t, dump, "testpost: text response", respBody)
 	}
 	testDump(c)
 	buf = new(bytes.Buffer)
@@ -540,10 +540,10 @@ func TestSetCommonDumpOptions(t *testing.T) {
 	c.SetCommonDumpOptions(opt).EnableDumpAll()
 	resp, err := c.R().SetBody("test body").Post("/")
 	assertSuccess(t, resp, err)
-	assertContains(t, buf.String(), "user-agent", true)
-	assertContains(t, buf.String(), "test body", false)
-	assertContains(t, buf.String(), "date", false)
-	assertContains(t, buf.String(), "testpost: text response", true)
+	tests.AssertContains(t, buf.String(), "user-agent", true)
+	tests.AssertContains(t, buf.String(), "test body", false)
+	tests.AssertContains(t, buf.String(), "date", false)
+	tests.AssertContains(t, buf.String(), "testpost: text response", true)
 }
 
 func TestEnableDumpAllToFile(t *testing.T) {
@@ -554,10 +554,10 @@ func TestEnableDumpAllToFile(t *testing.T) {
 	assertSuccess(t, resp, err)
 	dump := string(tests.GetTestFileContent(t, dumpFile))
 	os.Remove(tests.GetTestFilePath(dumpFile))
-	assertContains(t, dump, "user-agent", true)
-	assertContains(t, dump, "test body", true)
-	assertContains(t, dump, "date", true)
-	assertContains(t, dump, "testpost: text response", true)
+	tests.AssertContains(t, dump, "user-agent", true)
+	tests.AssertContains(t, dump, "test body", true)
+	tests.AssertContains(t, dump, "date", true)
+	tests.AssertContains(t, dump, "testpost: text response", true)
 }
 
 func TestEnableDumpAllAsync(t *testing.T) {
