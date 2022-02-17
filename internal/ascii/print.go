@@ -59,7 +59,3 @@ func ToLower(s string) (lower string, ok bool) {
 	}
 	return strings.ToLower(s), true
 }
-
-func IsSpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '\r'
-}
