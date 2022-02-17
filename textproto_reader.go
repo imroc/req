@@ -9,23 +9,10 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/imroc/req/v3/internal/util"
-	"io"
-	"io/ioutil"
 	"net/textproto"
-	"strconv"
 	"strings"
 	"sync"
 )
-
-// An Error represents a numeric error response from a server.
-type codeError struct {
-	Code int
-	Msg  string
-}
-
-func (e *codeError) Error() string {
-	return fmt.Sprintf("%03d %s", e.Code, e.Msg)
-}
 
 func isASCIILetter(b byte) bool {
 	b |= 0x20 // make lower case
@@ -36,7 +23,6 @@ func isASCIILetter(b byte) bool {
 // or responses from a text protocol network connection.
 type textprotoReader struct {
 	R        *bufio.Reader
-	dot      *dotReader
 	buf      []byte // a re-usable buffer for readContinuedLineSlice
 	readLine func() (line []byte, isPrefix bool, err error)
 }
@@ -96,19 +82,7 @@ func (r *textprotoReader) ReadLine() (string, error) {
 	return string(line), err
 }
 
-// ReadLineBytes is like ReadLine but returns a []byte instead of a string.
-func (r *textprotoReader) ReadLineBytes() ([]byte, error) {
-	line, err := r.readLineSlice()
-	if line != nil {
-		buf := make([]byte, len(line))
-		copy(buf, line)
-		line = buf
-	}
-	return line, err
-}
-
 func (r *textprotoReader) readLineSlice() ([]byte, error) {
-	r.closeDot()
 	var line []byte
 
 	for {
@@ -128,30 +102,6 @@ func (r *textprotoReader) readLineSlice() ([]byte, error) {
 	return line, nil
 }
 
-// ReadContinuedLine reads a possibly continued line from r,
-// eliding the final trailing ASCII white space.
-// Lines after the first are considered continuations if they
-// begin with a space or tab character. In the returned data,
-// continuation lines are separated from the previous line
-// only by a single space: the newline and leading white space
-// are removed.
-//
-// For example, consider this input:
-//
-//	Line 1
-//	  continued...
-//	Line 2
-//
-// The first call to ReadContinuedLine will return "Line 1 continued..."
-// and the second will return "Line 2".
-//
-// Empty lines are never continued.
-//
-func (r *textprotoReader) ReadContinuedLine() (string, error) {
-	line, err := r.readContinuedLineSlice(noValidation)
-	return string(line), err
-}
-
 // trim returns s with leading and trailing spaces and tabs removed.
 // It does not assume Unicode or UTF-8.
 func trim(s []byte) []byte {
@@ -164,18 +114,6 @@ func trim(s []byte) []byte {
 		n--
 	}
 	return s[i:n]
-}
-
-// ReadContinuedLineBytes is like ReadContinuedLine but
-// returns a []byte instead of a string.
-func (r *textprotoReader) ReadContinuedLineBytes() ([]byte, error) {
-	line, err := r.readContinuedLineSlice(noValidation)
-	if line != nil {
-		buf := make([]byte, len(line))
-		copy(buf, line)
-		line = buf
-	}
-	return line, err
 }
 
 // readContinuedLineSlice reads continued lines from the reader buffer,
@@ -246,284 +184,12 @@ func (r *textprotoReader) skipSpace() int {
 	return n
 }
 
-func (r *textprotoReader) readCodeLine(expectCode int) (code int, continued bool, message string, err error) {
-	line, err := r.ReadLine()
-	if err != nil {
-		return
-	}
-	return parseCodeLine(line, expectCode)
-}
-
 // A protocolError describes a protocol violation such
 // as an invalid response or a hung-up connection.
 type protocolError string
 
 func (p protocolError) Error() string {
 	return string(p)
-}
-
-func parseCodeLine(line string, expectCode int) (code int, continued bool, message string, err error) {
-	if len(line) < 4 || line[3] != ' ' && line[3] != '-' {
-		err = protocolError("short response: " + line)
-		return
-	}
-	continued = line[3] == '-'
-	code, err = strconv.Atoi(line[0:3])
-	if err != nil || code < 100 {
-		err = protocolError("invalid response code: " + line)
-		return
-	}
-	message = line[4:]
-	if 1 <= expectCode && expectCode < 10 && code/100 != expectCode ||
-		10 <= expectCode && expectCode < 100 && code/10 != expectCode ||
-		100 <= expectCode && expectCode < 1000 && code != expectCode {
-		err = &codeError{code, message}
-	}
-	return
-}
-
-// ReadCodeLine reads a response code line of the form
-//	code message
-// where code is a three-digit status code and the message
-// extends to the rest of the line. An example of such a line is:
-//	220 plan9.bell-labs.com ESMTP
-//
-// If the prefix of the status does not match the digits in expectCode,
-// ReadCodeLine returns with err set to &codeError{code, message}.
-// For example, if expectCode is 31, an error will be returned if
-// the status is not in the range [310,319].
-//
-// If the response is multi-line, ReadCodeLine returns an error.
-//
-// An expectCode <= 0 disables the check of the status code.
-//
-func (r *textprotoReader) ReadCodeLine(expectCode int) (code int, message string, err error) {
-	code, continued, message, err := r.readCodeLine(expectCode)
-	if err == nil && continued {
-		err = protocolError("unexpected multi-line response: " + message)
-	}
-	return
-}
-
-// ReadResponse reads a multi-line response of the form:
-//
-//	code-message line 1
-//	code-message line 2
-//	...
-//	code message line n
-//
-// where code is a three-digit status code. The first line starts with the
-// code and a hyphen. The response is terminated by a line that starts
-// with the same code followed by a space. Each line in message is
-// separated by a newline (\n).
-//
-// See page 36 of RFC 959 (https://www.ietf.org/rfc/rfc959.txt) for
-// details of another form of response accepted:
-//
-//  code-message line 1
-//  message line 2
-//  ...
-//  code message line n
-//
-// If the prefix of the status does not match the digits in expectCode,
-// ReadResponse returns with err set to &codeError{code, message}.
-// For example, if expectCode is 31, an error will be returned if
-// the status is not in the range [310,319].
-//
-// An expectCode <= 0 disables the check of the status code.
-//
-func (r *textprotoReader) ReadResponse(expectCode int) (code int, message string, err error) {
-	code, continued, message, err := r.readCodeLine(expectCode)
-	multi := continued
-	for continued {
-		line, err := r.ReadLine()
-		if err != nil {
-			return 0, "", err
-		}
-
-		var code2 int
-		var moreMessage string
-		code2, continued, moreMessage, err = parseCodeLine(line, 0)
-		if err != nil || code2 != code {
-			message += "\n" + strings.TrimRight(line, "\r\n")
-			continued = true
-			continue
-		}
-		message += "\n" + moreMessage
-	}
-	if err != nil && multi && message != "" {
-		// replace one line error message with all lines (full message)
-		err = &codeError{code, message}
-	}
-	return
-}
-
-// DotReader returns a new textprotoReader that satisfies Reads using the
-// decoded text of a dot-encoded block read from r.
-// The returned textprotoReader is only valid until the next call
-// to a method on r.
-//
-// Dot encoding is a common framing used for data blocks
-// in text protocols such as SMTP.  The data consists of a sequence
-// of lines, each of which ends in "\r\n".  The sequence itself
-// ends at a line containing just a dot: ".\r\n".  Lines beginning
-// with a dot are escaped with an additional dot to avoid
-// looking like the end of the sequence.
-//
-// The decoded form returned by the textprotoReader's Read method
-// rewrites the "\r\n" line endings into the simpler "\n",
-// removes leading dot escapes if present, and stops with error io.EOF
-// after consuming (and discarding) the end-of-sequence line.
-func (r *textprotoReader) DotReader() io.Reader {
-	r.closeDot()
-	r.dot = &dotReader{r: r}
-	return r.dot
-}
-
-type dotReader struct {
-	r     *textprotoReader
-	state int
-}
-
-// Read satisfies reads by decoding dot-encoded data read from d.r.
-func (d *dotReader) Read(b []byte) (n int, err error) {
-	// Run data through a simple state machine to
-	// elide leading dots, rewrite trailing \r\n into \n,
-	// and detect ending .\r\n line.
-	const (
-		stateBeginLine = iota // beginning of line; initial state; must be zero
-		stateDot              // read . at beginning of line
-		stateDotCR            // read .\r at beginning of line
-		stateCR               // read \r (possibly at end of line)
-		stateData             // reading data in middle of line
-		stateEOF              // reached .\r\n end marker line
-	)
-	br := d.r.R
-	for n < len(b) && d.state != stateEOF {
-		var c byte
-		c, err = br.ReadByte()
-		if err != nil {
-			if err == io.EOF {
-				err = io.ErrUnexpectedEOF
-			}
-			break
-		}
-		switch d.state {
-		case stateBeginLine:
-			if c == '.' {
-				d.state = stateDot
-				continue
-			}
-			if c == '\r' {
-				d.state = stateCR
-				continue
-			}
-			d.state = stateData
-
-		case stateDot:
-			if c == '\r' {
-				d.state = stateDotCR
-				continue
-			}
-			if c == '\n' {
-				d.state = stateEOF
-				continue
-			}
-			d.state = stateData
-
-		case stateDotCR:
-			if c == '\n' {
-				d.state = stateEOF
-				continue
-			}
-			// Not part of .\r\n.
-			// Consume leading dot and emit saved \r.
-			br.UnreadByte()
-			c = '\r'
-			d.state = stateData
-
-		case stateCR:
-			if c == '\n' {
-				d.state = stateBeginLine
-				break
-			}
-			// Not part of \r\n. Emit saved \r
-			br.UnreadByte()
-			c = '\r'
-			d.state = stateData
-
-		case stateData:
-			if c == '\r' {
-				d.state = stateCR
-				continue
-			}
-			if c == '\n' {
-				d.state = stateBeginLine
-			}
-		}
-		b[n] = c
-		n++
-	}
-	if err == nil && d.state == stateEOF {
-		err = io.EOF
-	}
-	if err != nil && d.r.dot == d {
-		d.r.dot = nil
-	}
-	return
-}
-
-// closeDot drains the current DotReader if any,
-// making sure that it reads until the ending dot line.
-func (r *textprotoReader) closeDot() {
-	if r.dot == nil {
-		return
-	}
-	buf := make([]byte, 128)
-	for r.dot != nil {
-		// When Read reaches EOF or an error,
-		// it will set r.dot == nil.
-		r.dot.Read(buf)
-	}
-}
-
-// ReadDotBytes reads a dot-encoding and returns the decoded data.
-//
-// See the documentation for the DotReader method for details about dot-encoding.
-func (r *textprotoReader) ReadDotBytes() ([]byte, error) {
-	return ioutil.ReadAll(r.DotReader())
-}
-
-// ReadDotLines reads a dot-encoding and returns a slice
-// containing the decoded lines, with the final \r\n or \n elided from each.
-//
-// See the documentation for the DotReader method for details about dot-encoding.
-func (r *textprotoReader) ReadDotLines() ([]string, error) {
-	// We could use ReadDotBytes and then Split it,
-	// but reading a line at a time avoids needing a
-	// large contiguous block of memory and is simpler.
-	var v []string
-	var err error
-	for {
-		var line string
-		line, err = r.ReadLine()
-		if err != nil {
-			if err == io.EOF {
-				err = io.ErrUnexpectedEOF
-			}
-			break
-		}
-
-		// Dot by itself marks end; otherwise cut one dot.
-		if len(line) > 0 && line[0] == '.' {
-			if len(line) == 1 {
-				break
-			}
-			line = line[1:]
-		}
-		v = append(v, line)
-	}
-	return v, err
 }
 
 var colon = []byte(":")
@@ -611,10 +277,6 @@ func (r *textprotoReader) ReadMIMEHeader() (textproto.MIMEHeader, error) {
 	}
 }
 
-// noValidation is a no-op validation func for readContinuedLineSlice
-// that permits any lines.
-func noValidation(_ []byte) error { return nil }
-
 // mustHaveFieldNameColon ensures that, per RFC 7230, the
 // field-name is on a single line, so the first line must
 // contain a colon.
@@ -638,35 +300,6 @@ func (r *textprotoReader) upcomingHeaderNewlines() (n int) {
 	}
 	peek, _ := r.R.Peek(s)
 	return bytes.Count(peek, nl)
-}
-
-// CanonicalMIMEHeaderKey returns the canonical format of the
-// MIME header key s. The canonicalization converts the first
-// letter and any letter following a hyphen to upper case;
-// the rest are converted to lowercase. For example, the
-// canonical key for "accept-encoding" is "Accept-Encoding".
-// MIME header keys are assumed to be ASCII only.
-// If s contains a space or invalid header field bytes, it is
-// returned without modifications.
-func CanonicalMIMEHeaderKey(s string) string {
-	commonHeaderOnce.Do(initCommonHeader)
-
-	// Quick check for canonical encoding.
-	upper := true
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		if !validHeaderFieldByte(c) {
-			return s
-		}
-		if upper && 'a' <= c && c <= 'z' {
-			return canonicalMIMEHeaderKey([]byte(s))
-		}
-		if !upper && 'A' <= c && c <= 'Z' {
-			return canonicalMIMEHeaderKey([]byte(s))
-		}
-		upper = c == '-'
-	}
-	return s
 }
 
 const toLower = 'a' - 'A'
