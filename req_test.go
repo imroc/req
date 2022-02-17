@@ -832,4 +832,9 @@ func TestTrailer(t *testing.T) {
 	if !ok {
 		t.Error("trailer not exists")
 	}
+	r := tc().EnableForceHTTP1().R()
+	r.RawRequest.Trailer = make(http.Header)
+	r.RawRequest.Trailer.Add("test", "")
+	resp, err = r.SetBody("test").Post("/")
+	assertSuccess(t, resp, err)
 }
