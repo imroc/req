@@ -57,24 +57,6 @@ func (w *dumpWriteCloser) Write(p []byte) (n int, err error) {
 	return
 }
 
-func (d *dumper) WrapReader(r io.Reader) io.Reader {
-	return &dumpReader{
-		r:    r,
-		dump: d,
-	}
-}
-
-type dumpReader struct {
-	r    io.Reader
-	dump *dumper
-}
-
-func (r *dumpReader) Read(p []byte) (n int, err error) {
-	n, err = r.r.Read(p)
-	r.dump.dump(p[:n])
-	return
-}
-
 type dumpWriter struct {
 	w    io.Writer
 	dump *dumper

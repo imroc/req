@@ -3327,15 +3327,10 @@ func testProxyForRequest(t *testing.T, tt proxyFromEnvTest, proxyForRequest func
 	}
 }
 
-func ResetCachedEnvironment() {
-	resetProxyConfig()
-}
-
 func ResetProxyEnv() {
 	for _, v := range []string{"HTTP_PROXY", "http_proxy", "NO_PROXY", "no_proxy", "REQUEST_METHOD"} {
 		os.Unsetenv(v)
 	}
-	ResetCachedEnvironment()
 }
 
 func TestProxyFromEnvironment(t *testing.T) {
@@ -3347,7 +3342,6 @@ func TestProxyFromEnvironment(t *testing.T) {
 			os.Setenv("HTTPS_PROXY", tt.httpsenv)
 			os.Setenv("NO_PROXY", tt.noenv)
 			os.Setenv("REQUEST_METHOD", tt.reqmeth)
-			ResetCachedEnvironment()
 			return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
 		})
 	}
@@ -3362,7 +3356,6 @@ func TestProxyFromEnvironmentLowerCase(t *testing.T) {
 			os.Setenv("https_proxy", tt.httpsenv)
 			os.Setenv("no_proxy", tt.noenv)
 			os.Setenv("REQUEST_METHOD", tt.reqmeth)
-			ResetCachedEnvironment()
 			return httpproxy.FromEnvironment().ProxyFunc()(req.URL)
 		})
 	}
