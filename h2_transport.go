@@ -820,28 +820,6 @@ type http2ClientConnState struct {
 	LastIdle time.Time
 }
 
-// State returns a snapshot of cc's state.
-func (cc *http2ClientConn) State() http2ClientConnState {
-	cc.wmu.Lock()
-	maxConcurrent := cc.maxConcurrentStreams
-	if !cc.seenSettings {
-		maxConcurrent = 0
-	}
-	cc.wmu.Unlock()
-
-	cc.mu.Lock()
-	defer cc.mu.Unlock()
-	return http2ClientConnState{
-		Closed:               cc.closed,
-		Closing:              cc.closing || cc.singleUse || cc.doNotReuse || cc.goAway != nil,
-		StreamsActive:        len(cc.streams),
-		StreamsReserved:      cc.streamsReserved,
-		StreamsPending:       cc.pendingRequests,
-		LastIdle:             cc.lastIdle,
-		MaxConcurrentStreams: maxConcurrent,
-	}
-}
-
 // clientConnIdleState describes the suitability of a client
 // connection to initiate a new RoundTrip request.
 type http2clientConnIdleState struct {
