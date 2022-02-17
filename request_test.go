@@ -593,6 +593,17 @@ func testHostHeaderOverride(t *testing.T, c *Client) {
 func TestTraceInfo(t *testing.T) {
 	testTraceInfo(t, tc())
 	testTraceInfo(t, tc().EnableForceHTTP1())
+	resp, err := tc().R().Get("/")
+	assertSuccess(t, resp, err)
+	ti := resp.TraceInfo()
+	assertContains(t, ti.String(), "not enabled", true)
+	assertContains(t, ti.Blame(), "not enabled", true)
+
+	resp, err = tc().EnableTraceAll().R().Get("/")
+	assertSuccess(t, resp, err)
+	ti = resp.TraceInfo()
+	assertContains(t, ti.String(), "not enabled", false)
+	assertContains(t, ti.Blame(), "not enabled", false)
 }
 
 func testTraceInfo(t *testing.T, c *Client) {
