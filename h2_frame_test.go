@@ -1400,6 +1400,22 @@ func TestParseUnknownFrame(t *testing.T) {
 	assertEqual(t, p, uf.Payload())
 }
 
+func TestParseRSTStreamFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	countError := func(string) {}
+	p := []byte("test.")
+	_, err := http2parseRSTStreamFrame(nil, fh, countError, p)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+
+	p = []byte("test")
+	_, err = http2parseRSTStreamFrame(nil, fh, countError, p)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+
+	fh.StreamID = 1
+	_, err = http2parseRSTStreamFrame(nil, fh, countError, p)
+	tests.AssertNoError(t, err)
+}
+
 func TestPushPromiseFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	buf := []byte("test")
