@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// RedirectPolicy represents the redirect policy for Client.
 type RedirectPolicy func(req *http.Request, via []*http.Request) error
 
 // MaxRedirectPolicy specifies the max number of redirect
@@ -27,6 +28,9 @@ func NoRedirectPolicy() RedirectPolicy {
 	}
 }
 
+// SameDomainRedirectPolicy allows redirect only if the redirected domain
+// is the same as original domain, e.g. redirect to "www.imroc.cc" from
+// "imroc.cc" is allowed, but redirect to "google.com" is not allowed.
 func SameDomainRedirectPolicy() RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
 		if getDomain(req.URL.Host) != getDomain(via[0].URL.Host) {
