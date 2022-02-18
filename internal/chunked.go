@@ -19,6 +19,7 @@ import (
 
 const maxLineLength = 4096 // assumed <= bufio.defaultBufSize
 
+// ErrLineTooLong is the error that header line too long.
 var ErrLineTooLong = errors.New("header line too long")
 
 // NewChunkedReader returns a new chunkedReader that translates the data read from r

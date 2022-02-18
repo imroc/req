@@ -84,7 +84,7 @@ func findTheMostPopularRepo(username string) (repo string, star int, err error) 
 		// Unkown http status code, record and return error, here we can use
 		// String() to get response body, cuz response body have already been read
 		// and no error returned, do not need to use ToString().
-		err = fmt.Errorf("unkown error. status code %d; body: %s", resp.StatusCode, resp.String())
+		err = fmt.Errorf("unknown error. status code %d; body: %s", resp.StatusCode, resp.String())
 		return
 	}
 }

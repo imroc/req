@@ -18,6 +18,7 @@ func IsXMLType(ct string) bool {
 	return strings.Contains(ct, "xml")
 }
 
+// GetPointer return the pointer of the interface.
 func GetPointer(v interface{}) interface{} {
 	vv := reflect.ValueOf(v)
 	if vv.Kind() == reflect.Ptr {
@@ -55,15 +56,6 @@ func IsStringEmpty(str string) bool {
 	return len(strings.TrimSpace(str)) == 0
 }
 
-func FirstNonEmpty(v ...string) string {
-	for _, s := range v {
-		if !IsStringEmpty(s) {
-			return s
-		}
-	}
-	return ""
-}
-
 // See 2 (end of page 4) https://www.ietf.org/rfc/rfc2617.txt
 // "To receive authorization, the client sends the userid and password,
 // separated by a single colon (":") character, within a base64
@@ -74,10 +66,12 @@ func basicAuth(username, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
+// BasicAuthHeaderValue return the header of basic auth.
 func BasicAuthHeaderValue(username, password string) string {
 	return "Basic " + basicAuth(username, password)
 }
 
+// CreateDirectory create the directory.
 func CreateDirectory(dir string) (err error) {
 	if _, err = os.Stat(dir); err != nil {
 		if os.IsNotExist(err) {

@@ -25,6 +25,7 @@ IsConnReused:     : true
 RemoteAddr        : %v`
 )
 
+// Blame return the human-readable reason of why request is slowing.
 func (t TraceInfo) Blame() string {
 	if t.RemoteAddr == nil {
 		return "trace is not enabled"
@@ -50,17 +51,18 @@ func (t TraceInfo) Blame() string {
 	return fmt.Sprintf("the request total time is %v, and costs %v %s", t.TotalTime, mv, mk)
 }
 
+// String return the details of trace information.
 func (t TraceInfo) String() string {
 	if t.RemoteAddr == nil {
 		return "trace is not enabled"
 	}
 	if t.IsConnReused {
 		return fmt.Sprintf(traceReusedFmt, t.TotalTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr)
-	} else {
-		return fmt.Sprintf(traceFmt, t.TotalTime, t.DNSLookupTime, t.TCPConnectTime, t.TLSHandshakeTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr)
 	}
+	return fmt.Sprintf(traceFmt, t.TotalTime, t.DNSLookupTime, t.TCPConnectTime, t.TLSHandshakeTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr)
 }
 
+// TraceInfo represents the trace information.
 type TraceInfo struct {
 	// DNSLookupTime is a duration that transport took to perform
 	// DNS lookup.

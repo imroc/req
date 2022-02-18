@@ -12,12 +12,12 @@ func TestReply(t *testing.T) {
 	for i := 0; i < 9; i++ {
 		s := Reply(i).String()
 		if strings.Contains(s, "unknown") {
-			t.Errorf("resply code [%d] should not unkown", i)
+			t.Errorf("resply code [%d] should not unknown", i)
 		}
 	}
 	s := Reply(9).String()
 	if !strings.Contains(s, "unknown") {
-		t.Errorf("resply code [%d] should unkown", 9)
+		t.Errorf("resply code [%d] should unknown", 9)
 	}
 }
 

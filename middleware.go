@@ -38,7 +38,7 @@ func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEH
 			cd.Add(kv.Key, kv.Value)
 		}
 	}
-	if c := cd.String(); c != "" {
+	if c := cd.string(); c != "" {
 		contentDispositionValue += c
 	}
 	hdr.Set("Content-Disposition", contentDispositionValue)

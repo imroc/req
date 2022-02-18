@@ -17,6 +17,7 @@ var boms = []struct {
 	{[]byte{0xef, 0xbb, 0xbf}, "utf-8"},
 }
 
+// FindEncoding sniff and find the encoding of the content.
 func FindEncoding(content []byte) (enc encoding.Encoding, name string) {
 	if len(content) == 0 {
 		return

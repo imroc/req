@@ -29,12 +29,13 @@ type ContentDisposition struct {
 	kv []kv
 }
 
+// Add adds a new key-value pair of Content-Disposition
 func (c *ContentDisposition) Add(key, value string) *ContentDisposition {
 	c.kv = append(c.kv, kv{Key: key, Value: value})
 	return c
 }
 
-func (c *ContentDisposition) String() string {
+func (c *ContentDisposition) string() string {
 	if c == nil {
 		return ""
 	}

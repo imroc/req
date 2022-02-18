@@ -88,6 +88,7 @@ type Addr struct {
 	Port int
 }
 
+// Network return "socks"
 func (a *Addr) Network() string { return "socks" }
 
 func (a *Addr) String() string {

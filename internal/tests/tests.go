@@ -5,12 +5,14 @@ import (
 	"testing"
 )
 
+// AssertNoError asserts no error.
 func AssertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Errorf("Error occurred [%v]", err)
 	}
 }
 
+// AssertErrorContains asserts error is not nil and contains specified error string.
 func AssertErrorContains(t *testing.T, err error, s string) {
 	if err == nil {
 		t.Error("err is nil")
@@ -21,6 +23,7 @@ func AssertErrorContains(t *testing.T, err error, s string) {
 	}
 }
 
+// AssertContains asserts substring is contained in the given string.
 func AssertContains(t *testing.T, s, substr string, shouldContain bool) {
 	s = strings.ToLower(s)
 	isContain := strings.Contains(s, substr)
