@@ -6,6 +6,7 @@ package req
 
 import (
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"strings"
 	"testing"
 )
@@ -30,4 +31,26 @@ func TestGoroutineLock(t *testing.T) {
 	if !strings.Contains(fmt.Sprint(e), "wrong goroutine") {
 		t.Errorf("expected on see panic about running on the wrong goroutine; got %v", e)
 	}
+}
+
+func TestParseUintBytes(t *testing.T) {
+	s := []byte{}
+	_, err := http2parseUintBytes(s, 0, 0)
+	tests.AssertErrorContains(t, err, "invalid syntax")
+
+	s = []byte("0x")
+	_, err = http2parseUintBytes(s, 0, 0)
+	tests.AssertErrorContains(t, err, "invalid syntax")
+
+	s = []byte("0x01")
+	_, err = http2parseUintBytes(s, 0, 0)
+	tests.AssertNoError(t, err)
+
+	s = []byte("0xa1")
+	_, err = http2parseUintBytes(s, 0, 0)
+	tests.AssertNoError(t, err)
+
+	s = []byte("0xA1")
+	_, err = http2parseUintBytes(s, 0, 0)
+	tests.AssertNoError(t, err)
 }
