@@ -78,15 +78,28 @@ func waitCondition(waitFor, checkEvery time.Duration, fn func() bool) bool {
 	return false
 }
 
-// waitErrCondition is like waitCondition but with errors instead of bools.
-func waitErrCondition(waitFor, checkEvery time.Duration, fn func() error) error {
-	deadline := time.Now().Add(waitFor)
-	var err error
-	for time.Now().Before(deadline) {
-		if err = fn(); err == nil {
-			return nil
-		}
-		time.Sleep(checkEvery)
+func TestSettingValid(t *testing.T) {
+	cases := []struct {
+		id  http2SettingID
+		val uint32
+	}{
+		{
+			id:  http2SettingEnablePush,
+			val: 2,
+		},
+		{
+			id:  http2SettingInitialWindowSize,
+			val: 1 << 31,
+		},
+		{
+			id:  http2SettingMaxFrameSize,
+			val: 0,
+		},
 	}
-	return err
+	for _, c := range cases {
+		s := &http2Setting{ID: c.id, Val: c.val}
+		assertEqual(t, true, s.Valid() != nil)
+	}
+	s := &http2Setting{ID: http2SettingMaxHeaderListSize}
+	assertEqual(t, true, s.Valid() == nil)
 }
