@@ -1305,10 +1305,29 @@ func TestParseSettingsFrame(t *testing.T) {
 	tests.AssertNoError(t, err)
 }
 
+func TestParsePushPromise(t *testing.T) {
+	fh := http2FrameHeader{}
+	countError := func(string) {}
+	_, err := http2parsePushPromise(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+
+	fh.StreamID = 1
+	fh.Flags = http2FlagPushPromisePadded
+	_, err = http2parsePushPromise(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "EOF")
+
+	fh.Flags = 0
+	_, err = http2parsePushPromise(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "EOF")
+
+	_, err = http2parsePushPromise(nil, fh, countError, []byte("ksjfksjksjflskk"))
+	tests.AssertNoError(t, err)
+}
+
 func TestSummarizeFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	var f http2Frame
-	f = &http2SettingsFrame{http2FrameHeader: fh}
+	f = &http2SettingsFrame{http2FrameHeader: fh, p: []byte{0x09, 0x01, 0x80, 0x20, 0x00, 0x11}}
 	s := http2summarizeFrame(f)
 	tests.AssertContains(t, s, "len=0", true)
 
@@ -1318,7 +1337,7 @@ func TestSummarizeFrame(t *testing.T) {
 
 	f = &http2WindowUpdateFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
-	tests.AssertContains(t, s, "onn", true)
+	tests.AssertContains(t, s, "conn", true)
 
 	f = &http2PingFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
