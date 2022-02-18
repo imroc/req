@@ -1352,9 +1352,28 @@ func TestSummarizeFrame(t *testing.T) {
 	tests.AssertContains(t, s, "no_error", true)
 }
 
+func TestParseDataFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	countError := func(string) {}
+	_, err := http2parseDataFrame(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "DATA frame with stream ID 0")
+
+	fh.StreamID = 1
+	fh.Flags = http2FlagDataPadded
+	fc := &http2frameCache{}
+	payload := []byte{0x09, 0x00, 0x00, 0x98, 0x11, 0x12}
+	_, err = http2parseDataFrame(fc, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "pad size larger than data payload")
+
+	payload = []byte{0x02, 0x00, 0x00, 0x98, 0x11, 0x12}
+	_, err = http2parseDataFrame(fc, fh, countError, payload)
+	tests.AssertNoError(t, err)
+}
+
 func TestH2Framer(t *testing.T) {
 	f := &http2Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
 	f.logWrite()
 	assertNotNil(t, f.debugFramer)
+	assertNil(t, f.ErrorDetail())
 }
