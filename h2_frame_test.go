@@ -1387,6 +1387,19 @@ func TestParseWindowUpdateFrame(t *testing.T) {
 	tests.AssertNoError(t, err)
 }
 
+func TestParseUnknownFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	countError := func(string) {}
+	p := []byte("test")
+	f, err := http2parseUnknownFrame(nil, fh, countError, p)
+	tests.AssertNoError(t, err)
+	uf, ok := f.(*http2UnknownFrame)
+	if !ok {
+		t.Fatalf("not http2UnknownFrame type: %#+v", f)
+	}
+	assertEqual(t, p, uf.Payload())
+}
+
 func TestH2Framer(t *testing.T) {
 	f := &http2Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
