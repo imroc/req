@@ -453,7 +453,7 @@ func testGlobalWrapperEnableDumps(t *testing.T) {
 func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
 	var reqHeader, reqBody, respHeader, respBody bool
 	r := fn(&reqHeader, &reqBody, &respHeader, &respBody)
-	dump, ok := r.Context().Value("_dumper").(*dumper)
+	dump, ok := r.Context().Value(dumperKey).(*dumper)
 	if !ok {
 		t.Fatal("no dumper found in request context")
 	}

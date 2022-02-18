@@ -1235,7 +1235,7 @@ func (cs *http2clientStream) writeRequest(req *http.Request) (err error) {
 
 	var dumps []*dumper
 	if t1 := cs.cc.t.t1; t1 != nil {
-		dumps = getDumpers(t1.dump, req.Context())
+		dumps = getDumpers(req.Context(), t1.dump)
 	}
 
 	// Past this point (where we send request headers), it is possible for
@@ -2109,7 +2109,7 @@ func (cc *http2ClientConn) countReadFrameError(err error) {
 		f("read_frame_unexpected_eof")
 		return
 	}
-	if errors.Is(err, http2ErrFrameTooLarge) {
+	if errors.Is(err, errFrameTooLarge) {
 		f("read_frame_too_large")
 		return
 	}

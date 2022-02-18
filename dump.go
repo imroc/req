@@ -16,6 +16,7 @@ type DumpOptions struct {
 	Async          bool
 }
 
+// Clone return a copy of DumpOptions
 func (do *DumpOptions) Clone() *DumpOptions {
 	if do == nil {
 		return nil
@@ -140,12 +141,16 @@ func (d *dumper) Start() {
 	}
 }
 
-func getDumpers(dump *dumper, ctx context.Context) []*dumper {
+type dumperKeyType int
+
+const dumperKey dumperKeyType = iota
+
+func getDumpers(ctx context.Context, dump *dumper) []*dumper {
 	dumps := []*dumper{}
 	if dump != nil {
 		dumps = append(dumps, dump)
 	}
-	if d, ok := ctx.Value("_dumper").(*dumper); ok {
+	if d, ok := ctx.Value(dumperKey).(*dumper); ok {
 		dumps = append(dumps, d)
 	}
 	return dumps

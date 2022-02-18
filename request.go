@@ -936,7 +936,7 @@ func EnableDump() *Request {
 
 // EnableDump enables dump, including all content for the request and response by default.
 func (r *Request) EnableDump() *Request {
-	return r.SetContext(context.WithValue(r.Context(), "_dumper", newDumper(r.getDumpOptions())))
+	return r.SetContext(context.WithValue(r.Context(), dumperKey, newDumper(r.getDumpOptions())))
 }
 
 // EnableDumpWithoutBody is a global wrapper methods which delegated

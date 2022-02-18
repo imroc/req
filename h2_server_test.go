@@ -38,160 +38,143 @@ import (
 // https://www.iana.org/assignments/tls-parameters/tls-parameters.txt
 
 const (
-	http2cipher_TLS_NULL_WITH_NULL_NULL               uint16 = 0x0000
-	http2cipher_TLS_RSA_WITH_NULL_MD5                 uint16 = 0x0001
-	http2cipher_TLS_RSA_WITH_NULL_SHA                 uint16 = 0x0002
-	http2cipher_TLS_RSA_EXPORT_WITH_RC4_40_MD5        uint16 = 0x0003
-	http2cipher_TLS_RSA_WITH_RC4_128_MD5              uint16 = 0x0004
-	http2cipher_TLS_RSA_WITH_RC4_128_SHA              uint16 = 0x0005
-	http2cipher_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5    uint16 = 0x0006
-	http2cipher_TLS_RSA_WITH_IDEA_CBC_SHA             uint16 = 0x0007
-	http2cipher_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA     uint16 = 0x0008
-	http2cipher_TLS_RSA_WITH_DES_CBC_SHA              uint16 = 0x0009
-	http2cipher_TLS_RSA_WITH_3DES_EDE_CBC_SHA         uint16 = 0x000A
-	http2cipher_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA  uint16 = 0x000B
-	http2cipher_TLS_DH_DSS_WITH_DES_CBC_SHA           uint16 = 0x000C
-	http2cipher_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA      uint16 = 0x000D
-	http2cipher_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA  uint16 = 0x000E
-	http2cipher_TLS_DH_RSA_WITH_DES_CBC_SHA           uint16 = 0x000F
-	http2cipher_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA      uint16 = 0x0010
-	http2cipher_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA uint16 = 0x0011
-	http2cipher_TLS_DHE_DSS_WITH_DES_CBC_SHA          uint16 = 0x0012
-	http2cipher_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA     uint16 = 0x0013
-	http2cipher_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA uint16 = 0x0014
-	http2cipher_TLS_DHE_RSA_WITH_DES_CBC_SHA          uint16 = 0x0015
-	http2cipher_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA     uint16 = 0x0016
-	http2cipher_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5    uint16 = 0x0017
-	http2cipher_TLS_DH_anon_WITH_RC4_128_MD5          uint16 = 0x0018
-	http2cipher_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA uint16 = 0x0019
-	http2cipher_TLS_DH_anon_WITH_DES_CBC_SHA          uint16 = 0x001A
-	http2cipher_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA     uint16 = 0x001B
-	// Reserved uint16 =  0x001C-1D
-	http2cipher_TLS_KRB5_WITH_DES_CBC_SHA             uint16 = 0x001E
-	http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_SHA        uint16 = 0x001F
-	http2cipher_TLS_KRB5_WITH_RC4_128_SHA             uint16 = 0x0020
-	http2cipher_TLS_KRB5_WITH_IDEA_CBC_SHA            uint16 = 0x0021
-	http2cipher_TLS_KRB5_WITH_DES_CBC_MD5             uint16 = 0x0022
-	http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_MD5        uint16 = 0x0023
-	http2cipher_TLS_KRB5_WITH_RC4_128_MD5             uint16 = 0x0024
-	http2cipher_TLS_KRB5_WITH_IDEA_CBC_MD5            uint16 = 0x0025
-	http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA   uint16 = 0x0026
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA   uint16 = 0x0027
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_SHA       uint16 = 0x0028
-	http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5   uint16 = 0x0029
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5   uint16 = 0x002A
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_MD5       uint16 = 0x002B
-	http2cipher_TLS_PSK_WITH_NULL_SHA                 uint16 = 0x002C
-	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA             uint16 = 0x002D
-	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA             uint16 = 0x002E
-	http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA          uint16 = 0x002F
-	http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA       uint16 = 0x0030
-	http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA       uint16 = 0x0031
-	http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA      uint16 = 0x0032
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA      uint16 = 0x0033
-	http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA      uint16 = 0x0034
-	http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA          uint16 = 0x0035
-	http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA       uint16 = 0x0036
-	http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA       uint16 = 0x0037
-	http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA      uint16 = 0x0038
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA      uint16 = 0x0039
-	http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA      uint16 = 0x003A
-	http2cipher_TLS_RSA_WITH_NULL_SHA256              uint16 = 0x003B
-	http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA256       uint16 = 0x003C
-	http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA256       uint16 = 0x003D
-	http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA256    uint16 = 0x003E
-	http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA256    uint16 = 0x003F
-	http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA256   uint16 = 0x0040
-	http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA     uint16 = 0x0041
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA  uint16 = 0x0042
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA  uint16 = 0x0043
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA uint16 = 0x0044
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA uint16 = 0x0045
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA uint16 = 0x0046
-	// Reserved uint16 =  0x0047-4F
-	// Reserved uint16 =  0x0050-58
-	// Reserved uint16 =  0x0059-5C
-	// Unassigned uint16 =  0x005D-5F
-	// Reserved uint16 =  0x0060-66
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA256 uint16 = 0x0067
-	http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA256  uint16 = 0x0068
-	http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA256  uint16 = 0x0069
-	http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA256 uint16 = 0x006A
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA256 uint16 = 0x006B
-	http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA256 uint16 = 0x006C
-	http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA256 uint16 = 0x006D
-	// Unassigned uint16 =  0x006E-83
-	http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0084
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA     uint16 = 0x0085
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA     uint16 = 0x0086
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA    uint16 = 0x0087
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA    uint16 = 0x0088
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA    uint16 = 0x0089
-	http2cipher_TLS_PSK_WITH_RC4_128_SHA                 uint16 = 0x008A
-	http2cipher_TLS_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x008B
-	http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x008C
-	http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x008D
-	http2cipher_TLS_DHE_PSK_WITH_RC4_128_SHA             uint16 = 0x008E
-	http2cipher_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA        uint16 = 0x008F
-	http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA         uint16 = 0x0090
-	http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA         uint16 = 0x0091
-	http2cipher_TLS_RSA_PSK_WITH_RC4_128_SHA             uint16 = 0x0092
-	http2cipher_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA        uint16 = 0x0093
-	http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA         uint16 = 0x0094
-	http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA         uint16 = 0x0095
-	http2cipher_TLS_RSA_WITH_SEED_CBC_SHA                uint16 = 0x0096
-	http2cipher_TLS_DH_DSS_WITH_SEED_CBC_SHA             uint16 = 0x0097
-	http2cipher_TLS_DH_RSA_WITH_SEED_CBC_SHA             uint16 = 0x0098
-	http2cipher_TLS_DHE_DSS_WITH_SEED_CBC_SHA            uint16 = 0x0099
-	http2cipher_TLS_DHE_RSA_WITH_SEED_CBC_SHA            uint16 = 0x009A
-	http2cipher_TLS_DH_anon_WITH_SEED_CBC_SHA            uint16 = 0x009B
-	http2cipher_TLS_RSA_WITH_AES_128_GCM_SHA256          uint16 = 0x009C
-	http2cipher_TLS_RSA_WITH_AES_256_GCM_SHA384          uint16 = 0x009D
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_GCM_SHA256      uint16 = 0x009E
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_GCM_SHA384      uint16 = 0x009F
-	http2cipher_TLS_DH_RSA_WITH_AES_128_GCM_SHA256       uint16 = 0x00A0
-	http2cipher_TLS_DH_RSA_WITH_AES_256_GCM_SHA384       uint16 = 0x00A1
-	http2cipher_TLS_DHE_DSS_WITH_AES_128_GCM_SHA256      uint16 = 0x00A2
-	http2cipher_TLS_DHE_DSS_WITH_AES_256_GCM_SHA384      uint16 = 0x00A3
-	http2cipher_TLS_DH_DSS_WITH_AES_128_GCM_SHA256       uint16 = 0x00A4
-	http2cipher_TLS_DH_DSS_WITH_AES_256_GCM_SHA384       uint16 = 0x00A5
-	http2cipher_TLS_DH_anon_WITH_AES_128_GCM_SHA256      uint16 = 0x00A6
-	http2cipher_TLS_DH_anon_WITH_AES_256_GCM_SHA384      uint16 = 0x00A7
-	http2cipher_TLS_PSK_WITH_AES_128_GCM_SHA256          uint16 = 0x00A8
-	http2cipher_TLS_PSK_WITH_AES_256_GCM_SHA384          uint16 = 0x00A9
-	http2cipher_TLS_DHE_PSK_WITH_AES_128_GCM_SHA256      uint16 = 0x00AA
-	http2cipher_TLS_DHE_PSK_WITH_AES_256_GCM_SHA384      uint16 = 0x00AB
-	http2cipher_TLS_RSA_PSK_WITH_AES_128_GCM_SHA256      uint16 = 0x00AC
-	http2cipher_TLS_RSA_PSK_WITH_AES_256_GCM_SHA384      uint16 = 0x00AD
-	http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00AE
-	http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00AF
-	http2cipher_TLS_PSK_WITH_NULL_SHA256                 uint16 = 0x00B0
-	http2cipher_TLS_PSK_WITH_NULL_SHA384                 uint16 = 0x00B1
-	http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA256      uint16 = 0x00B2
-	http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA384      uint16 = 0x00B3
-	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA256             uint16 = 0x00B4
-	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA384             uint16 = 0x00B5
-	http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA256      uint16 = 0x00B6
-	http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA384      uint16 = 0x00B7
-	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA256             uint16 = 0x00B8
-	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA384             uint16 = 0x00B9
-	http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BA
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256  uint16 = 0x00BB
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256  uint16 = 0x00BC
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256 uint16 = 0x00BD
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256 uint16 = 0x00BE
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256 uint16 = 0x00BF
-	http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C0
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256  uint16 = 0x00C1
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256  uint16 = 0x00C2
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256 uint16 = 0x00C3
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256 uint16 = 0x00C4
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256 uint16 = 0x00C5
-	// Unassigned uint16 =  0x00C6-FE
-	http2cipher_TLS_EMPTY_RENEGOTIATION_INFO_SCSV uint16 = 0x00FF
-	// Unassigned uint16 =  0x01-55,*
-	http2cipher_TLS_FALLBACK_SCSV uint16 = 0x5600
-	// Unassigned                                   uint16 = 0x5601 - 0xC000
+	http2cipher_TLS_NULL_WITH_NULL_NULL                      uint16 = 0x0000
+	http2cipher_TLS_RSA_WITH_NULL_MD5                        uint16 = 0x0001
+	http2cipher_TLS_RSA_WITH_NULL_SHA                        uint16 = 0x0002
+	http2cipher_TLS_RSA_EXPORT_WITH_RC4_40_MD5               uint16 = 0x0003
+	http2cipher_TLS_RSA_WITH_RC4_128_MD5                     uint16 = 0x0004
+	http2cipher_TLS_RSA_WITH_RC4_128_SHA                     uint16 = 0x0005
+	http2cipher_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5           uint16 = 0x0006
+	http2cipher_TLS_RSA_WITH_IDEA_CBC_SHA                    uint16 = 0x0007
+	http2cipher_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA            uint16 = 0x0008
+	http2cipher_TLS_RSA_WITH_DES_CBC_SHA                     uint16 = 0x0009
+	http2cipher_TLS_RSA_WITH_3DES_EDE_CBC_SHA                uint16 = 0x000A
+	http2cipher_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA         uint16 = 0x000B
+	http2cipher_TLS_DH_DSS_WITH_DES_CBC_SHA                  uint16 = 0x000C
+	http2cipher_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA             uint16 = 0x000D
+	http2cipher_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA         uint16 = 0x000E
+	http2cipher_TLS_DH_RSA_WITH_DES_CBC_SHA                  uint16 = 0x000F
+	http2cipher_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA             uint16 = 0x0010
+	http2cipher_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0011
+	http2cipher_TLS_DHE_DSS_WITH_DES_CBC_SHA                 uint16 = 0x0012
+	http2cipher_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0013
+	http2cipher_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0014
+	http2cipher_TLS_DHE_RSA_WITH_DES_CBC_SHA                 uint16 = 0x0015
+	http2cipher_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0016
+	http2cipher_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5           uint16 = 0x0017
+	http2cipher_TLS_DH_anon_WITH_RC4_128_MD5                 uint16 = 0x0018
+	http2cipher_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0019
+	http2cipher_TLS_DH_anon_WITH_DES_CBC_SHA                 uint16 = 0x001A
+	http2cipher_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA            uint16 = 0x001B
+	http2cipher_TLS_KRB5_WITH_DES_CBC_SHA                    uint16 = 0x001E
+	http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_SHA               uint16 = 0x001F
+	http2cipher_TLS_KRB5_WITH_RC4_128_SHA                    uint16 = 0x0020
+	http2cipher_TLS_KRB5_WITH_IDEA_CBC_SHA                   uint16 = 0x0021
+	http2cipher_TLS_KRB5_WITH_DES_CBC_MD5                    uint16 = 0x0022
+	http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_MD5               uint16 = 0x0023
+	http2cipher_TLS_KRB5_WITH_RC4_128_MD5                    uint16 = 0x0024
+	http2cipher_TLS_KRB5_WITH_IDEA_CBC_MD5                   uint16 = 0x0025
+	http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA          uint16 = 0x0026
+	http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA          uint16 = 0x0027
+	http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_SHA              uint16 = 0x0028
+	http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5          uint16 = 0x0029
+	http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5          uint16 = 0x002A
+	http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_MD5              uint16 = 0x002B
+	http2cipher_TLS_PSK_WITH_NULL_SHA                        uint16 = 0x002C
+	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA                    uint16 = 0x002D
+	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA                    uint16 = 0x002E
+	http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA                 uint16 = 0x002F
+	http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA              uint16 = 0x0030
+	http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA              uint16 = 0x0031
+	http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA             uint16 = 0x0032
+	http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA             uint16 = 0x0033
+	http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA             uint16 = 0x0034
+	http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA                 uint16 = 0x0035
+	http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA              uint16 = 0x0036
+	http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA              uint16 = 0x0037
+	http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA             uint16 = 0x0038
+	http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA             uint16 = 0x0039
+	http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA             uint16 = 0x003A
+	http2cipher_TLS_RSA_WITH_NULL_SHA256                     uint16 = 0x003B
+	http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA256              uint16 = 0x003C
+	http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA256              uint16 = 0x003D
+	http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA256           uint16 = 0x003E
+	http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA256           uint16 = 0x003F
+	http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA256          uint16 = 0x0040
+	http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA            uint16 = 0x0041
+	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA         uint16 = 0x0042
+	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA         uint16 = 0x0043
+	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0044
+	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0045
+	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0046
+	http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA256          uint16 = 0x0067
+	http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA256           uint16 = 0x0068
+	http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA256           uint16 = 0x0069
+	http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA256          uint16 = 0x006A
+	http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA256          uint16 = 0x006B
+	http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA256          uint16 = 0x006C
+	http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA256          uint16 = 0x006D
+	http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA            uint16 = 0x0084
+	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA         uint16 = 0x0085
+	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA         uint16 = 0x0086
+	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0087
+	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0088
+	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0089
+	http2cipher_TLS_PSK_WITH_RC4_128_SHA                     uint16 = 0x008A
+	http2cipher_TLS_PSK_WITH_3DES_EDE_CBC_SHA                uint16 = 0x008B
+	http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA                 uint16 = 0x008C
+	http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA                 uint16 = 0x008D
+	http2cipher_TLS_DHE_PSK_WITH_RC4_128_SHA                 uint16 = 0x008E
+	http2cipher_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x008F
+	http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x0090
+	http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x0091
+	http2cipher_TLS_RSA_PSK_WITH_RC4_128_SHA                 uint16 = 0x0092
+	http2cipher_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0093
+	http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x0094
+	http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x0095
+	http2cipher_TLS_RSA_WITH_SEED_CBC_SHA                    uint16 = 0x0096
+	http2cipher_TLS_DH_DSS_WITH_SEED_CBC_SHA                 uint16 = 0x0097
+	http2cipher_TLS_DH_RSA_WITH_SEED_CBC_SHA                 uint16 = 0x0098
+	http2cipher_TLS_DHE_DSS_WITH_SEED_CBC_SHA                uint16 = 0x0099
+	http2cipher_TLS_DHE_RSA_WITH_SEED_CBC_SHA                uint16 = 0x009A
+	http2cipher_TLS_DH_anon_WITH_SEED_CBC_SHA                uint16 = 0x009B
+	http2cipher_TLS_RSA_WITH_AES_128_GCM_SHA256              uint16 = 0x009C
+	http2cipher_TLS_RSA_WITH_AES_256_GCM_SHA384              uint16 = 0x009D
+	http2cipher_TLS_DH_RSA_WITH_AES_128_GCM_SHA256           uint16 = 0x00A0
+	http2cipher_TLS_DH_RSA_WITH_AES_256_GCM_SHA384           uint16 = 0x00A1
+	http2cipher_TLS_DH_DSS_WITH_AES_128_GCM_SHA256           uint16 = 0x00A4
+	http2cipher_TLS_DH_DSS_WITH_AES_256_GCM_SHA384           uint16 = 0x00A5
+	http2cipher_TLS_DH_anon_WITH_AES_128_GCM_SHA256          uint16 = 0x00A6
+	http2cipher_TLS_DH_anon_WITH_AES_256_GCM_SHA384          uint16 = 0x00A7
+	http2cipher_TLS_PSK_WITH_AES_128_GCM_SHA256              uint16 = 0x00A8
+	http2cipher_TLS_PSK_WITH_AES_256_GCM_SHA384              uint16 = 0x00A9
+	http2cipher_TLS_RSA_PSK_WITH_AES_128_GCM_SHA256          uint16 = 0x00AC
+	http2cipher_TLS_RSA_PSK_WITH_AES_256_GCM_SHA384          uint16 = 0x00AD
+	http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA256              uint16 = 0x00AE
+	http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA384              uint16 = 0x00AF
+	http2cipher_TLS_PSK_WITH_NULL_SHA256                     uint16 = 0x00B0
+	http2cipher_TLS_PSK_WITH_NULL_SHA384                     uint16 = 0x00B1
+	http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00B2
+	http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00B3
+	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA256                 uint16 = 0x00B4
+	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA384                 uint16 = 0x00B5
+	http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00B6
+	http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00B7
+	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA256                 uint16 = 0x00B8
+	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA384                 uint16 = 0x00B9
+	http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256         uint16 = 0x00BA
+	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256      uint16 = 0x00BB
+	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256      uint16 = 0x00BC
+	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BD
+	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BE
+	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BF
+	http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256         uint16 = 0x00C0
+	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256      uint16 = 0x00C1
+	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256      uint16 = 0x00C2
+	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C3
+	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C4
+	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C5
+	http2cipher_TLS_EMPTY_RENEGOTIATION_INFO_SCSV            uint16 = 0x00FF
 	http2cipher_TLS_ECDH_ECDSA_WITH_NULL_SHA                 uint16 = 0xC001
 	http2cipher_TLS_ECDH_ECDSA_WITH_RC4_128_SHA              uint16 = 0xC002
 	http2cipher_TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA         uint16 = 0xC003
@@ -234,12 +217,9 @@ const (
 	http2cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384        uint16 = 0xC028
 	http2cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256         uint16 = 0xC029
 	http2cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384         uint16 = 0xC02A
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256      uint16 = 0xC02B
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384      uint16 = 0xC02C
 	http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256       uint16 = 0xC02D
 	http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384       uint16 = 0xC02E
 	http2cipher_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256        uint16 = 0xC02F
-	http2cipher_TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384        uint16 = 0xC030
 	http2cipher_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256         uint16 = 0xC031
 	http2cipher_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384         uint16 = 0xC032
 	http2cipher_TLS_ECDHE_PSK_WITH_RC4_128_SHA               uint16 = 0xC033
@@ -273,22 +253,14 @@ const (
 	http2cipher_TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384        uint16 = 0xC04F
 	http2cipher_TLS_RSA_WITH_ARIA_128_GCM_SHA256             uint16 = 0xC050
 	http2cipher_TLS_RSA_WITH_ARIA_256_GCM_SHA384             uint16 = 0xC051
-	http2cipher_TLS_DHE_RSA_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC052
-	http2cipher_TLS_DHE_RSA_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC053
 	http2cipher_TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256          uint16 = 0xC054
 	http2cipher_TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384          uint16 = 0xC055
-	http2cipher_TLS_DHE_DSS_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC056
-	http2cipher_TLS_DHE_DSS_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC057
 	http2cipher_TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256          uint16 = 0xC058
 	http2cipher_TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384          uint16 = 0xC059
 	http2cipher_TLS_DH_anon_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC05A
 	http2cipher_TLS_DH_anon_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC05B
-	http2cipher_TLS_ECDHE_ECDSA_WITH_ARIA_128_GCM_SHA256     uint16 = 0xC05C
-	http2cipher_TLS_ECDHE_ECDSA_WITH_ARIA_256_GCM_SHA384     uint16 = 0xC05D
 	http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256      uint16 = 0xC05E
 	http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384      uint16 = 0xC05F
-	http2cipher_TLS_ECDHE_RSA_WITH_ARIA_128_GCM_SHA256       uint16 = 0xC060
-	http2cipher_TLS_ECDHE_RSA_WITH_ARIA_256_GCM_SHA384       uint16 = 0xC061
 	http2cipher_TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256        uint16 = 0xC062
 	http2cipher_TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384        uint16 = 0xC063
 	http2cipher_TLS_PSK_WITH_ARIA_128_CBC_SHA256             uint16 = 0xC064
@@ -299,8 +271,6 @@ const (
 	http2cipher_TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC069
 	http2cipher_TLS_PSK_WITH_ARIA_128_GCM_SHA256             uint16 = 0xC06A
 	http2cipher_TLS_PSK_WITH_ARIA_256_GCM_SHA384             uint16 = 0xC06B
-	http2cipher_TLS_DHE_PSK_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC06C
-	http2cipher_TLS_DHE_PSK_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC06D
 	http2cipher_TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC06E
 	http2cipher_TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC06F
 	http2cipher_TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256       uint16 = 0xC070
@@ -315,28 +285,18 @@ const (
 	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384    uint16 = 0xC079
 	http2cipher_TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256         uint16 = 0xC07A
 	http2cipher_TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384         uint16 = 0xC07B
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC07C
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC07D
 	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256      uint16 = 0xC07E
 	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384      uint16 = 0xC07F
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC080
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC081
 	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256      uint16 = 0xC082
 	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384      uint16 = 0xC083
 	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC084
 	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC085
-	http2cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_GCM_SHA256 uint16 = 0xC086
-	http2cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_GCM_SHA384 uint16 = 0xC087
 	http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256  uint16 = 0xC088
 	http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384  uint16 = 0xC089
-	http2cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_128_GCM_SHA256   uint16 = 0xC08A
-	http2cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_256_GCM_SHA384   uint16 = 0xC08B
 	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256    uint16 = 0xC08C
 	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384    uint16 = 0xC08D
 	http2cipher_TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256         uint16 = 0xC08E
 	http2cipher_TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384         uint16 = 0xC08F
-	http2cipher_TLS_DHE_PSK_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC090
-	http2cipher_TLS_DHE_PSK_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC091
 	http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC092
 	http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC093
 	http2cipher_TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256         uint16 = 0xC094
@@ -349,34 +309,12 @@ const (
 	http2cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384   uint16 = 0xC09B
 	http2cipher_TLS_RSA_WITH_AES_128_CCM                     uint16 = 0xC09C
 	http2cipher_TLS_RSA_WITH_AES_256_CCM                     uint16 = 0xC09D
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_CCM                 uint16 = 0xC09E
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_CCM                 uint16 = 0xC09F
 	http2cipher_TLS_RSA_WITH_AES_128_CCM_8                   uint16 = 0xC0A0
 	http2cipher_TLS_RSA_WITH_AES_256_CCM_8                   uint16 = 0xC0A1
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_CCM_8               uint16 = 0xC0A2
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_CCM_8               uint16 = 0xC0A3
 	http2cipher_TLS_PSK_WITH_AES_128_CCM                     uint16 = 0xC0A4
 	http2cipher_TLS_PSK_WITH_AES_256_CCM                     uint16 = 0xC0A5
-	http2cipher_TLS_DHE_PSK_WITH_AES_128_CCM                 uint16 = 0xC0A6
-	http2cipher_TLS_DHE_PSK_WITH_AES_256_CCM                 uint16 = 0xC0A7
 	http2cipher_TLS_PSK_WITH_AES_128_CCM_8                   uint16 = 0xC0A8
 	http2cipher_TLS_PSK_WITH_AES_256_CCM_8                   uint16 = 0xC0A9
-	http2cipher_TLS_PSK_DHE_WITH_AES_128_CCM_8               uint16 = 0xC0AA
-	http2cipher_TLS_PSK_DHE_WITH_AES_256_CCM_8               uint16 = 0xC0AB
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CCM             uint16 = 0xC0AC
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CCM             uint16 = 0xC0AD
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8           uint16 = 0xC0AE
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8           uint16 = 0xC0AF
-	// Unassigned uint16 =  0xC0B0-FF
-	// Unassigned uint16 =  0xC1-CB,*
-	// Unassigned uint16 =  0xCC00-A7
-	http2cipher_TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256   uint16 = 0xCCA8
-	http2cipher_TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256 uint16 = 0xCCA9
-	http2cipher_TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256     uint16 = 0xCCAA
-	http2cipher_TLS_PSK_WITH_CHACHA20_POLY1305_SHA256         uint16 = 0xCCAB
-	http2cipher_TLS_ECDHE_PSK_WITH_CHACHA20_POLY1305_SHA256   uint16 = 0xCCAC
-	http2cipher_TLS_DHE_PSK_WITH_CHACHA20_POLY1305_SHA256     uint16 = 0xCCAD
-	http2cipher_TLS_RSA_PSK_WITH_CHACHA20_POLY1305_SHA256     uint16 = 0xCCAE
 )
 
 // isBadCipher reports whether the cipher is blacklisted by the HTTP/2 spec.
@@ -679,10 +617,10 @@ const (
 )
 
 var (
-	http2errClientDisconnected = errors.New("client disconnected")
-	http2errClosedBody         = errors.New("body closed by handler")
-	http2errHandlerComplete    = errors.New("http2: request body closed due to handler exiting")
-	http2errStreamClosed       = errors.New("http2: stream closed")
+	errClientDisconnected = errors.New("client disconnected")
+	errClosedBody         = errors.New("body closed by handler")
+	errHandlerComplete    = errors.New("http2: request body closed due to handler exiting")
+	errStreamClosed       = errors.New("http2: stream closed")
 )
 
 var http2responseWriterStatePool = sync.Pool{
@@ -1331,7 +1269,7 @@ func (sc *http2serverConn) condlogf(err error, format string, args ...interface{
 	if err == nil {
 		return
 	}
-	if err == io.EOF || err == io.ErrUnexpectedEOF || http2isClosedConnError(err) || err == http2errPrefaceTimeout {
+	if err == io.EOF || err == io.ErrUnexpectedEOF || http2isClosedConnError(err) || err == errPrefaceTimeout {
 		// Boring, expected errors.
 		sc.vlogf(format, args...)
 	} else {
@@ -1427,7 +1365,7 @@ func (sc *http2serverConn) writeFrameAsync(wr http2FrameWriteRequest) {
 func (sc *http2serverConn) closeAllStreamsOnConnClose() {
 	sc.serveG.check()
 	for _, st := range sc.streams {
-		sc.closeStream(st, http2errClientDisconnected)
+		sc.closeStream(st, errClientDisconnected)
 	}
 }
 
@@ -1612,7 +1550,7 @@ func (sc *http2serverConn) sendServeMsg(msg interface{}) {
 	}
 }
 
-var http2errPrefaceTimeout = errors.New("timeout waiting for client preface")
+var errPrefaceTimeout = errors.New("timeout waiting for client preface")
 
 // readPreface reads the ClientPreface greeting from the peer or
 // returns errPrefaceTimeout on timeout, or an error if the greeting
@@ -1634,7 +1572,7 @@ func (sc *http2serverConn) readPreface() error {
 	defer timer.Stop()
 	select {
 	case <-timer.C:
-		return http2errPrefaceTimeout
+		return errPrefaceTimeout
 	case err := <-errc:
 		if err == nil {
 			if http2VerboseLogs {
@@ -1672,7 +1610,7 @@ func (sc *http2serverConn) writeDataFromHandler(stream *http2stream, data []byte
 	case err = <-ch:
 		frameWriteDone = true
 	case <-sc.doneServing:
-		return http2errClientDisconnected
+		return errClientDisconnected
 	case <-stream.cw:
 		// If both ch and stream.cw were ready (as might
 		// happen on the final Write after an http.Handler
@@ -1685,7 +1623,7 @@ func (sc *http2serverConn) writeDataFromHandler(stream *http2stream, data []byte
 		case err = <-ch:
 			frameWriteDone = true
 		default:
-			return http2errStreamClosed
+			return errStreamClosed
 		}
 	}
 	http2errChanPool.Put(ch)
@@ -1710,7 +1648,7 @@ func (sc *http2serverConn) writeFrameFromHandler(wr http2FrameWriteRequest) erro
 	case <-sc.doneServing:
 		// Serve loop is gone.
 		// Client has closed their connection to the server.
-		return http2errClientDisconnected
+		return errClientDisconnected
 	}
 }
 
@@ -1870,7 +1808,7 @@ func (sc *http2serverConn) wroteFrame(res http2frameWriteResult) {
 			// a complete response.
 			sc.resetStream(http2streamError(st.id, http2ErrCodeNo))
 		case http2stateHalfClosedRemote:
-			sc.closeStream(st, http2errHandlerComplete)
+			sc.closeStream(st, errHandlerComplete)
 		}
 	} else {
 		switch v := wr.write.(type) {
@@ -2015,7 +1953,7 @@ func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool
 	sc.serveG.check()
 	err := res.err
 	if err != nil {
-		if err == http2ErrFrameTooLarge {
+		if err == errFrameTooLarge {
 			sc.goAway(http2ErrCodeFrameSize)
 			return true // goAway will close the loop
 		}
@@ -2763,14 +2701,14 @@ func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2re
 	}
 	delete(rp.header, "Trailer")
 
-	var url_ *url.URL
+	var u *url.URL
 	var requestURI string
 	if rp.method == "CONNECT" {
-		url_ = &url.URL{Host: rp.authority}
+		u = &url.URL{Host: rp.authority}
 		requestURI = rp.authority // mimic HTTP/1 server behavior
 	} else {
 		var err error
-		url_, err = url.ParseRequestURI(rp.path)
+		u, err = url.ParseRequestURI(rp.path)
 		if err != nil {
 			return nil, nil, sc.countError("bad_path", http2streamError(st.id, http2ErrCodeProtocol))
 		}
@@ -2784,7 +2722,7 @@ func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2re
 	}
 	req := &http.Request{
 		Method:     rp.method,
-		URL:        url_,
+		URL:        u,
 		RemoteAddr: sc.remoteAddrStr,
 		Header:     rp.header,
 		RequestURI: requestURI,
@@ -2873,9 +2811,9 @@ func (sc *http2serverConn) writeHeaders(st *http2stream, headerData *http2writeR
 			http2errChanPool.Put(errc)
 			return err
 		case <-sc.doneServing:
-			return http2errClientDisconnected
+			return errClientDisconnected
 		case <-st.cw:
-			return http2errStreamClosed
+			return errStreamClosed
 		}
 	}
 	return nil
@@ -2977,7 +2915,7 @@ type http2requestBody struct {
 
 func (b *http2requestBody) Close() error {
 	if b.pipe != nil && !b.closed {
-		b.pipe.BreakWithError(http2errClosedBody)
+		b.pipe.BreakWithError(errClosedBody)
 	}
 	b.closed = true
 	return nil
@@ -3379,9 +3317,8 @@ func (w *http2responseWriter) write(lenData int, dataB []byte, dataS string) (n 
 
 	if dataB != nil {
 		return rws.bw.Write(dataB)
-	} else {
-		return rws.bw.WriteString(dataS)
 	}
+	return rws.bw.WriteString(dataS)
 }
 
 func (w *http2responseWriter) handlerDone() {
@@ -3493,17 +3430,17 @@ func (w *http2responseWriter) Push(target string, opts *http.PushOptions) error 
 
 	select {
 	case <-sc.doneServing:
-		return http2errClientDisconnected
+		return errClientDisconnected
 	case <-st.cw:
-		return http2errStreamClosed
+		return errStreamClosed
 	case sc.serveMsgCh <- msg:
 	}
 
 	select {
 	case <-sc.doneServing:
-		return http2errClientDisconnected
+		return errClientDisconnected
 	case <-st.cw:
-		return http2errStreamClosed
+		return errStreamClosed
 	case err := <-msg.done:
 		http2errChanPool.Put(msg.done)
 		return err
@@ -3526,7 +3463,7 @@ func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
 	// is in either the "open" or "half-closed (remote)" state.
 	if msg.parent.state != http2stateOpen && msg.parent.state != http2stateHalfClosedRemote {
 		// responseWriter.Push checks that the stream is peer-initiated.
-		msg.done <- http2errStreamClosed
+		msg.done <- errStreamClosed
 		return
 	}
 
@@ -3948,9 +3885,8 @@ func (w *http2writePushPromise) writeHeaderBlock(ctx http2writeContext, frag []b
 			BlockFragment: frag,
 			EndHeaders:    lastFrag,
 		})
-	} else {
-		return ctx.Framer().WriteContinuation(w.streamID, lastFrag, frag)
 	}
+	return ctx.Framer().WriteContinuation(w.streamID, lastFrag, frag)
 }
 
 type http2write100ContinueHeadersFrame struct {

@@ -70,13 +70,13 @@ type http2dataBuffer struct {
 	expected int64 // we expect at least this many bytes in future Write calls (ignored if <= 0)
 }
 
-var http2errReadEmpty = errors.New("read from empty dataBuffer")
+var errReadEmpty = errors.New("read from empty dataBuffer")
 
 // Read copies bytes from the buffer into p.
 // It is an error to read when no data is available.
 func (b *http2dataBuffer) Read(p []byte) (int, error) {
 	if b.size == 0 {
-		return 0, http2errReadEmpty
+		return 0, errReadEmpty
 	}
 	var ntotal int
 	for len(p) > 0 && b.size > 0 {

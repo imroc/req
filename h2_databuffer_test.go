@@ -52,7 +52,7 @@ func testDataBuffer(t *testing.T, wantBytes []byte, setup func(t *testing.T) *ht
 			for {
 				n, err := b.Read(buf)
 				gotRead.Write(buf[:n])
-				if err == http2errReadEmpty {
+				if err == errReadEmpty {
 					break
 				}
 				if err != nil {

@@ -4206,7 +4206,7 @@ func TestTransportAllocationsAfterResponseBodyClose(t *testing.T) {
 	gotErr := <-writeErr
 	if gotErr == nil {
 		t.Errorf("Handler unexpectedly managed to write its entire response without getting an error")
-	} else if gotErr != http2errStreamClosed {
+	} else if gotErr != errStreamClosed {
 		t.Errorf("Handler Write err = %v; want errStreamClosed", gotErr)
 	}
 }
@@ -5879,7 +5879,7 @@ func TestCountReadFrameError(t *testing.T) {
 	cc.countReadFrameError(err)
 	tests.AssertContains(t, errMsg, "read_frame_unexpected_eof", true)
 
-	err = http2ErrFrameTooLarge
+	err = errFrameTooLarge
 	cc.countReadFrameError(err)
 	tests.AssertContains(t, errMsg, "read_frame_too_large", true)
 

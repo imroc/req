@@ -359,13 +359,13 @@ func TestWriteInvalidStreamDep(t *testing.T) {
 			StreamDep: 1 << 31,
 		},
 	})
-	if err != http2errDepStreamID {
-		t.Errorf("header error = %v; want %q", err, http2errDepStreamID)
+	if err != errDepStreamID {
+		t.Errorf("header error = %v; want %q", err, errDepStreamID)
 	}
 
 	err = fr.WritePriority(2, http2PriorityParam{StreamDep: 1 << 31})
-	if err != http2errDepStreamID {
-		t.Errorf("priority error = %v; want %q", err, http2errDepStreamID)
+	if err != errDepStreamID {
+		t.Errorf("priority error = %v; want %q", err, errDepStreamID)
 	}
 }
 
@@ -670,7 +670,7 @@ func TestWriteTooLargeFrame(t *testing.T) {
 	fr.startWrite(0, 1, 1)
 	fr.writeBytes(make([]byte, 1<<24))
 	err := fr.endWrite()
-	if err != http2ErrFrameTooLarge {
+	if err != errFrameTooLarge {
 		t.Errorf("endWrite = %v; want errFrameTooLarge", err)
 	}
 }

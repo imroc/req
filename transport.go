@@ -279,7 +279,7 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 }
 
 func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {
-	dumps := getDumpers(t.dump, req.Context())
+	dumps := getDumpers(req.Context(), t.dump)
 	for _, dump := range dumps {
 		if dump.ResponseBody {
 			res.Body = dump.WrapReadCloser(res.Body)
@@ -1871,7 +1871,7 @@ func fixPragmaCacheControl(header http.Header) {
 // 100-continue") from the server. It returns the final non-100 one.
 // trace is optional.
 func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
-	dumps := getDumpers(pc.t.dump, req.Context())
+	dumps := getDumpers(req.Context(), pc.t.dump)
 	tp := newTextprotoReader(pc.br, dumps)
 	resp := &http.Response{
 		Request: req,
@@ -2253,9 +2253,8 @@ func (pc *persistConn) readLoopPeekFailLocked(peekErr error) {
 		if is408Message(buf) {
 			pc.closeLocked(errServerClosedIdle)
 			return
-		} else {
-			log.Printf("Unsolicited response received on idle HTTP channel starting with %q; err=%v", buf, peekErr)
 		}
+		log.Printf("Unsolicited response received on idle HTTP channel starting with %q; err=%v", buf, peekErr)
 	}
 	if peekErr == io.EOF {
 		// common case.
@@ -2501,7 +2500,7 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 	}
 
 	rw := w // raw writer
-	dumps := getDumpers(pc.t.dump, r.Context())
+	dumps := getDumpers(r.Context(), pc.t.dump)
 	for _, dump := range dumps {
 		if dump.RequestHeader {
 			w = dump.WrapWriter(w)
