@@ -1400,6 +1400,14 @@ func TestParseUnknownFrame(t *testing.T) {
 	assertEqual(t, p, uf.Payload())
 }
 
+func TestPushPromiseFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	buf := []byte("test")
+	f := &http2PushPromiseFrame{http2FrameHeader: fh, headerFragBuf: buf}
+	assertEqual(t, buf, f.HeaderBlockFragment())
+	assertEqual(t, false, f.HeadersEnded())
+}
+
 func TestH2Framer(t *testing.T) {
 	f := &http2Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
