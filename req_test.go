@@ -433,6 +433,21 @@ func testGlobalWrapperEnableDumps(t *testing.T) {
 		*respBody = false
 		return EnableDumpWithoutBody()
 	})
+
+	buf := new(bytes.Buffer)
+	r := EnableDumpTo(buf)
+	assertEqual(t, true, r.getDumpOptions().Output != nil)
+
+	dumpFile := tests.GetTestFilePath("req_tmp_dump.out")
+	r = EnableDumpToFile(tests.GetTestFilePath(dumpFile))
+	assertEqual(t, true, r.getDumpOptions().Output != nil)
+	os.Remove(dumpFile)
+
+	r = SetDumpOptions(&DumpOptions{
+		RequestHeader: true,
+	})
+	assertEqual(t, true, r.getDumpOptions().RequestHeader)
+
 }
 
 func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
@@ -649,6 +664,21 @@ func TestGlobalWrapper(t *testing.T) {
 
 	r = SetBody(nil)
 	assertEqual(t, true, r.RawRequest.Body == nil)
+
+	r = SetBodyJsonMarshal(User{
+		Name: "roc",
+	})
+	assertEqual(t, true, r.RawRequest.Body != nil)
+
+	r = EnableTrace()
+	assertEqual(t, true, r.trace != nil)
+	r = DisableTrace()
+	assertEqual(t, true, r.trace == nil)
+
+	ctx := context.Background()
+	ctx, _ = context.WithTimeout(ctx, time.Second)
+	r = SetContext(ctx)
+	assertEqual(t, ctx, r.Context())
 
 	marshalFunc := func(v interface{}) ([]byte, error) {
 		return nil, testErr
