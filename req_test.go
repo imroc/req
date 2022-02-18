@@ -638,6 +638,8 @@ func TestGlobalWrapper(t *testing.T) {
 
 	EnableAllowGetMethodPayload()
 	assertEqual(t, true, DefaultClient().AllowGetMethodPayload)
+	DisableAllowGetMethodPayload()
+	assertEqual(t, false, DefaultClient().AllowGetMethodPayload)
 
 	b := []byte("test")
 	s := string(b)
@@ -885,6 +887,48 @@ func TestGlobalWrapper(t *testing.T) {
 	assertEqual(t, true, opt.RequestHeader == true && opt.ResponseHeader == false)
 	DisableDumpAll()
 	assertEqual(t, true, DefaultClient().t.dump == nil)
+
+	r = R()
+	assertEqual(t, true, r != nil)
+	c := C()
+	c.SetTimeout(10 * time.Second)
+	SetDefaultClient(c)
+	assertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
+
+	SetRedirectPolicy(NoRedirectPolicy())
+	assertEqual(t, true, DefaultClient().httpClient.CheckRedirect != nil)
+
+	EnableForceHTTP1()
+	assertEqual(t, HTTP1, DefaultClient().t.ForceHttpVersion)
+
+	EnableForceHTTP2()
+	assertEqual(t, HTTP2, DefaultClient().t.ForceHttpVersion)
+
+	DisableForceHttpVersion()
+	assertEqual(t, true, DefaultClient().t.ForceHttpVersion == "")
+
+	r = NewRequest()
+	assertEqual(t, true, r != nil)
+	c = NewClient()
+	assertEqual(t, true, c != nil)
+
+	DefaultClient().getResponseOptions().AutoDecodeContentType = nil
+	SetAutoDecodeContentType("json")
+	assertEqual(t, true, DefaultClient().getResponseOptions().AutoDecodeContentType != nil)
+
+	DefaultClient().getResponseOptions().AutoDecodeContentType = nil
+	SetAutoDecodeContentTypeFunc(func(contentType string) bool { return true })
+	assertEqual(t, true, DefaultClient().getResponseOptions().AutoDecodeContentType != nil)
+
+	DefaultClient().getResponseOptions().AutoDecodeContentType = nil
+	SetAutoDecodeAllContentType()
+	assertEqual(t, true, DefaultClient().getResponseOptions().AutoDecodeContentType != nil)
+
+	DisableAutoDecode()
+	assertEqual(t, true, DefaultClient().getResponseOptions().DisableAutoDecode)
+
+	EnableAutoDecode()
+	assertEqual(t, false, DefaultClient().getResponseOptions().DisableAutoDecode)
 }
 
 func TestTrailer(t *testing.T) {
