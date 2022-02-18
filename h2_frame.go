@@ -332,16 +332,16 @@ type http2Framer struct {
 	frameCache *http2frameCache // nil if frames aren't reused (default)
 }
 
-func (fr *http2Framer) maxHeaderListSize() uint32 {
-	if fr.MaxHeaderListSize == 0 {
+func (h2f *http2Framer) maxHeaderListSize() uint32 {
+	if h2f.MaxHeaderListSize == 0 {
 		return 16 << 20 // sane default, per docs
 	}
-	return fr.MaxHeaderListSize
+	return h2f.MaxHeaderListSize
 }
 
-func (f *http2Framer) startWrite(ftype http2FrameType, flags http2Flags, streamID uint32) {
+func (h2f *http2Framer) startWrite(ftype http2FrameType, flags http2Flags, streamID uint32) {
 	// Write the FrameHeader.
-	f.wbuf = append(f.wbuf[:0],
+	h2f.wbuf = append(h2f.wbuf[:0],
 		0, // 3 bytes of length, filled in in endWrite
 		0,
 		0,
@@ -353,54 +353,54 @@ func (f *http2Framer) startWrite(ftype http2FrameType, flags http2Flags, streamI
 		byte(streamID))
 }
 
-func (f *http2Framer) endWrite() error {
+func (h2f *http2Framer) endWrite() error {
 	// Now that we know the final size, fill in the FrameHeader in
 	// the space previously reserved for it. Abuse append.
-	length := len(f.wbuf) - http2frameHeaderLen
+	length := len(h2f.wbuf) - http2frameHeaderLen
 	if length >= (1 << 24) {
 		return http2ErrFrameTooLarge
 	}
-	_ = append(f.wbuf[:0],
+	_ = append(h2f.wbuf[:0],
 		byte(length>>16),
 		byte(length>>8),
 		byte(length))
-	if f.logWrites {
-		f.logWrite()
+	if h2f.logWrites {
+		h2f.logWrite()
 	}
 
-	n, err := f.w.Write(f.wbuf)
-	if err == nil && n != len(f.wbuf) {
+	n, err := h2f.w.Write(h2f.wbuf)
+	if err == nil && n != len(h2f.wbuf) {
 		err = io.ErrShortWrite
 	}
 	return err
 }
 
-func (f *http2Framer) logWrite() {
-	if f.debugFramer == nil {
-		f.debugFramerBuf = new(bytes.Buffer)
-		f.debugFramer = http2NewFramer(nil, f.debugFramerBuf)
-		f.debugFramer.logReads = false // we log it ourselves, saying "wrote" below
+func (h2f *http2Framer) logWrite() {
+	if h2f.debugFramer == nil {
+		h2f.debugFramerBuf = new(bytes.Buffer)
+		h2f.debugFramer = http2NewFramer(nil, h2f.debugFramerBuf)
+		h2f.debugFramer.logReads = false // we log it ourselves, saying "wrote" below
 		// Let us read anything, even if we accidentally wrote it
 		// in the wrong order:
-		f.debugFramer.AllowIllegalReads = true
+		h2f.debugFramer.AllowIllegalReads = true
 	}
-	f.debugFramerBuf.Write(f.wbuf)
-	fr, err := f.debugFramer.ReadFrame()
+	h2f.debugFramerBuf.Write(h2f.wbuf)
+	fr, err := h2f.debugFramer.ReadFrame()
 	if err != nil {
-		f.debugWriteLoggerf("http2: Framer %p: failed to decode just-written frame", f)
+		h2f.debugWriteLoggerf("http2: Framer %p: failed to decode just-written frame", h2f)
 		return
 	}
-	f.debugWriteLoggerf("http2: Framer %p: wrote %v", f, http2summarizeFrame(fr))
+	h2f.debugWriteLoggerf("http2: Framer %p: wrote %v", h2f, http2summarizeFrame(fr))
 }
 
-func (f *http2Framer) writeByte(v byte) { f.wbuf = append(f.wbuf, v) }
+func (h2f *http2Framer) writeByte(v byte) { h2f.wbuf = append(h2f.wbuf, v) }
 
-func (f *http2Framer) writeBytes(v []byte) { f.wbuf = append(f.wbuf, v...) }
+func (h2f *http2Framer) writeBytes(v []byte) { h2f.wbuf = append(h2f.wbuf, v...) }
 
-func (f *http2Framer) writeUint16(v uint16) { f.wbuf = append(f.wbuf, byte(v>>8), byte(v)) }
+func (h2f *http2Framer) writeUint16(v uint16) { h2f.wbuf = append(h2f.wbuf, byte(v>>8), byte(v)) }
 
-func (f *http2Framer) writeUint32(v uint32) {
-	f.wbuf = append(f.wbuf, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+func (h2f *http2Framer) writeUint32(v uint32) {
+	h2f.wbuf = append(h2f.wbuf, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
 }
 
 const (
@@ -411,11 +411,11 @@ const (
 // SetReuseFrames allows the Framer to reuse Frames.
 // If called on a Framer, Frames returned by calls to ReadFrame are only
 // valid until the next call to ReadFrame.
-func (fr *http2Framer) SetReuseFrames() {
-	if fr.frameCache != nil {
+func (h2f *http2Framer) SetReuseFrames() {
+	if h2f.frameCache != nil {
 		return
 	}
-	fr.frameCache = &http2frameCache{}
+	h2f.frameCache = &http2frameCache{}
 }
 
 type http2frameCache struct {
@@ -455,11 +455,11 @@ func http2NewFramer(w io.Writer, r io.Reader) *http2Framer {
 // that will be read by a subsequent call to ReadFrame.
 // It is the caller's responsibility to advertise this
 // limit with a SETTINGS frame.
-func (fr *http2Framer) SetMaxReadFrameSize(v uint32) {
+func (h2f *http2Framer) SetMaxReadFrameSize(v uint32) {
 	if v > http2maxFrameSize {
 		v = http2maxFrameSize
 	}
-	fr.maxReadSize = v
+	h2f.maxReadSize = v
 }
 
 // ErrorDetail returns a more detailed error of the last error
@@ -469,8 +469,8 @@ func (fr *http2Framer) SetMaxReadFrameSize(v uint32) {
 // to return a non-nil value and like the rest of the http2 package,
 // its return value is not protected by an API compatibility promise.
 // ErrorDetail is reset after the next call to ReadFrame.
-func (fr *http2Framer) ErrorDetail() error {
-	return fr.errDetail
+func (h2f *http2Framer) ErrorDetail() error {
+	return h2f.errDetail
 }
 
 // ErrFrameTooLarge is returned from Framer.ReadFrame when the peer
@@ -493,39 +493,39 @@ func http2terminalReadFrameError(err error) bool {
 // returned error is ErrFrameTooLarge. Other errors may be of type
 // ConnectionError, StreamError, or anything else from the underlying
 // reader.
-func (fr *http2Framer) ReadFrame() (http2Frame, error) {
-	fr.errDetail = nil
-	if fr.lastFrame != nil {
-		fr.lastFrame.invalidate()
+func (h2f *http2Framer) ReadFrame() (http2Frame, error) {
+	h2f.errDetail = nil
+	if h2f.lastFrame != nil {
+		h2f.lastFrame.invalidate()
 	}
-	fh, err := http2readFrameHeader(fr.headerBuf[:], fr.r)
+	fh, err := http2readFrameHeader(h2f.headerBuf[:], h2f.r)
 	if err != nil {
 		return nil, err
 	}
-	if fh.Length > fr.maxReadSize {
+	if fh.Length > h2f.maxReadSize {
 		return nil, http2ErrFrameTooLarge
 	}
-	payload := fr.getReadBuf(fh.Length)
-	if _, err := io.ReadFull(fr.r, payload); err != nil {
+	payload := h2f.getReadBuf(fh.Length)
+	if _, err := io.ReadFull(h2f.r, payload); err != nil {
 		return nil, err
 	}
-	f, err := http2typeFrameParser(fh.Type)(fr.frameCache, fh, fr.countError, payload)
+	f, err := http2typeFrameParser(fh.Type)(h2f.frameCache, fh, h2f.countError, payload)
 	if err != nil {
 		if ce, ok := err.(http2connError); ok {
-			return nil, fr.connError(ce.Code, ce.Reason)
+			return nil, h2f.connError(ce.Code, ce.Reason)
 		}
 		return nil, err
 	}
-	if err := fr.checkFrameOrder(f); err != nil {
+	if err := h2f.checkFrameOrder(f); err != nil {
 		return nil, err
 	}
-	if fr.logReads {
-		fr.debugReadLoggerf("http2: Framer %p: read %v", fr, http2summarizeFrame(f))
+	if h2f.logReads {
+		h2f.debugReadLoggerf("http2: Framer %p: read %v", h2f, http2summarizeFrame(f))
 	}
-	if fh.Type == http2FrameHeaders && fr.ReadMetaHeaders != nil {
+	if fh.Type == http2FrameHeaders && h2f.ReadMetaHeaders != nil {
 		var dumps []*dumper
-		if fr.cc != nil && fr.cc.t.t1 != nil {
-			dumps = getDumpers(fr.cc.t.t1.dump, fr.cc.currentRequest.Context())
+		if h2f.cc != nil && h2f.cc.t.t1 != nil {
+			dumps = getDumpers(h2f.cc.t.t1.dump, h2f.cc.currentRequest.Context())
 		}
 		if len(dumps) > 0 {
 			dd := []*dumper{}
@@ -536,7 +536,7 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 			}
 			dumps = dd
 		}
-		hr, err := fr.readMetaFrame(f.(*http2HeadersFrame), dumps)
+		hr, err := h2f.readMetaFrame(f.(*http2HeadersFrame), dumps)
 		if err == nil && len(dumps) > 0 {
 			for _, dump := range dumps {
 				dump.dump([]byte("\r\n"))
@@ -551,44 +551,44 @@ func (fr *http2Framer) ReadFrame() (http2Frame, error) {
 // stashes away a public reason to the caller can optionally relay it
 // to the peer before hanging up on them. This might help others debug
 // their implementations.
-func (fr *http2Framer) connError(code http2ErrCode, reason string) error {
-	fr.errDetail = errors.New(reason)
+func (h2f *http2Framer) connError(code http2ErrCode, reason string) error {
+	h2f.errDetail = errors.New(reason)
 	return http2ConnectionError(code)
 }
 
 // checkFrameOrder reports an error if f is an invalid frame to return
 // next from ReadFrame. Mostly it checks whether HEADERS and
 // CONTINUATION frames are contiguous.
-func (fr *http2Framer) checkFrameOrder(f http2Frame) error {
-	last := fr.lastFrame
-	fr.lastFrame = f
-	if fr.AllowIllegalReads {
+func (h2f *http2Framer) checkFrameOrder(f http2Frame) error {
+	last := h2f.lastFrame
+	h2f.lastFrame = f
+	if h2f.AllowIllegalReads {
 		return nil
 	}
 
 	fh := f.Header()
-	if fr.lastHeaderStream != 0 {
+	if h2f.lastHeaderStream != 0 {
 		if fh.Type != http2FrameContinuation {
-			return fr.connError(http2ErrCodeProtocol,
+			return h2f.connError(http2ErrCodeProtocol,
 				fmt.Sprintf("got %s for stream %d; expected CONTINUATION following %s for stream %d",
 					fh.Type, fh.StreamID,
-					last.Header().Type, fr.lastHeaderStream))
+					last.Header().Type, h2f.lastHeaderStream))
 		}
-		if fh.StreamID != fr.lastHeaderStream {
-			return fr.connError(http2ErrCodeProtocol,
+		if fh.StreamID != h2f.lastHeaderStream {
+			return h2f.connError(http2ErrCodeProtocol,
 				fmt.Sprintf("got CONTINUATION for stream %d; expected stream %d",
-					fh.StreamID, fr.lastHeaderStream))
+					fh.StreamID, h2f.lastHeaderStream))
 		}
 	} else if fh.Type == http2FrameContinuation {
-		return fr.connError(http2ErrCodeProtocol, fmt.Sprintf("unexpected CONTINUATION for stream %d", fh.StreamID))
+		return h2f.connError(http2ErrCodeProtocol, fmt.Sprintf("unexpected CONTINUATION for stream %d", fh.StreamID))
 	}
 
 	switch fh.Type {
 	case http2FrameHeaders, http2FrameContinuation:
 		if fh.Flags.Has(http2FlagHeadersEndHeaders) {
-			fr.lastHeaderStream = 0
+			h2f.lastHeaderStream = 0
 		} else {
-			fr.lastHeaderStream = fh.StreamID
+			h2f.lastHeaderStream = fh.StreamID
 		}
 	}
 
@@ -670,8 +670,8 @@ func http2validStreamID(streamID uint32) bool {
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility not to violate the maximum frame size
 // and to not call other Write methods concurrently.
-func (f *http2Framer) WriteData(streamID uint32, endStream bool, data []byte) error {
-	return f.WriteDataPadded(streamID, endStream, data, nil)
+func (h2f *http2Framer) WriteData(streamID uint32, endStream bool, data []byte) error {
+	return h2f.WriteDataPadded(streamID, endStream, data, nil)
 }
 
 // WriteDataPadded writes a DATA frame with optional padding.
@@ -683,15 +683,15 @@ func (f *http2Framer) WriteData(streamID uint32, endStream bool, data []byte) er
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility not to violate the maximum frame size
 // and to not call other Write methods concurrently.
-func (f *http2Framer) WriteDataPadded(streamID uint32, endStream bool, data, pad []byte) error {
-	if !http2validStreamID(streamID) && !f.AllowIllegalWrites {
+func (h2f *http2Framer) WriteDataPadded(streamID uint32, endStream bool, data, pad []byte) error {
+	if !http2validStreamID(streamID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
 	if len(pad) > 0 {
 		if len(pad) > 255 {
 			return http2errPadLength
 		}
-		if !f.AllowIllegalWrites {
+		if !h2f.AllowIllegalWrites {
 			for _, b := range pad {
 				if b != 0 {
 					// "Padding octets MUST be set to zero when sending."
@@ -707,13 +707,13 @@ func (f *http2Framer) WriteDataPadded(streamID uint32, endStream bool, data, pad
 	if pad != nil {
 		flags |= http2FlagDataPadded
 	}
-	f.startWrite(http2FrameData, flags, streamID)
+	h2f.startWrite(http2FrameData, flags, streamID)
 	if pad != nil {
-		f.wbuf = append(f.wbuf, byte(len(pad)))
+		h2f.wbuf = append(h2f.wbuf, byte(len(pad)))
 	}
-	f.wbuf = append(f.wbuf, data...)
-	f.wbuf = append(f.wbuf, pad...)
-	return f.endWrite()
+	h2f.wbuf = append(h2f.wbuf, data...)
+	h2f.wbuf = append(h2f.wbuf, pad...)
+	return h2f.endWrite()
 }
 
 // A SettingsFrame conveys configuration parameters that affect how
@@ -838,22 +838,22 @@ func (f *http2SettingsFrame) ForeachSetting(fn func(http2Setting) error) error {
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WriteSettings(settings ...http2Setting) error {
-	f.startWrite(http2FrameSettings, 0, 0)
+func (h2f *http2Framer) WriteSettings(settings ...http2Setting) error {
+	h2f.startWrite(http2FrameSettings, 0, 0)
 	for _, s := range settings {
-		f.writeUint16(uint16(s.ID))
-		f.writeUint32(s.Val)
+		h2f.writeUint16(uint16(s.ID))
+		h2f.writeUint32(s.Val)
 	}
-	return f.endWrite()
+	return h2f.endWrite()
 }
 
 // WriteSettingsAck writes an empty SETTINGS frame with the ACK bit set.
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WriteSettingsAck() error {
-	f.startWrite(http2FrameSettings, http2FlagSettingsAck, 0)
-	return f.endWrite()
+func (h2f *http2Framer) WriteSettingsAck() error {
+	h2f.startWrite(http2FrameSettings, http2FlagSettingsAck, 0)
+	return h2f.endWrite()
 }
 
 // A PingFrame is a mechanism for measuring a minimal round trip time
@@ -881,14 +881,14 @@ func http2parsePingFrame(_ *http2frameCache, fh http2FrameHeader, countError fun
 	return f, nil
 }
 
-func (f *http2Framer) WritePing(ack bool, data [8]byte) error {
+func (h2f *http2Framer) WritePing(ack bool, data [8]byte) error {
 	var flags http2Flags
 	if ack {
 		flags = http2FlagPingAck
 	}
-	f.startWrite(http2FramePing, flags, 0)
-	f.writeBytes(data[:])
-	return f.endWrite()
+	h2f.startWrite(http2FramePing, flags, 0)
+	h2f.writeBytes(data[:])
+	return h2f.endWrite()
 }
 
 // A GoAwayFrame informs the remote peer to stop creating streams on this connection.
@@ -926,12 +926,12 @@ func http2parseGoAwayFrame(_ *http2frameCache, fh http2FrameHeader, countError f
 	}, nil
 }
 
-func (f *http2Framer) WriteGoAway(maxStreamID uint32, code http2ErrCode, debugData []byte) error {
-	f.startWrite(http2FrameGoAway, 0, 0)
-	f.writeUint32(maxStreamID & (1<<31 - 1))
-	f.writeUint32(uint32(code))
-	f.writeBytes(debugData)
-	return f.endWrite()
+func (h2f *http2Framer) WriteGoAway(maxStreamID uint32, code http2ErrCode, debugData []byte) error {
+	h2f.startWrite(http2FrameGoAway, 0, 0)
+	h2f.writeUint32(maxStreamID & (1<<31 - 1))
+	h2f.writeUint32(uint32(code))
+	h2f.writeBytes(debugData)
+	return h2f.endWrite()
 }
 
 // An UnknownFrame is the frame type returned when the frame type is unknown
@@ -992,14 +992,14 @@ func http2parseWindowUpdateFrame(_ *http2frameCache, fh http2FrameHeader, countE
 // The increment value must be between 1 and 2,147,483,647, inclusive.
 // If the Stream ID is zero, the window update applies to the
 // connection as a whole.
-func (f *http2Framer) WriteWindowUpdate(streamID, incr uint32) error {
+func (h2f *http2Framer) WriteWindowUpdate(streamID, incr uint32) error {
 	// "The legal range for the increment to the flow control window is 1 to 2^31-1 (2,147,483,647) octets."
-	if (incr < 1 || incr > 2147483647) && !f.AllowIllegalWrites {
+	if (incr < 1 || incr > 2147483647) && !h2f.AllowIllegalWrites {
 		return errors.New("illegal window increment value")
 	}
-	f.startWrite(http2FrameWindowUpdate, 0, streamID)
-	f.writeUint32(incr)
-	return f.endWrite()
+	h2f.startWrite(http2FrameWindowUpdate, 0, streamID)
+	h2f.writeUint32(incr)
+	return h2f.endWrite()
 }
 
 // A HeadersFrame is used to open a stream and additionally carries a
@@ -1107,8 +1107,8 @@ type http2HeadersFrameParam struct {
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WriteHeaders(p http2HeadersFrameParam) error {
-	if !http2validStreamID(p.StreamID) && !f.AllowIllegalWrites {
+func (h2f *http2Framer) WriteHeaders(p http2HeadersFrameParam) error {
+	if !http2validStreamID(p.StreamID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
 	var flags http2Flags
@@ -1124,24 +1124,24 @@ func (f *http2Framer) WriteHeaders(p http2HeadersFrameParam) error {
 	if !p.Priority.IsZero() {
 		flags |= http2FlagHeadersPriority
 	}
-	f.startWrite(http2FrameHeaders, flags, p.StreamID)
+	h2f.startWrite(http2FrameHeaders, flags, p.StreamID)
 	if p.PadLength != 0 {
-		f.writeByte(p.PadLength)
+		h2f.writeByte(p.PadLength)
 	}
 	if !p.Priority.IsZero() {
 		v := p.Priority.StreamDep
-		if !http2validStreamIDOrZero(v) && !f.AllowIllegalWrites {
+		if !http2validStreamIDOrZero(v) && !h2f.AllowIllegalWrites {
 			return http2errDepStreamID
 		}
 		if p.Priority.Exclusive {
 			v |= 1 << 31
 		}
-		f.writeUint32(v)
-		f.writeByte(p.Priority.Weight)
+		h2f.writeUint32(v)
+		h2f.writeByte(p.Priority.Weight)
 	}
-	f.wbuf = append(f.wbuf, p.BlockFragment...)
-	f.wbuf = append(f.wbuf, http2padZeros[:p.PadLength]...)
-	return f.endWrite()
+	h2f.wbuf = append(h2f.wbuf, p.BlockFragment...)
+	h2f.wbuf = append(h2f.wbuf, http2padZeros[:p.PadLength]...)
+	return h2f.endWrite()
 }
 
 // A PriorityFrame specifies the sender-advised priority of a stream.
@@ -1197,21 +1197,21 @@ func http2parsePriorityFrame(_ *http2frameCache, fh http2FrameHeader, countError
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WritePriority(streamID uint32, p http2PriorityParam) error {
-	if !http2validStreamID(streamID) && !f.AllowIllegalWrites {
+func (h2f *http2Framer) WritePriority(streamID uint32, p http2PriorityParam) error {
+	if !http2validStreamID(streamID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
 	if !http2validStreamIDOrZero(p.StreamDep) {
 		return http2errDepStreamID
 	}
-	f.startWrite(http2FramePriority, 0, streamID)
+	h2f.startWrite(http2FramePriority, 0, streamID)
 	v := p.StreamDep
 	if p.Exclusive {
 		v |= 1 << 31
 	}
-	f.writeUint32(v)
-	f.writeByte(p.Weight)
-	return f.endWrite()
+	h2f.writeUint32(v)
+	h2f.writeByte(p.Weight)
+	return h2f.endWrite()
 }
 
 // A RSTStreamFrame allows for abnormal termination of a stream.
@@ -1237,13 +1237,13 @@ func http2parseRSTStreamFrame(_ *http2frameCache, fh http2FrameHeader, countErro
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WriteRSTStream(streamID uint32, code http2ErrCode) error {
-	if !http2validStreamID(streamID) && !f.AllowIllegalWrites {
+func (h2f *http2Framer) WriteRSTStream(streamID uint32, code http2ErrCode) error {
+	if !http2validStreamID(streamID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
-	f.startWrite(http2FrameRSTStream, 0, streamID)
-	f.writeUint32(uint32(code))
-	return f.endWrite()
+	h2f.startWrite(http2FrameRSTStream, 0, streamID)
+	h2f.writeUint32(uint32(code))
+	return h2f.endWrite()
 }
 
 // A ContinuationFrame is used to continue a sequence of header block fragments.
@@ -1274,17 +1274,17 @@ func (f *http2ContinuationFrame) HeadersEnded() bool {
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WriteContinuation(streamID uint32, endHeaders bool, headerBlockFragment []byte) error {
-	if !http2validStreamID(streamID) && !f.AllowIllegalWrites {
+func (h2f *http2Framer) WriteContinuation(streamID uint32, endHeaders bool, headerBlockFragment []byte) error {
+	if !http2validStreamID(streamID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
 	var flags http2Flags
 	if endHeaders {
 		flags |= http2FlagContinuationEndHeaders
 	}
-	f.startWrite(http2FrameContinuation, flags, streamID)
-	f.wbuf = append(f.wbuf, headerBlockFragment...)
-	return f.endWrite()
+	h2f.startWrite(http2FrameContinuation, flags, streamID)
+	h2f.wbuf = append(h2f.wbuf, headerBlockFragment...)
+	return h2f.endWrite()
 }
 
 // A PushPromiseFrame is used to initiate a server stream.
@@ -1373,8 +1373,8 @@ type http2PushPromiseParam struct {
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (f *http2Framer) WritePushPromise(p http2PushPromiseParam) error {
-	if !http2validStreamID(p.StreamID) && !f.AllowIllegalWrites {
+func (h2f *http2Framer) WritePushPromise(p http2PushPromiseParam) error {
+	if !http2validStreamID(p.StreamID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
 	var flags http2Flags
@@ -1384,25 +1384,25 @@ func (f *http2Framer) WritePushPromise(p http2PushPromiseParam) error {
 	if p.EndHeaders {
 		flags |= http2FlagPushPromiseEndHeaders
 	}
-	f.startWrite(http2FramePushPromise, flags, p.StreamID)
+	h2f.startWrite(http2FramePushPromise, flags, p.StreamID)
 	if p.PadLength != 0 {
-		f.writeByte(p.PadLength)
+		h2f.writeByte(p.PadLength)
 	}
-	if !http2validStreamID(p.PromiseID) && !f.AllowIllegalWrites {
+	if !http2validStreamID(p.PromiseID) && !h2f.AllowIllegalWrites {
 		return http2errStreamID
 	}
-	f.writeUint32(p.PromiseID)
-	f.wbuf = append(f.wbuf, p.BlockFragment...)
-	f.wbuf = append(f.wbuf, http2padZeros[:p.PadLength]...)
-	return f.endWrite()
+	h2f.writeUint32(p.PromiseID)
+	h2f.wbuf = append(h2f.wbuf, p.BlockFragment...)
+	h2f.wbuf = append(h2f.wbuf, http2padZeros[:p.PadLength]...)
+	return h2f.endWrite()
 }
 
 // WriteRawFrame writes a raw frame. This can be used to write
 // extension frames unknown to this package.
-func (f *http2Framer) WriteRawFrame(t http2FrameType, flags http2Flags, streamID uint32, payload []byte) error {
-	f.startWrite(t, flags, streamID)
-	f.writeBytes(payload)
-	return f.endWrite()
+func (h2f *http2Framer) WriteRawFrame(t http2FrameType, flags http2Flags, streamID uint32, payload []byte) error {
+	h2f.startWrite(t, flags, streamID)
+	h2f.writeBytes(payload)
+	return h2f.endWrite()
 }
 
 func http2readByte(p []byte) (remain []byte, b byte, err error) {
@@ -1522,8 +1522,8 @@ func (mh *http2MetaHeadersFrame) checkPseudos() error {
 	return nil
 }
 
-func (fr *http2Framer) maxHeaderStringLen() int {
-	v := fr.maxHeaderListSize()
+func (h2f *http2Framer) maxHeaderStringLen() int {
+	v := h2f.maxHeaderListSize()
 	if uint32(int(v)) == v {
 		return int(v)
 	}
@@ -1535,23 +1535,23 @@ func (fr *http2Framer) maxHeaderStringLen() int {
 // readMetaFrame returns 0 or more CONTINUATION frames from fr and
 // merge them into the provided hf and returns a MetaHeadersFrame
 // with the decoded hpack values.
-func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame, dumps []*dumper) (*http2MetaHeadersFrame, error) {
-	if fr.AllowIllegalReads {
+func (h2f *http2Framer) readMetaFrame(hf *http2HeadersFrame, dumps []*dumper) (*http2MetaHeadersFrame, error) {
+	if h2f.AllowIllegalReads {
 		return nil, errors.New("illegal use of AllowIllegalReads with ReadMetaHeaders")
 	}
 	mh := &http2MetaHeadersFrame{
 		http2HeadersFrame: hf,
 	}
-	var remainSize = fr.maxHeaderListSize()
+	var remainSize = h2f.maxHeaderListSize()
 	var sawRegular bool
 
 	var invalid error // pseudo header field errors
-	hdec := fr.ReadMetaHeaders
+	hdec := h2f.ReadMetaHeaders
 	hdec.SetEmitEnabled(true)
-	hdec.SetMaxStringLength(fr.maxHeaderStringLen())
+	hdec.SetMaxStringLength(h2f.maxHeaderStringLen())
 	rawEmitFunc := func(hf hpack.HeaderField) {
-		if http2VerboseLogs && fr.logReads {
-			fr.debugReadLoggerf("http2: decoded hpack field %+v", hf)
+		if http2VerboseLogs && h2f.logReads {
+			h2f.debugReadLoggerf("http2: decoded hpack field %+v", hf)
 		}
 		if !httpguts.ValidHeaderFieldValue(hf.Value) {
 			invalid = http2headerFieldValueError(hf.Value)
@@ -1608,7 +1608,7 @@ func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame, dumps []*dumper) (*h
 		if hc.HeadersEnded() {
 			break
 		}
-		if f, err := fr.ReadFrame(); err != nil {
+		if f, err := h2f.ReadFrame(); err != nil {
 			return nil, err
 		} else {
 			hc = f.(*http2ContinuationFrame) // guaranteed by checkFrameOrder
@@ -1622,14 +1622,14 @@ func (fr *http2Framer) readMetaFrame(hf *http2HeadersFrame, dumps []*dumper) (*h
 		return nil, http2ConnectionError(http2ErrCodeCompression)
 	}
 	if invalid != nil {
-		fr.errDetail = invalid
+		h2f.errDetail = invalid
 		if http2VerboseLogs {
 			log.Printf("http2: invalid header: %v", invalid)
 		}
 		return nil, http2StreamError{mh.StreamID, http2ErrCodeProtocol, invalid}
 	}
 	if err := mh.checkPseudos(); err != nil {
-		fr.errDetail = err
+		h2f.errDetail = err
 		if http2VerboseLogs {
 			log.Printf("http2: invalid pseudo headers: %v", err)
 		}
