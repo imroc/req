@@ -1430,4 +1430,19 @@ func TestH2Framer(t *testing.T) {
 	f.logWrite()
 	assertNotNil(t, f.debugFramer)
 	assertNil(t, f.ErrorDetail())
+
+	f.w = new(bytes.Buffer)
+	err := f.WriteRawFrame(http2FrameData, http2FlagDataEndStream, 1, nil)
+	tests.AssertNoError(t, err)
+
+	param := http2PushPromiseParam{}
+	err = f.WritePushPromise(param)
+	tests.AssertErrorContains(t, err, "invalid stream ID")
+
+	param.StreamID = 1
+	param.EndHeaders = true
+	param.PadLength = 2
+	f.AllowIllegalWrites = true
+	err = f.WritePushPromise(param)
+	tests.AssertNoError(t, err)
 }
