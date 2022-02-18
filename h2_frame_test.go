@@ -1304,3 +1304,31 @@ func TestParseSettingsFrame(t *testing.T) {
 	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("rocroc"))
 	tests.AssertNoError(t, err)
 }
+
+func TestSummarizeFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	var f http2Frame
+	f = &http2SettingsFrame{http2FrameHeader: fh}
+	s := http2summarizeFrame(f)
+	tests.AssertContains(t, s, "len=0", true)
+
+	f = &http2DataFrame{http2FrameHeader: fh}
+	s = http2summarizeFrame(f)
+	tests.AssertContains(t, s, `data=""`, true)
+
+	f = &http2WindowUpdateFrame{http2FrameHeader: fh}
+	s = http2summarizeFrame(f)
+	tests.AssertContains(t, s, "onn", true)
+
+	f = &http2PingFrame{http2FrameHeader: fh}
+	s = http2summarizeFrame(f)
+	tests.AssertContains(t, s, "ping", true)
+
+	f = &http2GoAwayFrame{http2FrameHeader: fh}
+	s = http2summarizeFrame(f)
+	tests.AssertContains(t, s, "laststreamid", true)
+
+	f = &http2RSTStreamFrame{http2FrameHeader: fh}
+	s = http2summarizeFrame(f)
+	tests.AssertContains(t, s, "no_error", true)
+}
