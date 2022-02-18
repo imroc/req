@@ -198,7 +198,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		if r.FormValue("type") != "no" {
 			w.Header().Set(hdrContentTypeKey, jsonContentType)
 		}
-		w.Write([]byte(`{"name": "roc"}`))
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		if r.FormValue("error") == "yes" {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"message": "not allowed"}`))
+		} else {
+			w.Write([]byte(`{"name": "roc"}`))
+		}
 	case "/xml":
 		r.ParseForm()
 		if r.FormValue("type") != "no" {

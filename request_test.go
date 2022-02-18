@@ -605,6 +605,7 @@ func TestTraceInfo(t *testing.T) {
 	ti = resp.TraceInfo()
 	tests.AssertContains(t, ti.String(), "not enabled", false)
 	tests.AssertContains(t, ti.Blame(), "not enabled", false)
+	assertEqual(t, true, resp.TotalTime() > 0)
 }
 
 func testTraceInfo(t *testing.T, c *Client) {
