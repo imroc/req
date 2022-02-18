@@ -701,35 +701,16 @@ func TestSetBodyWrapper(t *testing.T) {
 	b := []byte("test")
 	s := string(b)
 	c := tc()
+
 	r := c.R().SetBodyXmlString(s)
-	assertEqual(t, true, len(r.body) > 0)
-	r = SetBodyXmlString(s)
 	assertEqual(t, true, len(r.body) > 0)
 
 	r = c.R().SetBodyXmlBytes(b)
 	assertEqual(t, true, len(r.body) > 0)
-	r = SetBodyXmlBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
 
 	r = c.R().SetBodyJsonString(s)
-	assertEqual(t, true, len(r.body) > 0)
-	r = SetBodyJsonString(s)
 	assertEqual(t, true, len(r.body) > 0)
 
 	r = c.R().SetBodyJsonBytes(b)
 	assertEqual(t, true, len(r.body) > 0)
-	r = SetBodyJsonBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyXmlMarshal(0)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyString(s)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBody(nil)
-	assertEqual(t, true, r.RawRequest.Body == nil)
 }

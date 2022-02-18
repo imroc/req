@@ -624,6 +624,32 @@ func TestGlobalWrapper(t *testing.T) {
 	EnableAllowGetMethodPayload()
 	assertEqual(t, true, DefaultClient().AllowGetMethodPayload)
 
+	b := []byte("test")
+	s := string(b)
+	r := SetBodyXmlMarshal(0)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBodyString(s)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBodyBytes(b)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBodyJsonBytes(b)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBodyJsonString(s)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBodyXmlBytes(b)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBodyXmlString(s)
+	assertEqual(t, true, len(r.body) > 0)
+
+	r = SetBody(nil)
+	assertEqual(t, true, r.RawRequest.Body == nil)
+
 	marshalFunc := func(v interface{}) ([]byte, error) {
 		return nil, testErr
 	}
