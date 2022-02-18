@@ -13,6 +13,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"io/ioutil"
 	"log"
@@ -5852,4 +5853,37 @@ func TestTransportSlowWrites(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp.Body.Close()
+}
+
+func TestCountReadFrameError(t *testing.T) {
+	cc := &http2ClientConn{}
+	errMsg := ""
+	countError := func(errType string) {
+		errMsg = errType
+	}
+	cc.t = &http2Transport{CountError: countError}
+
+	var err error
+	cc.countReadFrameError(err)
+	assertEqual(t, "", errMsg)
+
+	err = http2ConnectionError(http2ErrCodeInternal)
+	cc.countReadFrameError(err)
+	tests.AssertContains(t, errMsg, "read_frame_conn_error", true)
+
+	err = io.EOF
+	cc.countReadFrameError(err)
+	tests.AssertContains(t, errMsg, "read_frame_eof", true)
+
+	err = io.ErrUnexpectedEOF
+	cc.countReadFrameError(err)
+	tests.AssertContains(t, errMsg, "read_frame_unexpected_eof", true)
+
+	err = http2ErrFrameTooLarge
+	cc.countReadFrameError(err)
+	tests.AssertContains(t, errMsg, "read_frame_too_large", true)
+
+	err = errors.New("other")
+	cc.countReadFrameError(err)
+	tests.AssertContains(t, errMsg, "read_frame_other", true)
 }

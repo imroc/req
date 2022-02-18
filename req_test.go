@@ -832,7 +832,7 @@ func TestGlobalWrapper(t *testing.T) {
 }
 
 func TestTrailer(t *testing.T) {
-	resp, err := tc().EnableForceHTTP1().R().Get("/chunked")
+	resp, err := tc().EnableForceHTTP1().R().EnableDump().Get("/chunked")
 	assertSuccess(t, resp, err)
 	_, ok := resp.Trailer["Expires"]
 	if !ok {
