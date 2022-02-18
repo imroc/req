@@ -103,3 +103,16 @@ func TestSettingValid(t *testing.T) {
 	s := &http2Setting{ID: http2SettingMaxHeaderListSize}
 	assertEqual(t, true, s.Valid() == nil)
 }
+
+func TestBodyAllowedForStatus(t *testing.T) {
+	assertEqual(t, false, http2bodyAllowedForStatus(101))
+	assertEqual(t, false, http2bodyAllowedForStatus(204))
+	assertEqual(t, false, http2bodyAllowedForStatus(304))
+	assertEqual(t, true, http2bodyAllowedForStatus(900))
+}
+
+func TestHttpError(t *testing.T) {
+	e := &http2httpError{msg: "test"}
+	assertEqual(t, "test", e.Error())
+	assertEqual(t, true, e.Temporary())
+}
