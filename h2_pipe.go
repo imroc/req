@@ -77,7 +77,7 @@ func (p *http2pipe) Read(d []byte) (n int, err error) {
 	}
 }
 
-var http2errClosedPipeWrite = errors.New("write on closed buffer")
+var errClosedPipeWrite = errors.New("write on closed buffer")
 
 // Write copies bytes from p into the buffer and wakes a reader.
 // It is an error to write more data than the buffer can hold.
@@ -89,7 +89,7 @@ func (p *http2pipe) Write(d []byte) (n int, err error) {
 	}
 	defer p.c.Signal()
 	if p.err != nil {
-		return 0, http2errClosedPipeWrite
+		return 0, errClosedPipeWrite
 	}
 	if p.breakErr != nil {
 		p.unread += len(d)

@@ -96,11 +96,11 @@ func TestPipeCloseWithError(t *testing.T) {
 		t.Errorf("pipe should have 0 unread bytes")
 	}
 	// Read and Write should fail.
-	if n, err := p.Write([]byte("abc")); err != http2errClosedPipeWrite || n != 0 {
-		t.Errorf("Write(abc) after close\ngot %v, %v\nwant 0, %v", n, err, http2errClosedPipeWrite)
+	if n, err := p.Write([]byte("abc")); err != errClosedPipeWrite || n != 0 {
+		t.Errorf("Write(abc) after close\ngot %v, %v\nwant 0, %v", n, err, errClosedPipeWrite)
 	}
 	if n, err := p.Read(make([]byte, 1)); err == nil || n != 0 {
-		t.Errorf("Read() after close\ngot %v, nil\nwant 0, %v", n, http2errClosedPipeWrite)
+		t.Errorf("Read() after close\ngot %v, nil\nwant 0, %v", n, errClosedPipeWrite)
 	}
 	if p.Len() != 0 {
 		t.Errorf("pipe should have 0 unread bytes")
