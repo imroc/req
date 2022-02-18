@@ -1416,6 +1416,23 @@ func TestParseRSTStreamFrame(t *testing.T) {
 	tests.AssertNoError(t, err)
 }
 
+func TestParsePingFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	countError := func(string) {}
+	payload := []byte("")
+	_, err := http2parsePingFrame(nil, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+
+	payload = []byte("testtest")
+	fh.StreamID = 1
+	_, err = http2parsePingFrame(nil, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+
+	fh.StreamID = 0
+	_, err = http2parsePingFrame(nil, fh, countError, payload)
+	tests.AssertNoError(t, err)
+}
+
 func TestPushPromiseFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	buf := []byte("test")
