@@ -3403,8 +3403,8 @@ func (w *http2responseWriter) handlerDone() {
 
 // Push errors.
 var (
-	http2ErrRecursivePush    = errors.New("http2: recursive push not allowed")
-	http2ErrPushLimitReached = errors.New("http2: push would exceed peer's SETTINGS_MAX_CONCURRENT_STREAMS")
+	errRecursivePush    = errors.New("http2: recursive push not allowed")
+	errPushLimitReached = errors.New("http2: push would exceed peer's SETTINGS_MAX_CONCURRENT_STREAMS")
 )
 
 var _ http.Pusher = (*http2responseWriter)(nil)
@@ -3417,7 +3417,7 @@ func (w *http2responseWriter) Push(target string, opts *http.PushOptions) error 
 	// No recursive pushes: "PUSH_PROMISE frames MUST only be sent on a peer-initiated stream."
 	// http://tools.ietf.org/html/rfc7540#section-6.6
 	if st.isPushed() {
-		return http2ErrRecursivePush
+		return errRecursivePush
 	}
 
 	if opts == nil {
@@ -3549,7 +3549,7 @@ func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
 		}
 		// http://tools.ietf.org/html/rfc7540#section-6.5.2.
 		if sc.curPushedStreams+1 > sc.clientMaxStreams {
-			return 0, http2ErrPushLimitReached
+			return 0, errPushLimitReached
 		}
 
 		// http://tools.ietf.org/html/rfc7540#section-5.1.1.
@@ -3558,7 +3558,7 @@ func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
 		// frame so that the client is forced to open a new connection for new streams.
 		if sc.maxPushPromiseID+2 >= 1<<31 {
 			sc.startGracefulShutdownInternal()
-			return 0, http2ErrPushLimitReached
+			return 0, errPushLimitReached
 		}
 		sc.maxPushPromiseID += 2
 		promisedID := sc.maxPushPromiseID
@@ -3900,9 +3900,8 @@ func (w *http2writeResHeaders) writeHeaderBlock(ctx http2writeContext, frag []by
 			EndStream:     w.endStream,
 			EndHeaders:    lastFrag,
 		})
-	} else {
-		return ctx.Framer().WriteContinuation(w.streamID, lastFrag, frag)
 	}
+	return ctx.Framer().WriteContinuation(w.streamID, lastFrag, frag)
 }
 
 // writePushPromise is a request to write a PUSH_PROMISE and 0+ CONTINUATION frames.

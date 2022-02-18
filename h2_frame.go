@@ -1517,7 +1517,7 @@ func (mh *http2MetaHeadersFrame) checkPseudos() error {
 		}
 	}
 	if isRequest && isResponse {
-		return http2errMixPseudoHeaderTypes
+		return errMixPseudoHeaderTypes
 	}
 	return nil
 }
@@ -1559,7 +1559,7 @@ func (h2f *http2Framer) readMetaFrame(hf *http2HeadersFrame, dumps []*dumper) (*
 		isPseudo := strings.HasPrefix(hf.Name, ":")
 		if isPseudo {
 			if sawRegular {
-				invalid = http2errPseudoAfterRegular
+				invalid = errPseudoAfterRegular
 			}
 		} else {
 			sawRegular = true

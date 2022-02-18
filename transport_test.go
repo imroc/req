@@ -84,7 +84,7 @@ func (t *Transport) IdleConnStrsForTesting() []string {
 	return ret
 }
 
-func (t *Transport) IdleConnStrsForTesting_h2() []string {
+func (t *Transport) IdleConnStrsForTestingH2() []string {
 	var ret []string
 	noDialPool := t.t2.ConnPool.(http2noDialClientConnPool)
 	pool := noDialPool.http2clientConnPool
@@ -2613,7 +2613,7 @@ func TestCancelRequestWithChannel(t *testing.T) {
 	body, err := io.ReadAll(res.Body)
 	d := time.Since(t0)
 
-	if err != http2errRequestCanceled {
+	if err != errRequestCanceled {
 		t.Errorf("Body.Read error = %v; want errRequestCanceled", err)
 	}
 	if string(body) != "Hello" {
@@ -2716,8 +2716,8 @@ func TestTransportCancelBeforeResponseHeaders(t *testing.T) {
 	if err == nil {
 		t.Fatalf("unexpected success from RoundTrip")
 	}
-	if err != http2errRequestCanceled {
-		t.Errorf("RoundTrip error = %v; want http2errRequestCanceled", err)
+	if err != errRequestCanceled {
+		t.Errorf("RoundTrip error = %v; want errRequestCanceled", err)
 	}
 }
 
@@ -4037,7 +4037,7 @@ func TestTransportDialCancelRace(t *testing.T) {
 	})
 	defer SetEnterRoundTripHook(nil)
 	res, err := tr.RoundTrip(req)
-	if err != http2errRequestCanceled {
+	if err != errRequestCanceled {
 		t.Errorf("expected canceled request error; got %v", err)
 		if err == nil {
 			res.Body.Close()
@@ -4357,16 +4357,16 @@ func TestNoCrashReturningTransportAltConn(t *testing.T) {
 	wg.Wait()
 }
 
-func TestTransportReuseConnection_Gzip_Chunked(t *testing.T) {
-	testTransportReuseConnection_Gzip(t, true)
+func TestTransportReuseConnectionGzipChunked(t *testing.T) {
+	testTransportReuseConnectionGzip(t, true)
 }
 
-func TestTransportReuseConnection_Gzip_ContentLength(t *testing.T) {
-	testTransportReuseConnection_Gzip(t, false)
+func TestTransportReuseConnectionGzipContentLength(t *testing.T) {
+	testTransportReuseConnectionGzip(t, false)
 }
 
 // Make sure we re-use underlying TCP connection for gzipped responses too.
-func testTransportReuseConnection_Gzip(t *testing.T, chunked bool) {
+func testTransportReuseConnectionGzip(t *testing.T, chunked bool) {
 	setParallel(t)
 	defer afterTest(t)
 	addr := make(chan string, 2)

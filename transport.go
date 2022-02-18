@@ -39,10 +39,13 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
+// HttpVersion represents http version.
 type HttpVersion string
 
 const (
+	// HTTP1 represents "HTTP/1.1"
 	HTTP1 HttpVersion = "1.1"
+	// HTTP2 represents "HTTP/2.0"
 	HTTP2 HttpVersion = "2"
 )
 
@@ -1438,20 +1441,20 @@ func (t *Transport) decConnsPerHost(key connectMethodKey) {
 // Add TLS to a persistent connection, i.e. negotiate a TLS session. If pconn is already a TLS
 // tunnel, this function establishes a nested TLS session inside the encrypted channel.
 // The remote endpoint's name may be overridden by TLSClientConfig.ServerName.
-func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptrace.ClientTrace, forProxy bool) error {
+func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace.ClientTrace, forProxy bool) error {
 	// Initiate TLS and check remote host name against certificate.
-	cfg := cloneTLSConfig(pconn.t.TLSClientConfig)
+	cfg := cloneTLSConfig(pc.t.TLSClientConfig)
 	if cfg.ServerName == "" {
 		cfg.ServerName = name
 	}
-	if pconn.cacheKey.onlyH1 {
+	if pc.cacheKey.onlyH1 {
 		cfg.NextProtos = nil
 	}
-	plainConn := pconn.conn
+	plainConn := pc.conn
 	tlsConn := tls.Client(plainConn, cfg)
 	errc := make(chan error, 2)
 	var timer *time.Timer // for canceling TLS handshake
-	if d := pconn.t.TLSHandshakeTimeout; d != 0 {
+	if d := pc.t.TLSHandshakeTimeout; d != 0 {
 		timer = time.AfterFunc(d, func() {
 			errc <- tlsHandshakeTimeoutError{}
 		})
@@ -1477,9 +1480,9 @@ func (pconn *persistConn) addTLS(ctx context.Context, name string, trace *httptr
 	if trace != nil && trace.TLSHandshakeDone != nil {
 		trace.TLSHandshakeDone(cs, nil)
 	}
-	pconn.tlsState = &cs
-	pconn.conn = tlsConn
-	if !forProxy && pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+	pc.tlsState = &cs
+	pc.conn = tlsConn
+	if !forProxy && pc.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
 		return newHttp2NotSupportedError(cs.NegotiatedProtocol)
 	}
 	return nil
@@ -2694,9 +2697,6 @@ func (e *httpError) Temporary() bool { return true }
 
 var errTimeout error = &httpError{err: "net/http: timeout awaiting response headers", timeout: true}
 
-// errRequestCanceled is set to be identical to the one from h2 to facilitate
-// testing.
-var errRequestCanceled = http2errRequestCanceled
 var errRequestCanceledConn = errors.New("net/http: request canceled while waiting for connection") // TODO: unify?
 
 func nop() {}

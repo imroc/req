@@ -1442,37 +1442,37 @@ func TestTransportReceiveUndeclaredTrailer(t *testing.T) {
 	ct.run()
 }
 
-func TestTransportInvalidTrailer_Pseudo1(t *testing.T) {
-	testTransportInvalidTrailer_Pseudo(t, oneHeader)
+func TestTransportInvalidTrailerPseudo1(t *testing.T) {
+	testTransportInvalidTrailerPseudo(t, oneHeader)
 }
-func TestTransportInvalidTrailer_Pseudo2(t *testing.T) {
-	testTransportInvalidTrailer_Pseudo(t, splitHeader)
+func TestTransportInvalidTrailerPseudo2(t *testing.T) {
+	testTransportInvalidTrailerPseudo(t, splitHeader)
 }
-func testTransportInvalidTrailer_Pseudo(t *testing.T, trailers headerType) {
+func testTransportInvalidTrailerPseudo(t *testing.T, trailers headerType) {
 	testInvalidTrailer(t, trailers, http2pseudoHeaderError(":colon"), func(enc *hpack.Encoder) {
 		enc.WriteField(hpack.HeaderField{Name: ":colon", Value: "foo"})
 		enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
 	})
 }
 
-func TestTransportInvalidTrailer_Capital1(t *testing.T) {
-	testTransportInvalidTrailer_Capital(t, oneHeader)
+func TestTransportInvalidTrailerCapital1(t *testing.T) {
+	testTransportInvalidTrailerCapital(t, oneHeader)
 }
-func TestTransportInvalidTrailer_Capital2(t *testing.T) {
-	testTransportInvalidTrailer_Capital(t, splitHeader)
+func TestTransportInvalidTrailerCapital2(t *testing.T) {
+	testTransportInvalidTrailerCapital(t, splitHeader)
 }
-func testTransportInvalidTrailer_Capital(t *testing.T, trailers headerType) {
+func testTransportInvalidTrailerCapital(t *testing.T, trailers headerType) {
 	testInvalidTrailer(t, trailers, http2headerFieldNameError("Capital"), func(enc *hpack.Encoder) {
 		enc.WriteField(hpack.HeaderField{Name: "foo", Value: "bar"})
 		enc.WriteField(hpack.HeaderField{Name: "Capital", Value: "bad"})
 	})
 }
-func TestTransportInvalidTrailer_EmptyFieldName(t *testing.T) {
+func TestTransportInvalidTrailerEmptyFieldName(t *testing.T) {
 	testInvalidTrailer(t, oneHeader, http2headerFieldNameError(""), func(enc *hpack.Encoder) {
 		enc.WriteField(hpack.HeaderField{Name: "", Value: "bad"})
 	})
 }
-func TestTransportInvalidTrailer_BinaryFieldValue(t *testing.T) {
+func TestTransportInvalidTrailerBinaryFieldValue(t *testing.T) {
 	testInvalidTrailer(t, oneHeader, http2headerFieldValueError("has\nnewline"), func(enc *hpack.Encoder) {
 		enc.WriteField(hpack.HeaderField{Name: "x", Value: "has\nnewline"})
 	})
@@ -1801,26 +1801,26 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 	req = newRequest()
 	req.Header = make(http.Header)
 	padHeaders(t, req.Header, peerSize, filler)
-	checkRoundTrip(req, http2errRequestHeaderListSize, "Headers over limit")
+	checkRoundTrip(req, errRequestHeaderListSize, "Headers over limit")
 
 	// Push trailers over the limit.
 	req = newRequest()
 	req.Trailer = make(http.Header)
 	padHeaders(t, req.Trailer, peerSize+1, filler)
-	checkRoundTrip(req, http2errRequestHeaderListSize, "Trailers over limit")
+	checkRoundTrip(req, errRequestHeaderListSize, "Trailers over limit")
 
 	// Send headers with a single large value.
 	req = newRequest()
 	filler = strings.Repeat("*", int(peerSize))
 	req.Header = make(http.Header)
 	req.Header.Set("Big", filler)
-	checkRoundTrip(req, http2errRequestHeaderListSize, "Single large header")
+	checkRoundTrip(req, errRequestHeaderListSize, "Single large header")
 
 	// Send trailers with a single large value.
 	req = newRequest()
 	req.Trailer = make(http.Header)
 	req.Trailer.Set("Big", filler)
-	checkRoundTrip(req, http2errRequestHeaderListSize, "Single large trailer")
+	checkRoundTrip(req, errRequestHeaderListSize, "Single large trailer")
 }
 
 func TestTransportChecksResponseHeaderListSize(t *testing.T) {
@@ -1831,7 +1831,7 @@ func TestTransportChecksResponseHeaderListSize(t *testing.T) {
 		if e, ok := err.(http2StreamError); ok {
 			err = e.Cause
 		}
-		if err != http2errResponseHeaderListSize {
+		if err != errResponseHeaderListSize {
 			size := int64(0)
 			if res != nil {
 				res.Body.Close()
@@ -1841,7 +1841,7 @@ func TestTransportChecksResponseHeaderListSize(t *testing.T) {
 					}
 				}
 			}
-			return fmt.Errorf("RoundTrip Error = %v (and %d bytes of response headers); want http2errResponseHeaderListSize", err, size)
+			return fmt.Errorf("RoundTrip Error = %v (and %d bytes of response headers); want errResponseHeaderListSize", err, size)
 		}
 		return nil
 	}
@@ -3368,7 +3368,7 @@ func TestRoundTripDoesntConsumeRequestBodyEarly(t *testing.T) {
 		reqHeaderMu: make(chan struct{}, 1),
 	}
 	_, err := cc.RoundTrip(req)
-	if err != http2errClientConnUnusable {
+	if err != errClientConnUnusable {
 		t.Fatalf("RoundTrip = %v; want errClientConnUnusable", err)
 	}
 	slurp, err := ioutil.ReadAll(req.Body)
@@ -4598,7 +4598,7 @@ func TestTransportUsesGetBodyWhenPresent(t *testing.T) {
 		},
 	}
 
-	req2, err := http2shouldRetryRequest(req, http2errClientConnUnusable)
+	req2, err := http2shouldRetryRequest(req, errClientConnUnusable)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -4841,8 +4841,8 @@ func testTransportBodyLargerThanSpecifiedContentLength(t *testing.T, body *chunk
 	req, _ := http.NewRequest("POST", st.ts.URL, body)
 	req.ContentLength = contentLen
 	_, err := tr.RoundTrip(req)
-	if err != http2errReqBodyTooLong {
-		t.Fatalf("expected %v, got %v", http2errReqBodyTooLong, err)
+	if err != errReqBodyTooLong {
+		t.Fatalf("expected %v, got %v", errReqBodyTooLong, err)
 	}
 }
 
@@ -5607,8 +5607,8 @@ func TestClientConnReservations(t *testing.T) {
 	if n != http2initialMaxConcurrentStreams {
 		t.Errorf("did %v reservations; want %v", n, http2initialMaxConcurrentStreams)
 	}
-	if _, err := cc.RoundTrip(new(http.Request)); !errors.Is(err, http2errNilRequestURL) {
-		t.Fatalf("RoundTrip error = %v; want http2errNilRequestURL", err)
+	if _, err := cc.RoundTrip(new(http.Request)); !errors.Is(err, errNilRequestURL) {
+		t.Fatalf("RoundTrip error = %v; want errNilRequestURL", err)
 	}
 	n2 := 0
 	for n2 <= 5 && cc.ReserveNewRequest() {

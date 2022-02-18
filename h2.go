@@ -198,7 +198,7 @@ func (e *http2httpError) Timeout() bool { return e.timeout }
 
 func (e *http2httpError) Temporary() bool { return true }
 
-var http2errTimeout error = &http2httpError{msg: "http2: timeout awaiting response headers", timeout: true}
+var errH2Timeout error = &http2httpError{msg: "http2: timeout awaiting response headers", timeout: true}
 
 type http2connectionStater interface {
 	ConnectionState() tls.ConnectionState

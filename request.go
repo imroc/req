@@ -910,6 +910,8 @@ func (r *Request) EnableDumpToFile(filename string) *Request {
 	return r.EnableDump()
 }
 
+// SetDumpOptions is a global wrapper methods which delegated
+// to the default client, create a request and SetDumpOptions for request.
 func SetDumpOptions(opt *DumpOptions) *Request {
 	return defaultClient.R().SetDumpOptions(opt)
 }

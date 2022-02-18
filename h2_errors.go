@@ -79,7 +79,7 @@ type http2StreamError struct {
 // errFromPeer is a sentinel error value for StreamError.Cause to
 // indicate that the StreamError was sent from the peer over the wire
 // and wasn't locally generated in the Transport.
-var http2errFromPeer = errors.New("received from peer")
+var errFromPeer = errors.New("received from peer")
 
 func http2streamError(id uint32, code http2ErrCode) http2StreamError {
 	return http2StreamError{StreamID: id, Code: code}
@@ -133,6 +133,6 @@ func (e http2headerFieldValueError) Error() string {
 }
 
 var (
-	http2errMixPseudoHeaderTypes = errors.New("mix of request and response pseudo headers")
-	http2errPseudoAfterRegular   = errors.New("pseudo header field after regular")
+	errMixPseudoHeaderTypes = errors.New("mix of request and response pseudo headers")
+	errPseudoAfterRegular   = errors.New("pseudo header field after regular")
 )
