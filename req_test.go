@@ -678,9 +678,10 @@ func TestGlobalWrapper(t *testing.T) {
 	assertEqual(t, true, r.trace == nil)
 
 	ctx := context.Background()
-	ctx, _ = context.WithTimeout(ctx, time.Second)
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	r = SetContext(ctx)
 	assertEqual(t, ctx, r.Context())
+	cancel()
 
 	marshalFunc := func(v interface{}) ([]byte, error) {
 		return nil, testErr
