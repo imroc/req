@@ -5887,3 +5887,19 @@ func TestCountReadFrameError(t *testing.T) {
 	cc.countReadFrameError(err)
 	tests.AssertContains(t, errMsg, "read_frame_other", true)
 }
+
+func TestProcessHeaders(t *testing.T) {
+	rl := &http2clientConnReadLoop{}
+	cc := &http2ClientConn{streams: map[uint32]*http2clientStream{}}
+	cc.streams[1] = &http2clientStream{cc: cc, abort: make(chan struct{})}
+	rl.cc = cc
+	f := &http2MetaHeadersFrame{http2HeadersFrame: &http2HeadersFrame{
+		http2FrameHeader: http2FrameHeader{StreamID: 1},
+	}}
+	err := rl.processHeaders(f)
+	tests.AssertNoError(t, err)
+
+	f.StreamID = 0
+	err = rl.processHeaders(f)
+	tests.AssertNoError(t, err)
+}
