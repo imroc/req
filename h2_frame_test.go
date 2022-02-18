@@ -1370,6 +1370,23 @@ func TestParseDataFrame(t *testing.T) {
 	tests.AssertNoError(t, err)
 }
 
+func TestParseWindowUpdateFrame(t *testing.T) {
+	fh := http2FrameHeader{valid: true}
+	countError := func(string) {}
+	_, err := http2parseWindowUpdateFrame(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+
+	p := []byte{0x00, 0x00, 0x00, 0x00}
+	_, err = http2parseWindowUpdateFrame(nil, fh, countError, p)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+
+	fh.StreamID = 255
+	p[0] = 0x01
+	p[3] = 0x01
+	_, err = http2parseWindowUpdateFrame(nil, fh, countError, p)
+	tests.AssertNoError(t, err)
+}
+
 func TestH2Framer(t *testing.T) {
 	f := &http2Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
