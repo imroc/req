@@ -22,12 +22,6 @@ type (
 	ResponseMiddleware func(*Client, *Response) error
 )
 
-var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
-
-func escapeQuotes(s string) string {
-	return quoteEscaper.Replace(s)
-}
-
 func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEHeader {
 	hdr := make(textproto.MIMEHeader)
 

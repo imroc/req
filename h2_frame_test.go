@@ -1351,3 +1351,10 @@ func TestSummarizeFrame(t *testing.T) {
 	s = http2summarizeFrame(f)
 	tests.AssertContains(t, s, "no_error", true)
 }
+
+func TestH2Framer(t *testing.T) {
+	f := &http2Framer{}
+	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
+	f.logWrite()
+	assertNotNil(t, f.debugFramer)
+}
