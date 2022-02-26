@@ -306,7 +306,10 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 	}
 	_, params, err := mime.ParseMediaType(contentType)
 	if err != nil {
-		panic(err)
+		if t.Debugf != nil {
+			t.Debugf("failed to parse content type %q: %v", contentType, err)
+		}
+		return
 	}
 	if charset, ok := params["charset"]; ok {
 		charset = strings.ToLower(charset)
