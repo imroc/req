@@ -908,6 +908,8 @@ func TestGlobalWrapper(t *testing.T) {
 	DisableForceHttpVersion()
 	assertEqual(t, true, DefaultClient().t.ForceHttpVersion == "")
 
+	assertEqual(t, GetClient(), DefaultClient().httpClient)
+
 	r = NewRequest()
 	assertEqual(t, true, r != nil)
 	c = NewClient()

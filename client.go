@@ -1211,6 +1211,17 @@ func (c *Client) isPayloadForbid(m string) bool {
 	return (m == http.MethodGet && !c.AllowGetMethodPayload) || m == http.MethodHead || m == http.MethodOptions
 }
 
+// GetClient is a global wrapper methods which delegated
+// to the default client's GetClient.
+func GetClient() *http.Client {
+	return defaultClient.GetClient()
+}
+
+// GetClient returns the underlying `http.Client`.
+func (c *Client) GetClient() *http.Client {
+	return c.httpClient
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
