@@ -309,9 +309,7 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 		if t.Debugf != nil {
 			t.Debugf("failed to parse content type %q: %v", contentType, err)
 		}
-		return
-	}
-	if charset, ok := params["charset"]; ok {
+	} else if charset, ok := params["charset"]; ok {
 		charset = strings.ToLower(charset)
 		if strings.Contains(charset, "utf-8") || strings.Contains(charset, "utf8") { // do not decode utf-8
 			return
@@ -319,13 +317,12 @@ func (t *Transport) autoDecodeResponseBody(res *http.Response) {
 		enc, _ := htmlcharset.Lookup(charset)
 		if enc == nil {
 			enc, err = ianaindex.MIME.Encoding(charset)
-			if err != nil {
-				// TODO: log charset not supported
+			if err != nil || enc == nil {
+				if t.Debugf != nil {
+					t.Debugf("ignore charset %s which is detected in Content-Type but not supported", charset)
+				}
 				return
 			}
-		}
-		if enc == nil {
-			return
 		}
 		if t.Debugf != nil {
 			t.Debugf("charset %s detected in Content-Type, auto-decode to utf-8", charset)
