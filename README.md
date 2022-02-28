@@ -736,7 +736,7 @@ client.R().SetBearerToken("NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4").Get("https://api.e
 
 ```go
 // Create a client with default download direcotry
-client := req.C().SetOutputDirectory("/path/to/download").EnableDumpNoResponseBody()
+client := req.C().SetOutputDirectory("/path/to/download").EnableDumpAllWithoutResponseBody()
 
 // Download to relative file path, this will be downloaded
 // to /path/to/download/test.jpg
@@ -758,7 +758,7 @@ client.R().SetOutput(file).Get(url)
 **Multipart Upload**
 
 ```go
-client := req.().EnableDumpNoRequestBody() // Request body contains unreadable binary, do not dump
+client := req.C().EnableDumpAllWithoutRequestBody() // Request body contains unreadable binary, do not dump
 
 client.R().SetFile("pic", "test.jpg"). // Set form param name and filename
     SetFile("pic", "/path/to/roc.png"). // Multiple files using the same form param name
