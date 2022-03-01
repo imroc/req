@@ -97,7 +97,7 @@ resp, err := client.R(). // Use R() to create a request
 
 **API Reference**
 
-Checkout [Req API Reference](docs/api.md) for a brief and categorized list of the core APIs, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
+Checkout [Quick API Reference](docs/api.md) for a brief and categorized list of the core APIs, for a more detailed and complete list of APIs, please refer to [GoDoc](https://pkg.go.dev/github.com/imroc/req/v3).
 
 **Examples**
 
