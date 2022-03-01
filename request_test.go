@@ -662,9 +662,26 @@ func testTraceOnTimeout(t *testing.T, c *Client) {
 }
 
 func TestAutoDetectRequestContentType(t *testing.T) {
-	resp, err := tc().R().SetBody(tests.GetTestFileContent(t, "sample-image.png")).Post("/raw-upload")
+	c := tc()
+	resp, err := c.R().SetBody(tests.GetTestFileContent(t, "sample-image.png")).Post("/content-type")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "image/png", resp.Request.Headers.Get(hdrContentTypeKey))
+	assertEqual(t, "image/png", resp.String())
+
+	resp, err = c.R().SetBodyJsonString(`{"msg": "test"}`).Post("/content-type")
+	assertSuccess(t, resp, err)
+	assertEqual(t, jsonContentType, resp.String())
+
+	resp, err = c.R().SetContentType(xmlContentType).SetBody(`{"msg": "test"}`).Post("/content-type")
+	assertSuccess(t, resp, err)
+	assertEqual(t, xmlContentType, resp.String())
+
+	resp, err = c.R().SetBody(`<html><body><h1>hello</h1></body></html>`).Post("/content-type")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "text/html; charset=utf-8", resp.String())
+
+	resp, err = c.R().SetBody(`hello world`).Post("/content-type")
+	assertSuccess(t, resp, err)
+	assertEqual(t, plainTextContentType, resp.String())
 }
 
 func TestUploadMultipart(t *testing.T) {

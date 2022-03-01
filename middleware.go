@@ -160,11 +160,14 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 		handleMarshalBody(c, r)
 	}
 
-	if r.getHeader(hdrContentTypeKey) == "" && r.body != nil {
-		ct := http.DetectContentType(r.body)
-		if ct != "application/octet-stream" {
-			r.SetContentType(ct)
-		}
+	if r.body == nil {
+		return
+	}
+	// body is in-memory []byte, so we can set content length
+	// and guess content type
+	r.RawRequest.ContentLength = int64(len(r.body))
+	if r.getHeader(hdrContentTypeKey) == "" {
+		r.SetContentType(http.DetectContentType(r.body))
 	}
 	return
 }

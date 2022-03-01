@@ -708,8 +708,7 @@ func SetBodyString(body string) *Request {
 
 // SetBodyString set the request body as string.
 func (r *Request) SetBodyString(body string) *Request {
-	r.SetBodyBytes([]byte(body))
-	return r.SetContentType(plainTextContentType)
+	return r.SetBodyBytes([]byte(body))
 }
 
 // SetBodyJsonString is a global wrapper methods which delegated
@@ -721,8 +720,7 @@ func SetBodyJsonString(body string) *Request {
 // SetBodyJsonString set the request body as string and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonString(body string) *Request {
-	r.SetBodyBytes([]byte(body))
-	return r.SetContentType(jsonContentType)
+	return r.SetBodyJsonBytes([]byte(body))
 }
 
 // SetBodyJsonBytes is a global wrapper methods which delegated
@@ -734,8 +732,8 @@ func SetBodyJsonBytes(body []byte) *Request {
 // SetBodyJsonBytes set the request body as []byte and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
-	r.SetBodyBytes(body)
-	return r.SetContentType(jsonContentType)
+	r.SetContentType(jsonContentType)
+	return r.SetBodyBytes(body)
 }
 
 // SetBodyJsonMarshal is a global wrapper methods which delegated
@@ -752,8 +750,7 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	r.SetBodyBytes(b)
-	return r.SetContentType(jsonContentType)
+	return r.SetBodyJsonBytes(b)
 }
 
 // SetBodyXmlString is a global wrapper methods which delegated
@@ -765,8 +762,7 @@ func SetBodyXmlString(body string) *Request {
 // SetBodyXmlString set the request body as string and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlString(body string) *Request {
-	r.SetBodyBytes([]byte(body))
-	return r.SetContentType(xmlContentType)
+	return r.SetBodyXmlBytes([]byte(body))
 }
 
 // SetBodyXmlBytes is a global wrapper methods which delegated
@@ -778,8 +774,8 @@ func SetBodyXmlBytes(body []byte) *Request {
 // SetBodyXmlBytes set the request body as []byte and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlBytes(body []byte) *Request {
-	r.SetBodyBytes(body)
-	return r.SetContentType(xmlContentType)
+	r.SetContentType(xmlContentType)
+	return r.SetBodyBytes(body)
 }
 
 // SetBodyXmlMarshal is a global wrapper methods which delegated
@@ -796,8 +792,7 @@ func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
 		r.appendError(err)
 		return r
 	}
-	r.SetBodyBytes(b)
-	return r.SetContentType(xmlContentType)
+	return r.SetBodyXmlBytes(b)
 }
 
 // SetContentType is a global wrapper methods which delegated

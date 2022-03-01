@@ -108,6 +108,9 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		io.Copy(ioutil.Discard, r.Body)
 		w.Header().Set(hdrLocationKey, "/")
 		w.WriteHeader(http.StatusMovedPermanently)
+	case "/content-type":
+		io.Copy(ioutil.Discard, r.Body)
+		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
 	case "/echo":
 		b, _ := ioutil.ReadAll(r.Body)
 		e := echo{
