@@ -263,14 +263,16 @@ func (r *Request) SetFile(paramName, filePath string) *Request {
 
 // SetFileUpload is a global wrapper methods which delegated
 // to the default client, create a request and SetFileUpload for request.
-func SetFileUpload(f FileUpload) *Request {
-	return defaultClient.R().SetFileUpload(f)
+func SetFileUpload(f ...FileUpload) *Request {
+	return defaultClient.R().SetFileUpload(f...)
 }
 
 // SetFileUpload set the fully custimized multipart file upload options.
-func (r *Request) SetFileUpload(f FileUpload) *Request {
+func (r *Request) SetFileUpload(uploads ...FileUpload) *Request {
 	r.isMultiPart = true
-	r.uploadFiles = append(r.uploadFiles, &f)
+	for _, upload := range uploads {
+		r.uploadFiles = append(r.uploadFiles, &upload)
+	}
 	return r
 }
 
