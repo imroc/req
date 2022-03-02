@@ -766,7 +766,7 @@ client.R().SetFile("pic", "test.jpg"). // Set form param name and filename
         "exe": "test.exe",
         "src": "main.go",
     }).
-    SetFormData(map[string]string{ // Set from param using map
+    SetFormData(map[string]string{ // Set form data while uploading
         "name":  "imroc",
         "email": "roc@imroc.cc",
     }).
@@ -881,12 +881,10 @@ client.SetProxy(nil)
 
 ## <a name="TODO">TODO List</a>
 
-* [ ] Add more tests.
 * [ ] Wrap more transport settings into client.
 * [ ] Support retry.
 * [ ] Support unix socket.
 * [ ] Support h2c.
-* [ ] Make videos.
 * [ ] Design a logo.
 * [ ] Support HTTP3.
 
