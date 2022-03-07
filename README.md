@@ -38,6 +38,7 @@ If you want to use the older version, check it out on [v1 branch](https://github
 * [Request and Response Middleware](#Middleware)
 * [Redirect Policy](#Redirect)
 * [Proxy](#Proxy)
+* [Unix Socket](#Unix)
 * [Retry](#Retry)
 * [TODO List](#TODO)
 * [License](#License)
@@ -878,6 +879,16 @@ client.SetProxy(func(request *http.Request) (*url.URL, error) {
 
 // Disable proxy
 client.SetProxy(nil)
+```
+
+## <a name="Unix">Unix Socket</a>
+
+```go
+client := req.C()
+client.SetUnixSocket("/var/run/custom.sock")
+client.SetBaseURL("http://example.local")	
+
+resp, err := client.R().Get("/index.html")
 ```
 
 ## <a name="Retry">Retry</a>

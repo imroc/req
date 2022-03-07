@@ -306,6 +306,10 @@ func parseRequestURL(c *Client, r *Request) error {
 
 	if reqURL.Scheme == "" && len(c.scheme) > 0 {
 		reqURL.Scheme = c.scheme
+		reqURL, err = url.Parse(reqURL.String()) // prevent empty URL.Host
+		if err != nil {
+			return err
+		}
 	}
 
 	// Adding Query Param

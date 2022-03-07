@@ -724,6 +724,7 @@ func TestGlobalWrapper(t *testing.T) {
 		}),
 		SetCommonRetryBackoffInterval(1*time.Millisecond, 2*time.Second),
 		SetCommonRetryFixedInterval(1*time.Second),
+		SetUnixSocket("/var/run/custom.sock"),
 	)
 	os.Remove(tests.GetTestFilePath("tmpdump.out"))
 

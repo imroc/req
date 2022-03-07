@@ -1337,6 +1337,22 @@ func (c *Client) AddCommonRetryCondition(condition RetryConditionFunc) *Client {
 	return c
 }
 
+// SetUnixSocket is a global wrapper methods which delegated
+// to the default client, create a request and SetUnixSocket for request.
+func SetUnixSocket(file string) *Client {
+	return defaultClient.SetUnixSocket(file)
+}
+
+// SetUnixSocket set client to dial connection use unix socket.
+// For example:
+//   client.SetUnixSocket("/var/run/custom.sock")
+func (c *Client) SetUnixSocket(file string) *Client {
+	return c.SetDial(func(ctx context.Context, network, addr string) (net.Conn, error) {
+		var d net.Dialer
+		return d.DialContext(ctx, "unix", file)
+	})
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
