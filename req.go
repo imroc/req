@@ -2,7 +2,6 @@ package req
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 )
@@ -53,7 +52,7 @@ type FileUpload struct {
 	// "filename" parameter in `Content-Disposition`
 	FileName string
 	// The file to be uploaded.
-	File io.Reader
+	GetFileContent GetContentFunc
 
 	// According to the HTTP specification, this should be nil,
 	// but some servers may not follow the specification and

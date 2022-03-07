@@ -45,6 +45,7 @@ type Client struct {
 	DebugLog              bool
 	AllowGetMethodPayload bool
 
+	retryOption             *retryOption
 	jsonMarshal             func(v interface{}) ([]byte, error)
 	jsonUnmarshal           func(data []byte, v interface{}) error
 	xmlMarshal              func(v interface{}) ([]byte, error)
@@ -71,15 +72,9 @@ func R() *Request {
 
 // R create a new request.
 func (c *Client) R() *Request {
-	req := &http.Request{
-		Header:     make(http.Header),
-		Proto:      "HTTP/1.1",
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-	}
 	return &Request{
-		client:     c,
-		RawRequest: req,
+		client:      c,
+		retryOption: c.retryOption.Clone(),
 	}
 }
 
@@ -1222,6 +1217,126 @@ func (c *Client) GetClient() *http.Client {
 	return c.httpClient
 }
 
+func (c *Client) getRetryOption() *retryOption {
+	if c.retryOption == nil {
+		c.retryOption = newDefaultRetryOption()
+	}
+	return c.retryOption
+}
+
+// SetCommonRetryCount is a global wrapper methods which delegated
+// to the default client, create a request and SetCommonRetryCount for request.
+func SetCommonRetryCount(count int) *Client {
+	return defaultClient.SetCommonRetryCount(count)
+}
+
+// SetCommonRetryCount enables retry and set the maximum retry count for all requests.
+func (c *Client) SetCommonRetryCount(count int) *Client {
+	c.getRetryOption().MaxRetries = count
+	return c
+}
+
+// SetCommonRetryInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetCommonRetryInterval for request.
+func SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Client {
+	return defaultClient.SetCommonRetryInterval(getRetryIntervalFunc)
+}
+
+// SetCommonRetryInterval sets the custom GetRetryIntervalFunc for all requests,
+// you can use this to implement your own backoff retry algorithm.
+// For example:
+// 	 req.SetCommonRetryInterval(func(attempt int) time.Duration {
+//      sleep := 0.01 * math.Exp2(float64(attempt))
+//      return time.Duration(math.Min(2, sleep)) * time.Second
+// 	 })
+func (c *Client) SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Client {
+	c.getRetryOption().GetRetryInterval = getRetryIntervalFunc
+	return c
+}
+
+// SetCommonRetryFixedInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetCommonRetryFixedInterval for request.
+func SetCommonRetryFixedInterval(interval time.Duration) *Client {
+	return defaultClient.SetCommonRetryFixedInterval(interval)
+}
+
+// SetCommonRetryFixedInterval set retry to use a fixed interval for all requests.
+func (c *Client) SetCommonRetryFixedInterval(interval time.Duration) *Client {
+	c.getRetryOption().GetRetryInterval = func(attempt int) time.Duration {
+		return interval
+	}
+	return c
+}
+
+// SetCommonRetryBackoffInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetCommonRetryBackoffInterval for request.
+func SetCommonRetryBackoffInterval(min, max time.Duration) *Client {
+	return defaultClient.SetCommonRetryBackoffInterval(min, max)
+}
+
+// SetCommonRetryBackoffInterval set retry to use a capped exponential backoff with jitter
+// for all requests.
+// https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+func (c *Client) SetCommonRetryBackoffInterval(min, max time.Duration) *Client {
+	c.getRetryOption().GetRetryInterval = backoffInterval(min, max)
+	return c
+}
+
+// SetCommonRetryHook is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryHook for request.
+func SetCommonRetryHook(hook RetryHookFunc) *Client {
+	return defaultClient.SetCommonRetryHook(hook)
+}
+
+// SetCommonRetryHook set the retry hook which will be executed before a retry.
+// It will override other retry hooks if any been added before.
+func (c *Client) SetCommonRetryHook(hook RetryHookFunc) *Client {
+	c.getRetryOption().RetryHooks = []RetryHookFunc{hook}
+	return c
+}
+
+// AddCommonRetryHook is a global wrapper methods which delegated
+// to the default client, create a request and AddCommonRetryHook for request.
+func AddCommonRetryHook(hook RetryHookFunc) *Client {
+	return defaultClient.AddCommonRetryHook(hook)
+}
+
+// AddCommonRetryHook adds a retry hook for all requests, which will be
+// executed before a retry.
+func (c *Client) AddCommonRetryHook(hook RetryHookFunc) *Client {
+	ro := c.getRetryOption()
+	ro.RetryHooks = append(ro.RetryHooks, hook)
+	return c
+}
+
+// SetCommonRetryCondition is a global wrapper methods which delegated
+// to the default client, create a request and SetCommonRetryCondition for request.
+func SetCommonRetryCondition(condition RetryConditionFunc) *Client {
+	return defaultClient.SetCommonRetryCondition(condition)
+}
+
+// SetCommonRetryCondition sets the retry condition, which determines whether the
+// request should retry.
+// It will override other retry conditions if any been added before.
+func (c *Client) SetCommonRetryCondition(condition RetryConditionFunc) *Client {
+	c.getRetryOption().RetryConditions = []RetryConditionFunc{condition}
+	return c
+}
+
+// AddCommonRetryCondition is a global wrapper methods which delegated
+// to the default client, create a request and AddCommonRetryCondition for request.
+func AddCommonRetryCondition(condition RetryConditionFunc) *Client {
+	return defaultClient.AddCommonRetryCondition(condition)
+}
+
+// AddCommonRetryCondition adds a retry condition, which determines whether the
+// request should retry.
+func (c *Client) AddCommonRetryCondition(condition RetryConditionFunc) *Client {
+	ro := c.getRetryOption()
+	ro.RetryConditions = append(ro.RetryConditions, condition)
+	return c
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
@@ -1308,13 +1423,6 @@ func C() *Client {
 	return c
 }
 
-func setupRequest(r *Request) {
-	setRequestURL(r, r.URL)
-	setRequestHeaderAndCookie(r)
-	setTrace(r)
-	setContext(r)
-}
-
 func (c *Client) do(r *Request) (resp *Response, err error) {
 	resp = &Response{
 		Request: r,
@@ -1331,26 +1439,107 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		}
 	}
 
-	setupRequest(r)
-
-	if c.DebugLog {
-		c.log.Debugf("%s %s", r.RawRequest.Method, r.RawRequest.URL.String())
+	// setup trace
+	if r.trace == nil && r.client.trace {
+		r.trace = &clientTrace{}
+	}
+	if r.trace != nil {
+		r.ctx = r.trace.createContext(r.Context())
 	}
 
-	r.StartTime = time.Now()
-	httpResponse, err := c.httpClient.Do(r.RawRequest)
-	if err != nil {
-		return
+	// setup url and host
+	var host string
+	if h := r.getHeader("Host"); h != "" {
+		host = h // Host header override
+	} else {
+		host = r.URL.Host
 	}
 
-	resp.Request = r
-	resp.Response = httpResponse
+	// setup header
+	var header http.Header
+	if r.Headers == nil {
+		header = make(http.Header)
+	} else {
+		header = r.Headers.Clone()
+	}
+	contentLength := int64(len(r.body))
 
-	if !c.disableAutoReadResponse && !r.isSaveResponse { // auto read response body
-		_, err = resp.ToBytes()
-		if err != nil {
+	for {
+		var reqBody io.ReadCloser
+		if r.getBody != nil {
+			reqBody, err = r.getBody()
+			if err != nil {
+				return
+			}
+		}
+		req := &http.Request{
+			Method:        r.method,
+			Header:        header,
+			URL:           r.URL,
+			Host:          host,
+			Proto:         "HTTP/1.1",
+			ProtoMajor:    1,
+			ProtoMinor:    1,
+			ContentLength: contentLength,
+			Body:          reqBody,
+			GetBody:       r.getBody,
+		}
+		for _, cookie := range r.Cookies {
+			req.AddCookie(cookie)
+		}
+		if r.ctx != nil {
+			req = req.WithContext(r.ctx)
+		}
+		r.RawRequest = req
+
+		if c.DebugLog {
+			c.log.Debugf("%s %s", req.Method, req.URL.String())
+		}
+
+		r.StartTime = time.Now()
+		var httpResponse *http.Response
+		httpResponse, err = c.httpClient.Do(req)
+		resp.Response = httpResponse
+
+		// auto-read response body if possible
+		if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse {
+			_, err = resp.ToBytes()
+			if err != nil {
+				return
+			}
+		}
+
+		if r.retryOption == nil || r.RetryAttempt >= r.retryOption.MaxRetries { // absolutely cannot retry.
+			if err != nil { // return immediately if error occurs.
+				return
+			}
+			break // jump out to execute the ResponseMiddlewares if possible.
+		}
+
+		// check retry whether is needed.
+		needRetry := err != nil                                   // default behaviour: retry if error occurs
+		for _, condition := range r.retryOption.RetryConditions { // override default behaviour if custom RetryConditions has been set.
+			needRetry = condition(resp, err)
+			if needRetry {
+				break
+			}
+		}
+		if !needRetry { // no retry is needed.
 			return
 		}
+
+		// need retry, attempt to retry
+		r.RetryAttempt++
+		for _, hook := range r.retryOption.RetryHooks { // run retry hooks
+			hook(resp, err)
+		}
+		time.Sleep(r.retryOption.GetRetryInterval(r.RetryAttempt))
+
+		// clean buffers
+		if r.dumpBuffer != nil {
+			r.dumpBuffer.Reset()
+		}
+		resp.body = nil
 	}
 
 	for _, f := range r.client.afterResponse {
@@ -1359,46 +1548,4 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		}
 	}
 	return
-}
-
-func setContext(r *Request) {
-	if r.ctx != nil {
-		r.RawRequest = r.RawRequest.WithContext(r.ctx)
-	}
-}
-
-func setTrace(r *Request) {
-	if r.trace == nil && r.client.trace {
-		r.trace = &clientTrace{}
-	}
-	if r.trace != nil {
-		r.ctx = r.trace.createContext(r.Context())
-	}
-}
-
-func setRequestHeaderAndCookie(r *Request) {
-	for k, vs := range r.Headers {
-		for _, v := range vs {
-			r.RawRequest.Header.Add(k, v)
-		}
-	}
-	for _, cookie := range r.Cookies {
-		r.RawRequest.AddCookie(cookie)
-	}
-}
-
-func setRequestURL(r *Request, url string) error {
-	// The host's colon:port should be normalized. See Issue 14836.
-	u, err := urlpkg.Parse(url)
-	if err != nil {
-		return err
-	}
-	u.Host = removeEmptyPort(u.Host)
-	if host := r.getHeader("Host"); host != "" {
-		r.RawRequest.Host = host // Host header override
-	} else {
-		r.RawRequest.Host = u.Host
-	}
-	r.RawRequest.URL = u
-	return nil
 }

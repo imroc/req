@@ -1,12 +1,16 @@
 package req
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"github.com/imroc/req/v3/internal/tests"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -69,6 +73,14 @@ func TestEnableDump(t *testing.T) {
 		*respHeader = true
 		*respBody = true
 	})
+}
+
+func TestEnableDumpToFIle(t *testing.T) {
+	tmpFile := "tmp_dumpfile_req"
+	resp, err := tc().R().EnableDumpToFile(tests.GetTestFilePath(tmpFile)).Get("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, len(tests.GetTestFileContent(t, tmpFile)) > 0)
+	os.Remove(tests.GetTestFilePath(tmpFile))
 }
 
 func TestEnableDumpWithoutRequest(t *testing.T) {
@@ -280,6 +292,33 @@ func testSetBodyMarshal(t *testing.T, c *Client) {
 		assertSuccess(t, resp, err)
 		cs.Assert(&e)
 	}
+}
+
+func TestSetBodyReader(t *testing.T) {
+	var e echo
+	resp, err := tc().R().SetBody(ioutil.NopCloser(bytes.NewBufferString("hello"))).SetResult(&e).Post("/echo")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, "hello", e.Body)
+}
+
+func TestSetBodyGetContentFunc(t *testing.T) {
+	var e echo
+	resp, err := tc().R().SetBody(func() (io.ReadCloser, error) {
+		return ioutil.NopCloser(bytes.NewBufferString("hello")), nil
+	}).SetResult(&e).Post("/echo")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, "hello", e.Body)
+
+	e = echo{}
+	var fn GetContentFunc = func() (io.ReadCloser, error) {
+		return ioutil.NopCloser(bytes.NewBufferString("hello")), nil
+	}
+	resp, err = tc().R().SetBody(fn).SetResult(&e).Post("/echo")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, "hello", e.Body)
 }
 
 func TestSetBodyContent(t *testing.T) {
@@ -682,6 +721,15 @@ func TestAutoDetectRequestContentType(t *testing.T) {
 	resp, err = c.R().SetBody(`hello world`).Post("/content-type")
 	assertSuccess(t, resp, err)
 	assertEqual(t, plainTextContentType, resp.String())
+}
+
+func TestSetFileUploadCheck(t *testing.T) {
+	c := tc()
+	resp, err := c.R().SetFileUpload(FileUpload{}).Post("/multipart")
+	tests.AssertErrorContains(t, err, "missing param name")
+	tests.AssertErrorContains(t, err, "missing filename")
+	tests.AssertErrorContains(t, err, "missing file content")
+	assertEqual(t, 0, len(resp.Request.uploadFiles))
 }
 
 func TestUploadMultipart(t *testing.T) {

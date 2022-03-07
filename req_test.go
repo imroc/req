@@ -191,6 +191,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("TestGet: text response"))
 	case "/bad-request":
 		w.WriteHeader(http.StatusBadRequest)
+	case "/too-many":
+		w.WriteHeader(http.StatusTooManyRequests)
+		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Write([]byte(`{"errMsg":"too many requests"}`))
+	case "/retry":
+		r.ParseForm()
+		r.Form.Get("attempt")
 	case "/chunked":
 		w.Header().Add("Trailer", "Expires")
 		w.Write([]byte(`This is a chunked body`))
@@ -450,7 +457,6 @@ func testGlobalWrapperEnableDumps(t *testing.T) {
 		RequestHeader: true,
 	})
 	assertEqual(t, true, r.getDumpOptions().RequestHeader)
-
 }
 
 func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
@@ -520,96 +526,83 @@ func testGlobalWrapperSendRequest(t *testing.T) {
 	assertEqual(t, "POST", resp.Header.Get("Method"))
 }
 
+func testGlobalWrapperSetRequest(t *testing.T, rs ...*Request) {
+	for _, r := range rs {
+		assertNotNil(t, r)
+	}
+}
+
 func TestGlobalWrapperSetRequest(t *testing.T) {
-	testFilePath := tests.GetTestFilePath("sample-file.txt")
-	r := SetFiles(map[string]string{"test": testFilePath})
-	assertEqual(t, 1, len(r.uploadFiles))
-	assertEqual(t, true, r.isMultiPart)
-
-	r = SetFile("test", tests.GetTestFilePath("sample-file.txt"))
-	assertEqual(t, 1, len(r.uploadFiles))
-	assertEqual(t, true, r.isMultiPart)
-
 	SetLogger(nil)
-	r = SetFile("test", tests.GetTestFilePath("file-not-exists.txt"))
-	assertEqual(t, 0, len(r.uploadFiles))
-	assertEqual(t, false, r.isMultiPart)
-	assertNotNil(t, r.error)
-
-	r = SetFileReader("test", "test.txt", bytes.NewBufferString("test"))
-	assertEqual(t, 1, len(r.uploadFiles))
-	assertEqual(t, true, r.isMultiPart)
-
-	r = SetFileBytes("test", "test.txt", []byte("test"))
-	assertEqual(t, 1, len(r.uploadFiles))
-	assertEqual(t, true, r.isMultiPart)
-
-	r = SetFileUpload(FileUpload{})
-	assertEqual(t, 1, len(r.uploadFiles))
-	assertEqual(t, true, r.isMultiPart)
-
-	var result string
-	r = SetError(&result)
-	assertEqual(t, true, r.Error != nil)
-
-	r = SetResult(&result)
-	assertEqual(t, true, r.Result != nil)
-
-	r = SetOutput(nil)
-	assertEqual(t, false, r.isSaveResponse)
-
-	r = SetOutput(bytes.NewBufferString("test"))
-	assertEqual(t, true, r.isSaveResponse)
-
-	r = SetHeader("test", "test")
-	assertEqual(t, "test", r.Headers.Get("test"))
-
-	r = SetHeaders(map[string]string{"test": "test"})
-	assertEqual(t, "test", r.Headers.Get("test"))
-
-	r = SetCookies(&http.Cookie{
-		Name:  "test",
-		Value: "test",
-	})
-	assertEqual(t, 1, len(r.Cookies))
-
-	r = SetBasicAuth("imroc", "123456")
-	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", r.Headers.Get("Authorization"))
-
-	r = SetBearerAuthToken("123456")
-	assertEqual(t, "Bearer 123456", r.Headers.Get("Authorization"))
-
-	r = SetQueryString("test=test")
-	assertEqual(t, "test", r.QueryParams.Get("test"))
-
-	r = SetQueryString("ksjlfjk?")
-	assertEqual(t, "", r.QueryParams.Get("test"))
-
-	r = SetQueryParam("test", "test")
-	assertEqual(t, "test", r.QueryParams.Get("test"))
-
-	r = AddQueryParam("test", "test")
-	assertEqual(t, "test", r.QueryParams.Get("test"))
-
-	r = SetQueryParams(map[string]string{"test": "test"})
-	assertEqual(t, "test", r.QueryParams.Get("test"))
-
-	r = SetPathParam("test", "test")
-	assertEqual(t, "test", r.PathParams["test"])
-
-	r = SetPathParams(map[string]string{"test": "test"})
-	assertEqual(t, "test", r.PathParams["test"])
-
-	r = SetFormData(map[string]string{"test": "test"})
-	assertEqual(t, "test", r.FormData.Get("test"))
-
+	testFilePath := tests.GetTestFilePath("sample-file.txt")
 	values := make(url.Values)
 	values.Add("test", "test")
-	r = SetFormDataFromValues(values)
-	assertEqual(t, "test", r.FormData.Get("test"))
+	testGlobalWrapperSetRequest(t,
+		SetFiles(map[string]string{"test": testFilePath}),
+		SetFile("test", tests.GetTestFilePath("sample-file.txt")),
+		SetFile("test", tests.GetTestFilePath("file-not-exists.txt")),
+		SetFileReader("test", "test.txt", bytes.NewBufferString("test")),
+		SetFileBytes("test", "test.txt", []byte("test")),
+		SetFileUpload(FileUpload{ParamName: "test", FileName: "test.txt", GetFileContent: func() (io.ReadCloser, error) {
+			return nil, nil
+		}}),
+		SetError(&ErrorMessage{}),
+		SetResult(&UserInfo{}),
+		SetOutput(nil),
+		SetOutput(bytes.NewBufferString("test")),
+		SetHeader("test", "test"),
+		SetHeaders(map[string]string{"test": "test"}),
+		SetCookies(&http.Cookie{
+			Name:  "test",
+			Value: "test",
+		}),
+		SetBasicAuth("imroc", "123456"),
+		SetBearerAuthToken("123456"),
+		SetQueryString("test=test"),
+		SetQueryString("ksjlfjk?"),
+		SetQueryParam("test", "test"),
+		AddQueryParam("test", "test"),
+		SetQueryParams(map[string]string{"test": "test"}),
+		SetPathParam("test", "test"),
+		SetPathParams(map[string]string{"test": "test"}),
+		SetFormData(map[string]string{"test": "test"}),
+		SetFormDataFromValues(values),
+		SetContentType(jsonContentType),
+		AddRetryCondition(func(rep *Response, err error) bool {
+			return err != nil
+		}),
+		SetRetryCondition(func(rep *Response, err error) bool {
+			return err != nil
+		}),
+		AddRetryHook(func(resp *Response, err error) {}),
+		SetRetryHook(func(resp *Response, err error) {}),
+		SetRetryBackoffInterval(1*time.Millisecond, 500*time.Millisecond),
+		SetRetryFixedInterval(1*time.Millisecond),
+		SetRetryInterval(func(attempt int) time.Duration {
+			return 1 * time.Millisecond
+		}),
+		SetRetryCount(3),
+		SetBodyXmlMarshal(0),
+		SetBodyString("test"),
+		SetBodyBytes([]byte("test")),
+		SetBodyJsonBytes([]byte(`{"user":"roc"}`)),
+		SetBodyJsonString(`{"user":"roc"}`),
+		SetBodyXmlBytes([]byte("test")),
+		SetBodyXmlString("test"),
+		SetBody("test"),
+		SetBodyJsonMarshal(User{
+			Name: "roc",
+		}),
+		EnableTrace(),
+		DisableTrace(),
+		SetContext(context.Background()),
+	)
+}
 
-	r = SetContentType(jsonContentType)
-	assertEqual(t, jsonContentType, r.Headers.Get(hdrContentTypeKey))
+func testGlobalClientSettingWrapper(t *testing.T, cs ...*Client) {
+	for _, c := range cs {
+		assertNotNil(t, c)
+	}
 }
 
 func TestGlobalWrapper(t *testing.T) {
@@ -618,9 +611,6 @@ func TestGlobalWrapper(t *testing.T) {
 	testGlobalWrapperEnableDumps(t)
 	DisableInsecureSkipVerify()
 
-	SetCookieJar(nil)
-	assertEqual(t, nil, DefaultClient().httpClient.Jar)
-
 	testErr := errors.New("test")
 	testDial := func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return nil, testErr
@@ -628,63 +618,6 @@ func TestGlobalWrapper(t *testing.T) {
 	testDialTLS := func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return nil, testErr
 	}
-	SetDialTLS(testDialTLS)
-	SetDial(testDial)
-	_, err := DefaultClient().t.DialTLSContext(nil, "", "")
-	assertEqual(t, testErr, err)
-	_, err = DefaultClient().t.DialContext(nil, "", "")
-	assertEqual(t, testErr, err)
-
-	timeout := 2 * time.Second
-	SetTLSHandshakeTimeout(timeout)
-	assertEqual(t, timeout, DefaultClient().t.TLSHandshakeTimeout)
-
-	EnableAllowGetMethodPayload()
-	assertEqual(t, true, DefaultClient().AllowGetMethodPayload)
-	DisableAllowGetMethodPayload()
-	assertEqual(t, false, DefaultClient().AllowGetMethodPayload)
-
-	b := []byte("test")
-	s := string(b)
-	r := SetBodyXmlMarshal(0)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyString(s)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyJsonBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyJsonString(s)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyXmlBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBodyXmlString(s)
-	assertEqual(t, true, len(r.body) > 0)
-
-	r = SetBody(nil)
-	assertEqual(t, true, r.RawRequest.Body == nil)
-
-	r = SetBodyJsonMarshal(User{
-		Name: "roc",
-	})
-	assertEqual(t, true, r.RawRequest.Body != nil)
-
-	r = EnableTrace()
-	assertEqual(t, true, r.trace != nil)
-	r = DisableTrace()
-	assertEqual(t, true, r.trace == nil)
-
-	ctx := context.Background()
-	ctx, cancel := context.WithTimeout(ctx, time.Second)
-	r = SetContext(ctx)
-	assertEqual(t, ctx, r.Context())
-	cancel()
 
 	marshalFunc := func(v interface{}) ([]byte, error) {
 		return nil, testErr
@@ -692,261 +625,131 @@ func TestGlobalWrapper(t *testing.T) {
 	unmarshalFunc := func(data []byte, v interface{}) error {
 		return testErr
 	}
-	SetJsonMarshal(marshalFunc)
-	SetJsonUnmarshal(unmarshalFunc)
-	SetXmlMarshal(marshalFunc)
-	SetXmlUnmarshal(unmarshalFunc)
-	_, err = DefaultClient().jsonMarshal(nil)
-	assertEqual(t, testErr, err)
-	err = DefaultClient().jsonUnmarshal(nil, nil)
-	assertEqual(t, testErr, err)
-	_, err = DefaultClient().xmlMarshal(nil)
-	assertEqual(t, testErr, err)
-	err = DefaultClient().xmlUnmarshal(nil, nil)
-	assertEqual(t, testErr, err)
-
-	EnableTraceAll()
-	assertEqual(t, true, DefaultClient().trace)
-	DisableTraceAll()
-	assertEqual(t, false, DefaultClient().trace)
-
-	len1 := len(DefaultClient().afterResponse)
-	OnAfterResponse(func(client *Client, response *Response) error {
-		return nil
-	})
-	len2 := len(DefaultClient().afterResponse)
-	assertEqual(t, true, len1+1 == len2)
-
-	OnBeforeRequest(func(client *Client, request *Request) error {
-		return nil
-	})
-	assertEqual(t, true, len(DefaultClient().udBeforeRequest) == 1)
-
-	SetProxyURL("http://dummy.proxy.local")
-	u, err := DefaultClient().t.Proxy(nil)
-	assertError(t, err)
-	assertEqual(t, "http://dummy.proxy.local", u.String())
-
-	SetProxyURL("bad url")
-	u, err = DefaultClient().t.Proxy(nil)
-	assertError(t, err)
-	assertNotEqual(t, "bad url", u.String())
-
-	u, _ = url.Parse("http://dummy.proxy.local")
+	u, _ := url.Parse("http://dummy.proxy.local")
 	proxy := http.ProxyURL(u)
-	SetProxy(proxy)
-	uu, err := DefaultClient().t.Proxy(nil)
-	assertError(t, err)
-	assertEqual(t, u.String(), uu.String())
+	form := make(url.Values)
+	form.Add("test", "test")
 
-	SetCommonContentType(jsonContentType)
-	assertEqual(t, jsonContentType, DefaultClient().Headers.Get(hdrContentTypeKey))
-
-	SetCommonHeader("my-header", "my-value")
-	assertEqual(t, "my-value", DefaultClient().Headers.Get("my-header"))
-
-	SetCommonHeaders(map[string]string{
-		"header1": "value1",
-		"header2": "value2",
-	})
-	assertEqual(t, "value1", DefaultClient().Headers.Get("header1"))
-	assertEqual(t, "value2", DefaultClient().Headers.Get("header2"))
-
-	SetCommonBasicAuth("imroc", "123456")
-	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", DefaultClient().Headers.Get("Authorization"))
-
-	SetCommonBearerAuthToken("123456")
-	assertEqual(t, "Bearer 123456", DefaultClient().Headers.Get("Authorization"))
-
-	SetUserAgent("test")
-	assertEqual(t, "test", DefaultClient().Headers.Get(hdrUserAgentKey))
-
-	SetTimeout(timeout)
-	assertEqual(t, timeout, DefaultClient().httpClient.Timeout)
-
-	l := createDefaultLogger()
-	SetLogger(l)
-	assertEqual(t, l, DefaultClient().log)
-
-	SetScheme("https")
-	assertEqual(t, "https", DefaultClient().scheme)
-
-	EnableDebugLog()
-	assertEqual(t, true, DefaultClient().DebugLog)
-
-	DisableDebugLog()
-	assertEqual(t, false, DefaultClient().DebugLog)
-
-	SetCommonCookies(&http.Cookie{Name: "test", Value: "test"})
-	assertEqual(t, "test", DefaultClient().Cookies[0].Name)
-
-	SetCommonQueryString("test1=test1")
-	assertEqual(t, "test1", DefaultClient().QueryParams.Get("test1"))
-
-	SetCommonPathParams(map[string]string{"test1": "test1"})
-	assertEqual(t, "test1", DefaultClient().PathParams["test1"])
-
-	SetCommonPathParam("test2", "test2")
-	assertEqual(t, "test2", DefaultClient().PathParams["test2"])
-
-	AddCommonQueryParam("test1", "test11")
-	assertEqual(t, []string{"test1", "test11"}, DefaultClient().QueryParams["test1"])
-
-	SetCommonQueryParam("test1", "test111")
-	assertEqual(t, "test111", DefaultClient().QueryParams.Get("test1"))
-
-	SetCommonQueryParams(map[string]string{"test1": "test1"})
-	assertEqual(t, "test1", DefaultClient().QueryParams.Get("test1"))
-
-	EnableInsecureSkipVerify()
-	assertEqual(t, true, DefaultClient().t.TLSClientConfig.InsecureSkipVerify)
-
-	DisableInsecureSkipVerify()
-	assertEqual(t, false, DefaultClient().t.TLSClientConfig.InsecureSkipVerify)
-
-	DisableCompression()
-	assertEqual(t, true, DefaultClient().t.DisableCompression)
-
-	EnableCompression()
-	assertEqual(t, false, DefaultClient().t.DisableCompression)
-
-	DisableKeepAlives()
-	assertEqual(t, true, DefaultClient().t.DisableKeepAlives)
-
-	EnableKeepAlives()
-	assertEqual(t, false, DefaultClient().t.DisableKeepAlives)
+	testGlobalClientSettingWrapper(t,
+		SetCookieJar(nil),
+		SetDialTLS(testDialTLS),
+		SetDial(testDial),
+		SetTLSHandshakeTimeout(time.Second),
+		EnableAllowGetMethodPayload(),
+		DisableAllowGetMethodPayload(),
+		SetJsonMarshal(marshalFunc),
+		SetJsonUnmarshal(unmarshalFunc),
+		SetXmlMarshal(marshalFunc),
+		SetXmlUnmarshal(unmarshalFunc),
+		EnableTraceAll(),
+		DisableTraceAll(),
+		OnAfterResponse(func(client *Client, response *Response) error {
+			return nil
+		}),
+		OnBeforeRequest(func(client *Client, request *Request) error {
+			return nil
+		}),
+		SetProxyURL("http://dummy.proxy.local"),
+		SetProxyURL("bad url"),
+		SetProxy(proxy),
+		SetCommonContentType(jsonContentType),
+		SetCommonHeader("my-header", "my-value"),
+		SetCommonHeaders(map[string]string{
+			"header1": "value1",
+			"header2": "value2",
+		}),
+		SetCommonBasicAuth("imroc", "123456"),
+		SetCommonBearerAuthToken("123456"),
+		SetUserAgent("test"),
+		SetTimeout(1*time.Second),
+		SetLogger(createDefaultLogger()),
+		SetScheme("https"),
+		EnableDebugLog(),
+		DisableDebugLog(),
+		SetCommonCookies(&http.Cookie{Name: "test", Value: "test"}),
+		SetCommonQueryString("test1=test1"),
+		SetCommonPathParams(map[string]string{"test1": "test1"}),
+		SetCommonPathParam("test2", "test2"),
+		AddCommonQueryParam("test1", "test11"),
+		SetCommonQueryParam("test1", "test111"),
+		SetCommonQueryParams(map[string]string{"test1": "test1"}),
+		EnableInsecureSkipVerify(),
+		DisableInsecureSkipVerify(),
+		DisableCompression(),
+		EnableCompression(),
+		DisableKeepAlives(),
+		EnableKeepAlives(),
+		SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem")),
+		SetRootCertFromString(string(tests.GetTestFileContent(t, "sample-root.pem"))),
+		SetCerts(tls.Certificate{}, tls.Certificate{}),
+		SetCertFromFile(
+			tests.GetTestFilePath("sample-client.pem"),
+			tests.GetTestFilePath("sample-client-key.pem"),
+		),
+		SetOutputDirectory(testDataPath),
+		SetBaseURL("http://dummy-req.local/test"),
+		SetCommonFormDataFromValues(form),
+		SetCommonFormData(map[string]string{"test2": "test2"}),
+		DisableAutoReadResponse(),
+		EnableAutoReadResponse(),
+		EnableDumpAll(),
+		EnableDumpAllAsync(),
+		EnableDumpAllWithoutBody(),
+		EnableDumpAllWithoutResponse(),
+		EnableDumpAllWithoutRequest(),
+		EnableDumpAllWithoutHeader(),
+		SetLogger(nil),
+		EnableDumpAllToFile(filepath.Join(testDataPath, "path-not-exists", "dump.out")),
+		EnableDumpAllToFile(tests.GetTestFilePath("tmpdump.out")),
+		SetCommonDumpOptions(&DumpOptions{
+			RequestHeader: true,
+		}),
+		DisableDumpAll(),
+		SetRedirectPolicy(NoRedirectPolicy()),
+		EnableForceHTTP1(),
+		EnableForceHTTP2(),
+		DisableForceHttpVersion(),
+		SetAutoDecodeContentType("json"),
+		SetAutoDecodeContentTypeFunc(func(contentType string) bool { return true }),
+		SetAutoDecodeAllContentType(),
+		DisableAutoDecode(),
+		EnableAutoDecode(),
+		AddCommonRetryCondition(func(resp *Response, err error) bool { return true }),
+		SetCommonRetryCondition(func(resp *Response, err error) bool { return true }),
+		AddCommonRetryHook(func(resp *Response, err error) {}),
+		SetCommonRetryHook(func(resp *Response, err error) {}),
+		SetCommonRetryCount(2),
+		SetCommonRetryInterval(func(attempt int) time.Duration {
+			return 1 * time.Second
+		}),
+		SetCommonRetryBackoffInterval(1*time.Millisecond, 2*time.Second),
+		SetCommonRetryFixedInterval(1*time.Second),
+	)
+	os.Remove(tests.GetTestFilePath("tmpdump.out"))
 
 	config := GetTLSClientConfig()
 	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
 
-	SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem"))
-	assertEqual(t, true, DefaultClient().t.TLSClientConfig.RootCAs != nil)
-
-	SetRootCertFromString(string(tests.GetTestFileContent(t, "sample-root.pem")))
-	assertEqual(t, true, DefaultClient().t.TLSClientConfig.RootCAs != nil)
-
-	SetCerts(tls.Certificate{}, tls.Certificate{})
-	assertEqual(t, true, len(DefaultClient().t.TLSClientConfig.Certificates) == 2)
-
-	SetCertFromFile(
-		tests.GetTestFilePath("sample-client.pem"),
-		tests.GetTestFilePath("sample-client-key.pem"),
-	)
-	assertEqual(t, true, len(DefaultClient().t.TLSClientConfig.Certificates) == 3)
-
-	SetOutputDirectory(testDataPath)
-	assertEqual(t, testDataPath, DefaultClient().outputDirectory)
-
-	baseURL := "http://dummy-req.local/test"
-	SetBaseURL(baseURL)
-	assertEqual(t, baseURL, DefaultClient().BaseURL)
-
-	form := make(url.Values)
-	form.Add("test", "test")
-	SetCommonFormDataFromValues(form)
-	assertEqual(t, form, DefaultClient().FormData)
-
-	SetCommonFormData(map[string]string{"test2": "test2"})
-	assertEqual(t, "test2", DefaultClient().FormData.Get("test2"))
-
-	DisableAutoReadResponse()
-	assertEqual(t, true, DefaultClient().disableAutoReadResponse)
-	EnableAutoReadResponse()
-	assertEqual(t, false, DefaultClient().disableAutoReadResponse)
-
-	EnableDumpAll()
-	opt := DefaultClient().getDumpOptions()
-	assertEqual(t, true, opt.RequestHeader == true && opt.RequestBody == true && opt.ResponseHeader == true && opt.ResponseBody == true)
-	EnableDumpAllAsync()
-	assertEqual(t, true, opt.Async)
-	EnableDumpAllWithoutBody()
-	assertEqual(t, true, opt.ResponseBody == false && opt.RequestBody == false)
-	opt.ResponseBody = true
-	opt.RequestBody = true
-	EnableDumpAllWithoutResponse()
-	assertEqual(t, true, opt.ResponseBody == false && opt.ResponseHeader == false)
-	opt.ResponseBody = true
-	opt.ResponseHeader = true
-	EnableDumpAllWithoutRequest()
-	assertEqual(t, true, opt.RequestHeader == false && opt.RequestBody == false)
-	opt.RequestHeader = true
-	opt.RequestBody = true
-	EnableDumpAllWithoutHeader()
-	assertEqual(t, true, opt.RequestHeader == false && opt.ResponseHeader == false)
-
-	DefaultClient().getDumpOptions().Output = nil
-	SetLogger(nil)
-	EnableDumpAllToFile(filepath.Join(testDataPath, "path-not-exists", "dump.out"))
-	assertEqual(t, true, DefaultClient().getDumpOptions().Output == nil)
-
-	dumpFile := tests.GetTestFilePath("tmpdump.out")
-	EnableDumpAllToFile(dumpFile)
-	assertEqual(t, true, DefaultClient().getDumpOptions().Output != nil)
-	os.Remove(dumpFile)
-
-	SetCommonDumpOptions(&DumpOptions{
-		RequestHeader: true,
-	})
-	opt = DefaultClient().getDumpOptions()
-	assertEqual(t, true, opt.RequestHeader == true && opt.ResponseHeader == false)
-	DisableDumpAll()
-	assertEqual(t, true, DefaultClient().t.dump == nil)
-
-	r = R()
+	r := R()
 	assertEqual(t, true, r != nil)
 	c := C()
+
 	c.SetTimeout(10 * time.Second)
 	SetDefaultClient(c)
 	assertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
-
-	SetRedirectPolicy(NoRedirectPolicy())
-	assertEqual(t, true, DefaultClient().httpClient.CheckRedirect != nil)
-
-	EnableForceHTTP1()
-	assertEqual(t, HTTP1, DefaultClient().t.ForceHttpVersion)
-
-	EnableForceHTTP2()
-	assertEqual(t, HTTP2, DefaultClient().t.ForceHttpVersion)
-
-	DisableForceHttpVersion()
-	assertEqual(t, true, DefaultClient().t.ForceHttpVersion == "")
-
 	assertEqual(t, GetClient(), DefaultClient().httpClient)
 
 	r = NewRequest()
 	assertEqual(t, true, r != nil)
 	c = NewClient()
 	assertEqual(t, true, c != nil)
-
-	DefaultClient().getResponseOptions().AutoDecodeContentType = nil
-	SetAutoDecodeContentType("json")
-	assertEqual(t, true, DefaultClient().getResponseOptions().AutoDecodeContentType != nil)
-
-	DefaultClient().getResponseOptions().AutoDecodeContentType = nil
-	SetAutoDecodeContentTypeFunc(func(contentType string) bool { return true })
-	assertEqual(t, true, DefaultClient().getResponseOptions().AutoDecodeContentType != nil)
-
-	DefaultClient().getResponseOptions().AutoDecodeContentType = nil
-	SetAutoDecodeAllContentType()
-	assertEqual(t, true, DefaultClient().getResponseOptions().AutoDecodeContentType != nil)
-
-	DisableAutoDecode()
-	assertEqual(t, true, DefaultClient().getResponseOptions().DisableAutoDecode)
-
-	EnableAutoDecode()
-	assertEqual(t, false, DefaultClient().getResponseOptions().DisableAutoDecode)
 }
 
 func TestTrailer(t *testing.T) {
-	resp, err := tc().EnableForceHTTP1().R().EnableDump().Get("/chunked")
+	resp, err := tc().EnableForceHTTP1().R().Get("/chunked")
 	assertSuccess(t, resp, err)
 	_, ok := resp.Trailer["Expires"]
 	if !ok {
 		t.Error("trailer not exists")
 	}
-	r := tc().EnableForceHTTP1().R()
-	r.RawRequest.Trailer = make(http.Header)
-	r.RawRequest.Trailer.Add("test", "")
-	resp, err = r.SetBody("test").Post("/")
-	assertSuccess(t, resp, err)
 }

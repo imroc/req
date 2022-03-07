@@ -56,10 +56,14 @@ func closeq(v interface{}) {
 }
 
 func writeMultipartFormFile(w *multipart.Writer, file *FileUpload) error {
-	defer closeq(file.File)
+	content, err := file.GetFileContent()
+	if err != nil {
+		return err
+	}
+	defer content.Close()
 	// Auto detect actual multipart content type
 	cbuf := make([]byte, 512)
-	size, err := file.File.Read(cbuf)
+	size, err := content.Read(cbuf)
 	if err != nil && err != io.EOF {
 		return err
 	}
@@ -73,7 +77,7 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload) error {
 		return err
 	}
 
-	_, err = io.Copy(pw, file.File)
+	_, err = io.Copy(pw, content)
 	return err
 }
 
@@ -92,7 +96,9 @@ func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
 
 func handleMultiPart(c *Client, r *Request) (err error) {
 	pr, pw := io.Pipe()
-	r.RawRequest.Body = pr
+	r.getBody = func() (io.ReadCloser, error) {
+		return pr, nil
+	}
 	w := multipart.NewWriter(pw)
 	r.SetContentType(w.FormDataContentType())
 	go writeMultiPart(r, w, pw)
@@ -137,12 +143,12 @@ func handleMarshalBody(c *Client, r *Request) error {
 }
 
 func parseRequestBody(c *Client, r *Request) (err error) {
-	if c.isPayloadForbid(r.RawRequest.Method) {
-		r.RawRequest.Body = nil
+	if c.isPayloadForbid(r.method) {
+		r.getBody = nil
 		return
 	}
 	// handle multipart
-	if r.isMultiPart && (r.RawRequest.Method != http.MethodPatch) {
+	if r.isMultiPart && (r.method != http.MethodPatch) {
 		return handleMultiPart(c, r)
 	}
 
@@ -163,9 +169,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 	if r.body == nil {
 		return
 	}
-	// body is in-memory []byte, so we can set content length
-	// and guess content type
-	r.RawRequest.ContentLength = int64(len(r.body))
+	// body is in-memory []byte, so we can guess content type
 	if r.getHeader(hdrContentTypeKey) == "" {
 		r.SetContentType(http.DetectContentType(r.body))
 	}
@@ -266,33 +270,35 @@ func parseRequestCookie(c *Client, r *Request) error {
 	return nil
 }
 
+// generate URL
 func parseRequestURL(c *Client, r *Request) error {
+	tempURL := r.RawURL
 	if len(r.PathParams) > 0 {
 		for p, v := range r.PathParams {
-			r.URL = strings.Replace(r.URL, "{"+p+"}", url.PathEscape(v), -1)
+			tempURL = strings.Replace(tempURL, "{"+p+"}", url.PathEscape(v), -1)
 		}
 	}
 	if len(c.PathParams) > 0 {
 		for p, v := range c.PathParams {
-			r.URL = strings.Replace(r.URL, "{"+p+"}", url.PathEscape(v), -1)
+			tempURL = strings.Replace(tempURL, "{"+p+"}", url.PathEscape(v), -1)
 		}
 	}
 
 	// Parsing request URL
-	reqURL, err := url.Parse(r.URL)
+	reqURL, err := url.Parse(tempURL)
 	if err != nil {
 		return err
 	}
 
-	// If Request.URL is relative path then added c.BaseURL into
+	// If RawURL is relative path then added c.BaseURL into
 	// the request URL otherwise Request.URL will be used as-is
 	if !reqURL.IsAbs() {
-		r.URL = reqURL.String()
-		if len(r.URL) > 0 && r.URL[0] != '/' {
-			r.URL = "/" + r.URL
+		tempURL = reqURL.String()
+		if len(tempURL) > 0 && tempURL[0] != '/' {
+			tempURL = "/" + tempURL
 		}
 
-		reqURL, err = url.Parse(c.BaseURL + r.URL)
+		reqURL, err = url.Parse(c.BaseURL + tempURL)
 		if err != nil {
 			return err
 		}
@@ -332,7 +338,7 @@ func parseRequestURL(c *Client, r *Request) error {
 		}
 	}
 
-	r.URL = reqURL.String()
-
+	reqURL.Host = removeEmptyPort(reqURL.Host)
+	r.URL = reqURL
 	return nil
 }

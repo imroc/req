@@ -3,6 +3,7 @@ package req
 import (
 	"bytes"
 	"context"
+	"errors"
 	"github.com/hashicorp/go-multierror"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
@@ -19,19 +20,26 @@ import (
 // req client. Request provides lots of chainable settings which can
 // override client level settings.
 type Request struct {
-	URL         string
-	PathParams  map[string]string
-	QueryParams urlpkg.Values
-	FormData    urlpkg.Values
-	Headers     http.Header
-	Cookies     []*http.Cookie
-	Result      interface{}
-	Error       interface{}
-	error       error
-	client      *Client
-	RawRequest  *http.Request
-	StartTime   time.Time
+	PathParams   map[string]string
+	QueryParams  urlpkg.Values
+	FormData     urlpkg.Values
+	Headers      http.Header
+	Cookies      []*http.Cookie
+	Result       interface{}
+	Error        interface{}
+	error        error
+	client       *Client
+	RawRequest   *http.Request
+	StartTime    time.Time
+	RetryAttempt int
 
+	RawURL             string // read only
+	method             string
+	URL                *urlpkg.URL
+	getBody            GetContentFunc
+	unReplayableBody   io.ReadCloser
+	retryOption        *retryOption
+	bodyReadCloser     io.ReadCloser
 	body               []byte
 	dumpOptions        *DumpOptions
 	marshalBody        interface{}
@@ -46,6 +54,8 @@ type Request struct {
 	dumpBuffer         *bytes.Buffer
 	responseReturnTime time.Time
 }
+
+type GetContentFunc func() (io.ReadCloser, error)
 
 func (r *Request) getHeader(key string) string {
 	if r.Headers == nil {
@@ -211,7 +221,12 @@ func (r *Request) SetFileReader(paramName, filename string, reader io.Reader) *R
 	r.SetFileUpload(FileUpload{
 		ParamName: paramName,
 		FileName:  filename,
-		File:      reader,
+		GetFileContent: func() (io.ReadCloser, error) {
+			if rc, ok := reader.(io.ReadCloser); ok {
+				return rc, nil
+			}
+			return ioutil.NopCloser(reader), nil
+		},
 	})
 	return r
 }
@@ -267,11 +282,30 @@ func SetFileUpload(f ...FileUpload) *Request {
 	return defaultClient.R().SetFileUpload(f...)
 }
 
+var errMissingParamName = errors.New("missing param name in multipart file upload")
+var errMissingFileName = errors.New("missing filename in multipart file upload")
+var errMissingFileContent = errors.New("missing file content in multipart file upload")
+
 // SetFileUpload set the fully custimized multipart file upload options.
 func (r *Request) SetFileUpload(uploads ...FileUpload) *Request {
 	r.isMultiPart = true
 	for _, upload := range uploads {
-		r.uploadFiles = append(r.uploadFiles, &upload)
+		shouldAppend := true
+		if upload.ParamName == "" {
+			r.appendError(errMissingParamName)
+			shouldAppend = false
+		}
+		if upload.FileName == "" {
+			r.appendError(errMissingFileName)
+			shouldAppend = false
+		}
+		if upload.GetFileContent == nil {
+			r.appendError(errMissingFileContent)
+			shouldAppend = false
+		}
+		if shouldAppend {
+			r.uploadFiles = append(r.uploadFiles, &upload)
+		}
 	}
 	return r
 }
@@ -460,6 +494,8 @@ func (r *Request) appendError(err error) {
 	r.error = multierror.Append(r.error, err)
 }
 
+var errRetryableWithUnReplayableBody = errors.New("retryable request should not have unreplayable body (io.Reader)")
+
 // Send fires http request and return the *Response which is always
 // not nil, and the error is not nil if some error happens.
 func (r *Request) Send(method, url string) (*Response, error) {
@@ -469,8 +505,11 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	if r.error != nil {
 		return &Response{Request: r}, r.error
 	}
-	r.RawRequest.Method = method
-	r.URL = url
+	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable body
+		return &Response{Request: r}, errRetryableWithUnReplayableBody
+	}
+	r.method = method
+	r.RawURL = url
 	return r.client.do(r)
 }
 
@@ -676,13 +715,23 @@ func (r *Request) SetBody(body interface{}) *Request {
 	}
 	switch b := body.(type) {
 	case io.ReadCloser:
-		r.RawRequest.Body = b
+		r.unReplayableBody = b
+		r.getBody = func() (io.ReadCloser, error) {
+			return r.unReplayableBody, nil
+		}
 	case io.Reader:
-		r.RawRequest.Body = ioutil.NopCloser(b)
+		r.unReplayableBody = ioutil.NopCloser(b)
+		r.getBody = func() (io.ReadCloser, error) {
+			return r.unReplayableBody, nil
+		}
 	case []byte:
 		r.SetBodyBytes(b)
 	case string:
 		r.SetBodyString(b)
+	case func() (io.ReadCloser, error):
+		r.getBody = b
+	case GetContentFunc:
+		r.getBody = b
 	default:
 		r.marshalBody = body
 	}
@@ -697,8 +746,10 @@ func SetBodyBytes(body []byte) *Request {
 
 // SetBodyBytes set the request body as []byte.
 func (r *Request) SetBodyBytes(body []byte) *Request {
-	r.RawRequest.Body = ioutil.NopCloser(bytes.NewReader(body))
 	r.body = body
+	r.getBody = func() (io.ReadCloser, error) {
+		return ioutil.NopCloser(bytes.NewReader(body)), nil
+	}
 	return r
 }
 
@@ -1018,4 +1069,124 @@ func (r *Request) EnableDumpWithoutResponseBody() *Request {
 	o := r.getDumpOptions()
 	o.ResponseBody = false
 	return r.EnableDump()
+}
+
+func (r *Request) getRetryOption() *retryOption {
+	if r.retryOption == nil {
+		r.retryOption = newDefaultRetryOption()
+	}
+	return r.retryOption
+}
+
+// SetRetryCount is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryCount for request.
+func SetRetryCount(count int) *Request {
+	return defaultClient.R().SetRetryCount(count)
+}
+
+// SetRetryCount enables retry and set the maximum retry count.
+func (r *Request) SetRetryCount(count int) *Request {
+	r.getRetryOption().MaxRetries = count
+	return r
+}
+
+// SetRetryInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryInterval for request.
+func SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Request {
+	return defaultClient.R().SetRetryInterval(getRetryIntervalFunc)
+}
+
+// SetRetryInterval sets the custom GetRetryIntervalFunc, you can use this to
+// implement your own backoff retry algorithm.
+// For example:
+// 	 req.SetRetryInterval(func(attempt int) time.Duration {
+//      sleep := 0.01 * math.Exp2(float64(attempt))
+//      return time.Duration(math.Min(2, sleep)) * time.Second
+// 	 })
+func (r *Request) SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Request {
+	r.getRetryOption().GetRetryInterval = getRetryIntervalFunc
+	return r
+}
+
+// SetRetryFixedInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryFixedInterval for request.
+func SetRetryFixedInterval(interval time.Duration) *Request {
+	return defaultClient.R().SetRetryFixedInterval(interval)
+}
+
+// SetRetryFixedInterval set retry to use a fixed interval.
+func (r *Request) SetRetryFixedInterval(interval time.Duration) *Request {
+	r.getRetryOption().GetRetryInterval = func(attempt int) time.Duration {
+		return interval
+	}
+	return r
+}
+
+// SetRetryBackoffInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryBackoffInterval for request.
+func SetRetryBackoffInterval(min, max time.Duration) *Request {
+	return defaultClient.R().SetRetryBackoffInterval(min, max)
+}
+
+// SetRetryBackoffInterval set retry to use a capped exponential backoff with jitter.
+// https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+func (r *Request) SetRetryBackoffInterval(min, max time.Duration) *Request {
+	r.getRetryOption().GetRetryInterval = backoffInterval(min, max)
+	return r
+}
+
+// SetRetryHook is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryHook for request.
+func SetRetryHook(hook RetryHookFunc) *Request {
+	return defaultClient.R().SetRetryHook(hook)
+}
+
+// SetRetryHook set the retry hook which will be executed before a retry.
+// It will override other retry hooks if any been added before (including
+// client-level retry hooks).
+func (r *Request) SetRetryHook(hook RetryHookFunc) *Request {
+	r.getRetryOption().RetryHooks = []RetryHookFunc{hook}
+	return r
+}
+
+// AddRetryHook is a global wrapper methods which delegated
+// to the default client, create a request and AddRetryHook for request.
+func AddRetryHook(hook RetryHookFunc) *Request {
+	return defaultClient.R().AddRetryHook(hook)
+}
+
+// AddRetryHook adds a retry hook which will be executed before a retry.
+func (r *Request) AddRetryHook(hook RetryHookFunc) *Request {
+	ro := r.getRetryOption()
+	ro.RetryHooks = append(ro.RetryHooks, hook)
+	return r
+}
+
+// SetRetryCondition is a global wrapper methods which delegated
+// to the default client, create a request and SetRetryCondition for request.
+func SetRetryCondition(condition RetryConditionFunc) *Request {
+	return defaultClient.R().SetRetryCondition(condition)
+}
+
+// SetRetryCondition sets the retry condition, which determines whether the
+// request should retry.
+// It will override other retry conditions if any been added before (including
+// client-level retry conditions).
+func (r *Request) SetRetryCondition(condition RetryConditionFunc) *Request {
+	r.getRetryOption().RetryConditions = []RetryConditionFunc{condition}
+	return r
+}
+
+// AddRetryCondition is a global wrapper methods which delegated
+// to the default client, create a request and AddRetryCondition for request.
+func AddRetryCondition(condition RetryConditionFunc) *Request {
+	return defaultClient.R().AddRetryCondition(condition)
+}
+
+// AddRetryCondition adds a retry condition, which determines whether the
+// request should retry.
+func (r *Request) AddRetryCondition(condition RetryConditionFunc) *Request {
+	ro := r.getRetryOption()
+	ro.RetryConditions = append(ro.RetryConditions, condition)
+	return r
 }
