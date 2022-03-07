@@ -886,48 +886,63 @@ You can enable retry for all requests at client-level (check the full list of cl
 
 ```bash
 client := req.C()
-    // enable retry and set the maximum retry count.
-    client.SetCommonRetryCount(3). 
-    // set the retry sleep interval with a commonly used algorithm: capped exponential backoff with jitter (https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/).
-    SetCommonRetryBackoffInterval(1 * time.Second, 5 * time.Second). 
-    // add a retry hook which will be executed before a retry.
-    AddCommonRetryHook(func(resp *req.Response, err error){
-       req := resp.Request.RawRequest
-       fmt.Println("Retry request:", req.Method, req.URL)
-    }).
-    // add a retry condition which determines whether the request should retry.
-    AddCommonRetryCondition(func(resp *req.Response, err error) bool { 
-      return err != nil
-    }).AddCommonRetryCondition(func(resp *req.Response, err error) bool { // add another retry condition
-      return resp.StatusCode == http.StatusTooManyRequests
-    })
+
+// Enable retry and set the maximum retry count.
+client.SetCommonRetryCount(3). 
+
+// Set the retry sleep interval with a commonly used algorithm: capped exponential backoff with jitter (https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/).
+client.SetCommonRetryBackoffInterval(1 * time.Second, 5 * time.Second)
+
+// Set the retry to sleep fixed interval of 2 seconds.
+client.SetCommonRetryFixedInterval(2 * time.Seconds)
+
+// Set the retry to use a custom retry interval algorithm.
+client.SetCommonRetryFixedInterval(func(resp *req.Response, attempt int) time.Duration { 
+    // Sleep seconds from "Retry-After" response header if it is present and correct (https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
+    if resp.Response != nil {
+        ra := resp.Header.Get("Retry-After")
+        if ra != "" {
+            after, err := strconv.Atoi(ra)
+            if err == nil {
+                return time.Duration(after) * time.Second
+            }
+        }
+    }
+    return 2 * time.Second // Otherwise sleep 2 seconds
+})
+
+// Add a retry hook which will be executed before a retry.
+client.AddCommonRetryHook(func(resp *req.Response, err error){
+   req := resp.Request.RawRequest
+   fmt.Println("Retry request:", req.Method, req.URL)
+})
+
+// Add a retry condition which determines whether the request should retry.
+client.AddCommonRetryCondition(func(resp *req.Response, err error) bool { 
+  return err != nil
+})
+
+// Add another retry condition
+client.AddCommonRetryCondition(func(resp *req.Response, err error) bool {
+  return resp.StatusCode == http.StatusTooManyRequests
+})
 ```
 
 You can also override retry settings at request-level (check the full list of request-level retry settings around [here](./docs/api.md#Retry-Request)):
 
 ```bash
 client.R().
-    SetRetryCount(3).
-    SetRetryInterval(func(resp *req.Response, attempt int) time.Duration { // use a custom retry interval algorithm.
-        // sleep seconds from "Retry-After" response header if given and correct, otherwise sleep 2 seconds (https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
-        if resp.Response != nil {
-            ra := resp.Header.Get("Retry-After")
-            if ra != "" {
-                after, err := strconv.Atoi(ra)
-                if err == nil {
-                    return time.Duration(after) * time.Second
-                }
-            }
-        }
-	    return 2 * time.Second
-  }).SetRetryHook(hook). // unlike add, set will remove all other retry hooks which is added before at both request and client level.
-  SetRetryCondition(condition) // similarly, this will remove all other retry conditions which is added before at both request and client level.
+    SetRetryCount(2).
+    SetRetryInterval(intervalFunc).
+    SetRetryHook(hookFunc1). // Unlike add, set will remove all other retry hooks which is added before at both request and client level.
+    AddRetryHook(hookFunc2).
+    SetRetryCondition(conditionFunc1). // Similarly, this will remove all other retry conditions which is added before at both request and client level.
+    AddRetryCondition(conditionFunc2)
 ```
 
 ## <a name="TODO">TODO List</a>
 
 * [ ] Wrap more transport settings into client.
-* [ ] Support retry.
 * [ ] Support unix socket.
 * [ ] Support h2c.
 * [ ] Design a logo.
