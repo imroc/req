@@ -954,7 +954,6 @@ client.R().
 ## <a name="TODO">TODO List</a>
 
 * [ ] Wrap more transport settings into client.
-* [ ] Support unix socket.
 * [ ] Support h2c.
 * [ ] Design a logo.
 * [ ] Support HTTP3.
