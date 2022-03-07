@@ -884,7 +884,7 @@ client.SetProxy(nil)
 
 You can enable retry for all requests at client-level (check the full list of client-level retry settings around [here](./docs/api.md#Retry-Client)):
 
-```bash
+```go
 client := req.C()
 
 // Enable retry and set the maximum retry count.
@@ -897,7 +897,7 @@ client.SetCommonRetryBackoffInterval(1 * time.Second, 5 * time.Second)
 client.SetCommonRetryFixedInterval(2 * time.Seconds)
 
 // Set the retry to use a custom retry interval algorithm.
-client.SetCommonRetryFixedInterval(func(resp *req.Response, attempt int) time.Duration { 
+client.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duration { 
     // Sleep seconds from "Retry-After" response header if it is present and correct (https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
     if resp.Response != nil {
         ra := resp.Header.Get("Retry-After")
@@ -930,7 +930,7 @@ client.AddCommonRetryCondition(func(resp *req.Response, err error) bool {
 
 You can also override retry settings at request-level (check the full list of request-level retry settings around [here](./docs/api.md#Retry-Request)):
 
-```bash
+```go
 client.R().
     SetRetryCount(2).
     SetRetryInterval(intervalFunc).
