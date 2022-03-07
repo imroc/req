@@ -13,6 +13,7 @@ Here is a brief and categorized list of the core APIs, for a more detailed and c
   * [TLS and Certificates](#Certs)
   * [Marshal&Unmarshal](#Marshal)
   * [HTTP Version](#Version)
+  * [Retry](#Retry-Client)
   * [Other Settings](#Other)
 * [Request Settings](#Request)
   * [URL Query and Path Parameter](#Query)
@@ -21,6 +22,7 @@ Here is a brief and categorized list of the core APIs, for a more detailed and c
   * [Request Level Debug](#Debug-Request)
   * [Multipart & Form & Upload](#Multipart)
   * [Download](#Download)
+  * [Retry](#Retry)
   * [Other Settings](#Other-Request)
 * [Sending Request](#Send-Request)
 
@@ -109,6 +111,17 @@ Basically, you can know the meaning of most settings directly from the method na
 * [EnableForceHTTP2()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableForceHTTP2)
 * [EnableForceHTTP1()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableForceHTTP1)
 
+### <a name="Retry-Client">Retry</a>
+
+* [SetCommonRetryCount(count int)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonRetryCount)
+* [SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonRetryInterval)
+* [SetCommonRetryFixedInterval(interval time.Duration)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonRetryFixedInterval)
+* [SetCommonRetryBackoffInterval(min, max time.Duration)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonRetryBackoffInterval)
+* [SetCommonRetryHook(hook RetryHookFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonRetryHook)
+* [AddCommonRetryHook(hook RetryHookFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Client.AddCommonRetryHook)
+* [SetCommonRetryCondition(condition RetryConditionFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetCommonRetryCondition)
+* [AddCommonRetryCondition(condition RetryConditionFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Client.AddCommonRetryCondition)
+
 ### <a name="Other">Other Settings</a>
 
 * [SetTimeout(d time.Duration)](https://pkg.go.dev/github.com/imroc/req/v3#Client.SetTimeout)
@@ -139,7 +152,6 @@ Basically, you can know the meaning of most settings directly from the method na
 
 * [EnableAllowGetMethodPayload()](https://pkg.go.dev/github.com/imroc/req/v3#Client.EnableAllowGetMethodPayload) - Disabled by default. 
 * [DisableAllowGetMethodPayload()](https://pkg.go.dev/github.com/imroc/req/v3#Client.DisableAllowGetMethodPayload)
-
 
 ## <a name="Request">Request Settings</a>
 
@@ -208,6 +220,17 @@ Basically, you can know the meaning of most settings directly from the method na
 
 * [SetOutput(output io.Writer)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetOutput)
 * [SetOutputFile(file string)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetOutputFile)
+
+### <a name="Retry">Retry</a>
+
+* [SetRetryCount(count int)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryCount)
+* [SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryInterval)
+* [SetRetryFixedInterval(interval time.Duration)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryFixedInterval)
+* [SetRetryBackoffInterval(min, max time.Duration)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryBackoffInterval)
+* [SetRetryHook(hook RetryHookFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryHook)
+* [AddRetryHook(hook RetryHookFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Request.AddRetryHook)
+* [SetRetryCondition(condition RetryConditionFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryCondition)
+* [AddRetryCondition(condition RetryConditionFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Request.AddRetryCondition)
 
 ### <a name="Other-Request">Other Settings</a>
 
