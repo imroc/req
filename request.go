@@ -1099,7 +1099,7 @@ func SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Request {
 // SetRetryInterval sets the custom GetRetryIntervalFunc, you can use this to
 // implement your own backoff retry algorithm.
 // For example:
-// 	 req.SetRetryInterval(func(attempt int) time.Duration {
+// 	 req.SetRetryInterval(func(resp *req.Response, attempt int) time.Duration {
 //      sleep := 0.01 * math.Exp2(float64(attempt))
 //      return time.Duration(math.Min(2, sleep)) * time.Second
 // 	 })
@@ -1116,7 +1116,7 @@ func SetRetryFixedInterval(interval time.Duration) *Request {
 
 // SetRetryFixedInterval set retry to use a fixed interval.
 func (r *Request) SetRetryFixedInterval(interval time.Duration) *Request {
-	r.getRetryOption().GetRetryInterval = func(attempt int) time.Duration {
+	r.getRetryOption().GetRetryInterval = func(resp *Response, attempt int) time.Duration {
 		return interval
 	}
 	return r

@@ -22,7 +22,7 @@ Here is a brief and categorized list of the core APIs, for a more detailed and c
   * [Request Level Debug](#Debug-Request)
   * [Multipart & Form & Upload](#Multipart)
   * [Download](#Download)
-  * [Retry](#Retry)
+  * [Retry](#Retry-Request)
   * [Other Settings](#Other-Request)
 * [Sending Request](#Send-Request)
 
@@ -208,7 +208,7 @@ Basically, you can know the meaning of most settings directly from the method na
 * [SetOutput(output io.Writer)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetOutput)
 * [SetOutputFile(file string)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetOutputFile)
 
-### <a name="Retry">Retry</a>
+### <a name="Retry-Request">Retry</a>
 
 * [SetRetryCount(count int)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryCount)
 * [SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc)](https://pkg.go.dev/github.com/imroc/req/v3#Request.SetRetryInterval)

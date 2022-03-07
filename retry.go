@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func defaultGetRetryInterval(attempt int) time.Duration {
+func defaultGetRetryInterval(resp *Response, attempt int) time.Duration {
 	return 100 * time.Millisecond
 }
 
@@ -19,12 +19,12 @@ type RetryHookFunc func(*Response, error)
 
 // GetRetryIntervalFunc is a function that determines how long should
 // sleep between retry attempts.
-type GetRetryIntervalFunc func(attempt int) time.Duration
+type GetRetryIntervalFunc func(resp *Response, attempt int) time.Duration
 
 func backoffInterval(min, max time.Duration) GetRetryIntervalFunc {
 	base := float64(min)
 	capLevel := float64(max)
-	return func(attempt int) time.Duration {
+	return func(resp *Response, attempt int) time.Duration {
 		temp := math.Min(capLevel, base*math.Exp2(float64(attempt)))
 		halfTemp := int64(temp / 2)
 		sleep := halfTemp + rand.Int63n(halfTemp)

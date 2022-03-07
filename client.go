@@ -1245,7 +1245,7 @@ func SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Client {
 // SetCommonRetryInterval sets the custom GetRetryIntervalFunc for all requests,
 // you can use this to implement your own backoff retry algorithm.
 // For example:
-// 	 req.SetCommonRetryInterval(func(attempt int) time.Duration {
+// 	 req.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duration {
 //      sleep := 0.01 * math.Exp2(float64(attempt))
 //      return time.Duration(math.Min(2, sleep)) * time.Second
 // 	 })
@@ -1262,7 +1262,7 @@ func SetCommonRetryFixedInterval(interval time.Duration) *Client {
 
 // SetCommonRetryFixedInterval set retry to use a fixed interval for all requests.
 func (c *Client) SetCommonRetryFixedInterval(interval time.Duration) *Client {
-	c.getRetryOption().GetRetryInterval = func(attempt int) time.Duration {
+	c.getRetryOption().GetRetryInterval = func(resp *Response, attempt int) time.Duration {
 		return interval
 	}
 	return c
@@ -1533,7 +1533,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		for _, hook := range r.retryOption.RetryHooks { // run retry hooks
 			hook(resp, err)
 		}
-		time.Sleep(r.retryOption.GetRetryInterval(r.RetryAttempt))
+		time.Sleep(r.retryOption.GetRetryInterval(resp, r.RetryAttempt))
 
 		// clean buffers
 		if r.dumpBuffer != nil {
