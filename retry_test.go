@@ -35,7 +35,7 @@ func testRetry(t *testing.T, setFunc func(r *Request)) {
 
 func TestRetryInterval(t *testing.T) {
 	testRetry(t, func(r *Request) {
-		r.SetRetryInterval(func(attempt int) time.Duration {
+		r.SetRetryInterval(func(resp *Response, attempt int) time.Duration {
 			sleep := 0.01 * math.Exp2(float64(attempt))
 			return time.Duration(math.Min(2, sleep)) * time.Second
 		})

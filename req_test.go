@@ -578,7 +578,7 @@ func TestGlobalWrapperSetRequest(t *testing.T) {
 		SetRetryHook(func(resp *Response, err error) {}),
 		SetRetryBackoffInterval(1*time.Millisecond, 500*time.Millisecond),
 		SetRetryFixedInterval(1*time.Millisecond),
-		SetRetryInterval(func(attempt int) time.Duration {
+		SetRetryInterval(func(resp *Response, attempt int) time.Duration {
 			return 1 * time.Millisecond
 		}),
 		SetRetryCount(3),
@@ -719,7 +719,7 @@ func TestGlobalWrapper(t *testing.T) {
 		AddCommonRetryHook(func(resp *Response, err error) {}),
 		SetCommonRetryHook(func(resp *Response, err error) {}),
 		SetCommonRetryCount(2),
-		SetCommonRetryInterval(func(attempt int) time.Duration {
+		SetCommonRetryInterval(func(resp *Response, attempt int) time.Duration {
 			return 1 * time.Second
 		}),
 		SetCommonRetryBackoffInterval(1*time.Millisecond, 2*time.Second),

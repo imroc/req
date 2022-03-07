@@ -886,16 +886,21 @@ You can enable retry for all requests at client-level (check the full list of cl
 
 ```bash
 client := req.C()
-client.SetCommonRetryCount(3). // enable retry and set the maximum retry count.
-  SetCommonRetryBackoffInterval(1 * time.Second, 5 * time.Second). // set the retry sleep interval with a commonly used algorithm: capped exponential backoff with jitter (https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/).
-  AddCommonRetryHook(func(resp *req.Response, err error){ // add a retry hook which will be executed before a retry.
-    req := resp.Request.RawRequest
-    fmt.Println("Retry request:", req.Method, req.URL)
-  }).AddCommonRetryCondition(func(resp *req.Response, err error) bool { // add a retry condition which determines whether the request should retry.
-    return err != nil
-  }).AddCommonRetryCondition(func(resp *req.Response, err error) bool { // add another retry condition
-    return resp.StatusCode == http.StatusTooManyRequests
-  })
+    // enable retry and set the maximum retry count.
+    client.SetCommonRetryCount(3). 
+    // set the retry sleep interval with a commonly used algorithm: capped exponential backoff with jitter (https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/).
+    SetCommonRetryBackoffInterval(1 * time.Second, 5 * time.Second). 
+    // add a retry hook which will be executed before a retry.
+    AddCommonRetryHook(func(resp *req.Response, err error){
+       req := resp.Request.RawRequest
+       fmt.Println("Retry request:", req.Method, req.URL)
+    }).
+    // add a retry condition which determines whether the request should retry.
+    AddCommonRetryCondition(func(resp *req.Response, err error) bool { 
+      return err != nil
+    }).AddCommonRetryCondition(func(resp *req.Response, err error) bool { // add another retry condition
+      return resp.StatusCode == http.StatusTooManyRequests
+    })
 ```
 
 You can also override retry settings at request-level (check the full list of request-level retry settings around [here](./docs/api.md#Retry-Request)):
