@@ -913,18 +913,18 @@ client.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duratio
 
 // Add a retry hook which will be executed before a retry.
 client.AddCommonRetryHook(func(resp *req.Response, err error){
-   req := resp.Request.RawRequest
-   fmt.Println("Retry request:", req.Method, req.URL)
+    req := resp.Request.RawRequest
+    fmt.Println("Retry request:", req.Method, req.URL)
 })
 
 // Add a retry condition which determines whether the request should retry.
 client.AddCommonRetryCondition(func(resp *req.Response, err error) bool { 
-  return err != nil
+    return err != nil
 })
 
 // Add another retry condition
 client.AddCommonRetryCondition(func(resp *req.Response, err error) bool {
-  return resp.StatusCode == http.StatusTooManyRequests
+    return resp.StatusCode == http.StatusTooManyRequests
 })
 ```
 
