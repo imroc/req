@@ -127,3 +127,16 @@ func TestRetryWithUnreplayableBody(t *testing.T) {
 		Post("/")
 	assertEqual(t, errRetryableWithUnReplayableBody, err)
 }
+
+func TestRetryWithSetResult(t *testing.T) {
+	headers := make(http.Header)
+	resp, err := tc().SetCommonCookies(&http.Cookie{
+		Name:  "test",
+		Value: "test",
+	}).R().
+		SetRetryCount(1).
+		SetResult(&headers).
+		Get("/header")
+	assertSuccess(t, resp, err)
+	assertEqual(t, "test=test", headers.Get("Cookie"))
+}
