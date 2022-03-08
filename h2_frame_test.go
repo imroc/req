@@ -1397,7 +1397,7 @@ func TestParseUnknownFrame(t *testing.T) {
 	if !ok {
 		t.Fatalf("not http2UnknownFrame type: %#+v", f)
 	}
-	assertEqual(t, p, uf.Payload())
+	tests.AssertEqual(t, p, uf.Payload())
 }
 
 func TestParseRSTStreamFrame(t *testing.T) {
@@ -1451,16 +1451,16 @@ func TestPushPromiseFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	buf := []byte("test")
 	f := &http2PushPromiseFrame{http2FrameHeader: fh, headerFragBuf: buf}
-	assertEqual(t, buf, f.HeaderBlockFragment())
-	assertEqual(t, false, f.HeadersEnded())
+	tests.AssertEqual(t, buf, f.HeaderBlockFragment())
+	tests.AssertEqual(t, false, f.HeadersEnded())
 }
 
 func TestH2Framer(t *testing.T) {
 	f := &http2Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
 	f.logWrite()
-	assertNotNil(t, f.debugFramer)
-	assertNil(t, f.ErrorDetail())
+	tests.AssertNotNil(t, f.debugFramer)
+	tests.AssertIsNil(t, f.ErrorDetail())
 
 	f.w = new(bytes.Buffer)
 	err := f.WriteRawFrame(http2FrameData, http2FlagDataEndStream, 1, nil)

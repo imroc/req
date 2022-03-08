@@ -7,6 +7,7 @@ package req
 import (
 	"flag"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"testing"
 	"time"
@@ -98,21 +99,21 @@ func TestSettingValid(t *testing.T) {
 	}
 	for _, c := range cases {
 		s := &http2Setting{ID: c.id, Val: c.val}
-		assertEqual(t, true, s.Valid() != nil)
+		tests.AssertEqual(t, true, s.Valid() != nil)
 	}
 	s := &http2Setting{ID: http2SettingMaxHeaderListSize}
-	assertEqual(t, true, s.Valid() == nil)
+	tests.AssertEqual(t, true, s.Valid() == nil)
 }
 
 func TestBodyAllowedForStatus(t *testing.T) {
-	assertEqual(t, false, http2bodyAllowedForStatus(101))
-	assertEqual(t, false, http2bodyAllowedForStatus(204))
-	assertEqual(t, false, http2bodyAllowedForStatus(304))
-	assertEqual(t, true, http2bodyAllowedForStatus(900))
+	tests.AssertEqual(t, false, http2bodyAllowedForStatus(101))
+	tests.AssertEqual(t, false, http2bodyAllowedForStatus(204))
+	tests.AssertEqual(t, false, http2bodyAllowedForStatus(304))
+	tests.AssertEqual(t, true, http2bodyAllowedForStatus(900))
 }
 
 func TestHttpError(t *testing.T) {
 	e := &http2httpError{msg: "test"}
-	assertEqual(t, "test", e.Error())
-	assertEqual(t, true, e.Temporary())
+	tests.AssertEqual(t, "test", e.Error())
+	tests.AssertEqual(t, true, e.Temporary())
 }

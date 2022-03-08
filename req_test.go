@@ -262,48 +262,30 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func assertStatus(t *testing.T, resp *Response, err error, statusCode int, status string) {
-	assertError(t, err)
-	assertNotNil(t, resp)
-	assertNotNil(t, resp.Body)
-	assertEqual(t, statusCode, resp.StatusCode)
-	assertEqual(t, status, resp.Status)
+	tests.AssertNoError(t, err)
+	tests.AssertNotNil(t, resp)
+	tests.AssertNotNil(t, resp.Body)
+	tests.AssertEqual(t, statusCode, resp.StatusCode)
+	tests.AssertEqual(t, status, resp.Status)
 }
 
 func assertSuccess(t *testing.T, resp *Response, err error) {
-	assertError(t, err)
-	assertNotNil(t, resp.Response)
-	assertNotNil(t, resp.Response.Body)
-	assertEqual(t, http.StatusOK, resp.StatusCode)
-	assertEqual(t, "200 OK", resp.Status)
+	tests.AssertNoError(t, err)
+	tests.AssertNotNil(t, resp.Response)
+	tests.AssertNotNil(t, resp.Response.Body)
+	tests.AssertEqual(t, http.StatusOK, resp.StatusCode)
+	tests.AssertEqual(t, "200 OK", resp.Status)
 	if !resp.IsSuccess() {
 		t.Error("Response.IsSuccess should return true")
 	}
 }
 
 func assertIsError(t *testing.T, resp *Response, err error) {
-	assertError(t, err)
-	assertNotNil(t, resp)
-	assertNotNil(t, resp.Body)
+	tests.AssertNoError(t, err)
+	tests.AssertNotNil(t, resp)
+	tests.AssertNotNil(t, resp.Body)
 	if !resp.IsError() {
 		t.Error("Response.IsError should return true")
-	}
-}
-
-func assertNil(t *testing.T, v interface{}) {
-	if !isNil(v) {
-		t.Errorf("[%v] was expected to be nil", v)
-	}
-}
-
-func assertNotNil(t *testing.T, v interface{}) {
-	if isNil(v) {
-		t.Fatalf("[%v] was expected to be non-nil", v)
-	}
-}
-
-func assertError(t *testing.T, err error) {
-	if err != nil {
-		t.Errorf("Error occurred [%v]", err)
 	}
 }
 
@@ -353,13 +335,6 @@ func assertEqualStruct(t *testing.T, e, g interface{}, onlyExported bool, exclud
 		}
 	}
 
-}
-
-func assertEqual(t *testing.T, e, g interface{}) {
-	if !equal(e, g) {
-		t.Errorf("Expected [%+v], got [%+v]", e, g)
-	}
-	return
 }
 
 func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
@@ -446,17 +421,17 @@ func testGlobalWrapperEnableDumps(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	r := EnableDumpTo(buf)
-	assertEqual(t, true, r.getDumpOptions().Output != nil)
+	tests.AssertEqual(t, true, r.getDumpOptions().Output != nil)
 
 	dumpFile := tests.GetTestFilePath("req_tmp_dump.out")
 	r = EnableDumpToFile(tests.GetTestFilePath(dumpFile))
-	assertEqual(t, true, r.getDumpOptions().Output != nil)
+	tests.AssertEqual(t, true, r.getDumpOptions().Output != nil)
 	os.Remove(dumpFile)
 
 	r = SetDumpOptions(&DumpOptions{
 		RequestHeader: true,
 	})
-	assertEqual(t, true, r.getDumpOptions().RequestHeader)
+	tests.AssertEqual(t, true, r.getDumpOptions().RequestHeader)
 }
 
 func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
@@ -485,50 +460,50 @@ func testGlobalWrapperSendRequest(t *testing.T) {
 
 	resp, err := Put(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "PUT", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "PUT", resp.Header.Get("Method"))
 	resp = MustPut(testURL)
-	assertEqual(t, "PUT", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "PUT", resp.Header.Get("Method"))
 
 	resp, err = Patch(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "PATCH", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "PATCH", resp.Header.Get("Method"))
 	resp = MustPatch(testURL)
-	assertEqual(t, "PATCH", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "PATCH", resp.Header.Get("Method"))
 
 	resp, err = Delete(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "DELETE", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "DELETE", resp.Header.Get("Method"))
 	resp = MustDelete(testURL)
-	assertEqual(t, "DELETE", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "DELETE", resp.Header.Get("Method"))
 
 	resp, err = Options(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "OPTIONS", resp.Header.Get("Method"))
 	resp = MustOptions(testURL)
-	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "OPTIONS", resp.Header.Get("Method"))
 
 	resp, err = Head(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "HEAD", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "HEAD", resp.Header.Get("Method"))
 	resp = MustHead(testURL)
-	assertEqual(t, "HEAD", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "HEAD", resp.Header.Get("Method"))
 
 	resp, err = Get(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "GET", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "GET", resp.Header.Get("Method"))
 	resp = MustGet(testURL)
-	assertEqual(t, "GET", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "GET", resp.Header.Get("Method"))
 
 	resp, err = Post(testURL)
 	assertSuccess(t, resp, err)
-	assertEqual(t, "POST", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "POST", resp.Header.Get("Method"))
 	resp = MustPost(testURL)
-	assertEqual(t, "POST", resp.Header.Get("Method"))
+	tests.AssertEqual(t, "POST", resp.Header.Get("Method"))
 }
 
 func testGlobalWrapperSetRequest(t *testing.T, rs ...*Request) {
 	for _, r := range rs {
-		assertNotNil(t, r)
+		tests.AssertNotNil(t, r)
 	}
 }
 
@@ -601,7 +576,7 @@ func TestGlobalWrapperSetRequest(t *testing.T) {
 
 func testGlobalClientSettingWrapper(t *testing.T, cs ...*Client) {
 	for _, c := range cs {
-		assertNotNil(t, c)
+		tests.AssertNotNil(t, c)
 	}
 }
 
@@ -729,21 +704,21 @@ func TestGlobalWrapper(t *testing.T) {
 	os.Remove(tests.GetTestFilePath("tmpdump.out"))
 
 	config := GetTLSClientConfig()
-	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
+	tests.AssertEqual(t, config, DefaultClient().t.TLSClientConfig)
 
 	r := R()
-	assertEqual(t, true, r != nil)
+	tests.AssertEqual(t, true, r != nil)
 	c := C()
 
 	c.SetTimeout(10 * time.Second)
 	SetDefaultClient(c)
-	assertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
-	assertEqual(t, GetClient(), DefaultClient().httpClient)
+	tests.AssertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
+	tests.AssertEqual(t, GetClient(), DefaultClient().httpClient)
 
 	r = NewRequest()
-	assertEqual(t, true, r != nil)
+	tests.AssertEqual(t, true, r != nil)
 	c = NewClient()
-	assertEqual(t, true, c != nil)
+	tests.AssertEqual(t, true, c != nil)
 }
 
 func TestTrailer(t *testing.T) {

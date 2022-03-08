@@ -5865,7 +5865,7 @@ func TestCountReadFrameError(t *testing.T) {
 
 	var err error
 	cc.countReadFrameError(err)
-	assertEqual(t, "", errMsg)
+	tests.AssertEqual(t, "", errMsg)
 
 	err = http2ConnectionError(http2ErrCodeInternal)
 	cc.countReadFrameError(err)

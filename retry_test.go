@@ -29,8 +29,8 @@ func testRetry(t *testing.T, setFunc func(r *Request)) {
 	setFunc(r)
 	resp, err := r.Get("/too-many")
 	tests.AssertNoError(t, err)
-	assertEqual(t, 3, resp.Request.RetryAttempt)
-	assertEqual(t, 3, attempt)
+	tests.AssertEqual(t, 3, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 3, attempt)
 }
 
 func TestRetryInterval(t *testing.T) {
@@ -55,7 +55,7 @@ func TestAddRetryHook(t *testing.T) {
 			test = "test2"
 		})
 	})
-	assertEqual(t, "test2", test)
+	tests.AssertEqual(t, "test2", test)
 }
 
 func TestRetryOverride(t *testing.T) {
@@ -75,8 +75,8 @@ func TestRetryOverride(t *testing.T) {
 		return err != nil || resp.StatusCode == http.StatusTooManyRequests
 	}).Get("/too-many")
 	tests.AssertNoError(t, err)
-	assertEqual(t, "test1", test)
-	assertEqual(t, 2, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, "test1", test)
+	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
 }
 
 func TestAddRetryCondition(t *testing.T) {
@@ -93,8 +93,8 @@ func TestAddRetryCondition(t *testing.T) {
 			attempt++
 		}).Get("/too-many")
 	tests.AssertNoError(t, err)
-	assertEqual(t, 0, attempt)
-	assertEqual(t, 0, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 0, attempt)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 
 	attempt = 0
 	resp, err = tc().
@@ -109,8 +109,8 @@ func TestAddRetryCondition(t *testing.T) {
 			attempt++
 		}).R().Get("/too-many")
 	tests.AssertNoError(t, err)
-	assertEqual(t, 0, attempt)
-	assertEqual(t, 0, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 0, attempt)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 
 }
 
@@ -119,13 +119,13 @@ func TestRetryWithUnreplayableBody(t *testing.T) {
 		SetRetryCount(1).
 		SetBody(bytes.NewBufferString("test")).
 		Post("/")
-	assertEqual(t, errRetryableWithUnReplayableBody, err)
+	tests.AssertEqual(t, errRetryableWithUnReplayableBody, err)
 
 	_, err = tc().R().
 		SetRetryCount(1).
 		SetBody(ioutil.NopCloser(bytes.NewBufferString("test"))).
 		Post("/")
-	assertEqual(t, errRetryableWithUnReplayableBody, err)
+	tests.AssertEqual(t, errRetryableWithUnReplayableBody, err)
 }
 
 func TestRetryWithSetResult(t *testing.T) {
@@ -138,5 +138,5 @@ func TestRetryWithSetResult(t *testing.T) {
 		SetResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=test", headers.Get("Cookie"))
+	tests.AssertEqual(t, "test=test", headers.Get("Cookie"))
 }

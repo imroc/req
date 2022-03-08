@@ -20,23 +20,23 @@ func TestAllowGetMethodPayload(t *testing.T) {
 	c := tc()
 	resp, err := c.R().SetBody("test").Get("/payload")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "", resp.String())
+	tests.AssertEqual(t, "", resp.String())
 
 	c.EnableAllowGetMethodPayload()
 	resp, err = c.R().SetBody("test").Get("/payload")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test", resp.String())
+	tests.AssertEqual(t, "test", resp.String())
 
 	c.DisableAllowGetMethodPayload()
 	resp, err = c.R().SetBody("test").Get("/payload")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "", resp.String())
+	tests.AssertEqual(t, "", resp.String())
 }
 
 func TestSetTLSHandshakeTimeout(t *testing.T) {
 	timeout := 2 * time.Second
 	c := tc().SetTLSHandshakeTimeout(timeout)
-	assertEqual(t, timeout, c.t.TLSHandshakeTimeout)
+	tests.AssertEqual(t, timeout, c.t.TLSHandshakeTimeout)
 }
 
 func TestSetDial(t *testing.T) {
@@ -46,7 +46,7 @@ func TestSetDial(t *testing.T) {
 	}
 	c := tc().SetDial(testDial)
 	_, err := c.t.DialContext(nil, "", "")
-	assertEqual(t, testErr, err)
+	tests.AssertEqual(t, testErr, err)
 }
 
 func TestSetDialTLS(t *testing.T) {
@@ -56,7 +56,7 @@ func TestSetDialTLS(t *testing.T) {
 	}
 	c := tc().SetDialTLS(testDialTLS)
 	_, err := c.t.DialTLSContext(nil, "", "")
-	assertEqual(t, testErr, err)
+	tests.AssertEqual(t, testErr, err)
 }
 
 func TestSetFuncs(t *testing.T) {
@@ -74,31 +74,31 @@ func TestSetFuncs(t *testing.T) {
 		SetXmlUnmarshal(unmarshalFunc)
 
 	_, err := c.jsonMarshal(nil)
-	assertEqual(t, testErr, err)
+	tests.AssertEqual(t, testErr, err)
 	err = c.jsonUnmarshal(nil, nil)
-	assertEqual(t, testErr, err)
+	tests.AssertEqual(t, testErr, err)
 
 	_, err = c.xmlMarshal(nil)
-	assertEqual(t, testErr, err)
+	tests.AssertEqual(t, testErr, err)
 	err = c.xmlUnmarshal(nil, nil)
-	assertEqual(t, testErr, err)
+	tests.AssertEqual(t, testErr, err)
 }
 
 func TestSetCookieJar(t *testing.T) {
 	c := tc().SetCookieJar(nil)
-	assertEqual(t, nil, c.httpClient.Jar)
+	tests.AssertEqual(t, nil, c.httpClient.Jar)
 }
 
 func TestTraceAll(t *testing.T) {
 	c := tc().EnableTraceAll()
 	resp, err := c.R().Get("/")
 	assertSuccess(t, resp, err)
-	assertEqual(t, true, resp.TraceInfo().TotalTime > 0)
+	tests.AssertEqual(t, true, resp.TraceInfo().TotalTime > 0)
 
 	c.DisableTraceAll()
 	resp, err = c.R().Get("/")
 	assertSuccess(t, resp, err)
-	assertEqual(t, true, resp.TraceInfo().TotalTime == 0)
+	tests.AssertEqual(t, true, resp.TraceInfo().TotalTime == 0)
 }
 
 func TestOnAfterResponse(t *testing.T) {
@@ -108,21 +108,21 @@ func TestOnAfterResponse(t *testing.T) {
 		return nil
 	})
 	len2 := len(c.afterResponse)
-	assertEqual(t, true, len1+1 == len2)
+	tests.AssertEqual(t, true, len1+1 == len2)
 }
 
 func TestOnBeforeRequest(t *testing.T) {
 	c := tc().OnBeforeRequest(func(client *Client, request *Request) error {
 		return nil
 	})
-	assertEqual(t, true, len(c.udBeforeRequest) == 1)
+	tests.AssertEqual(t, true, len(c.udBeforeRequest) == 1)
 }
 
 func TestSetProxyURL(t *testing.T) {
 	c := tc().SetProxyURL("http://dummy.proxy.local")
 	u, err := c.t.Proxy(nil)
-	assertError(t, err)
-	assertEqual(t, "http://dummy.proxy.local", u.String())
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, "http://dummy.proxy.local", u.String())
 }
 
 func TestSetProxy(t *testing.T) {
@@ -130,18 +130,18 @@ func TestSetProxy(t *testing.T) {
 	proxy := http.ProxyURL(u)
 	c := tc().SetProxy(proxy)
 	uu, err := c.t.Proxy(nil)
-	assertError(t, err)
-	assertEqual(t, u.String(), uu.String())
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, u.String(), uu.String())
 }
 
 func TestSetCommonContentType(t *testing.T) {
 	c := tc().SetCommonContentType(jsonContentType)
-	assertEqual(t, jsonContentType, c.Headers.Get(hdrContentTypeKey))
+	tests.AssertEqual(t, jsonContentType, c.Headers.Get(hdrContentTypeKey))
 }
 
 func TestSetCommonHeader(t *testing.T) {
 	c := tc().SetCommonHeader("my-header", "my-value")
-	assertEqual(t, "my-value", c.Headers.Get("my-header"))
+	tests.AssertEqual(t, "my-value", c.Headers.Get("my-header"))
 }
 
 func TestSetCommonHeaders(t *testing.T) {
@@ -149,41 +149,41 @@ func TestSetCommonHeaders(t *testing.T) {
 		"header1": "value1",
 		"header2": "value2",
 	})
-	assertEqual(t, "value1", c.Headers.Get("header1"))
-	assertEqual(t, "value2", c.Headers.Get("header2"))
+	tests.AssertEqual(t, "value1", c.Headers.Get("header1"))
+	tests.AssertEqual(t, "value2", c.Headers.Get("header2"))
 }
 
 func TestSetCommonBasicAuth(t *testing.T) {
 	c := tc().SetCommonBasicAuth("imroc", "123456")
-	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", c.Headers.Get("Authorization"))
+	tests.AssertEqual(t, "Basic aW1yb2M6MTIzNDU2", c.Headers.Get("Authorization"))
 }
 
 func TestSetCommonBearerAuthToken(t *testing.T) {
 	c := tc().SetCommonBearerAuthToken("123456")
-	assertEqual(t, "Bearer 123456", c.Headers.Get("Authorization"))
+	tests.AssertEqual(t, "Bearer 123456", c.Headers.Get("Authorization"))
 }
 
 func TestSetUserAgent(t *testing.T) {
 	c := tc().SetUserAgent("test")
-	assertEqual(t, "test", c.Headers.Get(hdrUserAgentKey))
+	tests.AssertEqual(t, "test", c.Headers.Get(hdrUserAgentKey))
 }
 
 func TestAutoDecode(t *testing.T) {
 	c := tc().DisableAutoDecode()
 	resp, err := c.R().Get("/gbk")
 	assertSuccess(t, resp, err)
-	assertEqual(t, toGbk("我是roc"), resp.Bytes())
+	tests.AssertEqual(t, toGbk("我是roc"), resp.Bytes())
 
 	resp, err = c.EnableAutoDecode().R().Get("/gbk")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "我是roc", resp.String())
+	tests.AssertEqual(t, "我是roc", resp.String())
 
 	resp, err = c.SetAutoDecodeContentType("html").R().Get("/gbk")
 	assertSuccess(t, resp, err)
-	assertEqual(t, toGbk("我是roc"), resp.Bytes())
+	tests.AssertEqual(t, toGbk("我是roc"), resp.Bytes())
 	resp, err = c.SetAutoDecodeContentType("text").R().Get("/gbk")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "我是roc", resp.String())
+	tests.AssertEqual(t, "我是roc", resp.String())
 	resp, err = c.SetAutoDecodeContentTypeFunc(func(contentType string) bool {
 		if strings.Contains(contentType, "text") {
 			return true
@@ -191,7 +191,7 @@ func TestAutoDecode(t *testing.T) {
 		return false
 	}).R().Get("/gbk")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "我是roc", resp.String())
+	tests.AssertEqual(t, "我是roc", resp.String())
 
 	resp, err = c.SetAutoDecodeAllContentType().R().Get("/gbk-no-charset")
 	assertSuccess(t, resp, err)
@@ -201,29 +201,29 @@ func TestAutoDecode(t *testing.T) {
 func TestSetTimeout(t *testing.T) {
 	timeout := 100 * time.Second
 	c := tc().SetTimeout(timeout)
-	assertEqual(t, timeout, c.httpClient.Timeout)
+	tests.AssertEqual(t, timeout, c.httpClient.Timeout)
 }
 
 func TestSetLogger(t *testing.T) {
 	l := createDefaultLogger()
 	c := tc().SetLogger(l)
-	assertEqual(t, l, c.log)
+	tests.AssertEqual(t, l, c.log)
 
 	c.SetLogger(nil)
-	assertEqual(t, &disableLogger{}, c.log)
+	tests.AssertEqual(t, &disableLogger{}, c.log)
 }
 
 func TestSetScheme(t *testing.T) {
 	c := tc().SetScheme("https")
-	assertEqual(t, "https", c.scheme)
+	tests.AssertEqual(t, "https", c.scheme)
 }
 
 func TestDebugLog(t *testing.T) {
 	c := tc().EnableDebugLog()
-	assertEqual(t, true, c.DebugLog)
+	tests.AssertEqual(t, true, c.DebugLog)
 
 	c.DisableDebugLog()
-	assertEqual(t, false, c.DebugLog)
+	tests.AssertEqual(t, false, c.DebugLog)
 }
 
 func TestSetCommonCookies(t *testing.T) {
@@ -233,25 +233,25 @@ func TestSetCommonCookies(t *testing.T) {
 		Value: "test",
 	}).R().SetResult(&headers).Get("/header")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=test", headers.Get("Cookie"))
+	tests.AssertEqual(t, "test=test", headers.Get("Cookie"))
 }
 
 func TestSetCommonQueryString(t *testing.T) {
 	resp, err := tc().SetCommonQueryString("test=test").R().Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=test", resp.String())
+	tests.AssertEqual(t, "test=test", resp.String())
 }
 
 func TestSetCommonPathParams(t *testing.T) {
 	c := tc().SetCommonPathParams(map[string]string{"test": "test"})
-	assertNotNil(t, c.PathParams)
-	assertEqual(t, "test", c.PathParams["test"])
+	tests.AssertNotNil(t, c.PathParams)
+	tests.AssertEqual(t, "test", c.PathParams["test"])
 }
 
 func TestSetCommonPathParam(t *testing.T) {
 	c := tc().SetCommonPathParam("test", "test")
-	assertNotNil(t, c.PathParams)
-	assertEqual(t, "test", c.PathParams["test"])
+	tests.AssertNotNil(t, c.PathParams)
+	tests.AssertEqual(t, "test", c.PathParams["test"])
 }
 
 func TestAddCommonQueryParam(t *testing.T) {
@@ -260,97 +260,97 @@ func TestAddCommonQueryParam(t *testing.T) {
 		AddCommonQueryParam("test", "2").
 		R().Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=1&test=2", resp.String())
+	tests.AssertEqual(t, "test=1&test=2", resp.String())
 }
 
 func TestSetCommonQueryParam(t *testing.T) {
 	resp, err := tc().SetCommonQueryParam("test", "test").R().Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=test", resp.String())
+	tests.AssertEqual(t, "test=test", resp.String())
 }
 
 func TestSetCommonQueryParams(t *testing.T) {
 	resp, err := tc().SetCommonQueryParams(map[string]string{"test": "test"}).R().Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=test", resp.String())
+	tests.AssertEqual(t, "test=test", resp.String())
 }
 
 func TestInsecureSkipVerify(t *testing.T) {
 	c := tc().EnableInsecureSkipVerify()
-	assertEqual(t, true, c.t.TLSClientConfig.InsecureSkipVerify)
+	tests.AssertEqual(t, true, c.t.TLSClientConfig.InsecureSkipVerify)
 
 	c.DisableInsecureSkipVerify()
-	assertEqual(t, false, c.t.TLSClientConfig.InsecureSkipVerify)
+	tests.AssertEqual(t, false, c.t.TLSClientConfig.InsecureSkipVerify)
 }
 
 func TestSetTLSClientConfig(t *testing.T) {
 	config := &tls.Config{InsecureSkipVerify: true}
 	c := tc().SetTLSClientConfig(config)
-	assertEqual(t, config, c.t.TLSClientConfig)
+	tests.AssertEqual(t, config, c.t.TLSClientConfig)
 }
 
 func TestCompression(t *testing.T) {
 	c := tc().DisableCompression()
-	assertEqual(t, true, c.t.DisableCompression)
+	tests.AssertEqual(t, true, c.t.DisableCompression)
 
 	c.EnableCompression()
-	assertEqual(t, false, c.t.DisableCompression)
+	tests.AssertEqual(t, false, c.t.DisableCompression)
 }
 
 func TestKeepAlives(t *testing.T) {
 	c := tc().DisableKeepAlives()
-	assertEqual(t, true, c.t.DisableKeepAlives)
+	tests.AssertEqual(t, true, c.t.DisableKeepAlives)
 
 	c.EnableKeepAlives()
-	assertEqual(t, false, c.t.DisableKeepAlives)
+	tests.AssertEqual(t, false, c.t.DisableKeepAlives)
 }
 
 func TestRedirect(t *testing.T) {
 	_, err := tc().SetRedirectPolicy(NoRedirectPolicy()).R().Get("/unlimited-redirect")
-	assertNotNil(t, err)
+	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "redirect is disabled", true)
 
 	_, err = tc().SetRedirectPolicy(MaxRedirectPolicy(3)).R().Get("/unlimited-redirect")
-	assertNotNil(t, err)
+	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "stopped after 3 redirects", true)
 
 	_, err = tc().SetRedirectPolicy(SameDomainRedirectPolicy()).R().Get("/redirect-to-other")
-	assertNotNil(t, err)
+	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "different domain name is not allowed", true)
 
 	_, err = tc().SetRedirectPolicy(SameHostRedirectPolicy()).R().Get("/redirect-to-other")
-	assertNotNil(t, err)
+	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "different host name is not allowed", true)
 
 	_, err = tc().SetRedirectPolicy(AllowedHostRedirectPolicy("localhost", "127.0.0.1")).R().Get("/redirect-to-other")
-	assertNotNil(t, err)
+	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "redirect host [dummy.local] is not allowed", true)
 
 	_, err = tc().SetRedirectPolicy(AllowedDomainRedirectPolicy("localhost", "127.0.0.1")).R().Get("/redirect-to-other")
-	assertNotNil(t, err)
+	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "redirect domain [dummy.local] is not allowed", true)
 }
 
 func TestGetTLSClientConfig(t *testing.T) {
 	c := tc()
 	config := c.GetTLSClientConfig()
-	assertEqual(t, true, c.t.TLSClientConfig != nil)
-	assertEqual(t, config, c.t.TLSClientConfig)
+	tests.AssertEqual(t, true, c.t.TLSClientConfig != nil)
+	tests.AssertEqual(t, config, c.t.TLSClientConfig)
 }
 
 func TestSetRootCertFromFile(t *testing.T) {
 	c := tc().SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem"))
-	assertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
+	tests.AssertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
 }
 
 func TestSetRootCertFromString(t *testing.T) {
 	c := tc().SetRootCertFromString(string(tests.GetTestFileContent(t, "sample-root.pem")))
-	assertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
+	tests.AssertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
 }
 
 func TestSetCerts(t *testing.T) {
 	c := tc().SetCerts(tls.Certificate{}, tls.Certificate{})
-	assertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 2)
+	tests.AssertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 2)
 }
 
 func TestSetCertFromFile(t *testing.T) {
@@ -358,7 +358,7 @@ func TestSetCertFromFile(t *testing.T) {
 		tests.GetTestFilePath("sample-client.pem"),
 		tests.GetTestFilePath("sample-client-key.pem"),
 	)
-	assertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 1)
+	tests.AssertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 1)
 }
 
 func TestSetOutputDirectory(t *testing.T) {
@@ -370,13 +370,13 @@ func TestSetOutputDirectory(t *testing.T) {
 	assertSuccess(t, resp, err)
 	content := string(tests.GetTestFileContent(t, outFile))
 	os.Remove(tests.GetTestFilePath(outFile))
-	assertEqual(t, "TestGet: text response", content)
+	tests.AssertEqual(t, "TestGet: text response", content)
 }
 
 func TestSetBaseURL(t *testing.T) {
 	baseURL := "http://dummy-req.local/test"
 	resp, _ := tc().SetTimeout(time.Nanosecond).SetBaseURL(baseURL).R().Get("/req")
-	assertEqual(t, baseURL+"/req", resp.Request.RawRequest.URL.String())
+	tests.AssertEqual(t, baseURL+"/req", resp.Request.RawRequest.URL.String())
 }
 
 func TestSetCommonFormDataFromValues(t *testing.T) {
@@ -388,7 +388,7 @@ func TestSetCommonFormDataFromValues(t *testing.T) {
 		R().SetResult(&gotForm).
 		Post("/form")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test", gotForm.Get("test"))
+	tests.AssertEqual(t, "test", gotForm.Get("test"))
 }
 
 func TestSetCommonFormData(t *testing.T) {
@@ -401,7 +401,7 @@ func TestSetCommonFormData(t *testing.T) {
 		SetResult(&form).
 		Post("/form")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test", form.Get("test"))
+	tests.AssertEqual(t, "test", form.Get("test"))
 }
 
 func TestClientClone(t *testing.T) {
@@ -426,15 +426,15 @@ func testDisableAutoReadResponse(t *testing.T, c *Client) {
 	c.DisableAutoReadResponse()
 	resp, err := c.R().Get("/")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "", resp.String())
+	tests.AssertEqual(t, "", resp.String())
 	result, err := resp.ToString()
-	assertError(t, err)
-	assertEqual(t, "TestGet: text response", result)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, "TestGet: text response", result)
 
 	resp, err = c.R().Get("/")
 	assertSuccess(t, resp, err)
 	_, err = ioutil.ReadAll(resp.Body)
-	assertError(t, err)
+	tests.AssertNoError(t, err)
 }
 
 func TestEnableDumpAll(t *testing.T) {
@@ -564,5 +564,5 @@ func TestEnableDumpAllAsync(t *testing.T) {
 	c := tc()
 	buf := new(bytes.Buffer)
 	c.EnableDumpAllTo(buf).EnableDumpAllAsync()
-	assertEqual(t, true, c.getDumpOptions().Async)
+	tests.AssertEqual(t, true, c.getDumpOptions().Async)
 }
