@@ -1541,7 +1541,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			}
 		}
 		if !needRetry { // no retry is needed.
-			return
+			break // jump out to execute the ResponseMiddlewares.
 		}
 
 		// need retry, attempt to retry
