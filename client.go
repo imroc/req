@@ -64,24 +64,12 @@ type Client struct {
 	afterResponse           []ResponseMiddleware
 }
 
-// R is a global wrapper methods which delegated
-// to the default client's R().
-func R() *Request {
-	return defaultClient.R()
-}
-
 // R create a new request.
 func (c *Client) R() *Request {
 	return &Request{
 		client:      c,
 		retryOption: c.retryOption.Clone(),
 	}
-}
-
-// SetCommonFormDataFromValues is a global wrapper methods which delegated
-// to the default client's SetCommonFormDataFromValues.
-func SetCommonFormDataFromValues(data urlpkg.Values) *Client {
-	return defaultClient.SetCommonFormDataFromValues(data)
 }
 
 // SetCommonFormDataFromValues set the form data from url.Values for all requests
@@ -98,12 +86,6 @@ func (c *Client) SetCommonFormDataFromValues(data urlpkg.Values) *Client {
 	return c
 }
 
-// SetCommonFormData is a global wrapper methods which delegated
-// to the default client's SetCommonFormData.
-func SetCommonFormData(data map[string]string) *Client {
-	return defaultClient.SetCommonFormData(data)
-}
-
 // SetCommonFormData set the form data from map for all requests
 // which request method allows payload.
 func (c *Client) SetCommonFormData(data map[string]string) *Client {
@@ -116,12 +98,6 @@ func (c *Client) SetCommonFormData(data map[string]string) *Client {
 	return c
 }
 
-// SetBaseURL is a global wrapper methods which delegated
-// to the default client's SetBaseURL.
-func SetBaseURL(u string) *Client {
-	return defaultClient.SetBaseURL(u)
-}
-
 // SetBaseURL set the default base URL, will be used if request URL is
 // a relative URL.
 func (c *Client) SetBaseURL(u string) *Client {
@@ -129,23 +105,11 @@ func (c *Client) SetBaseURL(u string) *Client {
 	return c
 }
 
-// SetOutputDirectory is a global wrapper methods which delegated
-// to the default client's SetOutputDirectory.
-func SetOutputDirectory(dir string) *Client {
-	return defaultClient.SetOutputDirectory(dir)
-}
-
 // SetOutputDirectory set output directory that response will
 // be downloaded to.
 func (c *Client) SetOutputDirectory(dir string) *Client {
 	c.outputDirectory = dir
 	return c
-}
-
-// SetCertFromFile is a global wrapper methods which delegated
-// to the default client's SetCertFromFile.
-func SetCertFromFile(certFile, keyFile string) *Client {
-	return defaultClient.SetCertFromFile(certFile, keyFile)
 }
 
 // SetCertFromFile helps to set client certificates from cert and key file.
@@ -158,12 +122,6 @@ func (c *Client) SetCertFromFile(certFile, keyFile string) *Client {
 	config := c.GetTLSClientConfig()
 	config.Certificates = append(config.Certificates, cert)
 	return c
-}
-
-// SetCerts is a global wrapper methods which delegated
-// to the default client's SetCerts.
-func SetCerts(certs ...tls.Certificate) *Client {
-	return defaultClient.SetCerts(certs...)
 }
 
 // SetCerts set client certificates.
@@ -182,22 +140,10 @@ func (c *Client) appendRootCertData(data []byte) {
 	return
 }
 
-// SetRootCertFromString is a global wrapper methods which delegated
-// to the default client's SetRootCertFromString.
-func SetRootCertFromString(pemContent string) *Client {
-	return defaultClient.SetRootCertFromString(pemContent)
-}
-
 // SetRootCertFromString set root certificates from string.
 func (c *Client) SetRootCertFromString(pemContent string) *Client {
 	c.appendRootCertData([]byte(pemContent))
 	return c
-}
-
-// SetRootCertsFromFile is a global wrapper methods which delegated
-// to the default client's SetRootCertsFromFile.
-func SetRootCertsFromFile(pemFiles ...string) *Client {
-	return defaultClient.SetRootCertsFromFile(pemFiles...)
 }
 
 // SetRootCertsFromFile set root certificates from files.
@@ -211,12 +157,6 @@ func (c *Client) SetRootCertsFromFile(pemFiles ...string) *Client {
 		c.appendRootCertData(rootPemData)
 	}
 	return c
-}
-
-// GetTLSClientConfig is a global wrapper methods which delegated
-// to the default client's GetTLSClientConfig.
-func GetTLSClientConfig() *tls.Config {
-	return defaultClient.GetTLSClientConfig()
 }
 
 // GetTLSClientConfig return the underlying tls.Config.
@@ -237,12 +177,6 @@ func (c *Client) defaultCheckRedirect(req *http.Request, via []*http.Request) er
 		c.log.Debugf("<redirect> %s %s", req.Method, req.URL.String())
 	}
 	return nil
-}
-
-// SetRedirectPolicy is a global wrapper methods which delegated
-// to the default client's SetRedirectPolicy.
-func SetRedirectPolicy(policies ...RedirectPolicy) *Client {
-	return defaultClient.SetRedirectPolicy(policies...)
 }
 
 // SetRedirectPolicy set the RedirectPolicy which controls the behavior of receiving redirect
@@ -271,12 +205,6 @@ func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	return c
 }
 
-// DisableKeepAlives is a global wrapper methods which delegated
-// to the default client's DisableKeepAlives.
-func DisableKeepAlives() *Client {
-	return defaultClient.DisableKeepAlives()
-}
-
 // DisableKeepAlives disable the HTTP keep-alives (enabled by default)
 // and will only use the connection to the server for a single
 // HTTP request.
@@ -287,22 +215,10 @@ func (c *Client) DisableKeepAlives() *Client {
 	return c
 }
 
-// EnableKeepAlives is a global wrapper methods which delegated
-// to the default client's EnableKeepAlives.
-func EnableKeepAlives() *Client {
-	return defaultClient.EnableKeepAlives()
-}
-
 // EnableKeepAlives enables HTTP keep-alives (enabled by default).
 func (c *Client) EnableKeepAlives() *Client {
 	c.t.DisableKeepAlives = false
 	return c
-}
-
-// DisableCompression is a global wrapper methods which delegated
-// to the default client's DisableCompression.
-func DisableCompression() *Client {
-	return defaultClient.DisableCompression()
 }
 
 // DisableCompression disables the compression (enabled by default),
@@ -318,22 +234,10 @@ func (c *Client) DisableCompression() *Client {
 	return c
 }
 
-// EnableCompression is a global wrapper methods which delegated
-// to the default client's EnableCompression.
-func EnableCompression() *Client {
-	return defaultClient.EnableCompression()
-}
-
 // EnableCompression enables the compression (enabled by default).
 func (c *Client) EnableCompression() *Client {
 	c.t.DisableCompression = false
 	return c
-}
-
-// SetTLSClientConfig is a global wrapper methods which delegated
-// to the default client's SetTLSClientConfig.
-func SetTLSClientConfig(conf *tls.Config) *Client {
-	return defaultClient.SetTLSClientConfig(conf)
 }
 
 // SetTLSClientConfig set the TLS client config. Be careful! Usually
@@ -347,23 +251,11 @@ func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	return c
 }
 
-// EnableInsecureSkipVerify is a global wrapper methods which delegated
-// to the default client's EnableInsecureSkipVerify.
-func EnableInsecureSkipVerify() *Client {
-	return defaultClient.EnableInsecureSkipVerify()
-}
-
 // EnableInsecureSkipVerify enable send https without verifing
 // the server's certificates (disabled by default).
 func (c *Client) EnableInsecureSkipVerify() *Client {
 	c.GetTLSClientConfig().InsecureSkipVerify = true
 	return c
-}
-
-// DisableInsecureSkipVerify is a global wrapper methods which delegated
-// to the default client's DisableInsecureSkipVerify.
-func DisableInsecureSkipVerify() *Client {
-	return defaultClient.DisableInsecureSkipVerify()
 }
 
 // DisableInsecureSkipVerify disable send https without verifing
@@ -373,12 +265,6 @@ func (c *Client) DisableInsecureSkipVerify() *Client {
 	return c
 }
 
-// SetCommonQueryParams is a global wrapper methods which delegated
-// to the default client's SetCommonQueryParams.
-func SetCommonQueryParams(params map[string]string) *Client {
-	return defaultClient.SetCommonQueryParams(params)
-}
-
 // SetCommonQueryParams set URL query parameters with a map
 // for all requests.
 func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
@@ -386,12 +272,6 @@ func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
 		c.SetCommonQueryParam(k, v)
 	}
 	return c
-}
-
-// AddCommonQueryParam is a global wrapper methods which delegated
-// to the default client's AddCommonQueryParam.
-func AddCommonQueryParam(key, value string) *Client {
-	return defaultClient.AddCommonQueryParam(key, value)
 }
 
 // AddCommonQueryParam add a URL query parameter with a key-value
@@ -411,22 +291,10 @@ func (c *Client) pathParams() map[string]string {
 	return c.PathParams
 }
 
-// SetCommonPathParam is a global wrapper methods which delegated
-// to the default client's SetCommonPathParam.
-func SetCommonPathParam(key, value string) *Client {
-	return defaultClient.SetCommonPathParam(key, value)
-}
-
 // SetCommonPathParam set a path parameter for all requests.
 func (c *Client) SetCommonPathParam(key, value string) *Client {
 	c.pathParams()[key] = value
 	return c
-}
-
-// SetCommonPathParams is a global wrapper methods which delegated
-// to the default client's SetCommonPathParams.
-func SetCommonPathParams(pathParams map[string]string) *Client {
-	return defaultClient.SetCommonPathParams(pathParams)
 }
 
 // SetCommonPathParams set path parameters for all requests.
@@ -438,12 +306,6 @@ func (c *Client) SetCommonPathParams(pathParams map[string]string) *Client {
 	return c
 }
 
-// SetCommonQueryParam is a global wrapper methods which delegated
-// to the default client's SetCommonQueryParam.
-func SetCommonQueryParam(key, value string) *Client {
-	return defaultClient.SetCommonQueryParam(key, value)
-}
-
 // SetCommonQueryParam set a URL query parameter with a key-value
 // pair for all requests.
 func (c *Client) SetCommonQueryParam(key, value string) *Client {
@@ -452,12 +314,6 @@ func (c *Client) SetCommonQueryParam(key, value string) *Client {
 	}
 	c.QueryParams.Set(key, value)
 	return c
-}
-
-// SetCommonQueryString is a global wrapper methods which delegated
-// to the default client's SetCommonQueryString.
-func SetCommonQueryString(query string) *Client {
-	return defaultClient.SetCommonQueryString(query)
 }
 
 // SetCommonQueryString set URL query parameters with a raw query string
@@ -479,22 +335,10 @@ func (c *Client) SetCommonQueryString(query string) *Client {
 	return c
 }
 
-// SetCommonCookies is a global wrapper methods which delegated
-// to the default client's SetCommonCookies.
-func SetCommonCookies(cookies ...*http.Cookie) *Client {
-	return defaultClient.SetCommonCookies(cookies...)
-}
-
 // SetCommonCookies set HTTP cookies for all requests.
 func (c *Client) SetCommonCookies(cookies ...*http.Cookie) *Client {
 	c.Cookies = append(c.Cookies, cookies...)
 	return c
-}
-
-// DisableDebugLog is a global wrapper methods which delegated
-// to the default client's DisableDebugLog.
-func DisableDebugLog() *Client {
-	return defaultClient.DisableDebugLog()
 }
 
 // DisableDebugLog disable debug level log (disabled by default).
@@ -503,22 +347,10 @@ func (c *Client) DisableDebugLog() *Client {
 	return c
 }
 
-// EnableDebugLog is a global wrapper methods which delegated
-// to the default client's EnableDebugLog.
-func EnableDebugLog() *Client {
-	return defaultClient.EnableDebugLog()
-}
-
 // EnableDebugLog enable debug level log (disabled by default).
 func (c *Client) EnableDebugLog() *Client {
 	c.DebugLog = true
 	return c
-}
-
-// DevMode is a global wrapper methods which delegated
-// to the default client's DevMode.
-func DevMode() *Client {
-	return defaultClient.DevMode()
 }
 
 // DevMode enables:
@@ -533,12 +365,6 @@ func (c *Client) DevMode() *Client {
 		SetUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36")
 }
 
-// SetScheme is a global wrapper methods which delegated
-// to the default client's SetScheme.
-func SetScheme(scheme string) *Client {
-	return defaultClient.SetScheme(scheme)
-}
-
 // SetScheme set the default scheme for client, will be used when
 // there is no scheme in the request URL (e.g. "github.com/imroc/req").
 func (c *Client) SetScheme(scheme string) *Client {
@@ -546,12 +372,6 @@ func (c *Client) SetScheme(scheme string) *Client {
 		c.scheme = strings.TrimSpace(scheme)
 	}
 	return c
-}
-
-// SetLogger is a global wrapper methods which delegated
-// to the default client's SetLogger.
-func SetLogger(log Logger) *Client {
-	return defaultClient.SetLogger(log)
 }
 
 // SetLogger set the customized logger for client, will disable log if set to nil.
@@ -571,12 +391,6 @@ func (c *Client) getResponseOptions() *ResponseOptions {
 	return c.t.ResponseOptions
 }
 
-// SetTimeout is a global wrapper methods which delegated
-// to the default client's SetTimeout.
-func SetTimeout(d time.Duration) *Client {
-	return defaultClient.SetTimeout(d)
-}
-
 // SetTimeout set timeout for all requests.
 func (c *Client) SetTimeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
@@ -590,12 +404,6 @@ func (c *Client) getDumpOptions() *DumpOptions {
 	return c.dumpOptions
 }
 
-// EnableDumpAll is a global wrapper methods which delegated
-// to the default client's EnableDumpAll.
-func EnableDumpAll() *Client {
-	return defaultClient.EnableDumpAll()
-}
-
 // EnableDumpAll enable dump for all requests, including
 // all content for the request and response by default.
 func (c *Client) EnableDumpAll() *Client {
@@ -604,12 +412,6 @@ func (c *Client) EnableDumpAll() *Client {
 	}
 	c.t.EnableDump(c.getDumpOptions())
 	return c
-}
-
-// EnableDumpAllToFile is a global wrapper methods which delegated
-// to the default client's EnableDumpAllToFile.
-func EnableDumpAllToFile(filename string) *Client {
-	return defaultClient.EnableDumpAllToFile(filename)
 }
 
 // EnableDumpAllToFile enable dump for all requests and output
@@ -625,24 +427,12 @@ func (c *Client) EnableDumpAllToFile(filename string) *Client {
 	return c
 }
 
-// EnableDumpAllTo is a global wrapper methods which delegated
-// to the default client's EnableDumpAllTo.
-func EnableDumpAllTo(output io.Writer) *Client {
-	return defaultClient.EnableDumpAllTo(output)
-}
-
 // EnableDumpAllTo enable dump for all requests and output to
 // the specified io.Writer.
 func (c *Client) EnableDumpAllTo(output io.Writer) *Client {
 	c.getDumpOptions().Output = output
 	c.EnableDumpAll()
 	return c
-}
-
-// EnableDumpAllAsync is a global wrapper methods which delegated
-// to the default client's EnableDumpAllAsync.
-func EnableDumpAllAsync() *Client {
-	return defaultClient.EnableDumpAllAsync()
 }
 
 // EnableDumpAllAsync enable dump for all requests and output
@@ -655,12 +445,6 @@ func (c *Client) EnableDumpAllAsync() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutRequestBody is a global wrapper methods which delegated
-// to the default client's EnableDumpAllWithoutRequestBody.
-func EnableDumpAllWithoutRequestBody() *Client {
-	return defaultClient.EnableDumpAllWithoutRequestBody()
-}
-
 // EnableDumpAllWithoutRequestBody enable dump for all requests without
 // request body, can be used in the upload request to avoid dumping the
 // unreadable binary content.
@@ -669,12 +453,6 @@ func (c *Client) EnableDumpAllWithoutRequestBody() *Client {
 	o.RequestBody = false
 	c.EnableDumpAll()
 	return c
-}
-
-// EnableDumpAllWithoutResponseBody is a global wrapper methods which delegated
-// to the default client's EnableDumpAllWithoutResponseBody.
-func EnableDumpAllWithoutResponseBody() *Client {
-	return defaultClient.EnableDumpAllWithoutResponseBody()
 }
 
 // EnableDumpAllWithoutResponseBody enable dump for all requests without
@@ -687,12 +465,6 @@ func (c *Client) EnableDumpAllWithoutResponseBody() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutResponse is a global wrapper methods which delegated
-// to the default client's EnableDumpAllWithoutResponse.
-func EnableDumpAllWithoutResponse() *Client {
-	return defaultClient.EnableDumpAllWithoutResponse()
-}
-
 // EnableDumpAllWithoutResponse enable dump for all requests without response,
 // can be used if you only care about the request.
 func (c *Client) EnableDumpAllWithoutResponse() *Client {
@@ -701,12 +473,6 @@ func (c *Client) EnableDumpAllWithoutResponse() *Client {
 	o.ResponseHeader = false
 	c.EnableDumpAll()
 	return c
-}
-
-// EnableDumpAllWithoutRequest is a global wrapper methods which delegated
-// to the default client's EnableDumpAllWithoutRequest.
-func EnableDumpAllWithoutRequest() *Client {
-	return defaultClient.EnableDumpAllWithoutRequest()
 }
 
 // EnableDumpAllWithoutRequest enables dump for all requests without request,
@@ -719,12 +485,6 @@ func (c *Client) EnableDumpAllWithoutRequest() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutHeader is a global wrapper methods which delegated
-// to the default client's EnableDumpAllWithoutHeader.
-func EnableDumpAllWithoutHeader() *Client {
-	return defaultClient.EnableDumpAllWithoutHeader()
-}
-
 // EnableDumpAllWithoutHeader enable dump for all requests without header,
 // can be used if you only care about the body.
 func (c *Client) EnableDumpAllWithoutHeader() *Client {
@@ -733,12 +493,6 @@ func (c *Client) EnableDumpAllWithoutHeader() *Client {
 	o.ResponseHeader = false
 	c.EnableDumpAll()
 	return c
-}
-
-// EnableDumpAllWithoutBody is a global wrapper methods which delegated
-// to the default client's EnableDumpAllWithoutBody.
-func EnableDumpAllWithoutBody() *Client {
-	return defaultClient.EnableDumpAllWithoutBody()
 }
 
 // EnableDumpAllWithoutBody enable dump for all requests without body,
@@ -751,21 +505,9 @@ func (c *Client) EnableDumpAllWithoutBody() *Client {
 	return c
 }
 
-// NewRequest is a global wrapper methods which delegated
-// to the default client's NewRequest.
-func NewRequest() *Request {
-	return defaultClient.R()
-}
-
 // NewRequest is the alias of R()
 func (c *Client) NewRequest() *Request {
 	return c.R()
-}
-
-// DisableAutoReadResponse is a global wrapper methods which delegated
-// to the default client's DisableAutoReadResponse.
-func DisableAutoReadResponse() *Client {
-	return defaultClient.DisableAutoReadResponse()
 }
 
 // DisableAutoReadResponse disable read response body automatically (enabled by default).
@@ -774,22 +516,10 @@ func (c *Client) DisableAutoReadResponse() *Client {
 	return c
 }
 
-// EnableAutoReadResponse is a global wrapper methods which delegated
-// to the default client's EnableAutoReadResponse.
-func EnableAutoReadResponse() *Client {
-	return defaultClient.EnableAutoReadResponse()
-}
-
 // EnableAutoReadResponse enable read response body automatically (enabled by default).
 func (c *Client) EnableAutoReadResponse() *Client {
 	c.disableAutoReadResponse = false
 	return c
-}
-
-// SetAutoDecodeContentType is a global wrapper methods which delegated
-// to the default client's SetAutoDecodeContentType.
-func SetAutoDecodeContentType(contentTypes ...string) *Client {
-	return defaultClient.SetAutoDecodeContentType(contentTypes...)
 }
 
 // SetAutoDecodeContentType set the content types that will be auto-detected and decode
@@ -800,24 +530,12 @@ func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
 	return c
 }
 
-// SetAutoDecodeContentTypeFunc is a global wrapper methods which delegated
-// to the default client's SetAutoDecodeAllTypeFunc.
-func SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
-	return defaultClient.SetAutoDecodeContentTypeFunc(fn)
-}
-
 // SetAutoDecodeContentTypeFunc set the function that determines whether the
 // specified `Content-Type` should be auto-detected and decode to utf-8.
 func (c *Client) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
 	opt := c.getResponseOptions()
 	opt.AutoDecodeContentType = fn
 	return c
-}
-
-// SetAutoDecodeAllContentType is a global wrapper methods which delegated
-// to the default client's SetAutoDecodeAllContentType.
-func SetAutoDecodeAllContentType() *Client {
-	return defaultClient.SetAutoDecodeAllContentType()
 }
 
 // SetAutoDecodeAllContentType enable try auto-detect charset and decode all
@@ -830,23 +548,11 @@ func (c *Client) SetAutoDecodeAllContentType() *Client {
 	return c
 }
 
-// DisableAutoDecode is a global wrapper methods which delegated
-// to the default client's DisableAutoDecode.
-func DisableAutoDecode() *Client {
-	return defaultClient.DisableAutoDecode()
-}
-
 // DisableAutoDecode disable auto-detect charset and decode to utf-8
 // (enabled by default).
 func (c *Client) DisableAutoDecode() *Client {
 	c.getResponseOptions().DisableAutoDecode = true
 	return c
-}
-
-// EnableAutoDecode is a global wrapper methods which delegated
-// to the default client's EnableAutoDecode.
-func EnableAutoDecode() *Client {
-	return defaultClient.EnableAutoDecode()
 }
 
 // EnableAutoDecode enable auto-detect charset and decode to utf-8
@@ -856,32 +562,14 @@ func (c *Client) EnableAutoDecode() *Client {
 	return c
 }
 
-// SetUserAgent is a global wrapper methods which delegated
-// to the default client's SetUserAgent.
-func SetUserAgent(userAgent string) *Client {
-	return defaultClient.SetUserAgent(userAgent)
-}
-
 // SetUserAgent set the "User-Agent" header for all requests.
 func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c.SetCommonHeader(hdrUserAgentKey, userAgent)
 }
 
-// SetCommonBearerAuthToken is a global wrapper methods which delegated
-// to the default client's SetCommonBearerAuthToken.
-func SetCommonBearerAuthToken(token string) *Client {
-	return defaultClient.SetCommonBearerAuthToken(token)
-}
-
 // SetCommonBearerAuthToken set the bearer auth token for all requests.
 func (c *Client) SetCommonBearerAuthToken(token string) *Client {
 	return c.SetCommonHeader("Authorization", "Bearer "+token)
-}
-
-// SetCommonBasicAuth is a global wrapper methods which delegated
-// to the default client's SetCommonBasicAuth.
-func SetCommonBasicAuth(username, password string) *Client {
-	return defaultClient.SetCommonBasicAuth(username, password)
 }
 
 // SetCommonBasicAuth set the basic auth for all requests.
@@ -890,24 +578,12 @@ func (c *Client) SetCommonBasicAuth(username, password string) *Client {
 	return c
 }
 
-// SetCommonHeaders is a global wrapper methods which delegated
-// to the default client's SetCommonHeaders.
-func SetCommonHeaders(hdrs map[string]string) *Client {
-	return defaultClient.SetCommonHeaders(hdrs)
-}
-
 // SetCommonHeaders set headers for all requests.
 func (c *Client) SetCommonHeaders(hdrs map[string]string) *Client {
 	for k, v := range hdrs {
 		c.SetCommonHeader(k, v)
 	}
 	return c
-}
-
-// SetCommonHeader is a global wrapper methods which delegated
-// to the default client's SetCommonHeader.
-func SetCommonHeader(key, value string) *Client {
-	return defaultClient.SetCommonHeader(key, value)
 }
 
 // SetCommonHeader set a header for all requests.
@@ -919,34 +595,16 @@ func (c *Client) SetCommonHeader(key, value string) *Client {
 	return c
 }
 
-// SetCommonContentType is a global wrapper methods which delegated
-// to the default client's SetCommonContentType.
-func SetCommonContentType(ct string) *Client {
-	return defaultClient.SetCommonContentType(ct)
-}
-
 // SetCommonContentType set the `Content-Type` header for all requests.
 func (c *Client) SetCommonContentType(ct string) *Client {
 	c.SetCommonHeader(hdrContentTypeKey, ct)
 	return c
 }
 
-// DisableDumpAll is a global wrapper methods which delegated
-// to the default client's DisableDumpAll.
-func DisableDumpAll() *Client {
-	return defaultClient.DisableDumpAll()
-}
-
 // DisableDumpAll disable dump for all requests.
 func (c *Client) DisableDumpAll() *Client {
 	c.t.DisableDump()
 	return c
-}
-
-// SetCommonDumpOptions is a global wrapper methods which delegated
-// to the default client's SetCommonDumpOptions.
-func SetCommonDumpOptions(opt *DumpOptions) *Client {
-	return defaultClient.SetCommonDumpOptions(opt)
 }
 
 // SetCommonDumpOptions configures the underlying Transport's DumpOptions
@@ -962,22 +620,10 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 	return c
 }
 
-// SetProxy is a global wrapper methods which delegated
-// to the default client's SetProxy.
-func SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
-	return defaultClient.SetProxy(proxy)
-}
-
 // SetProxy set the proxy function.
 func (c *Client) SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
 	c.t.Proxy = proxy
 	return c
-}
-
-// OnBeforeRequest is a global wrapper methods which delegated
-// to the default client's OnBeforeRequest.
-func OnBeforeRequest(m RequestMiddleware) *Client {
-	return defaultClient.OnBeforeRequest(m)
 }
 
 // OnBeforeRequest add a request middleware which hooks before request sent.
@@ -986,22 +632,10 @@ func (c *Client) OnBeforeRequest(m RequestMiddleware) *Client {
 	return c
 }
 
-// OnAfterResponse is a global wrapper methods which delegated
-// to the default client's OnAfterResponse.
-func OnAfterResponse(m ResponseMiddleware) *Client {
-	return defaultClient.OnAfterResponse(m)
-}
-
 // OnAfterResponse add a response middleware which hooks after response received.
 func (c *Client) OnAfterResponse(m ResponseMiddleware) *Client {
 	c.afterResponse = append(c.afterResponse, m)
 	return c
-}
-
-// SetProxyURL is a global wrapper methods which delegated
-// to the default client's SetProxyURL.
-func SetProxyURL(proxyUrl string) *Client {
-	return defaultClient.SetProxyURL(proxyUrl)
 }
 
 // SetProxyURL set proxy from the proxy URL.
@@ -1015,22 +649,10 @@ func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	return c
 }
 
-// DisableTraceAll is a global wrapper methods which delegated
-// to the default client's DisableTraceAll.
-func DisableTraceAll() *Client {
-	return defaultClient.DisableTraceAll()
-}
-
 // DisableTraceAll disable trace for all requests.
 func (c *Client) DisableTraceAll() *Client {
 	c.trace = false
 	return c
-}
-
-// EnableTraceAll is a global wrapper methods which delegated
-// to the default client's EnableTraceAll.
-func EnableTraceAll() *Client {
-	return defaultClient.EnableTraceAll()
 }
 
 // EnableTraceAll enable trace for all requests.
@@ -1039,22 +661,10 @@ func (c *Client) EnableTraceAll() *Client {
 	return c
 }
 
-// SetCookieJar is a global wrapper methods which delegated
-// to the default client's SetCookieJar.
-func SetCookieJar(jar http.CookieJar) *Client {
-	return defaultClient.SetCookieJar(jar)
-}
-
 // SetCookieJar set the `CookeJar` to the underlying `http.Client`.
 func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	c.httpClient.Jar = jar
 	return c
-}
-
-// SetJsonMarshal is a global wrapper methods which delegated
-// to the default client's SetJsonMarshal.
-func SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
-	return defaultClient.SetJsonMarshal(fn)
 }
 
 // SetJsonMarshal set the JSON marshal function which will be used
@@ -1064,23 +674,11 @@ func (c *Client) SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client 
 	return c
 }
 
-// SetJsonUnmarshal is a global wrapper methods which delegated
-// to the default client's SetJsonUnmarshal.
-func SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
-	return defaultClient.SetJsonUnmarshal(fn)
-}
-
 // SetJsonUnmarshal set the JSON unmarshal function which will be used
 // to unmarshal response body.
 func (c *Client) SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	c.jsonUnmarshal = fn
 	return c
-}
-
-// SetXmlMarshal is a global wrapper methods which delegated
-// to the default client's SetXmlMarshal.
-func SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
-	return defaultClient.SetXmlMarshal(fn)
 }
 
 // SetXmlMarshal set the XML marshal function which will be used
@@ -1090,23 +688,11 @@ func (c *Client) SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
 	return c
 }
 
-// SetXmlUnmarshal is a global wrapper methods which delegated
-// to the default client's SetXmlUnmarshal.
-func SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
-	return defaultClient.SetXmlUnmarshal(fn)
-}
-
 // SetXmlUnmarshal set the XML unmarshal function which will be used
 // to unmarshal response body.
 func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 	c.xmlUnmarshal = fn
 	return c
-}
-
-// SetDialTLS is a global wrapper methods which delegated
-// to the default client's SetDialTLS.
-func SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
-	return defaultClient.SetDialTLS(fn)
 }
 
 // SetDialTLS set the customized `DialTLSContext` function to Transport.
@@ -1117,22 +703,10 @@ func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (
 	return c
 }
 
-// SetDial is a global wrapper methods which delegated
-// to the default client's SetDial.
-func SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
-	return defaultClient.SetDial(fn)
-}
-
 // SetDial set the customized `DialContext` function to Transport.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.DialContext = fn
 	return c
-}
-
-// SetTLSHandshakeTimeout is a global wrapper methods which delegated
-// to the default client's SetTLSHandshakeTimeout.
-func SetTLSHandshakeTimeout(timeout time.Duration) *Client {
-	return defaultClient.SetTLSHandshakeTimeout(timeout)
 }
 
 // SetTLSHandshakeTimeout set the TLS handshake timeout.
@@ -1141,22 +715,10 @@ func (c *Client) SetTLSHandshakeTimeout(timeout time.Duration) *Client {
 	return c
 }
 
-// EnableForceHTTP1 is a global wrapper methods which delegated
-// to the default client's EnableForceHTTP1.
-func EnableForceHTTP1() *Client {
-	return defaultClient.EnableForceHTTP1()
-}
-
 // EnableForceHTTP1 enable force using HTTP1 (disabled by default).
 func (c *Client) EnableForceHTTP1() *Client {
 	c.t.ForceHttpVersion = HTTP1
 	return c
-}
-
-// EnableForceHTTP2 is a global wrapper methods which delegated
-// to the default client's EnableForceHTTP2.
-func EnableForceHTTP2() *Client {
-	return defaultClient.EnableForceHTTP2()
 }
 
 // EnableForceHTTP2 enable force using HTTP2 for https requests
@@ -1166,34 +728,16 @@ func (c *Client) EnableForceHTTP2() *Client {
 	return c
 }
 
-// DisableForceHttpVersion is a global wrapper methods which delegated
-// to the default client's DisableForceHttpVersion.
-func DisableForceHttpVersion() *Client {
-	return defaultClient.DisableForceHttpVersion()
-}
-
 // DisableForceHttpVersion disable force using HTTP1 (disabled by default).
 func (c *Client) DisableForceHttpVersion() *Client {
 	c.t.ForceHttpVersion = ""
 	return c
 }
 
-// DisableAllowGetMethodPayload is a global wrapper methods which delegated
-// to the default client's DisableAllowGetMethodPayload.
-func DisableAllowGetMethodPayload() *Client {
-	return defaultClient.DisableAllowGetMethodPayload()
-}
-
 // DisableAllowGetMethodPayload disable sending GET method requests with body.
 func (c *Client) DisableAllowGetMethodPayload() *Client {
 	c.AllowGetMethodPayload = false
 	return c
-}
-
-// EnableAllowGetMethodPayload is a global wrapper methods which delegated
-// to the default client's EnableAllowGetMethodPayload.
-func EnableAllowGetMethodPayload() *Client {
-	return defaultClient.EnableAllowGetMethodPayload()
 }
 
 // EnableAllowGetMethodPayload allows sending GET method requests with body.
@@ -1204,12 +748,6 @@ func (c *Client) EnableAllowGetMethodPayload() *Client {
 
 func (c *Client) isPayloadForbid(m string) bool {
 	return (m == http.MethodGet && !c.AllowGetMethodPayload) || m == http.MethodHead || m == http.MethodOptions
-}
-
-// GetClient is a global wrapper methods which delegated
-// to the default client's GetClient.
-func GetClient() *http.Client {
-	return defaultClient.GetClient()
 }
 
 // GetClient returns the underlying `http.Client`.
@@ -1224,22 +762,10 @@ func (c *Client) getRetryOption() *retryOption {
 	return c.retryOption
 }
 
-// SetCommonRetryCount is a global wrapper methods which delegated
-// to the default client, create a request and SetCommonRetryCount for request.
-func SetCommonRetryCount(count int) *Client {
-	return defaultClient.SetCommonRetryCount(count)
-}
-
 // SetCommonRetryCount enables retry and set the maximum retry count for all requests.
 func (c *Client) SetCommonRetryCount(count int) *Client {
 	c.getRetryOption().MaxRetries = count
 	return c
-}
-
-// SetCommonRetryInterval is a global wrapper methods which delegated
-// to the default client, create a request and SetCommonRetryInterval for request.
-func SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Client {
-	return defaultClient.SetCommonRetryInterval(getRetryIntervalFunc)
 }
 
 // SetCommonRetryInterval sets the custom GetRetryIntervalFunc for all requests,
@@ -1254,24 +780,12 @@ func (c *Client) SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFun
 	return c
 }
 
-// SetCommonRetryFixedInterval is a global wrapper methods which delegated
-// to the default client, create a request and SetCommonRetryFixedInterval for request.
-func SetCommonRetryFixedInterval(interval time.Duration) *Client {
-	return defaultClient.SetCommonRetryFixedInterval(interval)
-}
-
 // SetCommonRetryFixedInterval set retry to use a fixed interval for all requests.
 func (c *Client) SetCommonRetryFixedInterval(interval time.Duration) *Client {
 	c.getRetryOption().GetRetryInterval = func(resp *Response, attempt int) time.Duration {
 		return interval
 	}
 	return c
-}
-
-// SetCommonRetryBackoffInterval is a global wrapper methods which delegated
-// to the default client, create a request and SetCommonRetryBackoffInterval for request.
-func SetCommonRetryBackoffInterval(min, max time.Duration) *Client {
-	return defaultClient.SetCommonRetryBackoffInterval(min, max)
 }
 
 // SetCommonRetryBackoffInterval set retry to use a capped exponential backoff with jitter
@@ -1282,23 +796,11 @@ func (c *Client) SetCommonRetryBackoffInterval(min, max time.Duration) *Client {
 	return c
 }
 
-// SetCommonRetryHook is a global wrapper methods which delegated
-// to the default client, create a request and SetRetryHook for request.
-func SetCommonRetryHook(hook RetryHookFunc) *Client {
-	return defaultClient.SetCommonRetryHook(hook)
-}
-
 // SetCommonRetryHook set the retry hook which will be executed before a retry.
 // It will override other retry hooks if any been added before.
 func (c *Client) SetCommonRetryHook(hook RetryHookFunc) *Client {
 	c.getRetryOption().RetryHooks = []RetryHookFunc{hook}
 	return c
-}
-
-// AddCommonRetryHook is a global wrapper methods which delegated
-// to the default client, create a request and AddCommonRetryHook for request.
-func AddCommonRetryHook(hook RetryHookFunc) *Client {
-	return defaultClient.AddCommonRetryHook(hook)
 }
 
 // AddCommonRetryHook adds a retry hook for all requests, which will be
@@ -1309,12 +811,6 @@ func (c *Client) AddCommonRetryHook(hook RetryHookFunc) *Client {
 	return c
 }
 
-// SetCommonRetryCondition is a global wrapper methods which delegated
-// to the default client, create a request and SetCommonRetryCondition for request.
-func SetCommonRetryCondition(condition RetryConditionFunc) *Client {
-	return defaultClient.SetCommonRetryCondition(condition)
-}
-
 // SetCommonRetryCondition sets the retry condition, which determines whether the
 // request should retry.
 // It will override other retry conditions if any been added before.
@@ -1323,24 +819,12 @@ func (c *Client) SetCommonRetryCondition(condition RetryConditionFunc) *Client {
 	return c
 }
 
-// AddCommonRetryCondition is a global wrapper methods which delegated
-// to the default client, create a request and AddCommonRetryCondition for request.
-func AddCommonRetryCondition(condition RetryConditionFunc) *Client {
-	return defaultClient.AddCommonRetryCondition(condition)
-}
-
 // AddCommonRetryCondition adds a retry condition, which determines whether the
 // request should retry.
 func (c *Client) AddCommonRetryCondition(condition RetryConditionFunc) *Client {
 	ro := c.getRetryOption()
 	ro.RetryConditions = append(ro.RetryConditions, condition)
 	return c
-}
-
-// SetUnixSocket is a global wrapper methods which delegated
-// to the default client, create a request and SetUnixSocket for request.
-func SetUnixSocket(file string) *Client {
-	return defaultClient.SetUnixSocket(file)
 }
 
 // SetUnixSocket set client to dial connection use unix socket.
