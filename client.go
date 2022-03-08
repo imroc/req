@@ -1379,6 +1379,7 @@ func (c *Client) Clone() *Client {
 	cc.udBeforeRequest = cloneRequestMiddleware(c.udBeforeRequest)
 	cc.afterResponse = cloneResponseMiddleware(c.afterResponse)
 	cc.dumpOptions = c.dumpOptions.Clone()
+	cc.retryOption = c.retryOption.Clone()
 
 	cc.log = c.log
 	cc.jsonUnmarshal = c.jsonUnmarshal
