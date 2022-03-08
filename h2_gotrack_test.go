@@ -6,7 +6,6 @@ package req
 
 import (
 	"fmt"
-	"github.com/imroc/req/v3/internal/tests"
 	"strings"
 	"testing"
 )
@@ -36,21 +35,21 @@ func TestGoroutineLock(t *testing.T) {
 func TestParseUintBytes(t *testing.T) {
 	s := []byte{}
 	_, err := http2parseUintBytes(s, 0, 0)
-	tests.AssertErrorContains(t, err, "invalid syntax")
+	assertErrorContains(t, err, "invalid syntax")
 
 	s = []byte("0x")
 	_, err = http2parseUintBytes(s, 0, 0)
-	tests.AssertErrorContains(t, err, "invalid syntax")
+	assertErrorContains(t, err, "invalid syntax")
 
 	s = []byte("0x01")
 	_, err = http2parseUintBytes(s, 0, 0)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 
 	s = []byte("0xa1")
 	_, err = http2parseUintBytes(s, 0, 0)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 
 	s = []byte("0xA1")
 	_, err = http2parseUintBytes(s, 0, 0)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }

@@ -13,7 +13,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"io/ioutil"
 	"log"
@@ -5865,27 +5864,27 @@ func TestCountReadFrameError(t *testing.T) {
 
 	var err error
 	cc.countReadFrameError(err)
-	tests.AssertEqual(t, "", errMsg)
+	assertEqual(t, "", errMsg)
 
 	err = http2ConnectionError(http2ErrCodeInternal)
 	cc.countReadFrameError(err)
-	tests.AssertContains(t, errMsg, "read_frame_conn_error", true)
+	assertContains(t, errMsg, "read_frame_conn_error", true)
 
 	err = io.EOF
 	cc.countReadFrameError(err)
-	tests.AssertContains(t, errMsg, "read_frame_eof", true)
+	assertContains(t, errMsg, "read_frame_eof", true)
 
 	err = io.ErrUnexpectedEOF
 	cc.countReadFrameError(err)
-	tests.AssertContains(t, errMsg, "read_frame_unexpected_eof", true)
+	assertContains(t, errMsg, "read_frame_unexpected_eof", true)
 
 	err = errFrameTooLarge
 	cc.countReadFrameError(err)
-	tests.AssertContains(t, errMsg, "read_frame_too_large", true)
+	assertContains(t, errMsg, "read_frame_too_large", true)
 
 	err = errors.New("other")
 	cc.countReadFrameError(err)
-	tests.AssertContains(t, errMsg, "read_frame_other", true)
+	assertContains(t, errMsg, "read_frame_other", true)
 }
 
 func TestProcessHeaders(t *testing.T) {
@@ -5897,9 +5896,9 @@ func TestProcessHeaders(t *testing.T) {
 		http2FrameHeader: http2FrameHeader{StreamID: 1},
 	}}
 	err := rl.processHeaders(f)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 
 	f.StreamID = 0
 	err = rl.processHeaders(f)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }

@@ -1,7 +1,6 @@
 package req
 
 import (
-	"github.com/imroc/req/v3/internal/tests"
 	"testing"
 )
 
@@ -18,8 +17,8 @@ func TestUnmarshalJson(t *testing.T) {
 	resp, err := tc().R().Get("/json")
 	assertSuccess(t, resp, err)
 	err = resp.UnmarshalJson(&user)
-	tests.AssertNoError(t, err)
-	tests.AssertEqual(t, "roc", user.Name)
+	assertNoError(t, err)
+	assertEqual(t, "roc", user.Name)
 }
 
 func TestUnmarshalXml(t *testing.T) {
@@ -27,8 +26,8 @@ func TestUnmarshalXml(t *testing.T) {
 	resp, err := tc().R().Get("/xml")
 	assertSuccess(t, resp, err)
 	err = resp.UnmarshalXml(&user)
-	tests.AssertNoError(t, err)
-	tests.AssertEqual(t, "roc", user.Name)
+	assertNoError(t, err)
+	assertEqual(t, "roc", user.Name)
 }
 
 func TestUnmarshal(t *testing.T) {
@@ -36,8 +35,8 @@ func TestUnmarshal(t *testing.T) {
 	resp, err := tc().R().Get("/xml")
 	assertSuccess(t, resp, err)
 	err = resp.Unmarshal(&user)
-	tests.AssertNoError(t, err)
-	tests.AssertEqual(t, "roc", user.Name)
+	assertNoError(t, err)
+	assertEqual(t, "roc", user.Name)
 }
 
 func TestResponseResult(t *testing.T) {
@@ -46,10 +45,10 @@ func TestResponseResult(t *testing.T) {
 	if !ok {
 		t.Fatal("Response.Result() should return *User")
 	}
-	tests.AssertEqual(t, "roc", user.Name)
+	assertEqual(t, "roc", user.Name)
 
-	tests.AssertEqual(t, true, resp.TotalTime() > 0)
-	tests.AssertEqual(t, false, resp.ReceivedAt().IsZero())
+	assertEqual(t, true, resp.TotalTime() > 0)
+	assertEqual(t, false, resp.ReceivedAt().IsZero())
 }
 
 func TestResponseError(t *testing.T) {
@@ -58,5 +57,5 @@ func TestResponseError(t *testing.T) {
 	if !ok {
 		t.Fatal("Response.Error() should return *Message")
 	}
-	tests.AssertEqual(t, "not allowed", msg.Message)
+	assertEqual(t, "not allowed", msg.Message)
 }

@@ -71,6 +71,108 @@ func getTestServerURL() string {
 	return testServer.URL
 }
 
+func getTestFileContent(t *testing.T, filename string) []byte {
+	b, err := ioutil.ReadFile(tests.GetTestFilePath(filename))
+	assertNoError(t, err)
+	return b
+}
+
+func assertIsNil(t *testing.T, v interface{}) {
+	if !isNil(v) {
+		t.Errorf("[%v] was expected to be nil", v)
+	}
+}
+
+func assertNotNil(t *testing.T, v interface{}) {
+	if isNil(v) {
+		t.Fatalf("[%v] was expected to be non-nil", v)
+	}
+}
+
+func assertEqual(t *testing.T, e, g interface{}) {
+	if !equal(e, g) {
+		t.Errorf("Expected [%+v], got [%+v]", e, g)
+	}
+	return
+}
+
+func assertNoError(t *testing.T, err error) {
+	if err != nil {
+		t.Errorf("Error occurred [%v]", err)
+	}
+}
+
+func assertErrorContains(t *testing.T, err error, s string) {
+	if err == nil {
+		t.Error("err is nil")
+		return
+	}
+	if !strings.Contains(err.Error(), s) {
+		t.Errorf("%q is not included in error %q", s, err.Error())
+	}
+}
+
+func assertContains(t *testing.T, s, substr string, shouldContain bool) {
+	s = strings.ToLower(s)
+	isContain := strings.Contains(s, substr)
+	if shouldContain {
+		if !isContain {
+			t.Errorf("%q is not included in %s", substr, s)
+		}
+	} else {
+		if isContain {
+			t.Errorf("%q is included in %s", substr, s)
+		}
+	}
+}
+
+func assertClone(t *testing.T, e, g interface{}) {
+	ev := reflect.ValueOf(e).Elem()
+	gv := reflect.ValueOf(g).Elem()
+	et := ev.Type()
+
+	for i := 0; i < ev.NumField(); i++ {
+		sf := ev.Field(i)
+		st := et.Field(i)
+
+		var ee, gg interface{}
+		if !token.IsExported(st.Name) {
+			ee = reflect.NewAt(sf.Type(), unsafe.Pointer(sf.UnsafeAddr())).Elem().Interface()
+			gg = reflect.NewAt(sf.Type(), unsafe.Pointer(gv.Field(i).UnsafeAddr())).Elem().Interface()
+		} else {
+			ee = sf.Interface()
+			gg = gv.Field(i).Interface()
+		}
+		if sf.Kind() == reflect.Func || sf.Kind() == reflect.Slice || sf.Kind() == reflect.Ptr {
+			if ee != nil {
+				if gg == nil {
+					t.Errorf("Field %s.%s is nil", et.Name(), et.Field(i).Name)
+				}
+			}
+			continue
+		}
+		if !reflect.DeepEqual(ee, gg) {
+			t.Errorf("Field %s.%s is not equal, expected [%v], got [%v]", et.Name(), et.Field(i).Name, ee, gg)
+		}
+	}
+}
+
+func equal(expected, got interface{}) bool {
+	return reflect.DeepEqual(expected, got)
+}
+
+func isNil(v interface{}) bool {
+	if v == nil {
+		return true
+	}
+	rv := reflect.ValueOf(v)
+	kind := rv.Kind()
+	if kind >= reflect.Chan && kind <= reflect.Slice && rv.IsNil() {
+		return true
+	}
+	return false
+}
+
 type echo struct {
 	Header http.Header `json:"header" xml:"header"`
 	Body   string      `json:"body" xml:"body"`
@@ -262,104 +364,31 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func assertStatus(t *testing.T, resp *Response, err error, statusCode int, status string) {
-	tests.AssertNoError(t, err)
-	tests.AssertNotNil(t, resp)
-	tests.AssertNotNil(t, resp.Body)
-	tests.AssertEqual(t, statusCode, resp.StatusCode)
-	tests.AssertEqual(t, status, resp.Status)
+	assertNoError(t, err)
+	assertNotNil(t, resp)
+	assertNotNil(t, resp.Body)
+	assertEqual(t, statusCode, resp.StatusCode)
+	assertEqual(t, status, resp.Status)
 }
 
 func assertSuccess(t *testing.T, resp *Response, err error) {
-	tests.AssertNoError(t, err)
-	tests.AssertNotNil(t, resp.Response)
-	tests.AssertNotNil(t, resp.Response.Body)
-	tests.AssertEqual(t, http.StatusOK, resp.StatusCode)
-	tests.AssertEqual(t, "200 OK", resp.Status)
+	assertNoError(t, err)
+	assertNotNil(t, resp.Response)
+	assertNotNil(t, resp.Response.Body)
+	assertEqual(t, http.StatusOK, resp.StatusCode)
+	assertEqual(t, "200 OK", resp.Status)
 	if !resp.IsSuccess() {
 		t.Error("Response.IsSuccess should return true")
 	}
 }
 
 func assertIsError(t *testing.T, resp *Response, err error) {
-	tests.AssertNoError(t, err)
-	tests.AssertNotNil(t, resp)
-	tests.AssertNotNil(t, resp.Body)
+	assertNoError(t, err)
+	assertNotNil(t, resp)
+	assertNotNil(t, resp.Body)
 	if !resp.IsError() {
 		t.Error("Response.IsError should return true")
 	}
-}
-
-func assertEqualStruct(t *testing.T, e, g interface{}, onlyExported bool, excludes ...string) {
-	ev := reflect.ValueOf(e).Elem()
-	gv := reflect.ValueOf(g).Elem()
-	et := ev.Type()
-	gt := gv.Type()
-	m := map[string]bool{}
-	for _, exclude := range excludes {
-		m[exclude] = true
-	}
-	if et.Kind() != reflect.Struct {
-		t.Fatalf("expect object should be struct instead of %v", et.Kind().String())
-	}
-
-	if gt.Kind() != reflect.Struct {
-		t.Fatalf("got object should be struct instead of %v", gt.Kind().String())
-	}
-
-	if et.Name() != gt.Name() {
-		t.Fatalf("Expected type [%s], got [%s]", et.Name(), gt.Name())
-	}
-
-	for i := 0; i < ev.NumField(); i++ {
-		sf := ev.Field(i)
-		if sf.Kind() == reflect.Func || sf.Kind() == reflect.Slice {
-			continue
-		}
-		st := et.Field(i)
-		if m[st.Name] {
-			continue
-		}
-		if onlyExported && !token.IsExported(st.Name) {
-			continue
-		}
-		var ee, gg interface{}
-		if !token.IsExported(st.Name) {
-			ee = reflect.NewAt(sf.Type(), unsafe.Pointer(sf.UnsafeAddr())).Elem().Interface()
-			gg = reflect.NewAt(sf.Type(), unsafe.Pointer(gv.Field(i).UnsafeAddr())).Elem().Interface()
-		} else {
-			ee = sf.Interface()
-			gg = gv.Field(i).Interface()
-		}
-		if !reflect.DeepEqual(ee, gg) {
-			t.Errorf("Field %s.%s is not equal, expected [%v], got [%v]", et.Name(), et.Field(i).Name, ee, gg)
-		}
-	}
-
-}
-
-func assertNotEqual(t *testing.T, e, g interface{}) (r bool) {
-	if equal(e, g) {
-		t.Errorf("Expected [%v], got [%v]", e, g)
-	} else {
-		r = true
-	}
-	return
-}
-
-func equal(expected, got interface{}) bool {
-	return reflect.DeepEqual(expected, got)
-}
-
-func isNil(v interface{}) bool {
-	if v == nil {
-		return true
-	}
-	rv := reflect.ValueOf(v)
-	kind := rv.Kind()
-	if kind >= reflect.Chan && kind <= reflect.Slice && rv.IsNil() {
-		return true
-	}
-	return false
 }
 
 func testGlobalWrapperEnableDumps(t *testing.T) {
@@ -421,17 +450,17 @@ func testGlobalWrapperEnableDumps(t *testing.T) {
 
 	buf := new(bytes.Buffer)
 	r := EnableDumpTo(buf)
-	tests.AssertEqual(t, true, r.getDumpOptions().Output != nil)
+	assertEqual(t, true, r.getDumpOptions().Output != nil)
 
 	dumpFile := tests.GetTestFilePath("req_tmp_dump.out")
 	r = EnableDumpToFile(tests.GetTestFilePath(dumpFile))
-	tests.AssertEqual(t, true, r.getDumpOptions().Output != nil)
+	assertEqual(t, true, r.getDumpOptions().Output != nil)
 	os.Remove(dumpFile)
 
 	r = SetDumpOptions(&DumpOptions{
 		RequestHeader: true,
 	})
-	tests.AssertEqual(t, true, r.getDumpOptions().RequestHeader)
+	assertEqual(t, true, r.getDumpOptions().RequestHeader)
 }
 
 func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
@@ -460,50 +489,50 @@ func testGlobalWrapperSendRequest(t *testing.T) {
 
 	resp, err := Put(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "PUT", resp.Header.Get("Method"))
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
 	resp = MustPut(testURL)
-	tests.AssertEqual(t, "PUT", resp.Header.Get("Method"))
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
 
 	resp, err = Patch(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "PATCH", resp.Header.Get("Method"))
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
 	resp = MustPatch(testURL)
-	tests.AssertEqual(t, "PATCH", resp.Header.Get("Method"))
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
 
 	resp, err = Delete(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "DELETE", resp.Header.Get("Method"))
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
 	resp = MustDelete(testURL)
-	tests.AssertEqual(t, "DELETE", resp.Header.Get("Method"))
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
 
 	resp, err = Options(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
 	resp = MustOptions(testURL)
-	tests.AssertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
 
 	resp, err = Head(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "HEAD", resp.Header.Get("Method"))
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
 	resp = MustHead(testURL)
-	tests.AssertEqual(t, "HEAD", resp.Header.Get("Method"))
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
 
 	resp, err = Get(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "GET", resp.Header.Get("Method"))
+	assertEqual(t, "GET", resp.Header.Get("Method"))
 	resp = MustGet(testURL)
-	tests.AssertEqual(t, "GET", resp.Header.Get("Method"))
+	assertEqual(t, "GET", resp.Header.Get("Method"))
 
 	resp, err = Post(testURL)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "POST", resp.Header.Get("Method"))
+	assertEqual(t, "POST", resp.Header.Get("Method"))
 	resp = MustPost(testURL)
-	tests.AssertEqual(t, "POST", resp.Header.Get("Method"))
+	assertEqual(t, "POST", resp.Header.Get("Method"))
 }
 
 func testGlobalWrapperSetRequest(t *testing.T, rs ...*Request) {
 	for _, r := range rs {
-		tests.AssertNotNil(t, r)
+		assertNotNil(t, r)
 	}
 }
 
@@ -576,7 +605,7 @@ func TestGlobalWrapperSetRequest(t *testing.T) {
 
 func testGlobalClientSettingWrapper(t *testing.T, cs ...*Client) {
 	for _, c := range cs {
-		tests.AssertNotNil(t, c)
+		assertNotNil(t, c)
 	}
 }
 
@@ -655,7 +684,7 @@ func TestGlobalWrapper(t *testing.T) {
 		DisableKeepAlives(),
 		EnableKeepAlives(),
 		SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem")),
-		SetRootCertFromString(string(tests.GetTestFileContent(t, "sample-root.pem"))),
+		SetRootCertFromString(string(getTestFileContent(t, "sample-root.pem"))),
 		SetCerts(tls.Certificate{}, tls.Certificate{}),
 		SetCertFromFile(
 			tests.GetTestFilePath("sample-client.pem"),
@@ -704,21 +733,21 @@ func TestGlobalWrapper(t *testing.T) {
 	os.Remove(tests.GetTestFilePath("tmpdump.out"))
 
 	config := GetTLSClientConfig()
-	tests.AssertEqual(t, config, DefaultClient().t.TLSClientConfig)
+	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
 
 	r := R()
-	tests.AssertEqual(t, true, r != nil)
+	assertEqual(t, true, r != nil)
 	c := C()
 
 	c.SetTimeout(10 * time.Second)
 	SetDefaultClient(c)
-	tests.AssertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
-	tests.AssertEqual(t, GetClient(), DefaultClient().httpClient)
+	assertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
+	assertEqual(t, GetClient(), DefaultClient().httpClient)
 
 	r = NewRequest()
-	tests.AssertEqual(t, true, r != nil)
+	assertEqual(t, true, r != nil)
 	c = NewClient()
-	tests.AssertEqual(t, true, c != nil)
+	assertEqual(t, true, c != nil)
 }
 
 func TestTrailer(t *testing.T) {

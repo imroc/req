@@ -3,7 +3,6 @@ package socks
 import (
 	"bytes"
 	"context"
-	"github.com/imroc/req/v3/internal/tests"
 	"strings"
 	"testing"
 )
@@ -21,6 +20,22 @@ func TestReply(t *testing.T) {
 	}
 }
 
+func assertNoError(t *testing.T, err error) {
+	if err != nil {
+		t.Errorf("Error occurred [%v]", err)
+	}
+}
+
+func assertErrorContains(t *testing.T, err error, s string) {
+	if err == nil {
+		t.Error("err is nil")
+		return
+	}
+	if !strings.Contains(err.Error(), s) {
+		t.Errorf("%q is not included in error %q", s, err.Error())
+	}
+}
+
 func TestAuthenticate(t *testing.T) {
 	auth := &UsernamePassword{
 		Username: "imroc",
@@ -28,21 +43,21 @@ func TestAuthenticate(t *testing.T) {
 	}
 	buf := bytes.NewBuffer([]byte{byte(0x01), byte(0x00)})
 	err := auth.Authenticate(context.Background(), buf, AuthMethodUsernamePassword)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 	auth.Username = "this is a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long name"
 	err = auth.Authenticate(context.Background(), buf, AuthMethodUsernamePassword)
-	tests.AssertErrorContains(t, err, "invalid")
+	assertErrorContains(t, err, "invalid")
 
 	auth.Username = "imroc"
 	buf = bytes.NewBuffer([]byte{byte(0x03), byte(0x00)})
 	err = auth.Authenticate(context.Background(), buf, AuthMethodUsernamePassword)
-	tests.AssertErrorContains(t, err, "invalid username/password version")
+	assertErrorContains(t, err, "invalid username/password version")
 
 	buf = bytes.NewBuffer([]byte{byte(0x01), byte(0x02)})
 	err = auth.Authenticate(context.Background(), buf, AuthMethodUsernamePassword)
-	tests.AssertErrorContains(t, err, "authentication failed")
+	assertErrorContains(t, err, "authentication failed")
 
 	err = auth.Authenticate(context.Background(), buf, AuthMethodNoAcceptableMethods)
-	tests.AssertErrorContains(t, err, "unsupported authentication method")
+	assertErrorContains(t, err, "unsupported authentication method")
 
 }

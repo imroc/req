@@ -24,45 +24,45 @@ func TestMethods(t *testing.T) {
 func testMethods(t *testing.T, c *Client) {
 	resp, err := c.R().Put("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "PUT", resp.Header.Get("Method"))
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
 	resp = c.R().MustPut("/")
-	tests.AssertEqual(t, "PUT", resp.Header.Get("Method"))
+	assertEqual(t, "PUT", resp.Header.Get("Method"))
 
 	resp, err = c.R().Patch("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "PATCH", resp.Header.Get("Method"))
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
 	resp = c.R().MustPatch("/")
-	tests.AssertEqual(t, "PATCH", resp.Header.Get("Method"))
+	assertEqual(t, "PATCH", resp.Header.Get("Method"))
 
 	resp, err = c.R().Delete("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "DELETE", resp.Header.Get("Method"))
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
 	resp = c.R().MustDelete("/")
-	tests.AssertEqual(t, "DELETE", resp.Header.Get("Method"))
+	assertEqual(t, "DELETE", resp.Header.Get("Method"))
 
 	resp, err = c.R().Options("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
 	resp = c.R().MustOptions("/")
-	tests.AssertEqual(t, "OPTIONS", resp.Header.Get("Method"))
+	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
 
 	resp, err = c.R().Head("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "HEAD", resp.Header.Get("Method"))
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
 	resp = c.R().MustHead("/")
-	tests.AssertEqual(t, "HEAD", resp.Header.Get("Method"))
+	assertEqual(t, "HEAD", resp.Header.Get("Method"))
 
 	resp, err = c.R().Get("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "GET", resp.Header.Get("Method"))
+	assertEqual(t, "GET", resp.Header.Get("Method"))
 	resp = c.R().MustGet("/")
-	tests.AssertEqual(t, "GET", resp.Header.Get("Method"))
+	assertEqual(t, "GET", resp.Header.Get("Method"))
 
 	resp, err = c.R().Post("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "POST", resp.Header.Get("Method"))
+	assertEqual(t, "POST", resp.Header.Get("Method"))
 	resp = c.R().MustPost("/")
-	tests.AssertEqual(t, "POST", resp.Header.Get("Method"))
+	assertEqual(t, "POST", resp.Header.Get("Method"))
 }
 
 func TestEnableDump(t *testing.T) {
@@ -79,7 +79,7 @@ func TestEnableDumpToFIle(t *testing.T) {
 	tmpFile := "tmp_dumpfile_req"
 	resp, err := tc().R().EnableDumpToFile(tests.GetTestFilePath(tmpFile)).Get("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, true, len(tests.GetTestFileContent(t, tmpFile)) > 0)
+	assertEqual(t, true, len(getTestFileContent(t, tmpFile)) > 0)
 	os.Remove(tests.GetTestFilePath(tmpFile))
 }
 
@@ -151,10 +151,10 @@ func testEnableDump(t *testing.T, fn func(r *Request, reqHeader, reqBody, respHe
 		resp, err := r.SetBody(`test body`).Post("/")
 		assertSuccess(t, resp, err)
 		dump := resp.Dump()
-		tests.AssertContains(t, dump, "user-agent", reqHeader)
-		tests.AssertContains(t, dump, "test body", reqBody)
-		tests.AssertContains(t, dump, "date", respHeader)
-		tests.AssertContains(t, dump, "testpost: text response", respBody)
+		assertContains(t, dump, "user-agent", reqHeader)
+		assertContains(t, dump, "test body", reqBody)
+		assertContains(t, dump, "date", respHeader)
+		assertContains(t, dump, "testpost: text response", respBody)
 	}
 	testDump(tc())
 	testDump(tc().EnableForceHTTP1())
@@ -175,10 +175,10 @@ func testSetDumpOptions(t *testing.T, c *Client) {
 	resp, err := c.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
 	assertSuccess(t, resp, err)
 	dump := resp.Dump()
-	tests.AssertContains(t, dump, "user-agent", true)
-	tests.AssertContains(t, dump, "test body", false)
-	tests.AssertContains(t, dump, "date", false)
-	tests.AssertContains(t, dump, "testpost: text response", true)
+	assertContains(t, dump, "user-agent", true)
+	assertContains(t, dump, "test body", false)
+	assertContains(t, dump, "date", false)
+	assertContains(t, dump, "testpost: text response", true)
 }
 
 func TestGet(t *testing.T) {
@@ -189,7 +189,7 @@ func TestGet(t *testing.T) {
 func testGet(t *testing.T, c *Client) {
 	resp, err := c.R().Get("/")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "TestGet: text response", resp.String())
+	assertEqual(t, "TestGet: text response", resp.String())
 }
 
 func TestBadRequest(t *testing.T) {
@@ -216,16 +216,16 @@ func testSetBodyMarshal(t *testing.T, c *Client) {
 		return func(e *echo) {
 			var user User
 			err := json.Unmarshal([]byte(e.Body), &user)
-			tests.AssertNoError(t, err)
-			tests.AssertEqual(t, username, user.Username)
+			assertNoError(t, err)
+			assertEqual(t, username, user.Username)
 		}
 	}
 	assertUsernameXml := func(username string) func(e *echo) {
 		return func(e *echo) {
 			var user User
 			err := xml.Unmarshal([]byte(e.Body), &user)
-			tests.AssertNoError(t, err)
-			tests.AssertEqual(t, username, user.Username)
+			assertNoError(t, err)
+			assertEqual(t, username, user.Username)
 		}
 	}
 	testCases := []struct {
@@ -298,8 +298,8 @@ func TestSetBodyReader(t *testing.T) {
 	var e echo
 	resp, err := tc().R().SetBody(ioutil.NopCloser(bytes.NewBufferString("hello"))).SetResult(&e).Post("/echo")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "", e.Header.Get(hdrContentTypeKey))
-	tests.AssertEqual(t, "hello", e.Body)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, "hello", e.Body)
 }
 
 func TestSetBodyGetContentFunc(t *testing.T) {
@@ -308,8 +308,8 @@ func TestSetBodyGetContentFunc(t *testing.T) {
 		return ioutil.NopCloser(bytes.NewBufferString("hello")), nil
 	}).SetResult(&e).Post("/echo")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "", e.Header.Get(hdrContentTypeKey))
-	tests.AssertEqual(t, "hello", e.Body)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, "hello", e.Body)
 
 	e = echo{}
 	var fn GetContentFunc = func() (io.ReadCloser, error) {
@@ -317,8 +317,8 @@ func TestSetBodyGetContentFunc(t *testing.T) {
 	}
 	resp, err = tc().R().SetBody(fn).SetResult(&e).Post("/echo")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "", e.Header.Get(hdrContentTypeKey))
-	tests.AssertEqual(t, "hello", e.Body)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, "hello", e.Body)
 }
 
 func TestSetBodyContent(t *testing.T) {
@@ -351,8 +351,8 @@ func testSetBodyContent(t *testing.T, c *Client) {
 		var e echo
 		resp, err := r.SetResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
-		tests.AssertEqual(t, plainTextContentType, e.Header.Get(hdrContentTypeKey))
-		tests.AssertEqual(t, testBody, e.Body)
+		assertEqual(t, plainTextContentType, e.Header.Get(hdrContentTypeKey))
+		assertEqual(t, testBody, e.Body)
 	}
 
 	// Set Reader
@@ -360,8 +360,8 @@ func testSetBodyContent(t *testing.T, c *Client) {
 	e = echo{}
 	resp, err := c.R().SetBody(testBodyReader).SetResult(&e).Post("/echo")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, testBody, e.Body)
-	tests.AssertEqual(t, "", e.Header.Get(hdrContentTypeKey))
+	assertEqual(t, testBody, e.Body)
+	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
 }
 
 func TestCookie(t *testing.T) {
@@ -382,7 +382,7 @@ func testCookie(t *testing.T, c *Client) {
 		},
 	).SetResult(&headers).Get("/header")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "cookie1=value1; cookie2=value2", headers.Get("Cookie"))
+	assertEqual(t, "cookie1=value1; cookie2=value2", headers.Get("Cookie"))
 }
 
 func TestAuth(t *testing.T) {
@@ -397,7 +397,7 @@ func testAuth(t *testing.T, c *Client) {
 		SetResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "Basic aW1yb2M6MTIzNDU2", headers.Get("Authorization"))
+	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", headers.Get("Authorization"))
 
 	token := "NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4"
 	headers = make(http.Header)
@@ -406,7 +406,7 @@ func testAuth(t *testing.T, c *Client) {
 		SetResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "Bearer "+token, headers.Get("Authorization"))
+	assertEqual(t, "Bearer "+token, headers.Get("Authorization"))
 }
 
 func TestHeader(t *testing.T) {
@@ -419,7 +419,7 @@ func testHeader(t *testing.T, c *Client) {
 	customUserAgent := "My Custom User Agent"
 	resp, err := c.R().SetHeader(hdrUserAgentKey, customUserAgent).Get("/user-agent")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, customUserAgent, resp.String())
+	assertEqual(t, customUserAgent, resp.String())
 
 	// Set custom header
 	headers := make(http.Header)
@@ -431,9 +431,9 @@ func testHeader(t *testing.T, c *Client) {
 		}).SetResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "value1", headers.Get("header1"))
-	tests.AssertEqual(t, "value2", headers.Get("header2"))
-	tests.AssertEqual(t, "value3", headers.Get("header3"))
+	assertEqual(t, "value1", headers.Get("header1"))
+	assertEqual(t, "value2", headers.Get("header2"))
+	assertEqual(t, "value3", headers.Get("header3"))
 }
 
 func TestQueryParam(t *testing.T) {
@@ -458,14 +458,14 @@ func testQueryParam(t *testing.T, c *Client) {
 		SetQueryParam("key3", "value3").
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryString
 	resp, err = c.R().
 		SetQueryString("key1=value1&key2=value2&key3=value3").
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryParams
 	resp, err = c.R().
@@ -476,7 +476,7 @@ func testQueryParam(t *testing.T, c *Client) {
 		}).
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
 
 	// SetQueryParam & SetQueryParams & SetQueryString
 	resp, err = c.R().
@@ -488,7 +488,7 @@ func testQueryParam(t *testing.T, c *Client) {
 		SetQueryString("key4=value4&key5=value5").
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=value4&key5=value5", resp.String())
+	assertEqual(t, "key1=value1&key2=value2&key3=value3&key4=value4&key5=value5", resp.String())
 
 	// Set same param to override
 	resp, err = c.R().
@@ -503,7 +503,7 @@ func testQueryParam(t *testing.T, c *Client) {
 		SetQueryParam("key4", "value44").
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value11&key2=value22&key3=value3&key4=value44&key5=value5", resp.String())
+	assertEqual(t, "key1=value11&key2=value22&key3=value3&key4=value44&key5=value5", resp.String())
 
 	// Add same param without override
 	resp, err = c.R().
@@ -518,7 +518,7 @@ func testQueryParam(t *testing.T, c *Client) {
 		AddQueryParam("key4", "value44").
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5", resp.String())
+	assertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5", resp.String())
 }
 
 func TestPathParam(t *testing.T) {
@@ -532,7 +532,7 @@ func testPathParam(t *testing.T, c *Client) {
 		SetPathParam("username", username).
 		Get("/user/{username}/profile")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, fmt.Sprintf("%s's profile", username), resp.String())
+	assertEqual(t, fmt.Sprintf("%s's profile", username), resp.String())
 }
 
 func TestSuccess(t *testing.T) {
@@ -547,7 +547,7 @@ func testSuccess(t *testing.T, c *Client) {
 		SetResult(&userInfo).
 		Get("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
 
 	userInfo = UserInfo{}
 	resp, err = c.R().
@@ -556,7 +556,7 @@ func testSuccess(t *testing.T, c *Client) {
 		SetResult(&userInfo).EnableDump().
 		Get("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
 }
 
 func TestError(t *testing.T) {
@@ -571,7 +571,7 @@ func testError(t *testing.T, c *Client) {
 		SetError(&errMsg).
 		Get("/search")
 	assertIsError(t, resp, err)
-	tests.AssertEqual(t, 10000, errMsg.ErrorCode)
+	assertEqual(t, 10000, errMsg.ErrorCode)
 
 	errMsg = ErrorMessage{}
 	resp, err = c.R().
@@ -579,7 +579,7 @@ func testError(t *testing.T, c *Client) {
 		SetError(&errMsg).
 		Get("/search")
 	assertIsError(t, resp, err)
-	tests.AssertEqual(t, 10001, errMsg.ErrorCode)
+	assertEqual(t, 10001, errMsg.ErrorCode)
 
 	errMsg = ErrorMessage{}
 	resp, err = c.R().
@@ -588,7 +588,7 @@ func testError(t *testing.T, c *Client) {
 		SetError(&errMsg).
 		Get("/search")
 	assertIsError(t, resp, err)
-	tests.AssertEqual(t, 10001, errMsg.ErrorCode)
+	assertEqual(t, 10001, errMsg.ErrorCode)
 }
 
 func TestForm(t *testing.T) {
@@ -606,7 +606,7 @@ func testForm(t *testing.T, c *Client) {
 		SetResult(&userInfo).
 		Post("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
 
 	v := make(url.Values)
 	v.Add("username", "imroc")
@@ -616,7 +616,7 @@ func testForm(t *testing.T, c *Client) {
 		SetResult(&userInfo).
 		Post("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	assertEqual(t, "roc@imroc.cc", userInfo.Email)
 }
 
 func TestHostHeaderOverride(t *testing.T) {
@@ -627,7 +627,7 @@ func TestHostHeaderOverride(t *testing.T) {
 func testHostHeaderOverride(t *testing.T, c *Client) {
 	resp, err := c.R().SetHeader("Host", "testhostname").Get("/host-header")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "testhostname", resp.String())
+	assertEqual(t, "testhostname", resp.String())
 }
 
 func TestTraceInfo(t *testing.T) {
@@ -636,15 +636,15 @@ func TestTraceInfo(t *testing.T) {
 	resp, err := tc().R().Get("/")
 	assertSuccess(t, resp, err)
 	ti := resp.TraceInfo()
-	tests.AssertContains(t, ti.String(), "not enabled", true)
-	tests.AssertContains(t, ti.Blame(), "not enabled", true)
+	assertContains(t, ti.String(), "not enabled", true)
+	assertContains(t, ti.Blame(), "not enabled", true)
 
 	resp, err = tc().EnableTraceAll().R().Get("/")
 	assertSuccess(t, resp, err)
 	ti = resp.TraceInfo()
-	tests.AssertContains(t, ti.String(), "not enabled", false)
-	tests.AssertContains(t, ti.Blame(), "not enabled", false)
-	tests.AssertEqual(t, true, resp.TotalTime() > 0)
+	assertContains(t, ti.String(), "not enabled", false)
+	assertContains(t, ti.Blame(), "not enabled", false)
+	assertEqual(t, true, resp.TotalTime() > 0)
 }
 
 func testTraceInfo(t *testing.T, c *Client) {
@@ -653,28 +653,28 @@ func testTraceInfo(t *testing.T, c *Client) {
 	resp, err := c.R().Get("/")
 	assertSuccess(t, resp, err)
 	ti := resp.TraceInfo()
-	tests.AssertEqual(t, true, ti.TotalTime > 0)
-	tests.AssertEqual(t, true, ti.TCPConnectTime > 0)
-	tests.AssertEqual(t, true, ti.TLSHandshakeTime > 0)
-	tests.AssertEqual(t, true, ti.ConnectTime > 0)
-	tests.AssertEqual(t, true, ti.FirstResponseTime > 0)
-	tests.AssertEqual(t, true, ti.ResponseTime > 0)
-	tests.AssertNotNil(t, ti.RemoteAddr)
+	assertEqual(t, true, ti.TotalTime > 0)
+	assertEqual(t, true, ti.TCPConnectTime > 0)
+	assertEqual(t, true, ti.TLSHandshakeTime > 0)
+	assertEqual(t, true, ti.ConnectTime > 0)
+	assertEqual(t, true, ti.FirstResponseTime > 0)
+	assertEqual(t, true, ti.ResponseTime > 0)
+	assertNotNil(t, ti.RemoteAddr)
 
 	// disable trace at client level
 	c.DisableTraceAll()
 	resp, err = c.R().Get("/")
 	assertSuccess(t, resp, err)
 	ti = resp.TraceInfo()
-	tests.AssertEqual(t, false, ti.TotalTime > 0)
-	tests.AssertIsNil(t, ti.RemoteAddr)
+	assertEqual(t, false, ti.TotalTime > 0)
+	assertIsNil(t, ti.RemoteAddr)
 
 	// enable trace at request level
 	resp, err = c.R().EnableTrace().Get("/")
 	assertSuccess(t, resp, err)
 	ti = resp.TraceInfo()
-	tests.AssertEqual(t, true, ti.TotalTime > 0)
-	tests.AssertNotNil(t, ti.RemoteAddr)
+	assertEqual(t, true, ti.TotalTime > 0)
+	assertNotNil(t, ti.RemoteAddr)
 }
 
 func TestTraceOnTimeout(t *testing.T) {
@@ -686,50 +686,50 @@ func testTraceOnTimeout(t *testing.T, c *Client) {
 	c.EnableTraceAll().SetTimeout(100 * time.Millisecond)
 
 	resp, err := c.R().Get("http://req-nowhere.local")
-	tests.AssertNotNil(t, err)
-	tests.AssertNotNil(t, resp)
+	assertNotNil(t, err)
+	assertNotNil(t, resp)
 
 	tr := resp.TraceInfo()
-	tests.AssertEqual(t, true, tr.DNSLookupTime >= 0)
-	tests.AssertEqual(t, true, tr.ConnectTime == 0)
-	tests.AssertEqual(t, true, tr.TLSHandshakeTime == 0)
-	tests.AssertEqual(t, true, tr.TCPConnectTime == 0)
-	tests.AssertEqual(t, true, tr.FirstResponseTime == 0)
-	tests.AssertEqual(t, true, tr.ResponseTime == 0)
-	tests.AssertEqual(t, true, tr.TotalTime > 0)
-	tests.AssertEqual(t, true, tr.TotalTime == resp.TotalTime())
+	assertEqual(t, true, tr.DNSLookupTime >= 0)
+	assertEqual(t, true, tr.ConnectTime == 0)
+	assertEqual(t, true, tr.TLSHandshakeTime == 0)
+	assertEqual(t, true, tr.TCPConnectTime == 0)
+	assertEqual(t, true, tr.FirstResponseTime == 0)
+	assertEqual(t, true, tr.ResponseTime == 0)
+	assertEqual(t, true, tr.TotalTime > 0)
+	assertEqual(t, true, tr.TotalTime == resp.TotalTime())
 }
 
 func TestAutoDetectRequestContentType(t *testing.T) {
 	c := tc()
-	resp, err := c.R().SetBody(tests.GetTestFileContent(t, "sample-image.png")).Post("/content-type")
+	resp, err := c.R().SetBody(getTestFileContent(t, "sample-image.png")).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "image/png", resp.String())
+	assertEqual(t, "image/png", resp.String())
 
 	resp, err = c.R().SetBodyJsonString(`{"msg": "test"}`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, jsonContentType, resp.String())
+	assertEqual(t, jsonContentType, resp.String())
 
 	resp, err = c.R().SetContentType(xmlContentType).SetBody(`{"msg": "test"}`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, xmlContentType, resp.String())
+	assertEqual(t, xmlContentType, resp.String())
 
 	resp, err = c.R().SetBody(`<html><body><h1>hello</h1></body></html>`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "text/html; charset=utf-8", resp.String())
+	assertEqual(t, "text/html; charset=utf-8", resp.String())
 
 	resp, err = c.R().SetBody(`hello world`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, plainTextContentType, resp.String())
+	assertEqual(t, plainTextContentType, resp.String())
 }
 
 func TestSetFileUploadCheck(t *testing.T) {
 	c := tc()
 	resp, err := c.R().SetFileUpload(FileUpload{}).Post("/multipart")
-	tests.AssertErrorContains(t, err, "missing param name")
-	tests.AssertErrorContains(t, err, "missing filename")
-	tests.AssertErrorContains(t, err, "missing file content")
-	tests.AssertEqual(t, 0, len(resp.Request.uploadFiles))
+	assertErrorContains(t, err, "missing param name")
+	assertErrorContains(t, err, "missing filename")
+	assertErrorContains(t, err, "missing file content")
+	assertEqual(t, 0, len(resp.Request.uploadFiles))
 }
 
 func TestUploadMultipart(t *testing.T) {
@@ -744,22 +744,22 @@ func TestUploadMultipart(t *testing.T) {
 		SetResult(&m).
 		Post("/multipart")
 	assertSuccess(t, resp, err)
-	tests.AssertContains(t, resp.String(), "sample-image.png", true)
-	tests.AssertContains(t, resp.String(), "sample-file.txt", true)
-	tests.AssertContains(t, resp.String(), "value1", true)
-	tests.AssertContains(t, resp.String(), "value2", true)
+	assertContains(t, resp.String(), "sample-image.png", true)
+	assertContains(t, resp.String(), "sample-file.txt", true)
+	assertContains(t, resp.String(), "value1", true)
+	assertContains(t, resp.String(), "value2", true)
 }
 
 func TestFixPragmaCache(t *testing.T) {
 	resp, err := tc().EnableForceHTTP1().R().Get("/pragma")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "no-cache", resp.Header.Get("Cache-Control"))
+	assertEqual(t, "no-cache", resp.Header.Get("Cache-Control"))
 }
 
 func TestSetFileBytes(t *testing.T) {
 	resp, err := tc().R().SetFileBytes("file", "file.txt", []byte("test")).Post("/file-text")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "test", resp.String())
+	assertEqual(t, "test", resp.String())
 }
 
 func TestSetBodyWrapper(t *testing.T) {
@@ -768,14 +768,14 @@ func TestSetBodyWrapper(t *testing.T) {
 	c := tc()
 
 	r := c.R().SetBodyXmlString(s)
-	tests.AssertEqual(t, true, len(r.body) > 0)
+	assertEqual(t, true, len(r.body) > 0)
 
 	r = c.R().SetBodyXmlBytes(b)
-	tests.AssertEqual(t, true, len(r.body) > 0)
+	assertEqual(t, true, len(r.body) > 0)
 
 	r = c.R().SetBodyJsonString(s)
-	tests.AssertEqual(t, true, len(r.body) > 0)
+	assertEqual(t, true, len(r.body) > 0)
 
 	r = c.R().SetBodyJsonBytes(b)
-	tests.AssertEqual(t, true, len(r.body) > 0)
+	assertEqual(t, true, len(r.body) > 0)
 }

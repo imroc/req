@@ -7,7 +7,6 @@ package req
 import (
 	"bytes"
 	"fmt"
-	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"reflect"
 	"strings"
@@ -1290,38 +1289,38 @@ func TestParseSettingsFrame(t *testing.T) {
 	fh.Length = 1
 	countErr := func(s string) {}
 	_, err := http2parseSettingsFrame(nil, fh, countErr, nil)
-	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	fh = http2FrameHeader{StreamID: 1}
 	_, err = http2parseSettingsFrame(nil, fh, countErr, nil)
-	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+	assertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh = http2FrameHeader{}
 	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("roc"))
-	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	fh = http2FrameHeader{valid: true}
 	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("rocroc"))
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
 
 func TestParsePushPromise(t *testing.T) {
 	fh := http2FrameHeader{}
 	countError := func(string) {}
 	_, err := http2parsePushPromise(nil, fh, countError, nil)
-	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+	assertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 1
 	fh.Flags = http2FlagPushPromisePadded
 	_, err = http2parsePushPromise(nil, fh, countError, nil)
-	tests.AssertErrorContains(t, err, "EOF")
+	assertErrorContains(t, err, "EOF")
 
 	fh.Flags = 0
 	_, err = http2parsePushPromise(nil, fh, countError, nil)
-	tests.AssertErrorContains(t, err, "EOF")
+	assertErrorContains(t, err, "EOF")
 
 	_, err = http2parsePushPromise(nil, fh, countError, []byte("ksjfksjksjflskk"))
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
 
 func TestSummarizeFrame(t *testing.T) {
@@ -1329,62 +1328,62 @@ func TestSummarizeFrame(t *testing.T) {
 	var f http2Frame
 	f = &http2SettingsFrame{http2FrameHeader: fh, p: []byte{0x09, 0x01, 0x80, 0x20, 0x00, 0x11}}
 	s := http2summarizeFrame(f)
-	tests.AssertContains(t, s, "len=0", true)
+	assertContains(t, s, "len=0", true)
 
 	f = &http2DataFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
-	tests.AssertContains(t, s, `data=""`, true)
+	assertContains(t, s, `data=""`, true)
 
 	f = &http2WindowUpdateFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
-	tests.AssertContains(t, s, "conn", true)
+	assertContains(t, s, "conn", true)
 
 	f = &http2PingFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
-	tests.AssertContains(t, s, "ping", true)
+	assertContains(t, s, "ping", true)
 
 	f = &http2GoAwayFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
-	tests.AssertContains(t, s, "laststreamid", true)
+	assertContains(t, s, "laststreamid", true)
 
 	f = &http2RSTStreamFrame{http2FrameHeader: fh}
 	s = http2summarizeFrame(f)
-	tests.AssertContains(t, s, "no_error", true)
+	assertContains(t, s, "no_error", true)
 }
 
 func TestParseDataFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	countError := func(string) {}
 	_, err := http2parseDataFrame(nil, fh, countError, nil)
-	tests.AssertErrorContains(t, err, "DATA frame with stream ID 0")
+	assertErrorContains(t, err, "DATA frame with stream ID 0")
 
 	fh.StreamID = 1
 	fh.Flags = http2FlagDataPadded
 	fc := &http2frameCache{}
 	payload := []byte{0x09, 0x00, 0x00, 0x98, 0x11, 0x12}
 	_, err = http2parseDataFrame(fc, fh, countError, payload)
-	tests.AssertErrorContains(t, err, "pad size larger than data payload")
+	assertErrorContains(t, err, "pad size larger than data payload")
 
 	payload = []byte{0x02, 0x00, 0x00, 0x98, 0x11, 0x12}
 	_, err = http2parseDataFrame(fc, fh, countError, payload)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
 
 func TestParseWindowUpdateFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	countError := func(string) {}
 	_, err := http2parseWindowUpdateFrame(nil, fh, countError, nil)
-	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	p := []byte{0x00, 0x00, 0x00, 0x00}
 	_, err = http2parseWindowUpdateFrame(nil, fh, countError, p)
-	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+	assertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 255
 	p[0] = 0x01
 	p[3] = 0x01
 	_, err = http2parseWindowUpdateFrame(nil, fh, countError, p)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
 
 func TestParseUnknownFrame(t *testing.T) {
@@ -1392,12 +1391,12 @@ func TestParseUnknownFrame(t *testing.T) {
 	countError := func(string) {}
 	p := []byte("test")
 	f, err := http2parseUnknownFrame(nil, fh, countError, p)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 	uf, ok := f.(*http2UnknownFrame)
 	if !ok {
 		t.Fatalf("not http2UnknownFrame type: %#+v", f)
 	}
-	tests.AssertEqual(t, p, uf.Payload())
+	assertEqual(t, p, uf.Payload())
 }
 
 func TestParseRSTStreamFrame(t *testing.T) {
@@ -1405,15 +1404,15 @@ func TestParseRSTStreamFrame(t *testing.T) {
 	countError := func(string) {}
 	p := []byte("test.")
 	_, err := http2parseRSTStreamFrame(nil, fh, countError, p)
-	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	p = []byte("test")
 	_, err = http2parseRSTStreamFrame(nil, fh, countError, p)
-	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+	assertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 1
 	_, err = http2parseRSTStreamFrame(nil, fh, countError, p)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
 
 func TestParsePingFrame(t *testing.T) {
@@ -1421,16 +1420,16 @@ func TestParsePingFrame(t *testing.T) {
 	countError := func(string) {}
 	payload := []byte("")
 	_, err := http2parsePingFrame(nil, fh, countError, payload)
-	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	payload = []byte("testtest")
 	fh.StreamID = 1
 	_, err = http2parsePingFrame(nil, fh, countError, payload)
-	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+	assertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 0
 	_, err = http2parsePingFrame(nil, fh, countError, payload)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
 
 func TestParseGoAwayFrame(t *testing.T) {
@@ -1440,40 +1439,40 @@ func TestParseGoAwayFrame(t *testing.T) {
 
 	fh.StreamID = 1
 	_, err := http2parseGoAwayFrame(nil, fh, countError, payload)
-	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
+	assertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 0
 	_, err = http2parseGoAwayFrame(nil, fh, countError, payload)
-	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
 }
 
 func TestPushPromiseFrame(t *testing.T) {
 	fh := http2FrameHeader{valid: true}
 	buf := []byte("test")
 	f := &http2PushPromiseFrame{http2FrameHeader: fh, headerFragBuf: buf}
-	tests.AssertEqual(t, buf, f.HeaderBlockFragment())
-	tests.AssertEqual(t, false, f.HeadersEnded())
+	assertEqual(t, buf, f.HeaderBlockFragment())
+	assertEqual(t, false, f.HeadersEnded())
 }
 
 func TestH2Framer(t *testing.T) {
 	f := &http2Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
 	f.logWrite()
-	tests.AssertNotNil(t, f.debugFramer)
-	tests.AssertIsNil(t, f.ErrorDetail())
+	assertNotNil(t, f.debugFramer)
+	assertIsNil(t, f.ErrorDetail())
 
 	f.w = new(bytes.Buffer)
 	err := f.WriteRawFrame(http2FrameData, http2FlagDataEndStream, 1, nil)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 
 	param := http2PushPromiseParam{}
 	err = f.WritePushPromise(param)
-	tests.AssertErrorContains(t, err, "invalid stream ID")
+	assertErrorContains(t, err, "invalid stream ID")
 
 	param.StreamID = 1
 	param.EndHeaders = true
 	param.PadLength = 2
 	f.AllowIllegalWrites = true
 	err = f.WritePushPromise(param)
-	tests.AssertNoError(t, err)
+	assertNoError(t, err)
 }
