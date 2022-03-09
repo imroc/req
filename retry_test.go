@@ -143,7 +143,7 @@ func TestRetryWithSetResult(t *testing.T) {
 func TestRetryWithModify(t *testing.T) {
 	tokens := []string{"badtoken1", "badtoken2", "goodtoken"}
 	tokenIndex := 0
-	c := tc().EnableDumpAll().
+	c := tc().
 		SetCommonRetryCount(2).
 		SetCommonRetryHook(func(resp *Response, err error) {
 			tokenIndex++

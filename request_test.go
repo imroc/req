@@ -162,14 +162,100 @@ func testMethod(t *testing.T, c *Client, sendReq func(*Request) *Response, expec
 	}
 }
 
+type dumpExpected struct {
+	ReqHeader  bool
+	ReqBody    bool
+	RespHeader bool
+	RespBody   bool
+}
+
+func testEnableDump(t *testing.T, fn func(r *Request) (de dumpExpected)) {
+	testDump := func(c *Client) {
+		r := c.R()
+		de := fn(r)
+		resp, err := r.SetBody(`test body`).Post("/")
+		assertSuccess(t, resp, err)
+		dump := resp.Dump()
+		assertContains(t, dump, "user-agent", de.ReqHeader)
+		assertContains(t, dump, "test body", de.ReqBody)
+		assertContains(t, dump, "date", de.RespHeader)
+		assertContains(t, dump, "testpost: text response", de.RespBody)
+	}
+	c := tc()
+	testDump(c)
+	testDump(c.EnableForceHTTP1())
+}
+
 func TestEnableDump(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDump()
-		*reqHeader = true
-		*reqBody = true
-		*respHeader = true
-		*respBody = true
-	})
+	testCases := []func(r *Request) (d dumpExpected){
+		func(r *Request) (de dumpExpected) {
+			r.EnableDump()
+			de.ReqHeader = true
+			de.ReqBody = true
+			de.RespHeader = true
+			de.RespBody = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.EnableDumpWithoutHeader()
+			de.ReqBody = true
+			de.RespBody = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.EnableDumpWithoutBody()
+			de.ReqHeader = true
+			de.RespHeader = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.EnableDumpWithoutRequest()
+			de.RespHeader = true
+			de.RespBody = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.EnableDumpWithoutRequestBody()
+			de.ReqHeader = true
+			de.RespHeader = true
+			de.RespBody = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.EnableDumpWithoutResponse()
+			de.ReqHeader = true
+			de.ReqBody = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.EnableDumpWithoutResponseBody()
+			de.ReqHeader = true
+			de.ReqBody = true
+			de.RespHeader = true
+			return
+		},
+		func(r *Request) (de dumpExpected) {
+			r.SetDumpOptions(&DumpOptions{
+				RequestHeader: true,
+				RequestBody:   true,
+				ResponseBody:  true,
+			}).EnableDump()
+			de.ReqHeader = true
+			de.ReqBody = true
+			de.RespBody = true
+			return
+		},
+	}
+	for _, fn := range testCases {
+		testEnableDump(t, fn)
+	}
+}
+
+func TestEnableDumpTo(t *testing.T) {
+	buff := new(bytes.Buffer)
+	resp, err := tc().R().EnableDumpTo(buff).Get("/")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, buff.Len() > 0)
 }
 
 func TestEnableDumpToFIle(t *testing.T) {
@@ -178,115 +264,6 @@ func TestEnableDumpToFIle(t *testing.T) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, true, len(getTestFileContent(t, tmpFile)) > 0)
 	os.Remove(tests.GetTestFilePath(tmpFile))
-}
-
-func TestEnableDumpWithoutRequest(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDumpWithoutRequest()
-		*reqHeader = false
-		*reqBody = false
-		*respHeader = true
-		*respBody = true
-	})
-}
-
-func TestEnableDumpWithoutRequestBody(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDumpWithoutRequestBody()
-		*reqHeader = true
-		*reqBody = false
-		*respHeader = true
-		*respBody = true
-	})
-}
-
-func TestEnableDumpWithoutResponse(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDumpWithoutResponse()
-		*reqHeader = true
-		*reqBody = true
-		*respHeader = false
-		*respBody = false
-	})
-}
-
-func TestEnableDumpWithoutResponseBody(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDumpWithoutResponseBody()
-		*reqHeader = true
-		*reqBody = true
-		*respHeader = true
-		*respBody = false
-	})
-}
-
-func TestEnableDumpWithoutHeader(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDumpWithoutHeader()
-		*reqHeader = false
-		*reqBody = true
-		*respHeader = false
-		*respBody = true
-	})
-}
-
-func TestEnableDumpWithoutBody(t *testing.T) {
-	testEnableDump(t, func(r *Request, reqHeader, reqBody, respHeader, respBody *bool) {
-		r.EnableDumpWithoutBody()
-		*reqHeader = true
-		*reqBody = false
-		*respHeader = true
-		*respBody = false
-	})
-}
-
-func testEnableDump(t *testing.T, fn func(r *Request, reqHeader, reqBody, respHeader, respBody *bool)) {
-	testDump := func(c *Client) {
-		r := c.R()
-		var reqHeader, reqBody, respHeader, respBody bool
-		fn(r, &reqHeader, &reqBody, &respHeader, &respBody)
-		resp, err := r.SetBody(`test body`).Post("/")
-		assertSuccess(t, resp, err)
-		dump := resp.Dump()
-		assertContains(t, dump, "user-agent", reqHeader)
-		assertContains(t, dump, "test body", reqBody)
-		assertContains(t, dump, "date", respHeader)
-		assertContains(t, dump, "testpost: text response", respBody)
-	}
-	testDump(tc())
-	testDump(tc().EnableForceHTTP1())
-}
-
-func TestSetDumpOptions(t *testing.T) {
-	testSetDumpOptions(t, tc())
-	testSetDumpOptions(t, tc().EnableForceHTTP1())
-}
-
-func testSetDumpOptions(t *testing.T, c *Client) {
-	opt := &DumpOptions{
-		RequestHeader:  true,
-		RequestBody:    false,
-		ResponseHeader: false,
-		ResponseBody:   true,
-	}
-	resp, err := c.R().SetDumpOptions(opt).EnableDump().SetBody("test body").Post(getTestServerURL())
-	assertSuccess(t, resp, err)
-	dump := resp.Dump()
-	assertContains(t, dump, "user-agent", true)
-	assertContains(t, dump, "test body", false)
-	assertContains(t, dump, "date", false)
-	assertContains(t, dump, "testpost: text response", true)
-}
-
-func TestGet(t *testing.T) {
-	testGet(t, tc())
-	testGet(t, tc().EnableForceHTTP1())
-}
-
-func testGet(t *testing.T, c *Client) {
-	resp, err := c.R().Get("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "TestGet: text response", resp.String())
 }
 
 func TestBadRequest(t *testing.T) {
