@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"testing"
 	"time"
 )
@@ -267,175 +266,184 @@ func TestEnableDumpToFIle(t *testing.T) {
 }
 
 func TestBadRequest(t *testing.T) {
-	testBadRequest(t, tc())
-	testBadRequest(t, tc().EnableForceHTTP1())
-}
-
-func testBadRequest(t *testing.T, c *Client) {
-	resp, err := c.R().Get("/bad-request")
+	resp, err := tc().R().Get("/bad-request")
 	assertStatus(t, resp, err, http.StatusBadRequest, "400 Bad Request")
 }
 
 func TestSetBodyMarshal(t *testing.T) {
-	testSetBodyMarshal(t, tc())
-	testSetBodyMarshal(t, tc().EnableForceHTTP1())
-}
-
-func testSetBodyMarshal(t *testing.T, c *Client) {
+	username := "imroc"
 	type User struct {
 		Username string `json:"username" xml:"username"`
 	}
 
-	assertUsername := func(username string) func(e *echo) {
-		return func(e *echo) {
-			var user User
-			err := json.Unmarshal([]byte(e.Body), &user)
-			assertNoError(t, err)
-			assertEqual(t, username, user.Username)
-		}
+	assertUsernameJson := func(body []byte) {
+		var user User
+		err := json.Unmarshal(body, &user)
+		assertNoError(t, err)
+		assertEqual(t, username, user.Username)
 	}
-	assertUsernameXml := func(username string) func(e *echo) {
-		return func(e *echo) {
-			var user User
-			err := xml.Unmarshal([]byte(e.Body), &user)
-			assertNoError(t, err)
-			assertEqual(t, username, user.Username)
-		}
+	assertUsernameXml := func(body []byte) {
+		var user User
+		err := xml.Unmarshal(body, &user)
+		assertNoError(t, err)
+		assertEqual(t, username, user.Username)
 	}
+
 	testCases := []struct {
 		Set    func(r *Request)
-		Assert func(e *echo)
+		Assert func(body []byte)
 	}{
 		{ // SetBody with map
 			Set: func(r *Request) {
 				m := map[string]interface{}{
-					"username": "imroc",
+					"username": username,
 				}
 				r.SetBody(&m)
 			},
-			Assert: assertUsername("imroc"),
-		},
-		{ // SetBodyJsonMarshal with map
-			Set: func(r *Request) {
-				m := map[string]interface{}{
-					"username": "imroc",
-				}
-				r.SetBodyJsonMarshal(&m)
-			},
-			Assert: assertUsername("imroc"),
+			Assert: assertUsernameJson,
 		},
 		{ // SetBody with struct
 			Set: func(r *Request) {
 				var user User
-				user.Username = "imroc"
+				user.Username = username
 				r.SetBody(&user)
 			},
-			Assert: assertUsername("imroc"),
+			Assert: assertUsernameJson,
 		},
 		{ // SetBody with struct use xml
 			Set: func(r *Request) {
 				var user User
-				user.Username = "imroc"
+				user.Username = username
 				r.SetBody(&user).SetContentType(xmlContentType)
 			},
-			Assert: assertUsernameXml("imroc"),
+			Assert: assertUsernameXml,
+		},
+		{ // SetBodyJsonMarshal with map
+			Set: func(r *Request) {
+				m := map[string]interface{}{
+					"username": username,
+				}
+				r.SetBodyJsonMarshal(&m)
+			},
+			Assert: assertUsernameJson,
 		},
 		{ // SetBodyJsonMarshal with struct
 			Set: func(r *Request) {
 				var user User
-				user.Username = "imroc"
+				user.Username = username
 				r.SetBodyJsonMarshal(&user)
 			},
-			Assert: assertUsername("imroc"),
+			Assert: assertUsernameJson,
 		},
 		{ // SetBodyXmlMarshal with struct
 			Set: func(r *Request) {
 				var user User
-				user.Username = "imroc"
+				user.Username = username
 				r.SetBodyXmlMarshal(&user)
 			},
-			Assert: assertUsernameXml("imroc"),
+			Assert: assertUsernameXml,
 		},
 	}
 
-	for _, cs := range testCases {
+	c := tc()
+	for _, tc := range testCases {
 		r := c.R()
-		cs.Set(r)
-		var e echo
+		tc.Set(r)
+		var e Echo
 		resp, err := r.SetResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
-		cs.Assert(&e)
+		tc.Assert([]byte(e.Body))
 	}
 }
 
-func TestSetBodyReader(t *testing.T) {
-	var e echo
-	resp, err := tc().R().SetBody(ioutil.NopCloser(bytes.NewBufferString("hello"))).SetResult(&e).Post("/echo")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
-	assertEqual(t, "hello", e.Body)
-}
-
-func TestSetBodyGetContentFunc(t *testing.T) {
-	var e echo
-	resp, err := tc().R().SetBody(func() (io.ReadCloser, error) {
-		return ioutil.NopCloser(bytes.NewBufferString("hello")), nil
-	}).SetResult(&e).Post("/echo")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
-	assertEqual(t, "hello", e.Body)
-
-	e = echo{}
-	var fn GetContentFunc = func() (io.ReadCloser, error) {
-		return ioutil.NopCloser(bytes.NewBufferString("hello")), nil
+func TestSetBody(t *testing.T) {
+	body := "hello"
+	fn := func() (io.ReadCloser, error) {
+		return ioutil.NopCloser(bytes.NewBufferString(body)), nil
 	}
-	resp, err = tc().R().SetBody(fn).SetResult(&e).Post("/echo")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
-	assertEqual(t, "hello", e.Body)
-}
-
-func TestSetBodyContent(t *testing.T) {
-	testSetBodyContent(t, tc())
-	testSetBodyContent(t, tc().EnableForceHTTP1())
-}
-
-func testSetBodyContent(t *testing.T, c *Client) {
-	var e echo
-	testBody := "test body"
-
-	testCases := []func(r *Request){
-		func(r *Request) { // SetBody with string
-			r.SetBody(testBody)
+	c := tc()
+	testCases := []struct {
+		SetBody     func(r *Request)
+		ContentType string
+	}{
+		{
+			SetBody: func(r *Request) { // SetBody with `func() (io.ReadCloser, error)`
+				r.SetBody(fn)
+			},
 		},
-		func(r *Request) { // SetBody with []byte
-			r.SetBody([]byte(testBody))
+		{
+			SetBody: func(r *Request) { //  SetBody with GetContentFunc
+				r.SetBody(GetContentFunc(fn))
+			},
 		},
-		func(r *Request) { // SetBodyString
-			r.SetBodyString(testBody)
+		{
+			SetBody: func(r *Request) { //  SetBody with io.ReadCloser
+				r.SetBody(ioutil.NopCloser(bytes.NewBufferString(body)))
+			},
 		},
-		func(r *Request) { // SetBodyBytes
-			r.SetBodyBytes([]byte(testBody))
+		{
+			SetBody: func(r *Request) { //  SetBody with io.Reader
+				r.SetBody(bytes.NewBufferString(body))
+			},
+		},
+		{
+			SetBody: func(r *Request) { //  SetBody with string
+				r.SetBody(body)
+			},
+			ContentType: plainTextContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBody with []byte
+				r.SetBody([]byte(body))
+			},
+			ContentType: plainTextContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBodyString
+				r.SetBodyString(body)
+			},
+			ContentType: plainTextContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBodyBytes
+				r.SetBodyBytes([]byte(body))
+			},
+			ContentType: plainTextContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBodyJsonString
+				r.SetBodyJsonString(body)
+			},
+			ContentType: jsonContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBodyJsonBytes
+				r.SetBodyJsonBytes([]byte(body))
+			},
+			ContentType: jsonContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBodyXmlString
+				r.SetBodyXmlString(body)
+			},
+			ContentType: xmlContentType,
+		},
+		{
+			SetBody: func(r *Request) { // SetBodyXmlBytes
+				r.SetBodyXmlBytes([]byte(body))
+			},
+			ContentType: xmlContentType,
 		},
 	}
-
-	for _, fn := range testCases {
+	for _, tc := range testCases {
 		r := c.R()
-		fn(r)
-		var e echo
+		tc.SetBody(r)
+		var e Echo
 		resp, err := r.SetResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
-		assertEqual(t, plainTextContentType, e.Header.Get(hdrContentTypeKey))
-		assertEqual(t, testBody, e.Body)
+		assertEqual(t, tc.ContentType, e.Header.Get(hdrContentTypeKey))
+		assertEqual(t, body, e.Body)
 	}
-
-	// Set Reader
-	testBodyReader := strings.NewReader(testBody)
-	e = echo{}
-	resp, err := c.R().SetBody(testBodyReader).SetResult(&e).Post("/echo")
-	assertSuccess(t, resp, err)
-	assertEqual(t, testBody, e.Body)
-	assertEqual(t, "", e.Header.Get(hdrContentTypeKey))
 }
 
 func TestCookie(t *testing.T) {

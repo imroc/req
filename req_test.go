@@ -173,7 +173,8 @@ func isNil(v interface{}) bool {
 	return false
 }
 
-type echo struct {
+// Echo is used in "/echo" API.
+type Echo struct {
 	Header http.Header `json:"header" xml:"header"`
 	Body   string      `json:"body" xml:"body"`
 }
@@ -215,7 +216,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
 	case "/echo":
 		b, _ := ioutil.ReadAll(r.Body)
-		e := echo{
+		e := Echo{
 			Header: r.Header,
 			Body:   string(b),
 		}
