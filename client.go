@@ -929,43 +929,43 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		Request: r,
 	}
 
-	for _, f := range r.client.udBeforeRequest {
-		if err = f(r.client, r); err != nil {
-			return
-		}
-	}
-	for _, f := range r.client.beforeRequest {
-		if err = f(r.client, r); err != nil {
-			return
-		}
-	}
-
-	// setup trace
-	if r.trace == nil && r.client.trace {
-		r.trace = &clientTrace{}
-	}
-	if r.trace != nil {
-		r.ctx = r.trace.createContext(r.Context())
-	}
-
-	// setup url and host
-	var host string
-	if h := r.getHeader("Host"); h != "" {
-		host = h // Host header override
-	} else {
-		host = r.URL.Host
-	}
-
-	// setup header
-	var header http.Header
-	if r.Headers == nil {
-		header = make(http.Header)
-	} else {
-		header = r.Headers.Clone()
-	}
-	contentLength := int64(len(r.body))
-
 	for {
+		for _, f := range r.client.udBeforeRequest {
+			if err = f(r.client, r); err != nil {
+				return
+			}
+		}
+		for _, f := range r.client.beforeRequest {
+			if err = f(r.client, r); err != nil {
+				return
+			}
+		}
+
+		// setup trace
+		if r.trace == nil && r.client.trace {
+			r.trace = &clientTrace{}
+		}
+		if r.trace != nil {
+			r.ctx = r.trace.createContext(r.Context())
+		}
+
+		// setup url and host
+		var host string
+		if h := r.getHeader("Host"); h != "" {
+			host = h // Host header override
+		} else {
+			host = r.URL.Host
+		}
+
+		// setup header
+		var header http.Header
+		if r.Headers == nil {
+			header = make(http.Header)
+		} else {
+			header = r.Headers.Clone()
+		}
+		contentLength := int64(len(r.body))
+
 		var reqBody io.ReadCloser
 		if r.getBody != nil {
 			reqBody, err = r.getBody()
@@ -1036,10 +1036,12 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		}
 		time.Sleep(r.retryOption.GetRetryInterval(resp, r.RetryAttempt))
 
-		// clean buffers
+		// clean up before retry
 		if r.dumpBuffer != nil {
 			r.dumpBuffer.Reset()
 		}
+		r.trace = nil
+		r.ctx = nil
 		resp.body = nil
 	}
 

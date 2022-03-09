@@ -139,3 +139,22 @@ func TestRetryWithSetResult(t *testing.T) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, "test=test", headers.Get("Cookie"))
 }
+
+func TestRetryWithModify(t *testing.T) {
+	tokens := []string{"badtoken1", "badtoken2", "goodtoken"}
+	tokenIndex := 0
+	c := tc().EnableDumpAll().
+		SetCommonRetryCount(2).
+		SetCommonRetryHook(func(resp *Response, err error) {
+			tokenIndex++
+			resp.Request.SetBearerAuthToken(tokens[tokenIndex])
+		}).SetCommonRetryCondition(func(resp *Response, err error) bool {
+		return err != nil || resp.StatusCode == http.StatusUnauthorized
+	})
+
+	resp, err := c.R().
+		SetBearerAuthToken(tokens[tokenIndex]).
+		Get("/protected")
+	assertSuccess(t, resp, err)
+	assertEqual(t, 2, resp.Request.RetryAttempt)
+}

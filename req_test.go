@@ -297,9 +297,6 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusTooManyRequests)
 		w.Header().Set(hdrContentTypeKey, jsonContentType)
 		w.Write([]byte(`{"errMsg":"too many requests"}`))
-	case "/retry":
-		r.ParseForm()
-		r.Form.Get("attempt")
 	case "/chunked":
 		w.Header().Add("Trailer", "Expires")
 		w.Write([]byte(`This is a chunked body`))
@@ -356,6 +353,14 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.URL.RawQuery))
 	case "/search":
 		handleSearch(w, r)
+	case "/protected":
+		auth := r.Header.Get("Authorization")
+		if auth == "Bearer goodtoken" {
+			w.Write([]byte("good"))
+		} else {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`bad`))
+		}
 	default:
 		if strings.HasPrefix(r.URL.Path, "/user") {
 			handleGetUserProfile(w, r)
