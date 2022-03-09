@@ -447,13 +447,8 @@ func TestSetBody(t *testing.T) {
 }
 
 func TestCookie(t *testing.T) {
-	testCookie(t, tc())
-	testCookie(t, tc().EnableForceHTTP1())
-}
-
-func testCookie(t *testing.T, c *Client) {
 	headers := make(http.Header)
-	resp, err := c.R().SetCookies(
+	resp, err := tc().R().SetCookies(
 		&http.Cookie{
 			Name:  "cookie1",
 			Value: "value1",
@@ -467,23 +462,20 @@ func testCookie(t *testing.T, c *Client) {
 	assertEqual(t, "cookie1=value1; cookie2=value2", headers.Get("Cookie"))
 }
 
-func TestAuth(t *testing.T) {
-	testAuth(t, tc())
-	testAuth(t, tc().EnableForceHTTP1())
-}
-
-func testAuth(t *testing.T, c *Client) {
+func TestSetBasicAuth(t *testing.T) {
 	headers := make(http.Header)
-	resp, err := c.R().
+	resp, err := tc().R().
 		SetBasicAuth("imroc", "123456").
 		SetResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
 	assertEqual(t, "Basic aW1yb2M6MTIzNDU2", headers.Get("Authorization"))
+}
 
+func TestSetBearerAuthToken(t *testing.T) {
 	token := "NGU1ZWYwZDJhNmZhZmJhODhmMjQ3ZDc4"
-	headers = make(http.Header)
-	resp, err = c.R().
+	headers := make(http.Header)
+	resp, err := tc().R().
 		SetBearerAuthToken(token).
 		SetResult(&headers).
 		Get("/header")
