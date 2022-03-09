@@ -16,53 +16,150 @@ import (
 	"time"
 )
 
-func TestMethods(t *testing.T) {
-	testMethods(t, tc())
-	testMethods(t, tc().EnableForceHTTP1())
+func TestMustSendMethods(t *testing.T) {
+	c := tc()
+	testCases := []struct {
+		SendReq      func(req *Request, url string) *Response
+		ExpectMethod string
+	}{
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustGet(url)
+			},
+			ExpectMethod: "GET",
+		},
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustPost(url)
+			},
+			ExpectMethod: "POST",
+		},
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustPatch(url)
+			},
+			ExpectMethod: "PATCH",
+		},
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustDelete(url)
+			},
+			ExpectMethod: "DELETE",
+		},
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustOptions(url)
+			},
+			ExpectMethod: "OPTIONS",
+		},
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustPut(url)
+			},
+			ExpectMethod: "PUT",
+		},
+		{
+			SendReq: func(req *Request, url string) *Response {
+				return req.MustHead(url)
+			},
+			ExpectMethod: "HEAD",
+		},
+	}
+
+	for _, tc := range testCases {
+		testMethod(t, c, func(req *Request) *Response {
+			return tc.SendReq(req, "/")
+		}, tc.ExpectMethod, false)
+	}
+
+	// test panic
+	for _, tc := range testCases {
+		testMethod(t, c, func(req *Request) *Response {
+			return tc.SendReq(req, "/\r\n")
+		}, tc.ExpectMethod, true)
+	}
 }
 
-func testMethods(t *testing.T, c *Client) {
-	resp, err := c.R().Put("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "PUT", resp.Header.Get("Method"))
-	resp = c.R().MustPut("/")
-	assertEqual(t, "PUT", resp.Header.Get("Method"))
+func TestSendMethods(t *testing.T) {
+	c := tc()
+	testCases := []struct {
+		SendReq      func(req *Request) (resp *Response, err error)
+		ExpectMethod string
+	}{
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Get("/")
+			},
+			ExpectMethod: "GET",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Post("/")
+			},
+			ExpectMethod: "POST",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Put("/")
+			},
+			ExpectMethod: "PUT",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Patch("/")
+			},
+			ExpectMethod: "PATCH",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Delete("/")
+			},
+			ExpectMethod: "DELETE",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Options("/")
+			},
+			ExpectMethod: "OPTIONS",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Head("/")
+			},
+			ExpectMethod: "HEAD",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Send("GET", "/")
+			},
+			ExpectMethod: "GET",
+		},
+	}
+	for _, tc := range testCases {
+		testMethod(t, c, func(req *Request) *Response {
+			resp, err := tc.SendReq(req)
+			if err != nil {
+				t.Errorf("%s %s: %s", req.method, req.RawURL, err.Error())
+			}
+			return resp
+		}, tc.ExpectMethod, false)
+	}
+}
 
-	resp, err = c.R().Patch("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "PATCH", resp.Header.Get("Method"))
-	resp = c.R().MustPatch("/")
-	assertEqual(t, "PATCH", resp.Header.Get("Method"))
-
-	resp, err = c.R().Delete("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "DELETE", resp.Header.Get("Method"))
-	resp = c.R().MustDelete("/")
-	assertEqual(t, "DELETE", resp.Header.Get("Method"))
-
-	resp, err = c.R().Options("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
-	resp = c.R().MustOptions("/")
-	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
-
-	resp, err = c.R().Head("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "HEAD", resp.Header.Get("Method"))
-	resp = c.R().MustHead("/")
-	assertEqual(t, "HEAD", resp.Header.Get("Method"))
-
-	resp, err = c.R().Get("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "GET", resp.Header.Get("Method"))
-	resp = c.R().MustGet("/")
-	assertEqual(t, "GET", resp.Header.Get("Method"))
-
-	resp, err = c.R().Post("/")
-	assertSuccess(t, resp, err)
-	assertEqual(t, "POST", resp.Header.Get("Method"))
-	resp = c.R().MustPost("/")
-	assertEqual(t, "POST", resp.Header.Get("Method"))
+func testMethod(t *testing.T, c *Client, sendReq func(*Request) *Response, expectMethod string, expectPanic bool) {
+	r := c.R()
+	if expectPanic {
+		defer func() {
+			if err := recover(); err == nil {
+				t.Errorf("Must mehod %s should panic", expectMethod)
+			}
+		}()
+	}
+	resp := sendReq(r)
+	method := resp.Header.Get("Method")
+	if expectMethod != method {
+		t.Errorf("Expect method %s, got method %s", expectMethod, method)
+	}
 }
 
 func TestEnableDump(t *testing.T) {
