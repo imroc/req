@@ -909,23 +909,17 @@ client.SetCommonRetryFixedInterval(2 * time.Seconds)
 
 // Set the retry to use a custom retry interval algorithm.
 client.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duration { 
-    // Sleep seconds from "Retry-After" response header if it is present and correct (https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html).
+    // Sleep seconds from "Retry-After" response header if it is present and correct.
+	// https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
     if resp.Response != nil {
-        ra := resp.Header.Get("Retry-After")
-        if ra != "" {
+        if ra := resp.Header.Get("Retry-After"); ra != "" {
             after, err := strconv.Atoi(ra)
             if err == nil {
                 return time.Duration(after) * time.Second
             }
         }
     }
-    return 2 * time.Second // Otherwise sleep 2 seconds
-})
-
-// Add a retry hook which will be executed before a retry.
-client.AddCommonRetryHook(func(resp *req.Response, err error){
-    req := resp.Request.RawRequest
-    fmt.Println("Retry request:", req.Method, req.URL)
+    return 2 * time.Second // Otherwise, sleep 2 seconds
 })
 
 // Add a retry condition which determines whether the request should retry.
@@ -935,7 +929,15 @@ client.AddCommonRetryCondition(func(resp *req.Response, err error) bool {
 
 // Add another retry condition
 client.AddCommonRetryCondition(func(resp *req.Response, err error) bool {
-    return resp.StatusCode == http.StatusTooManyRequests
+    return resp.StatusCode == http.StatusUnauthorized
+})
+
+// Add a retry hook which will be executed before a retry.
+client.AddCommonRetryHook(func(resp *req.Response, err error){
+    req := resp.Request.RawRequest
+    fmt.Println("Retry request:", req.Method, req.URL)
+    // Modify request settings in the retry hook.
+	resp.Request.SetBearerAuthToken(token)
 })
 ```
 
@@ -945,10 +947,10 @@ You can also override retry settings at request-level (check the full list of re
 client.R().
     SetRetryCount(2).
     SetRetryInterval(intervalFunc).
-    SetRetryHook(hookFunc1). // Unlike add, set will remove all other retry hooks which is added before at both request and client level.
     AddRetryHook(hookFunc2).
-    SetRetryCondition(conditionFunc1). // Similarly, this will remove all other retry conditions which is added before at both request and client level.
-    AddRetryCondition(conditionFunc2)
+    SetRetryHook(hookFunc1). // Unlike add, set will remove all other retry hooks which is added before at both request and client level.
+    AddRetryCondition(conditionFunc2).
+    SetRetryCondition(conditionFunc1) // Similarly, this will remove all other retry conditions which is added before at both request and client level.
 ```
 
 ## <a name="TODO">TODO List</a>
