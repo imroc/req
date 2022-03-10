@@ -704,21 +704,44 @@ func testHostHeaderOverride(t *testing.T, c *Client) {
 	assertEqual(t, "testhostname", resp.String())
 }
 
+func assertTraceInfo(t *testing.T, resp *Response, enable bool) {
+	ti := resp.TraceInfo()
+	assertEqual(t, true, resp.TotalTime() > 0)
+	if !enable {
+		assertEqual(t, false, ti.TotalTime > 0)
+		assertIsNil(t, ti.RemoteAddr)
+		assertContains(t, ti.String(), "not enabled", true)
+		assertContains(t, ti.Blame(), "not enabled", true)
+		return
+	}
+
+	assertContains(t, ti.String(), "not enabled", false)
+	assertContains(t, ti.Blame(), "not enabled", false)
+	assertEqual(t, true, ti.TotalTime > 0)
+	assertEqual(t, true, ti.ConnectTime > 0)
+	assertEqual(t, true, ti.FirstResponseTime > 0)
+	assertEqual(t, true, ti.ResponseTime > 0)
+	assertNotNil(t, ti.RemoteAddr)
+	if ti.IsConnReused {
+		assertEqual(t, true, ti.TCPConnectTime == 0)
+		assertEqual(t, true, ti.TLSHandshakeTime == 0)
+	} else {
+		assertEqual(t, true, ti.TCPConnectTime > 0)
+		assertEqual(t, true, ti.TLSHandshakeTime > 0)
+	}
+}
+
+func assertEnableTraceInfo(t *testing.T, resp *Response) {
+	assertTraceInfo(t, resp, true)
+}
+
+func assertDisableTraceInfo(t *testing.T, resp *Response) {
+	assertTraceInfo(t, resp, false)
+}
+
 func TestTraceInfo(t *testing.T) {
 	testTraceInfo(t, tc())
 	testTraceInfo(t, tc().EnableForceHTTP1())
-	resp, err := tc().R().Get("/")
-	assertSuccess(t, resp, err)
-	ti := resp.TraceInfo()
-	assertContains(t, ti.String(), "not enabled", true)
-	assertContains(t, ti.Blame(), "not enabled", true)
-
-	resp, err = tc().EnableTraceAll().R().Get("/")
-	assertSuccess(t, resp, err)
-	ti = resp.TraceInfo()
-	assertContains(t, ti.String(), "not enabled", false)
-	assertContains(t, ti.Blame(), "not enabled", false)
-	assertEqual(t, true, resp.TotalTime() > 0)
 }
 
 func testTraceInfo(t *testing.T, c *Client) {
@@ -726,29 +749,18 @@ func testTraceInfo(t *testing.T, c *Client) {
 	c.EnableTraceAll()
 	resp, err := c.R().Get("/")
 	assertSuccess(t, resp, err)
-	ti := resp.TraceInfo()
-	assertEqual(t, true, ti.TotalTime > 0)
-	assertEqual(t, true, ti.TCPConnectTime > 0)
-	assertEqual(t, true, ti.TLSHandshakeTime > 0)
-	assertEqual(t, true, ti.ConnectTime > 0)
-	assertEqual(t, true, ti.FirstResponseTime > 0)
-	assertEqual(t, true, ti.ResponseTime > 0)
-	assertNotNil(t, ti.RemoteAddr)
+	assertEnableTraceInfo(t, resp)
 
 	// disable trace at client level
 	c.DisableTraceAll()
 	resp, err = c.R().Get("/")
 	assertSuccess(t, resp, err)
-	ti = resp.TraceInfo()
-	assertEqual(t, false, ti.TotalTime > 0)
-	assertIsNil(t, ti.RemoteAddr)
+	assertDisableTraceInfo(t, resp)
 
 	// enable trace at request level
 	resp, err = c.R().EnableTrace().Get("/")
 	assertSuccess(t, resp, err)
-	ti = resp.TraceInfo()
-	assertEqual(t, true, ti.TotalTime > 0)
-	assertNotNil(t, ti.RemoteAddr)
+	assertEnableTraceInfo(t, resp)
 }
 
 func TestTraceOnTimeout(t *testing.T) {
