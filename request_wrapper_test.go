@@ -12,14 +12,8 @@ func init() {
 	SetLogger(nil) // disable log
 }
 
-func assertRequestNotNil(t *testing.T, rs ...*Request) {
-	for _, r := range rs {
-		assertNotNil(t, r)
-	}
-}
-
 func TestGlobalWrapperForRequestSettings(t *testing.T) {
-	assertRequestNotNil(t,
+	assertAllNotNil(t,
 		SetFiles(map[string]string{"test": "test"}),
 		SetFile("test", "test"),
 		SetFileReader("test", "test.txt", bytes.NewBufferString("test")),
@@ -75,4 +69,88 @@ func TestGlobalWrapperForRequestSettings(t *testing.T) {
 		DisableTrace(),
 		SetContext(context.Background()),
 	)
+}
+
+func testGlobalWrapperMustSendMethods(t *testing.T) {
+	testCases := []struct {
+		SendReq      func(string) *Response
+		ExpectMethod string
+	}{
+		{
+			SendReq:      MustGet,
+			ExpectMethod: "GET",
+		},
+		{
+			SendReq:      MustPost,
+			ExpectMethod: "POST",
+		},
+		{
+			SendReq:      MustPatch,
+			ExpectMethod: "PATCH",
+		},
+		{
+			SendReq:      MustPut,
+			ExpectMethod: "PUT",
+		},
+		{
+			SendReq:      MustDelete,
+			ExpectMethod: "DELETE",
+		},
+		{
+			SendReq:      MustOptions,
+			ExpectMethod: "OPTIONS",
+		},
+		{
+			SendReq:      MustHead,
+			ExpectMethod: "HEAD",
+		},
+	}
+	url := getTestServerURL() + "/"
+	for _, tc := range testCases {
+		resp := tc.SendReq(url)
+		assertNotNil(t, resp.Response)
+		assertEqual(t, tc.ExpectMethod, resp.Header.Get("Method"))
+	}
+}
+
+func testGlobalWrapperSendMethods(t *testing.T) {
+	testCases := []struct {
+		SendReq      func(string) (*Response, error)
+		ExpectMethod string
+	}{
+		{
+			SendReq:      Get,
+			ExpectMethod: "GET",
+		},
+		{
+			SendReq:      Post,
+			ExpectMethod: "POST",
+		},
+		{
+			SendReq:      Patch,
+			ExpectMethod: "PATCH",
+		},
+		{
+			SendReq:      Put,
+			ExpectMethod: "PUT",
+		},
+		{
+			SendReq:      Delete,
+			ExpectMethod: "DELETE",
+		},
+		{
+			SendReq:      Options,
+			ExpectMethod: "OPTIONS",
+		},
+		{
+			SendReq:      Head,
+			ExpectMethod: "HEAD",
+		},
+	}
+	url := getTestServerURL() + "/"
+	for _, tc := range testCases {
+		resp, err := tc.SendReq(url)
+		assertSuccess(t, resp, err)
+		assertEqual(t, tc.ExpectMethod, resp.Header.Get("Method"))
+	}
 }

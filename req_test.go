@@ -1,12 +1,8 @@
 package req
 
 import (
-	"bytes"
-	"context"
-	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/tests"
 	"go/token"
@@ -14,17 +10,14 @@ import (
 	"golang.org/x/text/transform"
 	"io"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
-	"time"
 	"unsafe"
 )
 
@@ -80,6 +73,12 @@ func getTestFileContent(t *testing.T, filename string) []byte {
 func assertIsNil(t *testing.T, v interface{}) {
 	if !isNil(v) {
 		t.Errorf("[%v] was expected to be nil", v)
+	}
+}
+
+func assertAllNotNil(t *testing.T, vv ...interface{}) {
+	for _, v := range vv {
+		assertNotNil(t, v)
 	}
 }
 
@@ -399,292 +398,6 @@ func assertIsError(t *testing.T, resp *Response, err error) {
 	if !resp.IsError() {
 		t.Error("Response.IsError should return true")
 	}
-}
-
-func testGlobalWrapperEnableDumps(t *testing.T) {
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = true
-		*reqBody = true
-		*respHeader = true
-		*respBody = true
-		return EnableDump()
-	})
-
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = false
-		*reqBody = false
-		*respHeader = true
-		*respBody = true
-		return EnableDumpWithoutRequest()
-	})
-
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = true
-		*reqBody = false
-		*respHeader = true
-		*respBody = true
-		return EnableDumpWithoutRequestBody()
-	})
-
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = true
-		*reqBody = true
-		*respHeader = false
-		*respBody = false
-		return EnableDumpWithoutResponse()
-	})
-
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = true
-		*reqBody = true
-		*respHeader = true
-		*respBody = false
-		return EnableDumpWithoutResponseBody()
-	})
-
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = false
-		*reqBody = true
-		*respHeader = false
-		*respBody = true
-		return EnableDumpWithoutHeader()
-	})
-
-	testGlobalWrapperEnableDump(t, func(reqHeader, reqBody, respHeader, respBody *bool) *Request {
-		*reqHeader = true
-		*reqBody = false
-		*respHeader = true
-		*respBody = false
-		return EnableDumpWithoutBody()
-	})
-
-	buf := new(bytes.Buffer)
-	r := EnableDumpTo(buf)
-	assertEqual(t, true, r.getDumpOptions().Output != nil)
-
-	dumpFile := tests.GetTestFilePath("req_tmp_dump.out")
-	r = EnableDumpToFile(tests.GetTestFilePath(dumpFile))
-	assertEqual(t, true, r.getDumpOptions().Output != nil)
-	os.Remove(dumpFile)
-
-	r = SetDumpOptions(&DumpOptions{
-		RequestHeader: true,
-	})
-	assertEqual(t, true, r.getDumpOptions().RequestHeader)
-}
-
-func testGlobalWrapperEnableDump(t *testing.T, fn func(reqHeader, reqBody, respHeader, respBody *bool) *Request) {
-	var reqHeader, reqBody, respHeader, respBody bool
-	r := fn(&reqHeader, &reqBody, &respHeader, &respBody)
-	dump, ok := r.Context().Value(dumperKey).(*dumper)
-	if !ok {
-		t.Fatal("no dumper found in request context")
-	}
-	if reqHeader != dump.DumpOptions.RequestHeader {
-		t.Errorf("Unexpected RequestHeader dump option, expected [%v], got [%v]", reqHeader, dump.DumpOptions.RequestHeader)
-	}
-	if reqBody != dump.DumpOptions.RequestBody {
-		t.Errorf("Unexpected RequestBody dump option, expected [%v], got [%v]", reqBody, dump.DumpOptions.RequestBody)
-	}
-	if respHeader != dump.DumpOptions.ResponseHeader {
-		t.Errorf("Unexpected RequestHeader dump option, expected [%v], got [%v]", respHeader, dump.DumpOptions.ResponseHeader)
-	}
-	if respBody != dump.DumpOptions.ResponseBody {
-		t.Errorf("Unexpected RequestHeader dump option, expected [%v], got [%v]", respBody, dump.DumpOptions.ResponseBody)
-	}
-}
-
-func testGlobalWrapperSendRequest(t *testing.T) {
-	testURL := getTestServerURL() + "/"
-
-	resp, err := Put(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "PUT", resp.Header.Get("Method"))
-	resp = MustPut(testURL)
-	assertEqual(t, "PUT", resp.Header.Get("Method"))
-
-	resp, err = Patch(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "PATCH", resp.Header.Get("Method"))
-	resp = MustPatch(testURL)
-	assertEqual(t, "PATCH", resp.Header.Get("Method"))
-
-	resp, err = Delete(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "DELETE", resp.Header.Get("Method"))
-	resp = MustDelete(testURL)
-	assertEqual(t, "DELETE", resp.Header.Get("Method"))
-
-	resp, err = Options(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
-	resp = MustOptions(testURL)
-	assertEqual(t, "OPTIONS", resp.Header.Get("Method"))
-
-	resp, err = Head(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "HEAD", resp.Header.Get("Method"))
-	resp = MustHead(testURL)
-	assertEqual(t, "HEAD", resp.Header.Get("Method"))
-
-	resp, err = Get(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "GET", resp.Header.Get("Method"))
-	resp = MustGet(testURL)
-	assertEqual(t, "GET", resp.Header.Get("Method"))
-
-	resp, err = Post(testURL)
-	assertSuccess(t, resp, err)
-	assertEqual(t, "POST", resp.Header.Get("Method"))
-	resp = MustPost(testURL)
-	assertEqual(t, "POST", resp.Header.Get("Method"))
-}
-
-func testGlobalClientSettingWrapper(t *testing.T, cs ...*Client) {
-	for _, c := range cs {
-		assertNotNil(t, c)
-	}
-}
-
-func TestGlobalWrapper(t *testing.T) {
-	EnableInsecureSkipVerify()
-	testGlobalWrapperSendRequest(t)
-	testGlobalWrapperEnableDumps(t)
-	DisableInsecureSkipVerify()
-
-	testErr := errors.New("test")
-	testDial := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return nil, testErr
-	}
-	testDialTLS := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		return nil, testErr
-	}
-
-	marshalFunc := func(v interface{}) ([]byte, error) {
-		return nil, testErr
-	}
-	unmarshalFunc := func(data []byte, v interface{}) error {
-		return testErr
-	}
-	u, _ := url.Parse("http://dummy.proxy.local")
-	proxy := http.ProxyURL(u)
-	form := make(url.Values)
-	form.Add("test", "test")
-
-	testGlobalClientSettingWrapper(t,
-		SetCookieJar(nil),
-		SetDialTLS(testDialTLS),
-		SetDial(testDial),
-		SetTLSHandshakeTimeout(time.Second),
-		EnableAllowGetMethodPayload(),
-		DisableAllowGetMethodPayload(),
-		SetJsonMarshal(marshalFunc),
-		SetJsonUnmarshal(unmarshalFunc),
-		SetXmlMarshal(marshalFunc),
-		SetXmlUnmarshal(unmarshalFunc),
-		EnableTraceAll(),
-		DisableTraceAll(),
-		OnAfterResponse(func(client *Client, response *Response) error {
-			return nil
-		}),
-		OnBeforeRequest(func(client *Client, request *Request) error {
-			return nil
-		}),
-		SetProxyURL("http://dummy.proxy.local"),
-		SetProxyURL("bad url"),
-		SetProxy(proxy),
-		SetCommonContentType(jsonContentType),
-		SetCommonHeader("my-header", "my-value"),
-		SetCommonHeaders(map[string]string{
-			"header1": "value1",
-			"header2": "value2",
-		}),
-		SetCommonBasicAuth("imroc", "123456"),
-		SetCommonBearerAuthToken("123456"),
-		SetUserAgent("test"),
-		SetTimeout(1*time.Second),
-		SetLogger(createDefaultLogger()),
-		SetScheme("https"),
-		EnableDebugLog(),
-		DisableDebugLog(),
-		SetCommonCookies(&http.Cookie{Name: "test", Value: "test"}),
-		SetCommonQueryString("test1=test1"),
-		SetCommonPathParams(map[string]string{"test1": "test1"}),
-		SetCommonPathParam("test2", "test2"),
-		AddCommonQueryParam("test1", "test11"),
-		SetCommonQueryParam("test1", "test111"),
-		SetCommonQueryParams(map[string]string{"test1": "test1"}),
-		EnableInsecureSkipVerify(),
-		DisableInsecureSkipVerify(),
-		DisableCompression(),
-		EnableCompression(),
-		DisableKeepAlives(),
-		EnableKeepAlives(),
-		SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem")),
-		SetRootCertFromString(string(getTestFileContent(t, "sample-root.pem"))),
-		SetCerts(tls.Certificate{}, tls.Certificate{}),
-		SetCertFromFile(
-			tests.GetTestFilePath("sample-client.pem"),
-			tests.GetTestFilePath("sample-client-key.pem"),
-		),
-		SetOutputDirectory(testDataPath),
-		SetBaseURL("http://dummy-req.local/test"),
-		SetCommonFormDataFromValues(form),
-		SetCommonFormData(map[string]string{"test2": "test2"}),
-		DisableAutoReadResponse(),
-		EnableAutoReadResponse(),
-		EnableDumpAll(),
-		EnableDumpAllAsync(),
-		EnableDumpAllWithoutBody(),
-		EnableDumpAllWithoutResponse(),
-		EnableDumpAllWithoutRequest(),
-		EnableDumpAllWithoutHeader(),
-		SetLogger(nil),
-		EnableDumpAllToFile(filepath.Join(testDataPath, "path-not-exists", "dump.out")),
-		EnableDumpAllToFile(tests.GetTestFilePath("tmpdump.out")),
-		SetCommonDumpOptions(&DumpOptions{
-			RequestHeader: true,
-		}),
-		DisableDumpAll(),
-		SetRedirectPolicy(NoRedirectPolicy()),
-		EnableForceHTTP1(),
-		EnableForceHTTP2(),
-		DisableForceHttpVersion(),
-		SetAutoDecodeContentType("json"),
-		SetAutoDecodeContentTypeFunc(func(contentType string) bool { return true }),
-		SetAutoDecodeAllContentType(),
-		DisableAutoDecode(),
-		EnableAutoDecode(),
-		AddCommonRetryCondition(func(resp *Response, err error) bool { return true }),
-		SetCommonRetryCondition(func(resp *Response, err error) bool { return true }),
-		AddCommonRetryHook(func(resp *Response, err error) {}),
-		SetCommonRetryHook(func(resp *Response, err error) {}),
-		SetCommonRetryCount(2),
-		SetCommonRetryInterval(func(resp *Response, attempt int) time.Duration {
-			return 1 * time.Second
-		}),
-		SetCommonRetryBackoffInterval(1*time.Millisecond, 2*time.Second),
-		SetCommonRetryFixedInterval(1*time.Second),
-		SetUnixSocket("/var/run/custom.sock"),
-	)
-	os.Remove(tests.GetTestFilePath("tmpdump.out"))
-
-	config := GetTLSClientConfig()
-	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
-
-	r := R()
-	assertEqual(t, true, r != nil)
-	c := C()
-
-	c.SetTimeout(10 * time.Second)
-	SetDefaultClient(c)
-	assertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
-	assertEqual(t, GetClient(), DefaultClient().httpClient)
-
-	r = NewRequest()
-	assertEqual(t, true, r != nil)
-	c = NewClient()
-	assertEqual(t, true, c != nil)
 }
 
 func TestTrailer(t *testing.T) {
