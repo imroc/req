@@ -484,8 +484,7 @@ func TestSetBearerAuthToken(t *testing.T) {
 }
 
 func TestHeader(t *testing.T) {
-	testHeader(t, tc())
-	testHeader(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testHeader)
 }
 
 func testHeader(t *testing.T, c *Client) {
@@ -511,8 +510,7 @@ func testHeader(t *testing.T, c *Client) {
 }
 
 func TestQueryParam(t *testing.T) {
-	testQueryParam(t, tc())
-	testQueryParam(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testQueryParam)
 }
 
 func testQueryParam(t *testing.T, c *Client) {
@@ -610,8 +608,7 @@ func testPathParam(t *testing.T, c *Client) {
 }
 
 func TestSuccess(t *testing.T) {
-	testSuccess(t, tc())
-	testSuccess(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testSuccess)
 }
 
 func testSuccess(t *testing.T, c *Client) {
@@ -634,8 +631,7 @@ func testSuccess(t *testing.T, c *Client) {
 }
 
 func TestError(t *testing.T) {
-	testError(t, tc())
-	testError(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testError)
 }
 
 func testError(t *testing.T, c *Client) {
@@ -666,8 +662,7 @@ func testError(t *testing.T, c *Client) {
 }
 
 func TestForm(t *testing.T) {
-	testForm(t, tc())
-	testForm(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testForm)
 }
 
 func testForm(t *testing.T, c *Client) {
@@ -694,8 +689,7 @@ func testForm(t *testing.T, c *Client) {
 }
 
 func TestHostHeaderOverride(t *testing.T) {
-	testHostHeaderOverride(t, tc())
-	testHostHeaderOverride(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testHostHeaderOverride)
 }
 
 func testHostHeaderOverride(t *testing.T, c *Client) {
@@ -740,8 +734,7 @@ func assertDisableTraceInfo(t *testing.T, resp *Response) {
 }
 
 func TestTraceInfo(t *testing.T) {
-	testTraceInfo(t, tc())
-	testTraceInfo(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testTraceInfo)
 }
 
 func testTraceInfo(t *testing.T, c *Client) {
@@ -840,25 +833,48 @@ func TestFixPragmaCache(t *testing.T) {
 }
 
 func TestSetFileBytes(t *testing.T) {
-	resp, err := tc().R().SetFileBytes("file", "file.txt", []byte("test")).Post("/file-text")
-	assertSuccess(t, resp, err)
+	resp := uploadTextFile(t, func(r *Request) {
+		r.SetFileBytes("file", "file.txt", []byte("test"))
+	})
 	assertEqual(t, "test", resp.String())
 }
 
-func TestSetBodyWrapper(t *testing.T) {
-	b := []byte("test")
-	s := string(b)
-	c := tc()
+func TestSetFileReader(t *testing.T) {
+	buff := bytes.NewBufferString("test")
+	resp := uploadTextFile(t, func(r *Request) {
+		r.SetFileReader("file", "file.txt", buff)
+	})
+	assertEqual(t, "test", resp.String())
 
-	r := c.R().SetBodyXmlString(s)
-	assertEqual(t, true, len(r.body) > 0)
+	buff = bytes.NewBufferString("test")
+	resp = uploadTextFile(t, func(r *Request) {
+		r.SetFileReader("file", "file.txt", ioutil.NopCloser(buff))
+	})
+	assertEqual(t, "test", resp.String())
+}
 
-	r = c.R().SetBodyXmlBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
+func TestSetFile(t *testing.T) {
+	filename := "sample-file.txt"
+	resp := uploadTextFile(t, func(r *Request) {
+		r.SetFile("file", tests.GetTestFilePath(filename))
+	})
+	assertEqual(t, getTestFileContent(t, filename), resp.Bytes())
+}
 
-	r = c.R().SetBodyJsonString(s)
-	assertEqual(t, true, len(r.body) > 0)
+func TestSetFiles(t *testing.T) {
+	filename := "sample-file.txt"
+	resp := uploadTextFile(t, func(r *Request) {
+		r.SetFiles(map[string]string{
+			"file": tests.GetTestFilePath(filename),
+		})
+	})
+	assertEqual(t, getTestFileContent(t, filename), resp.Bytes())
+}
 
-	r = c.R().SetBodyJsonBytes(b)
-	assertEqual(t, true, len(r.body) > 0)
+func uploadTextFile(t *testing.T, setReq func(r *Request)) *Response {
+	r := tc().R()
+	setReq(r)
+	resp, err := r.Post("/file-text")
+	assertSuccess(t, resp, err)
+	return resp
 }
