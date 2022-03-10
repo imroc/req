@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 )
@@ -851,6 +852,22 @@ func TestSetFileReader(t *testing.T) {
 		r.SetFileReader("file", "file.txt", ioutil.NopCloser(buff))
 	})
 	assertEqual(t, "test", resp.String())
+}
+
+func TestSetFileWithRetry(t *testing.T) {
+	resp, err := tc().R().
+		SetRetryCount(3).
+		SetRetryCondition(func(resp *Response, err error) bool {
+			return err != nil || resp.StatusCode > 499
+		}).
+		SetRetryHook(func(resp *Response, err error) {
+			resp.Request.SetQueryParam("attempt", strconv.Itoa(resp.Request.RetryAttempt))
+		}).
+		SetFile("file", tests.GetTestFilePath("sample-file.txt")).
+		SetQueryParam("attempt", "0").
+		Post("/file-text")
+	assertSuccess(t, resp, err)
+	assertEqual(t, 2, resp.Request.RetryAttempt)
 }
 
 func TestSetFile(t *testing.T) {

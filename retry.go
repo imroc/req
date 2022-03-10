@@ -12,10 +12,10 @@ func defaultGetRetryInterval(resp *Response, attempt int) time.Duration {
 
 // RetryConditionFunc is a retry condition, which determines
 // whether the request should retry.
-type RetryConditionFunc func(*Response, error) bool
+type RetryConditionFunc func(resp *Response, err error) bool
 
 // RetryHookFunc is a retry hook which will be executed before a retry.
-type RetryHookFunc func(*Response, error)
+type RetryHookFunc func(resp *Response, err error)
 
 // GetRetryIntervalFunc is a function that determines how long should
 // sleep between retry attempts.

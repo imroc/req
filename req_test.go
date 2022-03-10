@@ -191,6 +191,10 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		files := r.MultipartForm.File["file"]
 		file, _ := files[0].Open()
 		b, _ := ioutil.ReadAll(file)
+		r.ParseForm()
+		if a := r.FormValue("attempt"); a != "" && a != "2" {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 		w.Write(b)
 	case "/form":
 		r.ParseForm()
