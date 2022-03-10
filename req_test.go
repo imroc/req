@@ -764,3 +764,8 @@ func TestTrailer(t *testing.T) {
 		t.Error("trailer not exists")
 	}
 }
+
+func testWithAllTransport(t *testing.T, testFunc func(t *testing.T, c *Client)) {
+	testFunc(t, tc())
+	testFunc(t, tc().EnableForceHTTP1())
+}
