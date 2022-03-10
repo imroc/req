@@ -613,6 +613,13 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
 		return c
 	}
+	if opt.Output == nil {
+		if c.dumpOptions != nil {
+			opt.Output = c.dumpOptions.Output
+		} else {
+			opt.Output = os.Stdout
+		}
+	}
 	c.dumpOptions = opt
 	if c.t.dump != nil {
 		c.t.dump.DumpOptions = opt
