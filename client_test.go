@@ -421,8 +421,7 @@ func TestClientClone(t *testing.T) {
 }
 
 func TestDisableAutoReadResponse(t *testing.T) {
-	testDisableAutoReadResponse(t, tc())
-	testDisableAutoReadResponse(t, tc().EnableForceHTTP1())
+	testWithAllTransport(t, testDisableAutoReadResponse)
 }
 
 func testDisableAutoReadResponse(t *testing.T, c *Client) {
