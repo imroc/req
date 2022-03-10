@@ -225,7 +225,19 @@ func (r *Request) SetFile(paramName, filePath string) *Request {
 		return r
 	}
 	r.isMultiPart = true
-	return r.SetFileReader(paramName, filepath.Base(filePath), file)
+	return r.SetFileUpload(FileUpload{
+		ParamName: paramName,
+		FileName:  filepath.Base(filePath),
+		GetFileContent: func() (io.ReadCloser, error) {
+			if r.RetryAttempt > 0 {
+				file, err = os.Open(filePath)
+				if err != nil {
+					return nil, err
+				}
+			}
+			return file, nil
+		},
+	})
 }
 
 var errMissingParamName = errors.New("missing param name in multipart file upload")

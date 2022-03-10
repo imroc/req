@@ -859,6 +859,9 @@ func TestSetFile(t *testing.T) {
 		r.SetFile("file", tests.GetTestFilePath(filename))
 	})
 	assertEqual(t, getTestFileContent(t, filename), resp.Bytes())
+
+	resp, err := tc().R().SetFile("file", "file-not-exists.txt").Post("/file-text")
+	assertErrorContains(t, err, "no such file")
 }
 
 func TestSetFiles(t *testing.T) {
