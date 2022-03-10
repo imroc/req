@@ -58,69 +58,57 @@ type transferWriter struct {
 	Method           string
 	Body             io.Reader
 	BodyCloser       io.Closer
-	ResponseToHEAD   bool
 	ContentLength    int64 // -1 means unknown, 0 means exactly none
 	Close            bool
 	TransferEncoding []string
 	Header           http.Header
 	Trailer          http.Header
-	IsResponse       bool
 	bodyReadError    error // any non-EOF error from reading Body
 
 	FlushHeaders bool            // flush headers to network before body
 	ByteReadCh   chan readResult // non-nil if probeRequestBody called
 }
 
-func newTransferWriter(r interface{}) (t *transferWriter, err error) {
+func newTransferWriter(r *http.Request) (t *transferWriter, err error) {
 	t = &transferWriter{}
 
 	// Extract relevant fields
 	atLeastHTTP11 := false
-	switch rr := r.(type) {
-	case *http.Request:
-		if rr.ContentLength != 0 && rr.Body == nil {
-			return nil, fmt.Errorf("http: Request.ContentLength=%d with nil Body", rr.ContentLength)
-		}
-		t.Method = valueOrDefault(rr.Method, "GET")
-		t.Close = rr.Close
-		t.TransferEncoding = rr.TransferEncoding
-		t.Header = rr.Header
-		t.Trailer = rr.Trailer
-		t.Body = rr.Body
-		t.BodyCloser = rr.Body
-		t.ContentLength = outgoingLength(rr)
-		if t.ContentLength < 0 && len(t.TransferEncoding) == 0 && t.shouldSendChunkedRequestBody() {
-			t.TransferEncoding = []string{"chunked"}
-		}
-		// If there's a body, conservatively flush the headers
-		// to any bufio.Writer we're writing to, just in case
-		// the server needs the headers early, before we copy
-		// the body and possibly block. We make an exception
-		// for the common standard library in-memory types,
-		// though, to avoid unnecessary TCP packets on the
-		// wire. (Issue 22088.)
-		if t.ContentLength != 0 && !isKnownInMemoryReader(t.Body) {
-			t.FlushHeaders = true
-		}
-
-		atLeastHTTP11 = true // Transport requests are always 1.1 or 2.0
+	if r.ContentLength != 0 && r.Body == nil {
+		return nil, fmt.Errorf("http: Request.ContentLength=%d with nil Body", r.ContentLength)
+	}
+	t.Method = valueOrDefault(r.Method, "GET")
+	t.Close = r.Close
+	t.TransferEncoding = r.TransferEncoding
+	t.Header = r.Header
+	t.Trailer = r.Trailer
+	t.Body = r.Body
+	t.BodyCloser = r.Body
+	t.ContentLength = outgoingLength(r)
+	if t.ContentLength < 0 && len(t.TransferEncoding) == 0 && t.shouldSendChunkedRequestBody() {
+		t.TransferEncoding = []string{"chunked"}
+	}
+	// If there's a body, conservatively flush the headers
+	// to any bufio.Writer we're writing to, just in case
+	// the server needs the headers early, before we copy
+	// the body and possibly block. We make an exception
+	// for the common standard library in-memory types,
+	// though, to avoid unnecessary TCP packets on the
+	// wire. (Issue 22088.)
+	if t.ContentLength != 0 && !isKnownInMemoryReader(t.Body) {
+		t.FlushHeaders = true
 	}
 
+	atLeastHTTP11 = true // Transport requests are always 1.1 or 2.0
+
 	// Sanitize Body,ContentLength,TransferEncoding
-	if t.ResponseToHEAD {
-		t.Body = nil
-		if chunked(t.TransferEncoding) {
-			t.ContentLength = -1
-		}
-	} else {
-		if !atLeastHTTP11 || t.Body == nil {
-			t.TransferEncoding = nil
-		}
-		if chunked(t.TransferEncoding) {
-			t.ContentLength = -1
-		} else if t.Body == nil { // no chunking, no body
-			t.ContentLength = 0
-		}
+	if !atLeastHTTP11 || t.Body == nil {
+		t.TransferEncoding = nil
+	}
+	if chunked(t.TransferEncoding) {
+		t.ContentLength = -1
+	} else if t.Body == nil { // no chunking, no body
+		t.ContentLength = 0
 	}
 
 	// Sanitize Trailer
@@ -342,7 +330,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
 	if t.Body != nil {
 		var body = t.unwrapBody()
 		if chunked(t.TransferEncoding) {
-			if bw, ok := rw.(*bufio.Writer); ok && !t.IsResponse {
+			if bw, ok := rw.(*bufio.Writer); ok {
 				rw = &internal.FlushAfterChunkWriter{Writer: bw}
 			}
 			cw := internal.NewChunkedWriter(rw)
@@ -386,7 +374,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
 		}
 	}
 
-	if !t.ResponseToHEAD && t.ContentLength != -1 && t.ContentLength != ncopy {
+	if t.ContentLength != -1 && t.ContentLength != ncopy {
 		return fmt.Errorf("http: ContentLength=%d with Body length %d",
 			t.ContentLength, ncopy)
 	}
