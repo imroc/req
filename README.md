@@ -103,7 +103,7 @@ Checkout [Quick API Reference](docs/api.md) for a brief and categorized list of 
 
 **Examples**
 
-Checkout more examples below or runnable examples in the [examples](examples) direcotry.
+Checkout more examples below or runnable examples in the [examples](examples) directory.
 
 ## <a name="Debugging">Debugging - Dump/Log/Trace</a>
 
