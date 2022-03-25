@@ -103,3 +103,26 @@ func getDomain(host string) string {
 	ss = ss[1:]
 	return strings.Join(ss, ".")
 }
+
+// AlwaysCopyHeaderRedirectPolicy ensures that the given sensitive headers will
+// always be copied on redirect.
+// By default, golang will copy all of the original request's headers on redirect,
+// unless they're sensitive, like "Authorization" or "Www-Authenticate". Only send
+// sensitive ones to the same origin, or subdomains thereof (https://go-review.googlesource.com/c/go/+/28930/)
+// Check discussion: https://github.com/golang/go/issues/4800
+// For example:
+// 	 client.SetRedirectPolicy(req.AlwaysCopyHeaderRedirectPolicy("Authorization"))
+func AlwaysCopyHeaderRedirectPolicy(headers ...string) RedirectPolicy {
+	return func(req *http.Request, via []*http.Request) error {
+		for _, header := range headers {
+			if len(req.Header.Values(header)) > 0 {
+				continue
+			}
+			vals := via[0].Header.Values(header)
+			for _, val := range vals {
+				req.Header.Add(header, val)
+			}
+		}
+		return nil
+	}
+}

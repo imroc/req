@@ -329,6 +329,17 @@ func TestRedirect(t *testing.T) {
 	_, err = tc().SetRedirectPolicy(AllowedDomainRedirectPolicy("localhost", "127.0.0.1")).R().Get("/redirect-to-other")
 	assertNotNil(t, err)
 	assertContains(t, err.Error(), "redirect domain [dummy.local] is not allowed", true)
+
+	c := tc().SetRedirectPolicy(AlwaysCopyHeaderRedirectPolicy("Authorization"))
+	newHeader := make(http.Header)
+	oldHeader := make(http.Header)
+	oldHeader.Set("Authorization", "test")
+	c.GetClient().CheckRedirect(&http.Request{
+		Header: newHeader,
+	}, []*http.Request{&http.Request{
+		Header: oldHeader,
+	}})
+	assertEqual(t, "test", newHeader.Get("Authorization"))
 }
 
 func TestGetTLSClientConfig(t *testing.T) {
