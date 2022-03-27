@@ -777,8 +777,8 @@ downloaded 100.00%
 */
 ```
 
-> `info.Response.ContentLength` could be 0 or -1 when the total size is unknown.
-> `DownloadCallback` will be invoked at least every 200ms by default, you can customize the minimal invoke interval using `SetDownloadCallbackWithInterval`.
+> 1. `info.Response.ContentLength` could be 0 or -1 when the total size is unknown.
+> 2. `DownloadCallback` will be invoked at least every 200ms by default, you can customize the minimal invoke interval using `SetDownloadCallbackWithInterval`.
 
 **Multipart Upload**
 
