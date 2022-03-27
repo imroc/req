@@ -877,7 +877,7 @@ func TestSetFile(t *testing.T) {
 	})
 	assertEqual(t, getTestFileContent(t, filename), resp.Bytes())
 
-	resp, err := tc().R().SetFile("file", "file-not-exists.txt").Post("/file-text")
+	resp, err := tc().SetLogger(nil).R().SetFile("file", "file-not-exists.txt").Post("/file-text")
 	assertErrorContains(t, err, "no such file")
 }
 
@@ -897,4 +897,38 @@ func uploadTextFile(t *testing.T, setReq func(r *Request)) *Response {
 	resp, err := r.Post("/file-text")
 	assertSuccess(t, resp, err)
 	return resp
+}
+
+type SlowReader struct {
+	io.ReadCloser
+}
+
+func (r *SlowReader) Read(p []byte) (int, error) {
+	time.Sleep(10 * time.Millisecond)
+	return r.ReadCloser.Read(p)
+}
+
+func TestUploadCallback(t *testing.T) {
+	r := tc().R()
+	file := "transport_test.go"
+	fileInfo, err := os.Stat(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.SetFile("file", file)
+	r.uploadFiles[0].FileSize = fileInfo.Size()
+	content, err := r.uploadFiles[0].GetFileContent()
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.uploadFiles[0].GetFileContent = func() (io.ReadCloser, error) {
+		return &SlowReader{content}, nil
+	}
+	n := 0
+	r.SetUploadCallback(func(info UploadInfo) {
+		n++
+	})
+	resp, err := r.Post("/raw-upload")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, n > 1)
 }

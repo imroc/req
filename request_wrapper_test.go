@@ -14,14 +14,14 @@ func init() {
 
 func TestGlobalWrapperForRequestSettings(t *testing.T) {
 	assertAllNotNil(t,
-		SetFiles(map[string]string{"test": "test"}),
-		SetFile("test", "test"),
+		SetFiles(map[string]string{"test": "req.go"}),
+		SetFile("test", "req.go"),
 		SetFileReader("test", "test.txt", bytes.NewBufferString("test")),
 		SetFileBytes("test", "test.txt", []byte("test")),
 		SetFileUpload(FileUpload{}),
 		SetError(&ErrorMessage{}),
 		SetResult(&UserInfo{}),
-		SetOutput(nil),
+		SetOutput(new(bytes.Buffer)),
 		SetHeader("test", "test"),
 		SetHeaders(map[string]string{"test": "test"}),
 		SetCookies(&http.Cookie{
@@ -68,6 +68,8 @@ func TestGlobalWrapperForRequestSettings(t *testing.T) {
 		EnableTrace(),
 		DisableTrace(),
 		SetContext(context.Background()),
+		SetUploadCallback(nil),
+		SetUploadCallbackWithInterval(nil, 0),
 	)
 }
 

@@ -53,13 +53,32 @@ type FileUpload struct {
 	FileName string
 	// The file to be uploaded.
 	GetFileContent GetContentFunc
+	// Optional file length in bytes.
+	FileSize int64
 
+	// Optional extra ContentDisposition parameters.
 	// According to the HTTP specification, this should be nil,
 	// but some servers may not follow the specification and
 	// requires `Content-Disposition` parameters more than just
 	// "name" and "filename".
 	ExtraContentDisposition *ContentDisposition
 }
+
+// UploadInfo is the information for each UploadCallback call.
+type UploadInfo struct {
+	// parameter name in multipart upload
+	ParamName string
+	// filename in multipart upload
+	FileName string
+	// total file length in bytes.
+	FileSize int64
+	// uploaded file length in bytes.
+	UploadedSize int64
+}
+
+// UploadCallback is the callback which will be invoked during
+// multipart upload.
+type UploadCallback func(info UploadInfo)
 
 func cloneCookies(cookies []*http.Cookie) []*http.Cookie {
 	if len(cookies) == 0 {

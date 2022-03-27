@@ -409,3 +409,15 @@ func SetRetryCondition(condition RetryConditionFunc) *Request {
 func AddRetryCondition(condition RetryConditionFunc) *Request {
 	return defaultClient.R().AddRetryCondition(condition)
 }
+
+// SetUploadCallback is a global wrapper methods which delegated
+// to the default client, create a request and SetUploadCallback for request.
+func SetUploadCallback(callback UploadCallback) *Request {
+	return defaultClient.R().SetUploadCallback(callback)
+}
+
+// SetUploadCallbackWithInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetUploadCallbackWithInterval for request.
+func SetUploadCallbackWithInterval(callback UploadCallback, minInterval time.Duration) *Request {
+	return defaultClient.R().SetUploadCallbackWithInterval(callback, minInterval)
+}

@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"errors"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type (
@@ -55,7 +57,7 @@ func closeq(v interface{}) {
 	}
 }
 
-func writeMultipartFormFile(w *multipart.Writer, file *FileUpload) error {
+func writeMultipartFormFile(w *multipart.Writer, file *FileUpload, r *Request) error {
 	content, err := file.GetFileContent()
 	if err != nil {
 		return err
@@ -63,22 +65,82 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload) error {
 	defer content.Close()
 	// Auto detect actual multipart content type
 	cbuf := make([]byte, 512)
+	seeEOF := false
+	lastTime := time.Now()
 	size, err := content.Read(cbuf)
-	if err != nil && err != io.EOF {
-		return err
+	if err != nil {
+		if err == io.EOF {
+			seeEOF = true
+		} else {
+			return err
+		}
 	}
 
 	pw, err := w.CreatePart(createMultipartHeader(file, http.DetectContentType(cbuf)))
 	if err != nil {
 		return err
 	}
-
 	if _, err = pw.Write(cbuf[:size]); err != nil {
 		return err
 	}
+	if seeEOF {
+		return nil
+	}
+	if r.uploadCallback == nil {
+		_, err = io.Copy(pw, content)
+		return err
+	}
 
-	_, err = io.Copy(pw, content)
-	return err
+	uploadedBytes := int64(size)
+	progressCallback := func() {
+		r.uploadCallback(UploadInfo{
+			ParamName:    file.ParamName,
+			FileName:     file.FileName,
+			FileSize:     file.FileSize,
+			UploadedSize: uploadedBytes,
+		})
+	}
+	if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
+		lastTime = now
+		progressCallback()
+	}
+	buf := make([]byte, 1024)
+	for {
+		callback := false
+		nr, er := content.Read(buf)
+		if nr > 0 {
+			nw, ew := pw.Write(buf[:nr])
+			if nw < 0 || nr < nw {
+				nw = 0
+				if ew == nil {
+					ew = errors.New("invalid write result")
+				}
+			}
+			uploadedBytes += int64(nw)
+			if ew != nil {
+				return ew
+			}
+			if nr != nw {
+				return io.ErrShortWrite
+			}
+			if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
+				lastTime = now
+				progressCallback()
+				callback = true
+			}
+		}
+		if er != nil {
+			if er == io.EOF {
+				if !callback {
+					progressCallback()
+				}
+				break
+			} else {
+				return er
+			}
+		}
+	}
+	return nil
 }
 
 func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
@@ -88,7 +150,7 @@ func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
 		}
 	}
 	for _, file := range r.uploadFiles {
-		writeMultipartFormFile(w, file)
+		writeMultipartFormFile(w, file, r)
 	}
 	w.Close()  // close multipart to write tailer boundary
 	pw.Close() // close pipe writer so that pipe reader could get EOF, and stop upload

@@ -781,6 +781,29 @@ client.R().SetFileReader("avatar", "avatar.png", avatarImgFile).Post(url)
 */
 ```
 
+**Upload Callback**
+
+You can set `UploadCallback` if you want to show upload progress:
+
+```go
+client := req.C()
+client.R().
+	SetFile("excel", "test.xlsx").
+	SetUploadCallback(func(info req.UploadInfo) {
+        fmt.Printf("%q uploaded %.2f%%\n", info.FileName, float64(info.UploadedSize)/float64(info.FileSize)*100.0)
+    }).Post("https://exmaple.com/upload")
+/* Output
+"test.xlsx" uploaded 7.44%
+"test.xlsx" uploaded 29.78%
+"test.xlsx" uploaded 52.08%
+"test.xlsx" uploaded 74.47%
+"test.xlsx" uploaded 96.87%
+"test.xlsx" uploaded 100.00%
+*/
+```
+
+> `UploadCallback` will be invoked at least every 200ms by default, you can customize the minimal invoke interval using `SetUploadCallbackWithInterval`.
+
 ## <a name="AutoDecode">Auto-Decode</a>
 
 `Req` detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default.
