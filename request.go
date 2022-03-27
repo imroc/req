@@ -33,28 +33,30 @@ type Request struct {
 	StartTime    time.Time
 	RetryAttempt int
 
-	RawURL                 string // read only
-	method                 string
-	URL                    *urlpkg.URL
-	getBody                GetContentFunc
-	uploadCallback         UploadCallback
-	uploadCallbackInterval time.Duration
-	unReplayableBody       io.ReadCloser
-	retryOption            *retryOption
-	bodyReadCloser         io.ReadCloser
-	body                   []byte
-	dumpOptions            *DumpOptions
-	marshalBody            interface{}
-	ctx                    context.Context
-	isMultiPart            bool
-	uploadFiles            []*FileUpload
-	uploadReader           []io.ReadCloser
-	outputFile             string
-	isSaveResponse         bool
-	output                 io.Writer
-	trace                  *clientTrace
-	dumpBuffer             *bytes.Buffer
-	responseReturnTime     time.Time
+	RawURL                   string // read only
+	method                   string
+	URL                      *urlpkg.URL
+	getBody                  GetContentFunc
+	uploadCallback           UploadCallback
+	uploadCallbackInterval   time.Duration
+	downloadCallback         DownloadCallback
+	downloadCallbackInterval time.Duration
+	unReplayableBody         io.ReadCloser
+	retryOption              *retryOption
+	bodyReadCloser           io.ReadCloser
+	body                     []byte
+	dumpOptions              *DumpOptions
+	marshalBody              interface{}
+	ctx                      context.Context
+	isMultiPart              bool
+	uploadFiles              []*FileUpload
+	uploadReader             []io.ReadCloser
+	outputFile               string
+	isSaveResponse           bool
+	output                   io.Writer
+	trace                    *clientTrace
+	dumpBuffer               *bytes.Buffer
+	responseReturnTime       time.Time
 }
 
 type GetContentFunc func() (io.ReadCloser, error)
@@ -291,6 +293,23 @@ func (r *Request) SetUploadCallbackWithInterval(callback UploadCallback, minInte
 	}
 	r.uploadCallback = callback
 	r.uploadCallbackInterval = minInterval
+	return r
+}
+
+// SetDownloadCallback set the DownloadCallback which will be invoked at least
+// every 200ms during file upload, usually used to show download progress.
+func (r *Request) SetDownloadCallback(callback DownloadCallback) *Request {
+	return r.SetDownloadCallbackWithInterval(callback, 200*time.Millisecond)
+}
+
+// SetDownloadCallbackWithInterval set the DownloadCallback which will be invoked at least
+// every `minInterval` during file upload, usually used to show download progress.
+func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, minInterval time.Duration) *Request {
+	if callback == nil {
+		return r
+	}
+	r.downloadCallback = callback
+	r.downloadCallbackInterval = minInterval
 	return r
 }
 

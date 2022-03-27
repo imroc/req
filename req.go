@@ -80,6 +80,18 @@ type UploadInfo struct {
 // multipart upload.
 type UploadCallback func(info UploadInfo)
 
+// DownloadInfo is the information for each DownloadCallback call.
+type DownloadInfo struct {
+	// Response is the corresponding Response during download.
+	Response *Response
+	// downloaded body length in bytes.
+	DownloadedSize int64
+}
+
+// DownloadCallback is the callback which will be invoked during
+// response body download.
+type DownloadCallback func(info DownloadInfo)
+
 func cloneCookies(cookies []*http.Cookie) []*http.Cookie {
 	if len(cookies) == 0 {
 		return nil

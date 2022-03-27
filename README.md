@@ -757,6 +757,29 @@ if err != nil {
 client.R().SetOutput(file).Get(url)
 ```
 
+**Download Callback**
+
+You can set `DownloadCallback` if you want to show download progress:
+
+```go
+client := req.C()
+client.R().
+	SetOutputFile("test.gz").
+	SetUploadCallback(func(info req.UploadInfo) {
+        fmt.Printf("downloaded %.2f%%\n", float64(info.DownloadedSize)/float64(info.Response.ContentLength)*100.0)
+    }).Post("https://exmaple.com/upload")
+/* Output
+downloaded 17.92%
+downloaded 41.77%
+downloaded 67.71%
+downloaded 98.89%
+downloaded 100.00%
+*/
+```
+
+> `info.Response.ContentLength` could be 0 or -1 when the total size is unknown.
+> `DownloadCallback` will be invoked at least every 200ms by default, you can customize the minimal invoke interval using `SetDownloadCallbackWithInterval`.
+
 **Multipart Upload**
 
 ```go

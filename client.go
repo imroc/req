@@ -995,8 +995,28 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		for _, cookie := range r.Cookies {
 			req.AddCookie(cookie)
 		}
-		if r.ctx != nil {
-			req = req.WithContext(r.ctx)
+		ctx := r.ctx
+		if r.isSaveResponse && r.downloadCallback != nil {
+			var wrap wrapResponseBodyFunc = func(rc io.ReadCloser) io.ReadCloser {
+				return &callbackReader{
+					ReadCloser: rc,
+					callback: func(read int64) {
+						r.downloadCallback(DownloadInfo{
+							Response:       resp,
+							DownloadedSize: read,
+						})
+					},
+					lastTime: time.Now(),
+					interval: r.downloadCallbackInterval,
+				}
+			}
+			if ctx == nil {
+				ctx = context.Background()
+			}
+			ctx = context.WithValue(ctx, wrapResponseBodyKey, wrap)
+		}
+		if ctx != nil {
+			req = req.WithContext(ctx)
 		}
 		r.RawRequest = req
 

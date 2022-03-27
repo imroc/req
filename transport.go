@@ -269,13 +269,35 @@ type Transport struct {
 
 	*ResponseOptions
 
-	dump   *dumper
+	dump *dumper
+
+	// Debugf is the optional debug function.
 	Debugf func(format string, v ...interface{})
 }
 
+type wrapResponseBodyKeyType int
+
+const wrapResponseBodyKey wrapResponseBodyKeyType = iota
+
+type wrapResponseBodyFunc func(rc io.ReadCloser) io.ReadCloser
+
 func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
+	if wrap, ok := req.Context().Value(wrapResponseBodyKey).(wrapResponseBodyFunc); ok {
+		t.wrapResponseBody(res, wrap)
+	}
 	t.autoDecodeResponseBody(res)
 	t.dumpResponseBody(res, req)
+}
+
+func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFunc) {
+	switch b := res.Body.(type) {
+	case *gzipReader:
+		b.body.body = wrap(b.body.body)
+	case *http2gzipReader:
+		b.body = wrap(b.body)
+	default:
+		res.Body = wrap(res.Body)
+	}
 }
 
 func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {

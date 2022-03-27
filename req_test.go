@@ -15,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -357,6 +358,24 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(r.URL.RawQuery))
 	case "/search":
 		handleSearch(w, r)
+	case "/download":
+		size := 100 * 1024 * 1024
+		w.Header().Set("Content-Length", strconv.Itoa(size))
+		buf := make([]byte, 1024)
+		for i := 0; i < 1024; i++ {
+			buf[i] = 'h'
+		}
+		for i := 0; i < size; {
+			wbuf := buf
+			if size-i < 1024 {
+				wbuf = buf[:size-i]
+			}
+			n, err := w.Write(wbuf)
+			if err != nil {
+				break
+			}
+			i += n
+		}
 	case "/protected":
 		auth := r.Header.Get("Authorization")
 		if auth == "Bearer goodtoken" {

@@ -43,5 +43,5 @@ func main() {
 		FileSize: int64(size),
 	}).SetUploadCallbackWithInterval(func(info req.UploadInfo) {
 		fmt.Printf("%s: %.2f%%\n", info.FileName, float64(info.UploadedSize)/float64(info.FileSize)*100.0)
-	}, 1*time.Second).Post("http://127.0.0.1:8888/upload")
+	}, 30*time.Millisecond).Post("http://127.0.0.1:8888/upload")
 }

@@ -421,3 +421,15 @@ func SetUploadCallback(callback UploadCallback) *Request {
 func SetUploadCallbackWithInterval(callback UploadCallback, minInterval time.Duration) *Request {
 	return defaultClient.R().SetUploadCallbackWithInterval(callback, minInterval)
 }
+
+// SetDownloadCallback is a global wrapper methods which delegated
+// to the default client, create a request and SetDownloadCallback for request.
+func SetDownloadCallback(callback DownloadCallback) *Request {
+	return defaultClient.R().SetDownloadCallback(callback)
+}
+
+// SetDownloadCallbackWithInterval is a global wrapper methods which delegated
+// to the default client, create a request and SetDownloadCallbackWithInterval for request.
+func SetDownloadCallbackWithInterval(callback DownloadCallback, minInterval time.Duration) *Request {
+	return defaultClient.R().SetDownloadCallbackWithInterval(callback, minInterval)
+}

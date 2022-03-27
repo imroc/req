@@ -2,7 +2,6 @@ package req
 
 import (
 	"bytes"
-	"errors"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
@@ -80,66 +79,82 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload, r *Request) e
 	if err != nil {
 		return err
 	}
+
+	if r.uploadCallback != nil {
+		pw = &callbackWriter{
+			Writer:    pw,
+			lastTime:  lastTime,
+			interval:  r.uploadCallbackInterval,
+			totalSize: file.FileSize,
+			callback: func(written int64) {
+				r.uploadCallback(UploadInfo{
+					ParamName:    file.ParamName,
+					FileName:     file.FileName,
+					FileSize:     file.FileSize,
+					UploadedSize: written,
+				})
+			},
+		}
+	}
+
 	if _, err = pw.Write(cbuf[:size]); err != nil {
 		return err
 	}
 	if seeEOF {
 		return nil
 	}
-	if r.uploadCallback == nil {
-		_, err = io.Copy(pw, content)
-		return err
-	}
 
-	uploadedBytes := int64(size)
-	progressCallback := func() {
-		r.uploadCallback(UploadInfo{
-			ParamName:    file.ParamName,
-			FileName:     file.FileName,
-			FileSize:     file.FileSize,
-			UploadedSize: uploadedBytes,
-		})
-	}
-	if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
-		lastTime = now
-		progressCallback()
-	}
-	buf := make([]byte, 1024)
-	for {
-		callback := false
-		nr, er := content.Read(buf)
-		if nr > 0 {
-			nw, ew := pw.Write(buf[:nr])
-			if nw < 0 || nr < nw {
-				nw = 0
-				if ew == nil {
-					ew = errors.New("invalid write result")
-				}
-			}
-			uploadedBytes += int64(nw)
-			if ew != nil {
-				return ew
-			}
-			if nr != nw {
-				return io.ErrShortWrite
-			}
-			if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
-				lastTime = now
-				progressCallback()
-				callback = true
-			}
-		}
-		if er != nil {
-			if er == io.EOF {
-				if !callback {
-					progressCallback()
-				}
-				break
-			} else {
-				return er
-			}
-		}
-	}
+	_, err = io.Copy(pw, content)
+	return err
+	// uploadedBytes := int64(size)
+	// progressCallback := func() {
+	// 	r.uploadCallback(UploadInfo{
+	// 		ParamName:    file.ParamName,
+	// 		FileName:     file.FileName,
+	// 		FileSize:     file.FileSize,
+	// 		UploadedSize: uploadedBytes,
+	// 	})
+	// }
+	// if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
+	// 	lastTime = now
+	// 	progressCallback()
+	// }
+	// buf := make([]byte, 1024)
+	// for {
+	// 	callback := false
+	// 	nr, er := content.Read(buf)
+	// 	if nr > 0 {
+	// 		nw, ew := pw.Write(buf[:nr])
+	// 		if nw < 0 || nr < nw {
+	// 			nw = 0
+	// 			if ew == nil {
+	// 				ew = errors.New("invalid write result")
+	// 			}
+	// 		}
+	// 		uploadedBytes += int64(nw)
+	// 		if ew != nil {
+	// 			return ew
+	// 		}
+	// 		if nr != nw {
+	// 			return io.ErrShortWrite
+	// 		}
+	// 		if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
+	// 			lastTime = now
+	// 			progressCallback()
+	// 			callback = true
+	// 		}
+	// 	}
+	// 	if er != nil {
+	// 		if er == io.EOF {
+	// 			if !callback {
+	// 				progressCallback()
+	// 			}
+	// 			break
+	// 		} else {
+	// 			return er
+	// 		}
+	// 	}
+	// }
 	return nil
 }
 
@@ -266,6 +281,60 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 	return
 }
 
+type callbackWriter struct {
+	io.Writer
+	written   int64
+	totalSize int64
+	lastTime  time.Time
+	interval  time.Duration
+	callback  func(written int64)
+}
+
+func (w *callbackWriter) Write(p []byte) (n int, err error) {
+	n, err = w.Writer.Write(p)
+	if n <= 0 {
+		return
+	}
+	w.written += int64(n)
+	if w.written == w.totalSize {
+		w.callback(w.written)
+	} else if now := time.Now(); now.Sub(w.lastTime) >= w.interval {
+		w.lastTime = now
+		w.callback(w.written)
+	}
+	return
+}
+
+type callbackReader struct {
+	io.ReadCloser
+	read     int64
+	lastRead int64
+	callback func(read int64)
+	lastTime time.Time
+	interval time.Duration
+}
+
+func (r *callbackReader) Read(p []byte) (n int, err error) {
+	n, err = r.ReadCloser.Read(p)
+	if n <= 0 {
+		if err == io.EOF && r.read > r.lastRead {
+			r.callback(r.read)
+			r.lastRead = r.read
+		}
+		return
+	}
+	r.read += int64(n)
+	if err == io.EOF {
+		r.callback(r.read)
+		r.lastRead = r.read
+	} else if now := time.Now(); now.Sub(r.lastTime) >= r.interval {
+		r.lastTime = now
+		r.callback(r.read)
+		r.lastRead = r.read
+	}
+	return
+}
+
 func handleDownload(c *Client, r *Response) (err error) {
 	if !r.Request.isSaveResponse {
 		return nil
@@ -302,6 +371,21 @@ func handleDownload(c *Client, r *Response) (err error) {
 		body.Close()
 		closeq(output)
 	}()
+
+	// if r.Request.downloadCallback != nil {
+	// 	output = &callbackWriter{
+	// 		Writer:   output,
+	// 		lastTime: time.Now(),
+	// 		interval: r.Request.downloadCallbackInterval,
+	// 		callback: func(written int64) {
+	// 			r.Request.downloadCallback(DownloadInfo{
+	// 				Response:       r,
+	// 				DownloadedSize: written,
+	// 			})
+	// 		},
+	// 	}
+	// }
+
 	_, err = io.Copy(output, body)
 	r.setReceivedAt()
 	return

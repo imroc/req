@@ -70,6 +70,8 @@ func TestGlobalWrapperForRequestSettings(t *testing.T) {
 		SetContext(context.Background()),
 		SetUploadCallback(nil),
 		SetUploadCallbackWithInterval(nil, 0),
+		SetDownloadCallback(nil),
+		SetDownloadCallbackWithInterval(nil, 0),
 	)
 }
 

@@ -904,7 +904,7 @@ type SlowReader struct {
 }
 
 func (r *SlowReader) Read(p []byte) (int, error) {
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	return r.ReadCloser.Read(p)
 }
 
@@ -931,4 +931,15 @@ func TestUploadCallback(t *testing.T) {
 	resp, err := r.Post("/raw-upload")
 	assertSuccess(t, resp, err)
 	assertEqual(t, true, n > 1)
+}
+
+func TestDownloadCallback(t *testing.T) {
+	n := 0
+	resp, err := tc().R().
+		SetOutput(ioutil.Discard).
+		SetDownloadCallback(func(info DownloadInfo) {
+			n++
+		}).Get("/download")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, n > 0)
 }
