@@ -372,20 +372,6 @@ func handleDownload(c *Client, r *Response) (err error) {
 		closeq(output)
 	}()
 
-	// if r.Request.downloadCallback != nil {
-	// 	output = &callbackWriter{
-	// 		Writer:   output,
-	// 		lastTime: time.Now(),
-	// 		interval: r.Request.downloadCallbackInterval,
-	// 		callback: func(written int64) {
-	// 			r.Request.downloadCallback(DownloadInfo{
-	// 				Response:       r,
-	// 				DownloadedSize: written,
-	// 			})
-	// 		},
-	// 	}
-	// }
-
 	_, err = io.Copy(output, body)
 	r.setReceivedAt()
 	return
