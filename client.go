@@ -969,7 +969,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		if r.Headers == nil {
 			header = make(http.Header)
 		} else {
-			header = r.Headers.Clone()
+			header = r.Headers
 		}
 		contentLength := int64(len(r.body))
 
