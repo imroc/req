@@ -510,6 +510,19 @@ func testHeader(t *testing.T, c *Client) {
 	assertEqual(t, "value3", headers.Get("header3"))
 }
 
+func TestSetHeaderMaps(t *testing.T) {
+	// set headers
+	headers := map[string][]string{
+		"header1": {"value1"},
+		"header2": {"value2", "value3"},
+	}
+	resp, err := tc().R().
+		SetHeaderMaps(headers).
+		Get("/headers")
+	assertSuccess(t, resp, err)
+
+}
+
 func TestQueryParam(t *testing.T) {
 	testWithAllTransport(t, testQueryParam)
 }
