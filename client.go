@@ -595,6 +595,25 @@ func (c *Client) SetCommonHeader(key, value string) *Client {
 	return c
 }
 
+// SetCommonHeaderNonCanonical set a header for all requests which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (c *Client) SetCommonHeaderNonCanonical(key, value string) *Client {
+	if c.Headers == nil {
+		c.Headers = make(http.Header)
+	}
+	c.Headers[key] = append(c.Headers[key], value)
+	return c
+}
+
+// SetCommonHeadersNonCanonical set headers for all requests which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
+	for k, v := range hdrs {
+		c.SetCommonHeaderNonCanonical(k, v)
+	}
+	return c
+}
+
 // SetCommonContentType set the `Content-Type` header for all requests.
 func (c *Client) SetCommonContentType(ct string) *Client {
 	c.SetCommonHeader(hdrContentTypeKey, ct)

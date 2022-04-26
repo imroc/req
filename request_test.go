@@ -528,6 +528,13 @@ func TestSetHeaderNonCanonical(t *testing.T) {
 		Get("/header")
 	assertSuccess(t, resp, err)
 	assertEqual(t, true, strings.Contains(resp.Dump(), key))
+
+	c.SetCommonHeaderNonCanonical(key, "test")
+	resp, err = c.R().
+		EnableDumpWithoutResponse().
+		Get("/header")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, strings.Contains(resp.Dump(), key))
 }
 
 func TestQueryParam(t *testing.T) {

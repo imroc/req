@@ -144,6 +144,11 @@ func TestSetCommonHeader(t *testing.T) {
 	assertEqual(t, "my-value", c.Headers.Get("my-header"))
 }
 
+func TestSetCommonHeaderNonCanonical(t *testing.T) {
+	c := tc().SetCommonHeaderNonCanonical("my-Header", "my-value")
+	assertEqual(t, "my-value", c.Headers["my-Header"][0])
+}
+
 func TestSetCommonHeaders(t *testing.T) {
 	c := tc().SetCommonHeaders(map[string]string{
 		"header1": "value1",
@@ -151,6 +156,13 @@ func TestSetCommonHeaders(t *testing.T) {
 	})
 	assertEqual(t, "value1", c.Headers.Get("header1"))
 	assertEqual(t, "value2", c.Headers.Get("header2"))
+}
+
+func TestSetCommonHeadersNonCanonical(t *testing.T) {
+	c := tc().SetCommonHeadersNonCanonical(map[string]string{
+		"my-Header": "my-value",
+	})
+	assertEqual(t, "my-value", c.Headers["my-Header"][0])
 }
 
 func TestSetCommonBasicAuth(t *testing.T) {
