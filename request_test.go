@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -510,31 +511,23 @@ func testHeader(t *testing.T, c *Client) {
 	assertEqual(t, "value3", headers.Get("header3"))
 }
 
-func TestSetHeaderMaps(t *testing.T) {
+func TestSetHeaderNonCanonical(t *testing.T) {
 	// set headers
-	headers := map[string][]string{
-		"header1": {"value1"},
-		"header2": {"value2", "value3"},
-	}
-	resp, err := tc().R().
-		SetHeaderMaps(headers).
-		Get("/headersMaps")
+	key := "spring.cloud.function.Routing-expression"
+	c := tc().EnableForceHTTP1()
+	resp, err := c.R().EnableDumpWithoutResponse().
+		SetHeadersNonCanonical(map[string]string{
+			key: "test",
+		}).Get("/header")
 	assertSuccess(t, resp, err)
+	assertEqual(t, true, strings.Contains(resp.Dump(), key))
 
-}
-
-func TestSetHeadersMap(t *testing.T) {
-	// set headers
-	headers := map[string]string{
-		"header1": "value1",
-		"header2": "value2",
-	}
-
-	resp, err := tc().R().
-		SetHeadersMap(headers).
-		Get("/headersMap")
+	resp, err = c.R().
+		EnableDumpWithoutResponse().
+		SetHeaderNonCanonical(key, "test").
+		Get("/header")
 	assertSuccess(t, resp, err)
-
+	assertEqual(t, true, strings.Contains(resp.Dump(), key))
 }
 
 func TestQueryParam(t *testing.T) {

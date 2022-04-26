@@ -355,31 +355,22 @@ func (r *Request) SetHeader(key, value string) *Request {
 	return r
 }
 
-// SetHeadersMap set headers from a map for the request.
-// To use non-canonical keys, assign to the map directly.
-func (r *Request) SetHeadersMap(hdrs map[string]string) *Request {
+// SetHeadersNonCanonical set headers from a map for the request which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (r *Request) SetHeadersNonCanonical(hdrs map[string]string) *Request {
 	for k, v := range hdrs {
-		r.SetHeaderMap(k, v)
+		r.SetHeaderNonCanonical(k, v)
 	}
 	return r
 }
 
-// SetHeaderMap set a header for the request.
-// To use non-canonical keys, assign to the map directly.
-func (r *Request) SetHeaderMap(key, value string) *Request {
+// SetHeaderNonCanonical set a header for the request which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (r *Request) SetHeaderNonCanonical(key, value string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
 	}
-	r.Headers[key] = []string{value}
-	return r
-}
-
-// SetHeaderMaps  set headers from a map for the request.
-// To use non-canonical keys, assign to the map directly.
-func (r *Request) SetHeaderMaps(hdrs map[string][]string) *Request {
-	if r.Headers == nil {
-		r.Headers = hdrs
-	}
+	r.Headers[key] = append(r.Headers[key], value)
 	return r
 }
 
