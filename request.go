@@ -351,6 +351,35 @@ func (r *Request) SetHeader(key, value string) *Request {
 		r.Headers = make(http.Header)
 	}
 	r.Headers.Set(key, value)
+
+	return r
+}
+
+// SetHeadersMap set headers from a map for the request.
+// To use non-canonical keys, assign to the map directly.
+func (r *Request) SetHeadersMap(hdrs map[string]string) *Request {
+	for k, v := range hdrs {
+		r.SetHeaderMap(k, v)
+	}
+	return r
+}
+
+// SetHeaderMap set a header for the request.
+// To use non-canonical keys, assign to the map directly.
+func (r *Request) SetHeaderMap(key, value string) *Request {
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+	r.Headers[key] = []string{value}
+	return r
+}
+
+// SetHeaderMaps  set headers from a map for the request.
+// To use non-canonical keys, assign to the map directly.
+func (r *Request) SetHeaderMaps(hdrs map[string][]string) *Request {
+	if r.Headers == nil {
+		r.Headers = hdrs
+	}
 	return r
 }
 
