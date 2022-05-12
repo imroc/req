@@ -494,12 +494,14 @@ func (t *http2Transport) RoundTripOpt(req *http.Request, opt http2RoundTripOpt) 
 			if req, err = http2shouldRetryRequest(req, err); err == nil {
 				// After the first retry, do exponential backoff with 10% jitter.
 				if retry == 0 {
+					t.vlogf("RoundTrip retrying after failure: %v", err)
 					continue
 				}
 				backoff := float64(uint(1) << (uint(retry) - 1))
 				backoff += backoff * (0.1 * mathrand.Float64())
 				select {
 				case <-time.After(time.Second * time.Duration(backoff)):
+					t.vlogf("RoundTrip retrying after failure: %v", err)
 					continue
 				case <-req.Context().Done():
 					err = req.Context().Err()
@@ -726,11 +728,15 @@ func (cc *http2ClientConn) healthCheck() {
 	// trigger the healthCheck again if there is no frame received.
 	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout)
 	defer cancel()
+	cc.vlogf("http2: Transport sending health check")
 	err := cc.Ping(ctx)
 	if err != nil {
+		cc.vlogf("http2: Transport health check failure: %v", err)
 		cc.closeForLostPing()
 		cc.t.connPool().MarkDead(cc)
 		return
+	} else {
+		cc.vlogf("http2: Transport health check success")
 	}
 }
 
