@@ -17,16 +17,25 @@ type Response struct {
 
 // IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
 func (r *Response) IsSuccess() bool {
+	if r.Response == nil {
+		return false
+	}
 	return r.StatusCode > 199 && r.StatusCode < 300
 }
 
 // IsError method returns true if HTTP status `code >= 400` otherwise false.
 func (r *Response) IsError() bool {
+	if r.Response == nil {
+		return false
+	}
 	return r.StatusCode > 399
 }
 
 // GetContentType return the `Content-Type` header value.
 func (r *Response) GetContentType() string {
+	if r.Response == nil {
+		return ""
+	}
 	return r.Header.Get(hdrContentTypeKey)
 }
 
