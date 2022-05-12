@@ -129,7 +129,7 @@ func (e http2headerFieldNameError) Error() string {
 type http2headerFieldValueError string
 
 func (e http2headerFieldValueError) Error() string {
-	return fmt.Sprintf("invalid header field value %q", string(e))
+	return fmt.Sprintf("invalid header field value for %q", string(e))
 }
 
 var (

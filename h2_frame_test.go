@@ -1092,7 +1092,7 @@ func TestMetaFrameHeader(t *testing.T) {
 			name:          "invalid_field_value",
 			w:             func(f *http2Framer) { write(f, encodeHeaderRaw(t, "key", "bad_null\x00")) },
 			want:          http2streamError(1, http2ErrCodeProtocol),
-			wantErrReason: "invalid header field value \"bad_null\\x00\"",
+			wantErrReason: `invalid header field value for "key"`,
 		},
 	}
 	for i, tt := range tests {
