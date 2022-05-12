@@ -436,6 +436,12 @@ func TestTransportConnectionCloseOnResponse(t *testing.T) {
 	connSet.check(t)
 }
 
+// TestTransportConnectionCloseOnRequest tests that the Transport's doesn't reuse
+// an underlying TCP connection after making an http.Request with Request.Close set.
+//
+// It tests the behavior by making an HTTP request to a server which
+// describes the source source connection it got (remote port number +
+// address of its net.Conn)
 func TestTransportConnectionCloseOnRequest(t *testing.T) {
 	defer afterTest(t)
 	ts := httptest.NewServer(hostPortHandler)
@@ -446,7 +452,7 @@ func TestTransportConnectionCloseOnRequest(t *testing.T) {
 	c := tc().httpClient
 	tr := c.Transport.(*Transport)
 	tr.DialContext = testDial
-	for _, connectionClose := range []bool{false, true} {
+	for _, reqClose := range []bool{false, true} {
 		fetch := func(n int) string {
 			req := new(http.Request)
 			var err error
@@ -458,29 +464,37 @@ func TestTransportConnectionCloseOnRequest(t *testing.T) {
 			req.Proto = "HTTP/1.1"
 			req.ProtoMajor = 1
 			req.ProtoMinor = 1
-			req.Close = connectionClose
+			req.Close = reqClose
 
 			res, err := c.Do(req)
 			if err != nil {
-				t.Fatalf("error in connectionClose=%v, req #%d, Do: %v", connectionClose, n, err)
+				t.Fatalf("error in Request.Close=%v, req #%d, Do: %v", reqClose, n, err)
 			}
-			if got, want := res.Header.Get("X-Saw-Close"), fmt.Sprint(connectionClose); got != want {
-				t.Errorf("For connectionClose = %v; handler's X-Saw-Close was %v; want %v",
-					connectionClose, got, !connectionClose)
+			if got, want := res.Header.Get("X-Saw-Close"), fmt.Sprint(reqClose); got != want {
+				t.Errorf("for Request.Close = %v; handler's X-Saw-Close was %v; want %v",
+					reqClose, got, !reqClose)
 			}
 			body, err := io.ReadAll(res.Body)
 			if err != nil {
-				t.Fatalf("error in connectionClose=%v, req #%d, ReadAll: %v", connectionClose, n, err)
+				t.Fatalf("for Request.Close=%v, on request %v/2: ReadAll: %v", reqClose, n, err)
 			}
 			return string(body)
 		}
 
 		body1 := fetch(1)
 		body2 := fetch(2)
-		bodiesDiffer := body1 != body2
-		if bodiesDiffer != connectionClose {
-			t.Errorf("error in connectionClose=%v. unexpected bodiesDiffer=%v; body1=%q; body2=%q",
-				connectionClose, bodiesDiffer, body1, body2)
+
+		got := 1
+		if body1 != body2 {
+			got++
+		}
+		want := 1
+		if reqClose {
+			want = 2
+		}
+		if got != want {
+			t.Errorf("for Request.Close=%v: server saw %v unique connections, wanted %v\n\nbodies were: %q and %q",
+				reqClose, got, want, body1, body2)
 		}
 
 		tr.CloseIdleConnections()
