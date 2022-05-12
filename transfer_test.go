@@ -268,7 +268,7 @@ func TestTransferWriterWriteBodyReaderTypes(t *testing.T) {
 				}
 
 				if tc.expectedReader != actualReader {
-					t.Fatalf("got reader %T want %T", actualReader, tc.expectedReader)
+					t.Fatalf("got reader %s want %s", actualReader, tc.expectedReader)
 				}
 			}
 
