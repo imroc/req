@@ -1091,6 +1091,9 @@ func (cc *http2ClientConn) decrStreamReservationsLocked() {
 }
 
 func (cc *http2ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
+	if cc.t != nil && cc.t.t1 != nil && cc.t.t1.Debugf != nil {
+		cc.t.t1.Debugf("HTTP/2 %s %s", req.Method, req.URL.String())
+	}
 	cc.currentRequest = req
 	ctx := req.Context()
 	cs := &http2clientStream{

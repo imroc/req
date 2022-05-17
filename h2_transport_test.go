@@ -110,6 +110,7 @@ func TestTransportH2c(t *testing.T) {
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	tr := &http2Transport{
+		t1:        &Transport{},
 		AllowHTTP: true,
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			return net.Dial(network, addr)
@@ -638,6 +639,7 @@ func TestTransportDialTLSh2(t *testing.T) {
 	)
 	defer ts.Close()
 	tr := &http2Transport{
+		t1: &Transport{},
 		DialTLS: func(netw, addr string, cfg *tls.Config) (net.Conn, error) {
 			mu.Lock()
 			didDial = true

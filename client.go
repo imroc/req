@@ -1038,11 +1038,6 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			req = req.WithContext(ctx)
 		}
 		r.RawRequest = req
-
-		if c.DebugLog {
-			c.log.Debugf("%s %s", req.Method, req.URL.String())
-		}
-
 		r.StartTime = time.Now()
 		var httpResponse *http.Response
 		httpResponse, err = c.httpClient.Do(req)

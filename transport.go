@@ -2741,6 +2741,9 @@ var (
 )
 
 func (pc *persistConn) roundTrip(req *transportRequest) (resp *http.Response, err error) {
+	if pc.t.Debugf != nil {
+		pc.t.Debugf("HTTP/1.1 %s %s", req.Method, req.URL.String())
+	}
 	testHookEnterRoundTrip()
 	if !pc.t.replaceReqCanceler(req.cancelKey, pc.cancelRequest) {
 		pc.t.putOrCloseIdleConn(pc)
