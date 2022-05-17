@@ -525,14 +525,16 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 	cancelKey := cancelKey{origReq}
 	req = setupRewindBody(req)
 
-	if altRT := t.alternateRoundTripper(req); altRT != nil {
-		if resp, err := altRT.RoundTrip(req); err != http.ErrSkipAltProtocol {
-			return resp, err
-		}
-		var err error
-		req, err = rewindBody(req)
-		if err != nil {
-			return nil, err
+	if t.ForceHttpVersion != HTTP1 {
+		if altRT := t.alternateRoundTripper(req); altRT != nil {
+			if resp, err := altRT.RoundTrip(req); err != http.ErrSkipAltProtocol {
+				return resp, err
+			}
+			var err error
+			req, err = rewindBody(req)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	if !isHTTP {
@@ -576,7 +578,7 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		var resp *http.Response
-		if pconn.alt != nil {
+		if t.ForceHttpVersion != HTTP1 && pconn.alt != nil {
 			// HTTP/2 path.
 			t.setReqCanceler(cancelKey, nil) // not cancelable with CancelRequest
 			resp, err = pconn.alt.RoundTrip(req)
