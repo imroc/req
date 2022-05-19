@@ -20,6 +20,10 @@ If you want to use the older version, check it out on [v1 branch](https://github
 
 > v2 is a transitional version, due to some breaking changes were introduced during optmize user experience
 
+## Documentation
+
+Full documentation is available on the [Req Official Website](https://req.cool/).
+
 ## Table of Contents
 
 * [Features](#Features)
