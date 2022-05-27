@@ -220,12 +220,12 @@ func handleMarshalBody(c *Client, r *Request) error {
 }
 
 func parseRequestBody(c *Client, r *Request) (err error) {
-	if c.isPayloadForbid(r.method) {
+	if c.isPayloadForbid(r.Method) {
 		r.getBody = nil
 		return
 	}
 	// handle multipart
-	if r.isMultiPart && (r.method != http.MethodPatch) {
+	if r.isMultiPart && (r.Method != http.MethodPatch) {
 		return handleMultiPart(c, r)
 	}
 

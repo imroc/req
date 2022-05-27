@@ -1000,7 +1000,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			}
 		}
 		req := &http.Request{
-			Method:        r.method,
+			Method:        r.Method,
 			Header:        header,
 			URL:           r.URL,
 			Host:          host,

@@ -34,7 +34,7 @@ type Request struct {
 	RetryAttempt int
 
 	RawURL                   string // read only
-	method                   string
+	Method                   string
 	URL                      *urlpkg.URL
 	getBody                  GetContentFunc
 	uploadCallback           UploadCallback
@@ -453,7 +453,7 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable body
 		return &Response{Request: r}, errRetryableWithUnReplayableBody
 	}
-	r.method = method
+	r.Method = method
 	r.RawURL = url
 	return r.client.do(r)
 }

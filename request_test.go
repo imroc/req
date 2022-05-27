@@ -140,7 +140,7 @@ func TestSendMethods(t *testing.T) {
 		testMethod(t, c, func(req *Request) *Response {
 			resp, err := tc.SendReq(req)
 			if err != nil {
-				t.Errorf("%s %s: %s", req.method, req.RawURL, err.Error())
+				t.Errorf("%s %s: %s", req.Method, req.RawURL, err.Error())
 			}
 			return resp
 		}, tc.ExpectMethod, false)
