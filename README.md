@@ -26,17 +26,15 @@ Full documentation is available on the [Req Official Website](https://req.cool/)
 
 ## <a name="Features">Features</a>
 
-* Simple and chainable methods for both client-level and request-level settings, and the request-level setting takes precedence if both are set.
-* Powerful and convenient debug utilites, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging - Dump/Log/Trace](#Debugging)).
-* Easy making HTTP test with code instead of tools like curl or postman, `req` provide global wrapper methods and `MustXXX` to test API with minimal code (see [Quick HTTP Test](#Test)).
-* Works fine with both `HTTP/2` and `HTTP/1.1`, which `HTTP/2` is preferred by default if server support, and you can also force `HTTP/1.1` if you want (see [HTTP2 and HTTP1](#HTTP2-HTTP1)).
-* Detect the charset of response body and decode it to utf-8 automatically to avoid garbled characters by default (see [Auto-Decode](#AutoDecode)).
-* Automatic marshal and unmarshal for JSON and XML content type and fully customizable (see [Body and Marshal/Unmarshal](#Body)).
-* Exportable `Transport`, easy to integrate with existing `http.Client`, debug APIs with minimal code change.
-* Easy [Download and Upload](#Download-Upload).
-* Easy set header, cookie, path parameter, query parameter, form data, basic auth, bearer token for both client and request level.
-* Easy set timeout, proxy, certs, redirect policy, cookie jar, compression, keepalives etc for client.
-* Support middleware before request sent and after got response (see [Request and Response Middleware](#Middleware)).
+* Simple and Powerful: Providing rich client-level and request-level settings, all of which are intuitive and chainable methods, and the request-level setting takes precedence if both are set.
+* Easy Debugging: Powerful and convenient debug utilities, including debug logs, performance traces, and even dump the complete request and response content (see [Debugging](https://req.cool/docs/tutorial/debugging/)).
+* Easy API Testing: API testing can be done with minimal code, no need to explicitly create any Requests and Clients, or even to handle errors (See [Quick HTTP Test](https://req.cool/docs/tutorial/quick-test/))
+* Smart by Default: Detect and decode to utf-8 automatically if possible to avoid garbled characters (See [Auto Decode](https://req.cool/docs/tutorial/auto-decode/)), marshal request body and unmarshal response body automatically according to the Content-Type.
+* Works fine with HTTP2: Support both with HTTP/2 and HTTP/1.1, and HTTP/2 is preferred by default if server support, you can also force the protocol if you want (See [Force HTTP version](https://req.cool/docs/tutorial/force-http-version/)).
+* Support Retry: Support automatic request retry and is fully customizable (See [Retry](https://req.cool/docs/tutorial/retry/)).
+* Easy Download and Upload: You can download and upload files with simple request settings, and even set a callback to show real-time progress (See [Download](https://req.cool/docs/tutorial/download/) and [Upload](https://req.cool/docs/tutorial/upload/)).
+* Exportable: `Transport` is exportable, which support dump requests, it's easy to integrate with existing http.Client, so you can debug APIs with minimal code change.
+* Extensible: Support Middleware for Request and Response (See [Request and Response Middleware](https://req.cool/docs/tutorial/middleware/)).
 
 ## <a name="Get-Started">Get Started</a>
 
