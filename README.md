@@ -12,14 +12,6 @@
     </p> 
 </p>
 
-## News
-
-Brand-New version v3 is released, which is completely rewritten, bringing revolutionary innovations and many superpowers, try and enjoy :)
-
-If you want to use the older version, check it out on [v1 branch](https://github.com/imroc/req/tree/v1).
-
-> v2 is a transitional version, due to some breaking changes were introduced during optmize user experience
-
 ## Documentation
 
 Full documentation is available on the [Req Official Website](https://req.cool/).
