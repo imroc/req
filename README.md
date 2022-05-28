@@ -53,7 +53,6 @@ req.DevMode() //  Use Client.DevMode to see all details, try and surprise :)
 req.Get("https://httpbin.org/get") // Use Request.Get to send a GET request.
 
 // In production, create a client explicitly and reuse it to send all requests
-// Create and send a request with the custom client and settings.
 client := req.C(). // Use C() to create a client and set with chainable client settings.
     SetUserAgent("my-custom-client").
     SetTimeout(5 * time.Second).
