@@ -45,10 +45,12 @@ import "github.com/imroc/req/v3"
 **Basic Usage**
 
 ```go
-// For test, you can create and send a request with the global default
-// client, use DevMode to see all details, try and suprise :)
-req.DevMode()
-req.Get("https://httpbin.org/get")
+// For testing, you can create and send a request with the global wrapper methods
+// that use the default client behind the scenes to initiate the request (you can
+// just treat package name `req` as a Client or Request, no need to create any client
+// or Request explicitly).
+req.DevMode() //  Use Client.DevMode to see all details, try and surprise :)
+req.Get("https://httpbin.org/get") // Use Request.Get to send a GET request.
 
 // In production, create a client explicitly and reuse it to send all requests
 // Create and send a request with the custom client and settings.
