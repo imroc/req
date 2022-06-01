@@ -275,11 +275,25 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 		return
 	}
 	// Handles only JSON or XML content type
-	if r.Request.Result != nil && r.IsSuccess() {
-		unmarshalBody(c, r, r.Request.Result)
+	if r.Request.Result != nil {
+		if r.IsSuccess() {
+			err = unmarshalBody(c, r, r.Request.Result)
+			if err != nil {
+				r.Request.Result = nil
+			}
+		} else {
+			r.Request.Result = nil
+		}
 	}
-	if r.Request.Error != nil && r.IsError() {
-		unmarshalBody(c, r, r.Request.Error)
+	if r.Request.Error != nil {
+		if r.IsError() {
+			err = unmarshalBody(c, r, r.Request.Error)
+			if err != nil {
+				r.Request.Error = nil
+			}
+		} else {
+			r.Request.Error = nil
+		}
 	}
 	return
 }
