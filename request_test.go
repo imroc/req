@@ -687,6 +687,15 @@ func testError(t *testing.T, c *Client) {
 		Get("/search")
 	assertIsError(t, resp, err)
 	assertEqual(t, 10001, errMsg.ErrorCode)
+
+	c.SetCommonError(&errMsg)
+	resp, err = c.R().
+		SetQueryParam("username", "").
+		Get("/search")
+	assertIsError(t, resp, err)
+	em, ok := resp.Error().(*ErrorMessage)
+	assertEqual(t, true, ok)
+	assertEqual(t, 10000, em.ErrorCode)
 }
 
 func TestForm(t *testing.T) {

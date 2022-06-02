@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -280,10 +281,18 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 			r.result = r.Request.Result
 		}
 	}
-	if r.Request.Error != nil && r.IsError() {
-		err = unmarshalBody(c, r, r.Request.Error)
-		if err == nil {
-			r.error = r.Request.Error
+	if r.IsError() {
+		if r.Request.Error != nil {
+			err = unmarshalBody(c, r, r.Request.Error)
+			if err == nil {
+				r.error = r.Request.Error
+			}
+		} else if c.commonErrorType != nil {
+			e := reflect.New(c.commonErrorType).Interface()
+			err = unmarshalBody(c, r, e)
+			if err == nil {
+				r.error = e
+			}
 		}
 	}
 	return

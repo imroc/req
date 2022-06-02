@@ -27,6 +27,11 @@ func GetPointer(v interface{}) interface{} {
 	return reflect.New(vv.Type()).Interface()
 }
 
+// GetType return the underlying type.
+func GetType(v interface{}) reflect.Type {
+	return reflect.Indirect(reflect.ValueOf(v)).Type()
+}
+
 // CutString slices s around the first instance of sep,
 // returning the text before and after sep.
 // The found result reports whether sep appears in s.

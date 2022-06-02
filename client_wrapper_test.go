@@ -23,6 +23,7 @@ func TestGlobalWrapper(t *testing.T) {
 	form.Add("test", "test")
 
 	assertAllNotNil(t,
+		SetCommonError(nil),
 		SetCookieJar(nil),
 		SetDialTLS(nil),
 		SetDial(nil),

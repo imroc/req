@@ -16,6 +16,7 @@ import (
 	"net/http/cookiejar"
 	urlpkg "net/url"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -36,23 +37,23 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	BaseURL               string
-	PathParams            map[string]string
-	QueryParams           urlpkg.Values
-	Headers               http.Header
-	Cookies               []*http.Cookie
-	FormData              urlpkg.Values
-	DebugLog              bool
-	AllowGetMethodPayload bool
-
+	BaseURL                 string
+	PathParams              map[string]string
+	QueryParams             urlpkg.Values
+	Headers                 http.Header
+	Cookies                 []*http.Cookie
+	FormData                urlpkg.Values
+	DebugLog                bool
+	AllowGetMethodPayload   bool
+	trace                   bool
+	disableAutoReadResponse bool
+	commonErrorType         reflect.Type
 	retryOption             *retryOption
 	jsonMarshal             func(v interface{}) ([]byte, error)
 	jsonUnmarshal           func(data []byte, v interface{}) error
 	xmlMarshal              func(v interface{}) ([]byte, error)
 	xmlUnmarshal            func(data []byte, v interface{}) error
-	trace                   bool
 	outputDirectory         string
-	disableAutoReadResponse bool
 	scheme                  string
 	log                     Logger
 	t                       *Transport
@@ -70,6 +71,15 @@ func (c *Client) R() *Request {
 		client:      c,
 		retryOption: c.retryOption.Clone(),
 	}
+}
+
+// SetCommonError set the common result that response body will be unmarshalled to
+// if it is an error response ( status `code >= 400`).
+func (c *Client) SetCommonError(err interface{}) *Client {
+	if err != nil {
+		c.commonErrorType = util.GetType(err)
+	}
+	return c
 }
 
 // SetCommonFormDataFromValues set the form data from url.Values for all requests
