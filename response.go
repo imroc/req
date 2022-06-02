@@ -13,6 +13,8 @@ type Response struct {
 	Request    *Request
 	body       []byte
 	receivedAt time.Time
+	error      interface{}
+	result     interface{}
 }
 
 // IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
@@ -41,12 +43,12 @@ func (r *Response) GetContentType() string {
 
 // Result returns the response value as an object if it has one
 func (r *Response) Result() interface{} {
-	return r.Request.Result
+	return r.result
 }
 
 // Error returns the error object if it has one.
 func (r *Response) Error() interface{} {
-	return r.Request.Error
+	return r.error
 }
 
 // TraceInfo returns the TraceInfo from Request.

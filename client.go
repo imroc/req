@@ -1084,6 +1084,8 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		r.trace = nil
 		r.ctx = nil
 		resp.body = nil
+		resp.result = nil
+		resp.error = nil
 	}
 
 	for _, f := range r.client.afterResponse {

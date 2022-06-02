@@ -32,9 +32,11 @@ type Request struct {
 	RawRequest   *http.Request
 	StartTime    time.Time
 	RetryAttempt int
+	RawURL       string // read only
+	Method       string
 
-	RawURL                   string // read only
-	Method                   string
+	isMultiPart              bool
+	isSaveResponse           bool
 	URL                      *urlpkg.URL
 	getBody                  GetContentFunc
 	uploadCallback           UploadCallback
@@ -48,11 +50,9 @@ type Request struct {
 	dumpOptions              *DumpOptions
 	marshalBody              interface{}
 	ctx                      context.Context
-	isMultiPart              bool
 	uploadFiles              []*FileUpload
 	uploadReader             []io.ReadCloser
 	outputFile               string
-	isSaveResponse           bool
 	output                   io.Writer
 	trace                    *clientTrace
 	dumpBuffer               *bytes.Buffer
@@ -313,14 +313,14 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 	return r
 }
 
-// SetResult set the result that response body will be unmarshaled to if
+// SetResult set the result that response body will be unmarshalled to if
 // request is success (status `code >= 200 and <= 299`).
 func (r *Request) SetResult(result interface{}) *Request {
 	r.Result = util.GetPointer(result)
 	return r
 }
 
-// SetError set the result that response body will be unmarshaled to if
+// SetError set the result that response body will be unmarshalled to if
 // request is error ( status `code >= 400`).
 func (r *Request) SetError(error interface{}) *Request {
 	r.Error = util.GetPointer(error)
