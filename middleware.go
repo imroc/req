@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -220,12 +221,12 @@ func handleMarshalBody(c *Client, r *Request) error {
 }
 
 func parseRequestBody(c *Client, r *Request) (err error) {
-	if c.isPayloadForbid(r.method) {
+	if c.isPayloadForbid(r.Method) {
 		r.getBody = nil
 		return
 	}
 	// handle multipart
-	if r.isMultiPart && (r.method != http.MethodPatch) {
+	if r.isMultiPart && (r.Method != http.MethodPatch) {
 		return handleMultiPart(c, r)
 	}
 
@@ -274,12 +275,25 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 	if r.StatusCode == http.StatusNoContent {
 		return
 	}
-	// Handles only JSON or XML content type
 	if r.Request.Result != nil && r.IsSuccess() {
-		unmarshalBody(c, r, r.Request.Result)
+		err = unmarshalBody(c, r, r.Request.Result)
+		if err == nil {
+			r.result = r.Request.Result
+		}
 	}
-	if r.Request.Error != nil && r.IsError() {
-		unmarshalBody(c, r, r.Request.Error)
+	if r.IsError() {
+		if r.Request.Error != nil {
+			err = unmarshalBody(c, r, r.Request.Error)
+			if err == nil {
+				r.error = r.Request.Error
+			}
+		} else if c.commonErrorType != nil {
+			e := reflect.New(c.commonErrorType).Interface()
+			err = unmarshalBody(c, r, e)
+			if err == nil {
+				r.error = e
+			}
+		}
 	}
 	return
 }
@@ -387,9 +401,11 @@ func parseRequestHeader(c *Client, r *Request) error {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
 	}
-	for k := range c.Headers {
-		if r.Headers.Get(k) == "" {
-			r.Headers.Add(k, c.Headers.Get(k))
+	for k, vs := range c.Headers {
+		for _, v := range vs {
+			if len(r.Headers[k]) == 0 {
+				r.Headers[k] = append(r.Headers[k], v)
+			}
 		}
 	}
 	return nil

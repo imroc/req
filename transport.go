@@ -525,14 +525,16 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 	cancelKey := cancelKey{origReq}
 	req = setupRewindBody(req)
 
-	if altRT := t.alternateRoundTripper(req); altRT != nil {
-		if resp, err := altRT.RoundTrip(req); err != http.ErrSkipAltProtocol {
-			return resp, err
-		}
-		var err error
-		req, err = rewindBody(req)
-		if err != nil {
-			return nil, err
+	if t.ForceHttpVersion != HTTP1 {
+		if altRT := t.alternateRoundTripper(req); altRT != nil {
+			if resp, err := altRT.RoundTrip(req); err != http.ErrSkipAltProtocol {
+				return resp, err
+			}
+			var err error
+			req, err = rewindBody(req)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	if !isHTTP {
@@ -576,7 +578,7 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		var resp *http.Response
-		if pconn.alt != nil {
+		if t.ForceHttpVersion != HTTP1 && pconn.alt != nil {
 			// HTTP/2 path.
 			t.setReqCanceler(cancelKey, nil) // not cancelable with CancelRequest
 			resp, err = pconn.alt.RoundTrip(req)
@@ -596,6 +598,9 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 		} else if !pconn.shouldRetryRequest(req, err) {
 			// Issue 16465: return underlying net.Conn.Read error from peek,
 			// as we've historically done.
+			if e, ok := err.(nothingWrittenError); ok {
+				err = e.error
+			}
 			if e, ok := err.(transportReadFromServerError); ok {
 				err = e.err
 			}
@@ -2069,6 +2074,9 @@ func (pc *persistConn) mapRoundTripError(req *transportRequest, startBytesWritte
 	}
 
 	if _, ok := err.(transportReadFromServerError); ok {
+		if pc.nwrite == startBytesWritten {
+			return nothingWrittenError{err}
+		}
 		// Don't decorate
 		return err
 	}
@@ -2735,6 +2743,9 @@ var (
 )
 
 func (pc *persistConn) roundTrip(req *transportRequest) (resp *http.Response, err error) {
+	if pc.t.Debugf != nil {
+		pc.t.Debugf("HTTP/1.1 %s %s", req.Method, req.URL.String())
+	}
 	testHookEnterRoundTrip()
 	if !pc.t.replaceReqCanceler(req.cancelKey, pc.cancelRequest) {
 		pc.t.putOrCloseIdleConn(pc)

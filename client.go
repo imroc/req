@@ -16,6 +16,7 @@ import (
 	"net/http/cookiejar"
 	urlpkg "net/url"
 	"os"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -36,23 +37,23 @@ var defaultClient *Client = C()
 
 // Client is the req's http client.
 type Client struct {
-	BaseURL               string
-	PathParams            map[string]string
-	QueryParams           urlpkg.Values
-	Headers               http.Header
-	Cookies               []*http.Cookie
-	FormData              urlpkg.Values
-	DebugLog              bool
-	AllowGetMethodPayload bool
-
+	BaseURL                 string
+	PathParams              map[string]string
+	QueryParams             urlpkg.Values
+	Headers                 http.Header
+	Cookies                 []*http.Cookie
+	FormData                urlpkg.Values
+	DebugLog                bool
+	AllowGetMethodPayload   bool
+	trace                   bool
+	disableAutoReadResponse bool
+	commonErrorType         reflect.Type
 	retryOption             *retryOption
 	jsonMarshal             func(v interface{}) ([]byte, error)
 	jsonUnmarshal           func(data []byte, v interface{}) error
 	xmlMarshal              func(v interface{}) ([]byte, error)
 	xmlUnmarshal            func(data []byte, v interface{}) error
-	trace                   bool
 	outputDirectory         string
-	disableAutoReadResponse bool
 	scheme                  string
 	log                     Logger
 	t                       *Transport
@@ -70,6 +71,15 @@ func (c *Client) R() *Request {
 		client:      c,
 		retryOption: c.retryOption.Clone(),
 	}
+}
+
+// SetCommonError set the common result that response body will be unmarshalled to
+// if it is an error response ( status `code >= 400`).
+func (c *Client) SetCommonError(err interface{}) *Client {
+	if err != nil {
+		c.commonErrorType = util.GetType(err)
+	}
+	return c
 }
 
 // SetCommonFormDataFromValues set the form data from url.Values for all requests
@@ -595,6 +605,25 @@ func (c *Client) SetCommonHeader(key, value string) *Client {
 	return c
 }
 
+// SetCommonHeaderNonCanonical set a header for all requests which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (c *Client) SetCommonHeaderNonCanonical(key, value string) *Client {
+	if c.Headers == nil {
+		c.Headers = make(http.Header)
+	}
+	c.Headers[key] = append(c.Headers[key], value)
+	return c
+}
+
+// SetCommonHeadersNonCanonical set headers for all requests which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
+	for k, v := range hdrs {
+		c.SetCommonHeaderNonCanonical(k, v)
+	}
+	return c
+}
+
 // SetCommonContentType set the `Content-Type` header for all requests.
 func (c *Client) SetCommonContentType(ct string) *Client {
 	c.SetCommonHeader(hdrContentTypeKey, ct)
@@ -981,7 +1010,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			}
 		}
 		req := &http.Request{
-			Method:        r.method,
+			Method:        r.Method,
 			Header:        header,
 			URL:           r.URL,
 			Host:          host,
@@ -1019,11 +1048,6 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			req = req.WithContext(ctx)
 		}
 		r.RawRequest = req
-
-		if c.DebugLog {
-			c.log.Debugf("%s %s", req.Method, req.URL.String())
-		}
-
 		r.StartTime = time.Now()
 		var httpResponse *http.Response
 		httpResponse, err = c.httpClient.Do(req)
@@ -1070,6 +1094,8 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		r.trace = nil
 		r.ctx = nil
 		resp.body = nil
+		resp.result = nil
+		resp.error = nil
 	}
 
 	for _, f := range r.client.afterResponse {

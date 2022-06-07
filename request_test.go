@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
@@ -139,7 +140,7 @@ func TestSendMethods(t *testing.T) {
 		testMethod(t, c, func(req *Request) *Response {
 			resp, err := tc.SendReq(req)
 			if err != nil {
-				t.Errorf("%s %s: %s", req.method, req.RawURL, err.Error())
+				t.Errorf("%s %s: %s", req.Method, req.RawURL, err.Error())
 			}
 			return resp
 		}, tc.ExpectMethod, false)
@@ -510,31 +511,30 @@ func testHeader(t *testing.T, c *Client) {
 	assertEqual(t, "value3", headers.Get("header3"))
 }
 
-func TestSetHeaderMaps(t *testing.T) {
+func TestSetHeaderNonCanonical(t *testing.T) {
 	// set headers
-	headers := map[string][]string{
-		"header1": {"value1"},
-		"header2": {"value2", "value3"},
-	}
-	resp, err := tc().R().
-		SetHeaderMaps(headers).
-		Get("/headersMaps")
+	key := "spring.cloud.function.Routing-expression"
+	c := tc().EnableForceHTTP1()
+	resp, err := c.R().EnableDumpWithoutResponse().
+		SetHeadersNonCanonical(map[string]string{
+			key: "test",
+		}).Get("/header")
 	assertSuccess(t, resp, err)
+	assertEqual(t, true, strings.Contains(resp.Dump(), key))
 
-}
-
-func TestSetHeadersMap(t *testing.T) {
-	// set headers
-	headers := map[string]string{
-		"header1": "value1",
-		"header2": "value2",
-	}
-
-	resp, err := tc().R().
-		SetHeadersMap(headers).
-		Get("/headersMap")
+	resp, err = c.R().
+		EnableDumpWithoutResponse().
+		SetHeaderNonCanonical(key, "test").
+		Get("/header")
 	assertSuccess(t, resp, err)
+	assertEqual(t, true, strings.Contains(resp.Dump(), key))
 
+	c.SetCommonHeaderNonCanonical(key, "test")
+	resp, err = c.R().
+		EnableDumpWithoutResponse().
+		Get("/header")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, strings.Contains(resp.Dump(), key))
 }
 
 func TestQueryParam(t *testing.T) {
@@ -687,6 +687,15 @@ func testError(t *testing.T, c *Client) {
 		Get("/search")
 	assertIsError(t, resp, err)
 	assertEqual(t, 10001, errMsg.ErrorCode)
+
+	c.SetCommonError(&errMsg)
+	resp, err = c.R().
+		SetQueryParam("username", "").
+		Get("/search")
+	assertIsError(t, resp, err)
+	em, ok := resp.Error().(*ErrorMessage)
+	assertEqual(t, true, ok)
+	assertEqual(t, 10000, em.ErrorCode)
 }
 
 func TestForm(t *testing.T) {

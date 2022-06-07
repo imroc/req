@@ -32,9 +32,11 @@ type Request struct {
 	RawRequest   *http.Request
 	StartTime    time.Time
 	RetryAttempt int
+	RawURL       string // read only
+	Method       string
 
-	RawURL                   string // read only
-	method                   string
+	isMultiPart              bool
+	isSaveResponse           bool
 	URL                      *urlpkg.URL
 	getBody                  GetContentFunc
 	uploadCallback           UploadCallback
@@ -48,11 +50,9 @@ type Request struct {
 	dumpOptions              *DumpOptions
 	marshalBody              interface{}
 	ctx                      context.Context
-	isMultiPart              bool
 	uploadFiles              []*FileUpload
 	uploadReader             []io.ReadCloser
 	outputFile               string
-	isSaveResponse           bool
 	output                   io.Writer
 	trace                    *clientTrace
 	dumpBuffer               *bytes.Buffer
@@ -313,14 +313,14 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 	return r
 }
 
-// SetResult set the result that response body will be unmarshaled to if
+// SetResult set the result that response body will be unmarshalled to if
 // request is success (status `code >= 200 and <= 299`).
 func (r *Request) SetResult(result interface{}) *Request {
 	r.Result = util.GetPointer(result)
 	return r
 }
 
-// SetError set the result that response body will be unmarshaled to if
+// SetError set the result that response body will be unmarshalled to if
 // request is error ( status `code >= 400`).
 func (r *Request) SetError(error interface{}) *Request {
 	r.Error = util.GetPointer(error)
@@ -355,31 +355,22 @@ func (r *Request) SetHeader(key, value string) *Request {
 	return r
 }
 
-// SetHeadersMap set headers from a map for the request.
-// To use non-canonical keys, assign to the map directly.
-func (r *Request) SetHeadersMap(hdrs map[string]string) *Request {
+// SetHeadersNonCanonical set headers from a map for the request which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (r *Request) SetHeadersNonCanonical(hdrs map[string]string) *Request {
 	for k, v := range hdrs {
-		r.SetHeaderMap(k, v)
+		r.SetHeaderNonCanonical(k, v)
 	}
 	return r
 }
 
-// SetHeaderMap set a header for the request.
-// To use non-canonical keys, assign to the map directly.
-func (r *Request) SetHeaderMap(key, value string) *Request {
+// SetHeaderNonCanonical set a header for the request which key is a
+// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+func (r *Request) SetHeaderNonCanonical(key, value string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
 	}
-	r.Headers[key] = []string{value}
-	return r
-}
-
-// SetHeaderMaps  set headers from a map for the request.
-// To use non-canonical keys, assign to the map directly.
-func (r *Request) SetHeaderMaps(hdrs map[string][]string) *Request {
-	if r.Headers == nil {
-		r.Headers = hdrs
-	}
+	r.Headers[key] = append(r.Headers[key], value)
 	return r
 }
 
@@ -462,7 +453,7 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable body
 		return &Response{Request: r}, errRetryableWithUnReplayableBody
 	}
-	r.method = method
+	r.Method = method
 	r.RawURL = url
 	return r.client.do(r)
 }

@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal/ascii"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	mathrand "math/rand"
@@ -494,12 +493,14 @@ func (t *http2Transport) RoundTripOpt(req *http.Request, opt http2RoundTripOpt) 
 			if req, err = http2shouldRetryRequest(req, err); err == nil {
 				// After the first retry, do exponential backoff with 10% jitter.
 				if retry == 0 {
+					t.vlogf("RoundTrip retrying after failure: %v", err)
 					continue
 				}
 				backoff := float64(uint(1) << (uint(retry) - 1))
 				backoff += backoff * (0.1 * mathrand.Float64())
 				select {
 				case <-time.After(time.Second * time.Duration(backoff)):
+					t.vlogf("RoundTrip retrying after failure: %v", err)
 					continue
 				case <-req.Context().Done():
 					err = req.Context().Err()
@@ -726,11 +727,14 @@ func (cc *http2ClientConn) healthCheck() {
 	// trigger the healthCheck again if there is no frame received.
 	ctx, cancel := context.WithTimeout(context.Background(), pingTimeout)
 	defer cancel()
+	cc.vlogf("http2: Transport sending health check")
 	err := cc.Ping(ctx)
 	if err != nil {
+		cc.vlogf("http2: Transport health check failure: %v", err)
 		cc.closeForLostPing()
-		cc.t.connPool().MarkDead(cc)
 		return
+	} else {
+		cc.vlogf("http2: Transport health check success")
 	}
 }
 
@@ -879,6 +883,24 @@ func (cc *http2ClientConn) onIdleTimeout() {
 	cc.closeIfIdle()
 }
 
+func (cc *http2ClientConn) closeConn() error {
+	t := time.AfterFunc(250*time.Millisecond, cc.forceCloseConn)
+	defer t.Stop()
+	return cc.tconn.Close()
+}
+
+// A tls.Conn.Close can hang for a long time if the peer is unresponsive.
+// Try to shut it down more aggressively.
+func (cc *http2ClientConn) forceCloseConn() {
+	tc, ok := cc.tconn.(NetConnWrapper)
+	if !ok {
+		return
+	}
+	if nc := tc.NetConn(); nc != nil {
+		nc.Close()
+	}
+}
+
 func (cc *http2ClientConn) closeIfIdle() {
 	cc.mu.Lock()
 	if len(cc.streams) > 0 || cc.streamsReserved > 0 {
@@ -893,7 +915,7 @@ func (cc *http2ClientConn) closeIfIdle() {
 	if http2VerboseLogs {
 		cc.vlogf("http2: Transport closing idle conn %p (forSingleUse=%v, maxStream=%v)", cc, cc.singleUse, nextID-2)
 	}
-	cc.tconn.Close()
+	cc.closeConn()
 }
 
 func (cc *http2ClientConn) isDoNotReuseAndIdle() bool {
@@ -910,7 +932,7 @@ func (cc *http2ClientConn) Shutdown(ctx context.Context) error {
 		return err
 	}
 	// Wait for all in-flight streams to complete or connection to close
-	done := make(chan error, 1)
+	done := make(chan struct{})
 	cancelled := false // guarded by cc.mu
 	go func() {
 		cc.mu.Lock()
@@ -918,7 +940,7 @@ func (cc *http2ClientConn) Shutdown(ctx context.Context) error {
 		for {
 			if len(cc.streams) == 0 || cc.closed {
 				cc.closed = true
-				done <- cc.tconn.Close()
+				close(done)
 				break
 			}
 			if cancelled {
@@ -929,8 +951,8 @@ func (cc *http2ClientConn) Shutdown(ctx context.Context) error {
 	}()
 	http2shutdownEnterWaitStateHook()
 	select {
-	case err := <-done:
-		return err
+	case <-done:
+		return cc.closeConn()
 	case <-ctx.Done():
 		cc.mu.Lock()
 		// Free the goroutine above
@@ -973,9 +995,9 @@ func (cc *http2ClientConn) closeForError(err error) error {
 	for _, cs := range cc.streams {
 		cs.abortStreamLocked(err)
 	}
-	defer cc.cond.Broadcast()
-	defer cc.mu.Unlock()
-	return cc.tconn.Close()
+	cc.cond.Broadcast()
+	cc.mu.Unlock()
+	return cc.closeConn()
 }
 
 // Close closes the client connection immediately.
@@ -1069,6 +1091,9 @@ func (cc *http2ClientConn) decrStreamReservationsLocked() {
 }
 
 func (cc *http2ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
+	if cc.t != nil && cc.t.t1 != nil && cc.t.t1.Debugf != nil {
+		cc.t.t1.Debugf("HTTP/2 %s %s", req.Method, req.URL.String())
+	}
 	cc.currentRequest = req
 	ctx := req.Context()
 	cs := &http2clientStream{
@@ -1744,7 +1769,8 @@ func (cc *http2ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, 
 		}
 		for _, v := range vv {
 			if !httpguts.ValidHeaderFieldValue(v) {
-				return nil, fmt.Errorf("invalid HTTP header value %q for header %q", v, k)
+				// Don't include the value in the error, because it may be sensitive.
+				return nil, fmt.Errorf("invalid HTTP header value for header %q", k)
 			}
 		}
 	}
@@ -2006,7 +2032,7 @@ func (cc *http2ClientConn) forgetStreamID(id uint32) {
 			cc.vlogf("http2: Transport closing idle conn %p (forSingleUse=%v, maxStream=%v)", cc, cc.singleUse, cc.nextStreamID-2)
 		}
 		cc.closed = true
-		defer cc.tconn.Close()
+		defer cc.closeConn()
 	}
 
 	cc.mu.Unlock()
@@ -2053,8 +2079,8 @@ func http2isEOFOrNetReadError(err error) bool {
 
 func (rl *http2clientConnReadLoop) cleanup() {
 	cc := rl.cc
-	defer cc.tconn.Close()
-	defer cc.t.connPool().MarkDead(cc)
+	cc.t.connPool().MarkDead(cc)
+	defer cc.closeConn()
 	defer close(cc.readerDone)
 
 	if cc.idleTimer != nil {
@@ -2928,7 +2954,12 @@ func (t *http2Transport) logf(format string, args ...interface{}) {
 	log.Printf(format, args...)
 }
 
-var http2noBody io.ReadCloser = ioutil.NopCloser(bytes.NewReader(nil))
+var http2noBody io.ReadCloser = noBodyReader{}
+
+type noBodyReader struct{}
+
+func (noBodyReader) Close() error             { return nil }
+func (noBodyReader) Read([]byte) (int, error) { return 0, io.EOF }
 
 type http2missingBody struct{}
 

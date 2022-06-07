@@ -13,31 +13,42 @@ type Response struct {
 	Request    *Request
 	body       []byte
 	receivedAt time.Time
+	error      interface{}
+	result     interface{}
 }
 
 // IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
 func (r *Response) IsSuccess() bool {
+	if r.Response == nil {
+		return false
+	}
 	return r.StatusCode > 199 && r.StatusCode < 300
 }
 
 // IsError method returns true if HTTP status `code >= 400` otherwise false.
 func (r *Response) IsError() bool {
+	if r.Response == nil {
+		return false
+	}
 	return r.StatusCode > 399
 }
 
 // GetContentType return the `Content-Type` header value.
 func (r *Response) GetContentType() string {
+	if r.Response == nil {
+		return ""
+	}
 	return r.Header.Get(hdrContentTypeKey)
 }
 
 // Result returns the response value as an object if it has one
 func (r *Response) Result() interface{} {
-	return r.Request.Result
+	return r.result
 }
 
 // Error returns the error object if it has one.
 func (r *Response) Error() interface{} {
-	return r.Request.Error
+	return r.error
 }
 
 // TraceInfo returns the TraceInfo from Request.

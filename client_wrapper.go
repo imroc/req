@@ -10,6 +10,12 @@ import (
 	"time"
 )
 
+// SetCommonError is a global wrapper methods which delegated
+// to the default client's SetCommonError.
+func SetCommonError(err interface{}) *Client {
+	return defaultClient.SetCommonError(err)
+}
+
 // SetCommonFormDataFromValues is a global wrapper methods which delegated
 // to the default client's SetCommonFormDataFromValues.
 func SetCommonFormDataFromValues(data url.Values) *Client {

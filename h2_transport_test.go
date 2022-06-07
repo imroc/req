@@ -110,6 +110,7 @@ func TestTransportH2c(t *testing.T) {
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	tr := &http2Transport{
+		t1:        &Transport{},
 		AllowHTTP: true,
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			return net.Dial(network, addr)
@@ -638,6 +639,7 @@ func TestTransportDialTLSh2(t *testing.T) {
 	)
 	defer ts.Close()
 	tr := &http2Transport{
+		t1: &Transport{},
 		DialTLS: func(netw, addr string, cfg *tls.Config) (net.Conn, error) {
 			mu.Lock()
 			didDial = true
@@ -1472,7 +1474,7 @@ func TestTransportInvalidTrailerEmptyFieldName(t *testing.T) {
 	})
 }
 func TestTransportInvalidTrailerBinaryFieldValue(t *testing.T) {
-	testInvalidTrailer(t, oneHeader, http2headerFieldValueError("has\nnewline"), func(enc *hpack.Encoder) {
+	testInvalidTrailer(t, oneHeader, http2headerFieldValueError("x"), func(enc *hpack.Encoder) {
 		enc.WriteField(hpack.HeaderField{Name: "x", Value: "has\nnewline"})
 	})
 }
@@ -2438,7 +2440,7 @@ func TestTransportFailsOnInvalidHeaders(t *testing.T) {
 		},
 		3: {
 			h:       http.Header{"foo": {"foo\x01bar"}},
-			wantErr: `invalid HTTP header value "foo\x01bar" for header "foo"`,
+			wantErr: `invalid HTTP header value for header "foo"`,
 		},
 	}
 
