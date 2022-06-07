@@ -154,17 +154,34 @@ func (r *Response) Dump() string {
 	return r.Request.getDumpBuffer().String()
 }
 
-// GetStatusCode return the response status code.
+// GetStatus returns the response status.
+func (r *Response) GetStatus() string {
+	if r.Response == nil {
+		return ""
+	}
+	return r.Status
+}
+
+// GetStatusCode returns the response status code.
 func (r *Response) GetStatusCode() int {
+	if r.Response == nil {
+		return 0
+	}
 	return r.StatusCode
 }
 
-// GetHeaderValue returns the response header value by key.
-func (r *Response) GetHeaderValue(key string) string {
+// GetHeader returns the response header value by key.
+func (r *Response) GetHeader(key string) string {
+	if r.Response == nil {
+		return ""
+	}
 	return r.Header.Get(key)
 }
 
 // GetHeaderValues returns the response header values by key.
 func (r *Response) GetHeaderValues(key string) []string {
+	if r.Response == nil {
+		return nil
+	}
 	return r.Header.Values(key)
 }

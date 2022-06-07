@@ -1,6 +1,7 @@
 package req
 
 import (
+	"net/http"
 	"testing"
 )
 
@@ -58,4 +59,13 @@ func TestResponseError(t *testing.T) {
 		t.Fatal("Response.Error() should return *Message")
 	}
 	assertEqual(t, "not allowed", msg.Message)
+}
+
+func TestResponseWrap(t *testing.T) {
+	resp, err := tc().R().Get("/json")
+	assertSuccess(t, resp, err)
+	assertEqual(t, true, resp.GetStatusCode() == http.StatusOK)
+	assertEqual(t, true, resp.GetStatus() == "200 OK")
+	assertEqual(t, true, resp.GetHeader(hdrContentTypeKey) == jsonContentType)
+	assertEqual(t, true, len(resp.GetHeaderValues(hdrContentTypeKey)) == 1)
 }
