@@ -863,10 +863,10 @@ func (cc *http2ClientConn) canTakeNewRequestLocked() bool {
 	return st.canTakeNewRequest
 }
 
-// tooIdleLocked reports whether this connection has been been sitting idle
+// tooIdleLocked reports whether this connection has been  sitting idle
 // for too much wall time.
 func (cc *http2ClientConn) tooIdleLocked() bool {
-	// The Round(0) strips the monontonic clock reading so the
+	// The Round(0) strips the monotonic clock reading so the
 	// times are compared based on their wall time. We don't want
 	// to reuse a connection that's been sitting idle during
 	// VM/laptop suspend if monotonic time was also frozen.

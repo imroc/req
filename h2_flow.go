@@ -38,7 +38,7 @@ func (f *http2flow) take(n int32) {
 	}
 }
 
-// add adds n bytes (positive or negative) to the flow control window.
+// adds n bytes (positive or negative) to the flow control window.
 // It returns false if the sum would exceed 2^31-1.
 func (f *http2flow) add(n int32) bool {
 	sum := f.n + n
