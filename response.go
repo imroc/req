@@ -153,3 +153,18 @@ func (r *Response) ToBytes() ([]byte, error) {
 func (r *Response) Dump() string {
 	return r.Request.getDumpBuffer().String()
 }
+
+// GetStatusCode return the response status code.
+func (r *Response) GetStatusCode() int {
+	return r.StatusCode
+}
+
+// GetHeaderValue returns the response header value by key.
+func (r *Response) GetHeaderValue(key string) string {
+	return r.Header.Get(key)
+}
+
+// GetHeaderValues returns the response header values by key.
+func (r *Response) GetHeaderValues(key string) []string {
+	return r.Header.Values(key)
+}
