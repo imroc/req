@@ -36,8 +36,8 @@ func (t TraceInfo) Blame() string {
 		"on dns lookup":    t.DNSLookupTime,
 		"on tcp connect":   t.TCPConnectTime,
 		"on tls handshake": t.TLSHandshakeTime,
-		"from connection ready to server respond frist byte":   t.FirstResponseTime,
-		"from server respond frist byte to request completion": t.ResponseTime,
+		"from connection ready to server respond first byte":     t.FirstResponseTime,
+		"from server respond  first  byte to request completion": t.ResponseTime,
 	}
 	for k, v := range m {
 		if v > mv {
