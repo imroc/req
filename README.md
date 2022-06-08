@@ -82,7 +82,7 @@ if resp.IsError() {
 }
 // Handle unexpected response (corner case).
 err = fmt.Errorf("got unexpected response, raw dump:\n%s", resp.Dump())
-return
+// ...
 ```
 
 **Videos**
