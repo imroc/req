@@ -61,8 +61,28 @@ resp, err := client.R(). // Use R() to create a request and set with chainable r
     SetHeader("Accept", "application/vnd.github.v3+json").
     SetPathParam("username", "imroc").
     SetQueryParam("page", "1").
-    SetResult(&result). // Unmarshal response into struct automatically.
+    SetResult(&result). // Unmarshal response into struct automatically if status code >= 200 and <= 299.
+    SetError(&errMsg). // Unmarshal response into struct automatically if status code >= 400.
+    EnableDump(). // Enable dump at request level to help troubleshoot, log content only when an unexpected exception occurs.
     Get("https://api.github.com/users/{username}/repos")
+if err != nil {
+    // Handle error.
+    // ...
+    return
+}
+if resp.IsSuccess() {
+    // Handle result.
+    // ...
+    return
+}
+if resp.IsError() {
+    // Handle errMsg.	
+    // ...
+    return
+}
+// Handle unexpected response (corner case).
+err = fmt.Errorf("got unexpected response, raw dump:\n%s", resp.Dump())
+return
 ```
 
 **Videos**
@@ -72,7 +92,7 @@ resp, err := client.R(). // Use R() to create a request and set with chainable r
 
 **More**
 
-Check more introduction, tutorials, examples and API references on the [official website](https://req.cool/).
+Check more introduction, tutorials, examples, best practices and API references on the [official website](https://req.cool/).
 
 ## <a name="License">License</a>
 
