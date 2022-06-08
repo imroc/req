@@ -966,12 +966,12 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 	}
 
 	for {
-		for _, f := range r.client.udBeforeRequest {
+		for _, f := range r.client.beforeRequest {
 			if err = f(r.client, r); err != nil {
 				return
 			}
 		}
-		for _, f := range r.client.beforeRequest {
+		for _, f := range r.client.udBeforeRequest {
 			if err = f(r.client, r); err != nil {
 				return
 			}
