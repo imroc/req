@@ -2,6 +2,7 @@ package req
 
 import (
 	"crypto/tls"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"net/url"
@@ -45,7 +46,7 @@ func TestGlobalWrapper(t *testing.T) {
 		SetProxyURL("http://dummy.proxy.local"),
 		SetProxyURL("bad url"),
 		SetProxy(proxy),
-		SetCommonContentType(jsonContentType),
+		SetCommonContentType(header.JsonContentType),
 		SetCommonHeader("my-header", "my-value"),
 		SetCommonHeaders(map[string]string{
 			"header1": "value1",

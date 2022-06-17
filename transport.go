@@ -20,6 +20,7 @@ import (
 	"github.com/imroc/req/v3/internal/ascii"
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/socks"
 	reqtls "github.com/imroc/req/v3/internal/tls"
@@ -2557,7 +2558,7 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 
 	// Use the defaultUserAgent unless the Header contains one, which
 	// may be blank to not send the header.
-	userAgent := hdrUserAgentValue
+	userAgent := header.DefaultUserAgent
 	if headerHas(r.Header, "User-Agent") {
 		userAgent = r.Header.Get("User-Agent")
 	}

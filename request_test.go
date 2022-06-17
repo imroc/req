@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"io/ioutil"
@@ -316,7 +317,7 @@ func TestSetBodyMarshal(t *testing.T) {
 			Set: func(r *Request) {
 				var user User
 				user.Username = username
-				r.SetBody(&user).SetContentType(xmlContentType)
+				r.SetBody(&user).SetContentType(header.XmlContentType)
 			},
 			Assert: assertUsernameXml,
 		},
@@ -392,49 +393,49 @@ func TestSetBody(t *testing.T) {
 			SetBody: func(r *Request) { //  SetBody with string
 				r.SetBody(body)
 			},
-			ContentType: plainTextContentType,
+			ContentType: header.PlainTextContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBody with []byte
 				r.SetBody([]byte(body))
 			},
-			ContentType: plainTextContentType,
+			ContentType: header.PlainTextContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBodyString
 				r.SetBodyString(body)
 			},
-			ContentType: plainTextContentType,
+			ContentType: header.PlainTextContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBodyBytes
 				r.SetBodyBytes([]byte(body))
 			},
-			ContentType: plainTextContentType,
+			ContentType: header.PlainTextContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBodyJsonString
 				r.SetBodyJsonString(body)
 			},
-			ContentType: jsonContentType,
+			ContentType: header.JsonContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBodyJsonBytes
 				r.SetBodyJsonBytes([]byte(body))
 			},
-			ContentType: jsonContentType,
+			ContentType: header.JsonContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBodyXmlString
 				r.SetBodyXmlString(body)
 			},
-			ContentType: xmlContentType,
+			ContentType: header.XmlContentType,
 		},
 		{
 			SetBody: func(r *Request) { // SetBodyXmlBytes
 				r.SetBodyXmlBytes([]byte(body))
 			},
-			ContentType: xmlContentType,
+			ContentType: header.XmlContentType,
 		},
 	}
 	for _, tc := range testCases {
@@ -443,7 +444,7 @@ func TestSetBody(t *testing.T) {
 		var e Echo
 		resp, err := r.SetResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
-		tests.AssertEqual(t, tc.ContentType, e.Header.Get(hdrContentTypeKey))
+		tests.AssertEqual(t, tc.ContentType, e.Header.Get(header.ContentType))
 		tests.AssertEqual(t, body, e.Body)
 	}
 }
@@ -492,7 +493,7 @@ func TestHeader(t *testing.T) {
 func testHeader(t *testing.T, c *Client) {
 	// Set User-Agent
 	customUserAgent := "My Custom User Agent"
-	resp, err := c.R().SetHeader(hdrUserAgentKey, customUserAgent).Get("/user-agent")
+	resp, err := c.R().SetHeader(header.UserAgent, customUserAgent).Get("/user-agent")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, customUserAgent, resp.String())
 
@@ -821,11 +822,11 @@ func TestAutoDetectRequestContentType(t *testing.T) {
 
 	resp, err = c.R().SetBodyJsonString(`{"msg": "test"}`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, jsonContentType, resp.String())
+	tests.AssertEqual(t, header.JsonContentType, resp.String())
 
-	resp, err = c.R().SetContentType(xmlContentType).SetBody(`{"msg": "test"}`).Post("/content-type")
+	resp, err = c.R().SetContentType(header.XmlContentType).SetBody(`{"msg": "test"}`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, xmlContentType, resp.String())
+	tests.AssertEqual(t, header.XmlContentType, resp.String())
 
 	resp, err = c.R().SetBody(`<html><body><h1>hello</h1></body></html>`).Post("/content-type")
 	assertSuccess(t, resp, err)
@@ -833,7 +834,7 @@ func TestAutoDetectRequestContentType(t *testing.T) {
 
 	resp, err = c.R().SetBody(`hello world`).Post("/content-type")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, plainTextContentType, resp.String())
+	tests.AssertEqual(t, header.PlainTextContentType, resp.String())
 }
 
 func TestSetFileUploadCheck(t *testing.T) {

@@ -1,6 +1,7 @@
 package req
 
 import (
+	"github.com/imroc/req/v3/internal/header"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -38,7 +39,7 @@ func (r *Response) GetContentType() string {
 	if r.Response == nil {
 		return ""
 	}
-	return r.Header.Get(hdrContentTypeKey)
+	return r.Header.Get(header.ContentType)
 }
 
 // Result returns the response value as an object if it has one

@@ -7,6 +7,10 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/http2"
+	"github.com/imroc/req/v3/internal/util"
+	"golang.org/x/net/publicsuffix"
 	"io"
 	"io/ioutil"
 	"net"
@@ -17,10 +21,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/imroc/req/v3/internal/http2"
-	"github.com/imroc/req/v3/internal/util"
-	"golang.org/x/net/publicsuffix"
 )
 
 // DefaultClient returns the global default Client.
@@ -575,7 +575,7 @@ func (c *Client) EnableAutoDecode() *Client {
 
 // SetUserAgent set the "User-Agent" header for all requests.
 func (c *Client) SetUserAgent(userAgent string) *Client {
-	return c.SetCommonHeader(hdrUserAgentKey, userAgent)
+	return c.SetCommonHeader(header.UserAgent, userAgent)
 }
 
 // SetCommonBearerAuthToken set the bearer auth token for all requests.
@@ -627,7 +627,7 @@ func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 
 // SetCommonContentType set the `Content-Type` header for all requests.
 func (c *Client) SetCommonContentType(ct string) *Client {
-	c.SetCommonHeader(hdrContentTypeKey, ct)
+	c.SetCommonHeader(header.ContentType, ct)
 	return c
 }
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/hashicorp/go-multierror"
 	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
@@ -617,7 +618,7 @@ func (r *Request) SetBodyJsonString(body string) *Request {
 // SetBodyJsonBytes set the request body as []byte and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
-	r.SetContentType(jsonContentType)
+	r.SetContentType(header.JsonContentType)
 	return r.SetBodyBytes(body)
 }
 
@@ -641,7 +642,7 @@ func (r *Request) SetBodyXmlString(body string) *Request {
 // SetBodyXmlBytes set the request body as []byte and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlBytes(body []byte) *Request {
-	r.SetContentType(xmlContentType)
+	r.SetContentType(header.XmlContentType)
 	return r.SetBodyBytes(body)
 }
 
@@ -658,7 +659,7 @@ func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
 
 // SetContentType set the `Content-Type` for the request.
 func (r *Request) SetContentType(contentType string) *Request {
-	return r.SetHeader(hdrContentTypeKey, contentType)
+	return r.SetHeader(header.ContentType, contentType)
 }
 
 // Context method returns the Context if its already set in request

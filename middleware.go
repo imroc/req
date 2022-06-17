@@ -2,6 +2,8 @@ package req
 
 import (
 	"bytes"
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -13,8 +15,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"github.com/imroc/req/v3/internal/util"
 )
 
 type (
@@ -47,7 +47,7 @@ func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEH
 	hdr.Set("Content-Disposition", contentDispositionValue)
 
 	if !util.IsStringEmpty(contentType) {
-		hdr.Set(hdrContentTypeKey, contentType)
+		hdr.Set(header.ContentType, contentType)
 	}
 	return hdr
 }
@@ -185,17 +185,17 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 }
 
 func handleFormData(r *Request) {
-	r.SetContentType(formContentType)
+	r.SetContentType(header.FormContentType)
 	r.SetBodyBytes([]byte(r.FormData.Encode()))
 }
 
 func handleMarshalBody(c *Client, r *Request) error {
 	ct := ""
 	if r.Headers != nil {
-		ct = r.Headers.Get(hdrContentTypeKey)
+		ct = r.Headers.Get(header.ContentType)
 	}
 	if ct == "" {
-		ct = c.Headers.Get(hdrContentTypeKey)
+		ct = c.Headers.Get(header.ContentType)
 	}
 	if ct != "" {
 		if util.IsXMLType(ct) {
@@ -249,7 +249,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 		return
 	}
 	// body is in-memory []byte, so we can guess content type
-	if r.getHeader(hdrContentTypeKey) == "" {
+	if r.getHeader(header.ContentType) == "" {
 		r.SetContentType(http.DetectContentType(r.body))
 	}
 	return

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"go/token"
 	"golang.org/x/text/encoding/simplifiedchinese"
@@ -128,7 +129,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	case "/form":
 		r.ParseForm()
 		ret, _ := json.Marshal(&r.Form)
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		w.Write(ret)
 	case "/multipart":
 		r.ParseMultipartForm(10e6)
@@ -136,24 +137,24 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		m["values"] = r.MultipartForm.Value
 		m["files"] = r.MultipartForm.File
 		ret, _ := json.Marshal(&m)
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		w.Write(ret)
 	case "/search":
 		handleSearch(w, r)
 	case "/redirect":
 		io.Copy(ioutil.Discard, r.Body)
-		w.Header().Set(hdrLocationKey, "/")
+		w.Header().Set(header.Location, "/")
 		w.WriteHeader(http.StatusMovedPermanently)
 	case "/content-type":
 		io.Copy(ioutil.Discard, r.Body)
-		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
+		w.Write([]byte(r.Header.Get(header.ContentType)))
 	case "/echo":
 		b, _ := ioutil.ReadAll(r.Body)
 		e := Echo{
 			Header: r.Header,
 			Body:   string(b),
 		}
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		result, _ := json.Marshal(&e)
 		w.Write(result)
 	}
@@ -181,10 +182,10 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	tp := r.FormValue("type")
 	var marshalFunc func(v interface{}) ([]byte, error)
 	if tp == "xml" {
-		w.Header().Set(hdrContentTypeKey, xmlContentType)
+		w.Header().Set(header.ContentType, header.XmlContentType)
 		marshalFunc = xml.Marshal
 	} else {
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		marshalFunc = json.Marshal
 	}
 	var result interface{}
@@ -229,7 +230,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	case "/too-many":
 		w.WriteHeader(http.StatusTooManyRequests)
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		w.Write([]byte(`{"errMsg":"too many requests"}`))
 	case "/chunked":
 		w.Header().Add("Trailer", "Expires")
@@ -239,9 +240,9 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	case "/json":
 		r.ParseForm()
 		if r.FormValue("type") != "no" {
-			w.Header().Set(hdrContentTypeKey, jsonContentType)
+			w.Header().Set(header.ContentType, header.JsonContentType)
 		}
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		if r.FormValue("error") == "yes" {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte(`{"message": "not allowed"}`))
@@ -251,7 +252,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	case "/xml":
 		r.ParseForm()
 		if r.FormValue("type") != "no" {
-			w.Header().Set(hdrContentTypeKey, xmlContentType)
+			w.Header().Set(header.ContentType, header.XmlContentType)
 		}
 		w.Write([]byte(`<user><name>roc</name></user>`))
 	case "/unlimited-redirect":
@@ -266,23 +267,23 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		b, _ := ioutil.ReadAll(r.Body)
 		w.Write(b)
 	case "/gbk":
-		w.Header().Set(hdrContentTypeKey, "text/plain; charset=gbk")
+		w.Header().Set(header.ContentType, "text/plain; charset=gbk")
 		w.Write(toGbk("我是roc"))
 	case "/gbk-no-charset":
 		b, err := ioutil.ReadFile(tests.GetTestFilePath("sample-gbk.html"))
 		if err != nil {
 			panic(err)
 		}
-		w.Header().Set(hdrContentTypeKey, "text/html")
+		w.Header().Set(header.ContentType, "text/html")
 		w.Write(b)
 	case "/header":
 		b, _ := json.Marshal(r.Header)
-		w.Header().Set(hdrContentTypeKey, jsonContentType)
+		w.Header().Set(header.ContentType, header.JsonContentType)
 		w.Write(b)
 	case "/user-agent":
-		w.Write([]byte(r.Header.Get(hdrUserAgentKey)))
+		w.Write([]byte(r.Header.Get(header.UserAgent)))
 	case "/content-type":
-		w.Write([]byte(r.Header.Get(hdrContentTypeKey)))
+		w.Write([]byte(r.Header.Get(header.ContentType)))
 	case "/query-parameter":
 		w.Write([]byte(r.URL.RawQuery))
 	case "/search":

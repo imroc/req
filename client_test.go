@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"io/ioutil"
 	"net"
@@ -135,8 +136,8 @@ func TestSetProxy(t *testing.T) {
 }
 
 func TestSetCommonContentType(t *testing.T) {
-	c := tc().SetCommonContentType(jsonContentType)
-	tests.AssertEqual(t, jsonContentType, c.Headers.Get(hdrContentTypeKey))
+	c := tc().SetCommonContentType(header.JsonContentType)
+	tests.AssertEqual(t, header.JsonContentType, c.Headers.Get(header.ContentType))
 }
 
 func TestSetCommonHeader(t *testing.T) {
@@ -177,7 +178,7 @@ func TestSetCommonBearerAuthToken(t *testing.T) {
 
 func TestSetUserAgent(t *testing.T) {
 	c := tc().SetUserAgent("test")
-	tests.AssertEqual(t, "test", c.Headers.Get(hdrUserAgentKey))
+	tests.AssertEqual(t, "test", c.Headers.Get(header.UserAgent))
 }
 
 func TestAutoDecode(t *testing.T) {

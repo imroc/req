@@ -1,6 +1,7 @@
 package req
 
 import (
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"testing"
@@ -67,6 +68,6 @@ func TestResponseWrap(t *testing.T) {
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, true, resp.GetStatusCode() == http.StatusOK)
 	tests.AssertEqual(t, true, resp.GetStatus() == "200 OK")
-	tests.AssertEqual(t, true, resp.GetHeader(hdrContentTypeKey) == jsonContentType)
-	tests.AssertEqual(t, true, len(resp.GetHeaderValues(hdrContentTypeKey)) == 1)
+	tests.AssertEqual(t, true, resp.GetHeader(header.ContentType) == header.JsonContentType)
+	tests.AssertEqual(t, true, len(resp.GetHeaderValues(header.ContentType)) == 1)
 }

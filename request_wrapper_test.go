@@ -3,6 +3,7 @@ package req
 import (
 	"bytes"
 	"context"
+	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"testing"
@@ -40,7 +41,7 @@ func TestGlobalWrapperForRequestSettings(t *testing.T) {
 		SetPathParams(map[string]string{"test": "test"}),
 		SetFormData(map[string]string{"test": "test"}),
 		SetFormDataFromValues(nil),
-		SetContentType(jsonContentType),
+		SetContentType(header.JsonContentType),
 		AddRetryCondition(func(rep *Response, err error) bool {
 			return err != nil
 		}),
