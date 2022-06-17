@@ -291,7 +291,7 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 		t.wrapResponseBody(res, wrap)
 	}
 	t.autoDecodeResponseBody(res)
-	t.dumpResponseBody(res, req)
+	dump.WrapResponseBodyIfNeeded(res, req, t.dump)
 }
 
 func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFunc) {
@@ -302,15 +302,6 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 		b.Body = wrap(b.Body)
 	default:
 		res.Body = wrap(res.Body)
-	}
-}
-
-func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {
-	dumps := dump.GetDumpers(req.Context(), t.dump)
-	for _, dump := range dumps {
-		if dump.ResponseBody() {
-			res.Body = dump.WrapReadCloser(res.Body)
-		}
 	}
 }
 
@@ -1903,8 +1894,8 @@ func fixPragmaCacheControl(header http.Header) {
 // 100-continue") from the server. It returns the final non-100 one.
 // trace is optional.
 func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
-	dumps := dump.GetDumpers(req.Context(), pc.t.dump)
-	tp := newTextprotoReader(pc.br, dumps)
+	ds := dump.GetResponseHeaderDumpers(req.Context(), pc.t.dump)
+	tp := newTextprotoReader(pc.br, ds)
 	resp := &http.Response{
 		Request: req,
 	}

@@ -33,21 +33,11 @@ type textprotoReader struct {
 // To avoid denial of service attacks, the provided bufio.Reader
 // should be reading from an io.LimitReader or similar textprotoReader to bound
 // the size of responses.
-func newTextprotoReader(r *bufio.Reader, dumps []*dump.Dumper) *textprotoReader {
+func newTextprotoReader(r *bufio.Reader, ds dump.Dumpers) *textprotoReader {
 	commonHeaderOnce.Do(initCommonHeader)
 	t := &textprotoReader{R: r}
-	if len(dumps) > 0 {
-		dd := []*dump.Dumper{}
-		for _, dump := range dumps {
-			if dump.ResponseHeader() {
-				dd = append(dd, dump)
-			}
-		}
-		dumps = dd
 
-	}
-
-	if len(dumps) > 0 {
+	if ds.ShouldDump() {
 		t.readLine = func() (line []byte, isPrefix bool, err error) {
 			line, err = t.R.ReadSlice('\n')
 			if len(line) == 0 {
@@ -57,9 +47,7 @@ func newTextprotoReader(r *bufio.Reader, dumps []*dump.Dumper) *textprotoReader 
 				return
 			}
 			err = nil
-			for _, dump := range dumps {
-				dump.Dump(line)
-			}
+			ds.Dump(line)
 			if line[len(line)-1] == '\n' {
 				drop := 1
 				if len(line) > 1 && line[len(line)-2] == '\r' {
