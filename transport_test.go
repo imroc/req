@@ -20,9 +20,14 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/internal/common"
+	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/testcert"
+	"github.com/imroc/req/v3/internal/tests"
+	reqtls "github.com/imroc/req/v3/internal/tls"
 	"go/token"
 	"golang.org/x/net/http/httpproxy"
+	nethttp2 "golang.org/x/net/http2"
 	"io"
 	"log"
 	mrand "math/rand"
@@ -80,24 +85,6 @@ func (t *Transport) IdleConnStrsForTesting() []string {
 			ret = append(ret, pc.conn.LocalAddr().String()+"/"+pc.conn.RemoteAddr().String())
 		}
 	}
-	sort.Strings(ret)
-	return ret
-}
-
-func (t *Transport) IdleConnStrsForTestingH2() []string {
-	var ret []string
-	noDialPool := t.t2.ConnPool.(http2noDialClientConnPool)
-	pool := noDialPool.http2clientConnPool
-
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-
-	for k, cc := range pool.conns {
-		for range cc {
-			ret = append(ret, k)
-		}
-	}
-
 	sort.Strings(ret)
 	return ret
 }
@@ -959,7 +946,7 @@ func TestTransportRemovesDeadIdleConnections(t *testing.T) {
 	ts.CloseClientConnections()
 
 	var keys2 []string
-	if !waitCondition(3*time.Second, 50*time.Millisecond, func() bool {
+	if !tests.WaitCondition(3*time.Second, 50*time.Millisecond, func() bool {
 		keys2 = tr.IdleConnKeysForTesting()
 		return len(keys2) == 0
 	}) {
@@ -1469,7 +1456,7 @@ func TestTransportExpect100Continue(t *testing.T) {
 func TestSOCKS5Proxy(t *testing.T) {
 	defer afterTest(t)
 	ch := make(chan string, 1)
-	l := newLocalListener(t)
+	l := tests.NewLocalListener(t)
 	defer l.Close()
 	defer close(ch)
 	proxy := func(t *testing.T) {
@@ -1720,7 +1707,7 @@ func TestTransportProxyHTTPSConnectLeak(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ln := newLocalListener(t)
+	ln := tests.NewLocalListener(t)
 	defer ln.Close()
 	listenerDone := make(chan struct{})
 	go func() {
@@ -2212,7 +2199,7 @@ func TestIssue3595(t *testing.T) {
 	}))
 	defer ts.Close()
 	c := tc().httpClient
-	res, err := c.Post(ts.URL, "application/octet-stream", neverEnding('a'))
+	res, err := c.Post(ts.URL, "application/octet-stream", tests.NeverEnding('a'))
 	if err != nil {
 		t.Errorf("Post: %v", err)
 		return
@@ -2369,7 +2356,7 @@ func TestIssue4191_InfiniteGetTimeout(t *testing.T) {
 	const debug = false
 	mux := http.NewServeMux()
 	mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-		io.Copy(w, neverEnding('a'))
+		io.Copy(w, tests.NeverEnding('a'))
 	})
 	ts := httptest.NewServer(mux)
 	defer ts.Close()
@@ -2427,7 +2414,7 @@ func TestIssue4191_InfiniteGetToPutTimeout(t *testing.T) {
 	const debug = false
 	mux := http.NewServeMux()
 	mux.HandleFunc("/get", func(w http.ResponseWriter, r *http.Request) {
-		io.Copy(w, neverEnding('a'))
+		io.Copy(w, tests.NeverEnding('a'))
 	})
 	mux.HandleFunc("/put", func(w http.ResponseWriter, r *http.Request) {
 		defer r.Body.Close()
@@ -2631,7 +2618,7 @@ func TestCancelRequestWithChannel(t *testing.T) {
 	body, err := io.ReadAll(res.Body)
 	d := time.Since(t0)
 
-	if err != errRequestCanceled {
+	if err != common.ErrRequestCanceled {
 		t.Errorf("Body.Read error = %v; want errRequestCanceled", err)
 	}
 	if string(body) != "Hello" {
@@ -2734,7 +2721,7 @@ func TestTransportCancelBeforeResponseHeaders(t *testing.T) {
 	if err == nil {
 		t.Fatalf("unexpected success from RoundTrip")
 	}
-	if err != errRequestCanceled {
+	if err != common.ErrRequestCanceled {
 		t.Errorf("RoundTrip error = %v; want errRequestCanceled", err)
 	}
 }
@@ -3077,10 +3064,6 @@ Content-Length: %d
 	}
 }
 
-var (
-	ExportHttp2ConfigureServer = http2ConfigureServer
-)
-
 type clientServerTest struct {
 	t  *testing.T
 	h2 bool
@@ -3126,12 +3109,6 @@ var optQuietLog = func(ts *httptest.Server) {
 	ts.Config.ErrorLog = quietLog
 }
 
-func optWithServerLog(lg *log.Logger) func(*httptest.Server) {
-	return func(ts *httptest.Server) {
-		ts.Config.ErrorLog = lg
-	}
-}
-
 func newClientServerTest(t *testing.T, h2 bool, h http.Handler, opts ...interface{}) *clientServerTest {
 	cst := &clientServerTest{
 		t:  t,
@@ -3157,14 +3134,14 @@ func newClientServerTest(t *testing.T, h2 bool, h http.Handler, opts ...interfac
 		cst.ts.Start()
 		return cst
 	}
-	http2ConfigureServer(cst.ts.Config, nil)
+	nethttp2.ConfigureServer(cst.ts.Config, nil)
 	cst.ts.TLS = cst.ts.Config.TLSConfig
 	cst.ts.StartTLS()
 
 	cst.tr.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: true,
 	}
-	if _, err := http2ConfigureTransports(cst.tr); err != nil {
+	if _, err := http2.ConfigureTransports(transportImpl{cst.tr}); err != nil {
 		t.Fatal(err)
 	}
 	return cst
@@ -3462,7 +3439,7 @@ func TestTransportTLSHandshakeTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping in short mode")
 	}
-	ln := newLocalListener(t)
+	ln := tests.NewLocalListener(t)
 	defer ln.Close()
 	testdonec := make(chan struct{})
 	defer close(testdonec)
@@ -3639,7 +3616,7 @@ func TestTransportNoReuseAfterEarlyResponse(t *testing.T) {
 
 	const bodySize = 256 << 10
 	finalBit := make(byteFromChanReader, 1)
-	req, _ := http.NewRequest("POST", ts.URL, io.MultiReader(io.LimitReader(neverEnding('x'), bodySize-1), finalBit))
+	req, _ := http.NewRequest("POST", ts.URL, io.MultiReader(io.LimitReader(tests.NeverEnding('x'), bodySize-1), finalBit))
 	req.ContentLength = bodySize
 	res, err := c.Do(req)
 	if err := wantBody(res, err, "foo"); err != nil {
@@ -3736,7 +3713,7 @@ func TestTransportClosesBodyOnError(t *testing.T) {
 		io.Reader
 		io.Closer
 	}{
-		io.MultiReader(io.LimitReader(neverEnding('x'), 1<<20), iotest.ErrReader(fakeErr)),
+		io.MultiReader(io.LimitReader(tests.NeverEnding('x'), 1<<20), iotest.ErrReader(fakeErr)),
 		closerFunc(func() error {
 			select {
 			case didClose <- true:
@@ -4055,7 +4032,7 @@ func TestTransportDialCancelRace(t *testing.T) {
 	})
 	defer SetEnterRoundTripHook(nil)
 	res, err := tr.RoundTrip(req)
-	if err != errRequestCanceled {
+	if err != common.ErrRequestCanceled {
 		t.Errorf("expected canceled request error; got %v", err)
 		if err == nil {
 			res.Body.Close()
@@ -4244,7 +4221,7 @@ func TestTransportAutomaticHTTP2(t *testing.T) {
 
 func TestTransportAutomaticHTTP2_TLSNextProto(t *testing.T) {
 	tr := tc().t
-	tr.TLSNextProto = make(map[string]func(string, TLSConn) http.RoundTripper)
+	tr.TLSNextProto = make(map[string]func(string, reqtls.Conn) http.RoundTripper)
 	testTransportAutoHTTP(t, tr, false)
 }
 
@@ -4298,7 +4275,7 @@ func TestNoCrashReturningTransportAltConn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ln := newLocalListener(t)
+	ln := tests.NewLocalListener(t)
 	defer ln.Close()
 
 	var wg sync.WaitGroup
@@ -4336,8 +4313,8 @@ func TestNoCrashReturningTransportAltConn(t *testing.T) {
 
 	tr := &Transport{
 		DisableKeepAlives: true,
-		TLSNextProto: map[string]func(string, TLSConn) http.RoundTripper{
-			"foo": func(authority string, c TLSConn) http.RoundTripper {
+		TLSNextProto: map[string]func(string, reqtls.Conn) http.RoundTripper{
+			"foo": func(authority string, c reqtls.Conn) http.RoundTripper {
 				madeRoundTripper <- true
 				return funcRoundTripper(func() {
 					t.Error("foo http.RoundTripper should not be called")
@@ -5113,7 +5090,7 @@ func TestMissingStatusNoPanic(t *testing.T) {
 
 	const want = "unknown status code"
 
-	ln := newLocalListener(t)
+	ln := tests.NewLocalListener(t)
 	addr := ln.Addr().String()
 	done := make(chan bool)
 	fullAddrURL := fmt.Sprintf("http://%s", addr)
@@ -5623,8 +5600,8 @@ func TestTransportClone(t *testing.T) {
 		GetProxyConnectHeader:  func(context.Context, *url.URL, string) (http.Header, error) { return nil, nil },
 		MaxResponseHeaderBytes: 1,
 		ForceAttemptHTTP2:      true,
-		TLSNextProto: map[string]func(authority string, c TLSConn) http.RoundTripper{
-			"foo": func(authority string, c TLSConn) http.RoundTripper { panic("") },
+		TLSNextProto: map[string]func(authority string, c reqtls.Conn) http.RoundTripper{
+			"foo": func(authority string, c reqtls.Conn) http.RoundTripper { panic("") },
 		},
 		ReadBufferSize:   1,
 		WriteBufferSize:  1,

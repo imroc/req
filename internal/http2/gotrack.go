@@ -5,7 +5,7 @@
 // Defensive debug-only utility to track that functions run on the
 // goroutine that they're supposed to.
 
-package req
+package http2
 
 import (
 	"bytes"
@@ -17,57 +17,57 @@ import (
 	"sync"
 )
 
-var http2DebugGoroutines = os.Getenv("DEBUG_HTTP2_GOROUTINES") == "1"
+var DebugGoroutines = os.Getenv("DEBUG_HTTP2_GOROUTINES") == "1"
 
-type http2goroutineLock uint64
+type goroutineLock uint64
 
-func http2newGoroutineLock() http2goroutineLock {
-	if !http2DebugGoroutines {
+func newGoroutineLock() goroutineLock {
+	if !DebugGoroutines {
 		return 0
 	}
-	return http2goroutineLock(http2curGoroutineID())
+	return goroutineLock(curGoroutineID())
 }
 
-func (g http2goroutineLock) check() {
-	if !http2DebugGoroutines {
+func (g goroutineLock) check() {
+	if !DebugGoroutines {
 		return
 	}
-	if http2curGoroutineID() != uint64(g) {
+	if curGoroutineID() != uint64(g) {
 		panic("running on the wrong goroutine")
 	}
 }
 
-func (g http2goroutineLock) checkNotOn() {
-	if !http2DebugGoroutines {
+func (g goroutineLock) checkNotOn() {
+	if !DebugGoroutines {
 		return
 	}
-	if http2curGoroutineID() == uint64(g) {
+	if curGoroutineID() == uint64(g) {
 		panic("running on the wrong goroutine")
 	}
 }
 
-var http2goroutineSpace = []byte("goroutine ")
+var goroutineSpace = []byte("goroutine ")
 
-func http2curGoroutineID() uint64 {
-	bp := http2littleBuf.Get().(*[]byte)
-	defer http2littleBuf.Put(bp)
+func curGoroutineID() uint64 {
+	bp := littleBuf.Get().(*[]byte)
+	defer littleBuf.Put(bp)
 	b := *bp
 	b = b[:runtime.Stack(b, false)]
 	// Parse the 4707 out of "goroutine 4707 ["
-	b = bytes.TrimPrefix(b, http2goroutineSpace)
+	b = bytes.TrimPrefix(b, goroutineSpace)
 	i := bytes.IndexByte(b, ' ')
 	if i < 0 {
 		panic(fmt.Sprintf("No space found in %q", b))
 	}
 	b = b[:i]
-	n, err := http2parseUintBytes(b, 10, 64)
+	n, err := parseUintBytes(b, 10, 64)
 	if err != nil {
 		panic(fmt.Sprintf("Failed to parse goroutine ID out of %q: %v", b, err))
 	}
 	return n
 }
 
-var http2littleBuf = sync.Pool{
+var littleBuf = sync.Pool{
 	New: func() interface{} {
 		buf := make([]byte, 64)
 		return &buf
@@ -75,7 +75,7 @@ var http2littleBuf = sync.Pool{
 }
 
 // parseUintBytes is like strconv.ParseUint, but using a []byte.
-func http2parseUintBytes(s []byte, base int, bitSize int) (n uint64, err error) {
+func parseUintBytes(s []byte, base int, bitSize int) (n uint64, err error) {
 	var cutoff, maxVal uint64
 
 	if bitSize == 0 {
@@ -113,7 +113,7 @@ func http2parseUintBytes(s []byte, base int, bitSize int) (n uint64, err error) 
 	}
 
 	n = 0
-	cutoff = http2cutoff64(base)
+	cutoff = cutoff64(base)
 	maxVal = 1<<uint(bitSize) - 1
 
 	for i := 0; i < len(s); i++ {
@@ -162,7 +162,7 @@ Error:
 }
 
 // Return the first number n such that n*base >= 1<<64.
-func http2cutoff64(base int) uint64 {
+func cutoff64(base int) uint64 {
 	if base < 2 {
 		return 0
 	}

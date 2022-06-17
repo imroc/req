@@ -11,7 +11,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/testcert"
+	"github.com/imroc/req/v3/internal/tests"
+	reqtls "github.com/imroc/req/v3/internal/tls"
 	"io"
 	"net"
 	"net/http"
@@ -25,7 +28,7 @@ func withT(r *http.Request, t *testing.T) *http.Request {
 
 // Issue 15446: incorrect wrapping of errors when server closes an idle connection.
 func TestTransportPersistConnReadLoopEOF(t *testing.T) {
-	ln := newLocalListener(t)
+	ln := tests.NewLocalListener(t)
 	defer ln.Close()
 
 	connc := make(chan net.Conn, 1)
@@ -79,17 +82,6 @@ func isTransportReadFromServerError(err error) bool {
 	return ok
 }
 
-func newLocalListener(t *testing.T) net.Listener {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		ln, err = net.Listen("tcp6", "[::1]:0")
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	return ln
-}
-
 func dummyRequest(method string) *http.Request {
 	req, err := http.NewRequest(method, "http://fake.tld/", nil)
 	if err != nil {
@@ -140,7 +132,7 @@ func TestTransportShouldRetryRequest(t *testing.T) {
 		2: {
 			pc:   &persistConn{reused: true},
 			req:  dummyRequest("POST"),
-			err:  http2ErrNoCachedConn,
+			err:  http2.ErrNoCachedConn,
 			want: true,
 		},
 		3: {
@@ -206,7 +198,7 @@ func TestTransportBodyAltRewind(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ln := newLocalListener(t)
+	ln := tests.NewLocalListener(t)
 	defer ln.Close()
 
 	go func() {
@@ -233,8 +225,8 @@ func TestTransportBodyAltRewind(t *testing.T) {
 	roundTripped := false
 	tr := &Transport{
 		DisableKeepAlives: true,
-		TLSNextProto: map[string]func(string, TLSConn) http.RoundTripper{
-			"foo": func(authority string, c TLSConn) http.RoundTripper {
+		TLSNextProto: map[string]func(string, reqtls.Conn) http.RoundTripper{
+			"foo": func(authority string, c reqtls.Conn) http.RoundTripper {
 				return roundTripFunc(func(r *http.Request) (*http.Response, error) {
 					n, _ := io.Copy(io.Discard, r.Body)
 					if n == 0 {
@@ -247,7 +239,7 @@ func TestTransportBodyAltRewind(t *testing.T) {
 						}, nil
 					}
 					roundTripped = true
-					return nil, http2noCachedConnError{}
+					return nil, http2.ErrNoCachedConn
 				})
 			},
 		},

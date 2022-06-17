@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"context"
@@ -13,56 +13,56 @@ import (
 )
 
 // ClientConnPool manages a pool of HTTP/2 client connections.
-type http2ClientConnPool interface {
+type ClientConnPool interface {
 	// GetClientConn returns a specific HTTP/2 connection (usually
 	// a TLS-TCP connection) to an HTTP/2 server. On success, the
 	// returned ClientConn accounts for the upcoming RoundTrip
 	// call, so the caller should not omit it. If the caller needs
 	// to, ClientConn.RoundTrip can be called with a bogus
 	// new(http.Request) to release the stream reservation.
-	GetClientConn(req *http.Request, addr string) (*http2ClientConn, error)
-	MarkDead(*http2ClientConn)
+	GetClientConn(req *http.Request, addr string) (*ClientConn, error)
+	MarkDead(*ClientConn)
 }
 
 // clientConnPoolIdleCloser is the interface implemented by ClientConnPool
 // implementations which can close their idle connections.
-type http2clientConnPoolIdleCloser interface {
-	http2ClientConnPool
+type clientConnPoolIdleCloser interface {
+	ClientConnPool
 	closeIdleConnections()
 }
 
 var (
-	_ http2clientConnPoolIdleCloser = (*http2clientConnPool)(nil)
-	_ http2clientConnPoolIdleCloser = http2noDialClientConnPool{}
+	_ clientConnPoolIdleCloser = (*clientConnPool)(nil)
+	_ clientConnPoolIdleCloser = noDialClientConnPool{}
 )
 
 // TODO: use singleflight for dialing and addConnCalls?
-type http2clientConnPool struct {
-	t *http2Transport
+type clientConnPool struct {
+	t *Transport
 
 	mu sync.Mutex // TODO: maybe switch to RWMutex
 	// TODO: add support for sharing conns based on cert names
 	// (e.g. share conn for googleapis.com and appspot.com)
-	conns        map[string][]*http2ClientConn // key is host:port
-	dialing      map[string]*http2dialCall     // currently in-flight dials
-	keys         map[*http2ClientConn][]string
-	addConnCalls map[string]*http2addConnCall // in-flight addConnIfNeeded calls
+	conns        map[string][]*ClientConn // key is host:port
+	dialing      map[string]*dialCall     // currently in-flight dials
+	keys         map[*ClientConn][]string
+	addConnCalls map[string]*addConnCall // in-flight addConnIfNeeded calls
 }
 
-func (p *http2clientConnPool) GetClientConn(req *http.Request, addr string) (*http2ClientConn, error) {
-	return p.getClientConn(req, addr, http2dialOnMiss)
+func (p *clientConnPool) GetClientConn(req *http.Request, addr string) (*ClientConn, error) {
+	return p.getClientConn(req, addr, dialOnMiss)
 }
 
 const (
-	http2dialOnMiss   = true
-	http2noDialOnMiss = false
+	dialOnMiss   = true
+	noDialOnMiss = false
 )
 
-func (p *http2clientConnPool) getClientConn(req *http.Request, addr string, dialOnMiss bool) (*http2ClientConn, error) {
+func (p *clientConnPool) getClientConn(req *http.Request, addr string, dialOnMiss bool) (*ClientConn, error) {
 	// TODO(dneil): Dial a new connection when t.DisableKeepAlives is set?
-	if http2isConnectionCloseRequest(req) && dialOnMiss {
+	if isConnectionCloseRequest(req) && dialOnMiss {
 		// It gets its own connection.
-		http2traceGetConn(req, addr)
+		traceGetConn(req, addr)
 		const singleUse = true
 		cc, err := p.t.dialClientConn(req.Context(), addr, singleUse)
 		if err != nil {
@@ -78,7 +78,7 @@ func (p *http2clientConnPool) getClientConn(req *http.Request, addr string, dial
 				// the GetConn hook has already been called.
 				// Don't call it a second time here.
 				if !cc.getConnCalled {
-					http2traceGetConn(req, addr)
+					traceGetConn(req, addr)
 				}
 				cc.getConnCalled = false
 				p.mu.Unlock()
@@ -87,13 +87,13 @@ func (p *http2clientConnPool) getClientConn(req *http.Request, addr string, dial
 		}
 		if !dialOnMiss {
 			p.mu.Unlock()
-			return nil, http2ErrNoCachedConn
+			return nil, ErrNoCachedConn
 		}
-		http2traceGetConn(req, addr)
+		traceGetConn(req, addr)
 		call := p.getStartDialLocked(req.Context(), addr)
 		p.mu.Unlock()
 		<-call.done
-		if http2shouldRetryDial(call, req) {
+		if shouldRetryDial(call, req) {
 			continue
 		}
 		cc, err := call.res, call.err
@@ -107,26 +107,26 @@ func (p *http2clientConnPool) getClientConn(req *http.Request, addr string, dial
 }
 
 // dialCall is an in-flight Transport dial call to a host.
-type http2dialCall struct {
-	_ http2incomparable
-	p *http2clientConnPool
+type dialCall struct {
+	_ incomparable
+	p *clientConnPool
 	// the context associated with the request
 	// that created this dialCall
 	ctx  context.Context
-	done chan struct{}    // closed when done
-	res  *http2ClientConn // valid after done is closed
-	err  error            // valid after done is closed
+	done chan struct{} // closed when done
+	res  *ClientConn   // valid after done is closed
+	err  error         // valid after done is closed
 }
 
 // requires p.mu is held.
-func (p *http2clientConnPool) getStartDialLocked(ctx context.Context, addr string) *http2dialCall {
+func (p *clientConnPool) getStartDialLocked(ctx context.Context, addr string) *dialCall {
 	if call, ok := p.dialing[addr]; ok {
 		// A dial is already in-flight. Don't start another.
 		return call
 	}
-	call := &http2dialCall{p: p, done: make(chan struct{}), ctx: ctx}
+	call := &dialCall{p: p, done: make(chan struct{}), ctx: ctx}
 	if p.dialing == nil {
-		p.dialing = make(map[string]*http2dialCall)
+		p.dialing = make(map[string]*dialCall)
 	}
 	p.dialing[addr] = call
 	go call.dial(call.ctx, addr)
@@ -134,7 +134,7 @@ func (p *http2clientConnPool) getStartDialLocked(ctx context.Context, addr strin
 }
 
 // run in its own goroutine.
-func (c *http2dialCall) dial(ctx context.Context, addr string) {
+func (c *dialCall) dial(ctx context.Context, addr string) {
 	const singleUse = false // shared conn
 	c.res, c.err = c.p.t.dialClientConn(ctx, addr, singleUse)
 	close(c.done)
@@ -155,7 +155,7 @@ func (c *http2dialCall) dial(ctx context.Context, addr string) {
 // This code decides which ones live or die.
 // The return value used is whether c was used.
 // c is never closed.
-func (p *http2clientConnPool) addConnIfNeeded(key string, t *http2Transport, c net.Conn) (used bool, err error) {
+func (p *clientConnPool) addConnIfNeeded(key string, t *Transport, c net.Conn) (used bool, err error) {
 	p.mu.Lock()
 	for _, cc := range p.conns[key] {
 		if cc.CanTakeNewRequest() {
@@ -166,9 +166,9 @@ func (p *http2clientConnPool) addConnIfNeeded(key string, t *http2Transport, c n
 	call, dup := p.addConnCalls[key]
 	if !dup {
 		if p.addConnCalls == nil {
-			p.addConnCalls = make(map[string]*http2addConnCall)
+			p.addConnCalls = make(map[string]*addConnCall)
 		}
-		call = &http2addConnCall{
+		call = &addConnCall{
 			p:    p,
 			done: make(chan struct{}),
 		}
@@ -184,14 +184,14 @@ func (p *http2clientConnPool) addConnIfNeeded(key string, t *http2Transport, c n
 	return !dup, nil
 }
 
-type http2addConnCall struct {
-	_    http2incomparable
-	p    *http2clientConnPool
+type addConnCall struct {
+	_    incomparable
+	p    *clientConnPool
 	done chan struct{} // closed when done
 	err  error
 }
 
-func (c *http2addConnCall) run(t *http2Transport, key string, tc net.Conn) {
+func (c *addConnCall) run(t *Transport, key string, tc net.Conn) {
 	cc, err := t.NewClientConn(tc)
 
 	p := c.p
@@ -208,23 +208,23 @@ func (c *http2addConnCall) run(t *http2Transport, key string, tc net.Conn) {
 }
 
 // p.mu must be held
-func (p *http2clientConnPool) addConnLocked(key string, cc *http2ClientConn) {
+func (p *clientConnPool) addConnLocked(key string, cc *ClientConn) {
 	for _, v := range p.conns[key] {
 		if v == cc {
 			return
 		}
 	}
 	if p.conns == nil {
-		p.conns = make(map[string][]*http2ClientConn)
+		p.conns = make(map[string][]*ClientConn)
 	}
 	if p.keys == nil {
-		p.keys = make(map[*http2ClientConn][]string)
+		p.keys = make(map[*ClientConn][]string)
 	}
 	p.conns[key] = append(p.conns[key], cc)
 	p.keys[cc] = append(p.keys[cc], key)
 }
 
-func (p *http2clientConnPool) MarkDead(cc *http2ClientConn) {
+func (p *clientConnPool) MarkDead(cc *ClientConn) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	for _, key := range p.keys[cc] {
@@ -232,7 +232,7 @@ func (p *http2clientConnPool) MarkDead(cc *http2ClientConn) {
 		if !ok {
 			continue
 		}
-		newList := http2filterOutClientConn(vv, cc)
+		newList := filterOutClientConn(vv, cc)
 		if len(newList) > 0 {
 			p.conns[key] = newList
 		} else {
@@ -242,7 +242,7 @@ func (p *http2clientConnPool) MarkDead(cc *http2ClientConn) {
 	delete(p.keys, cc)
 }
 
-func (p *http2clientConnPool) closeIdleConnections() {
+func (p *clientConnPool) closeIdleConnections() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// TODO: don't close a cc if it was just added to the pool
@@ -258,7 +258,7 @@ func (p *http2clientConnPool) closeIdleConnections() {
 	}
 }
 
-func http2filterOutClientConn(in []*http2ClientConn, exclude *http2ClientConn) []*http2ClientConn {
+func filterOutClientConn(in []*ClientConn, exclude *ClientConn) []*ClientConn {
 	out := in[:0]
 	for _, v := range in {
 		if v != exclude {
@@ -276,17 +276,17 @@ func http2filterOutClientConn(in []*http2ClientConn, exclude *http2ClientConn) [
 // noDialClientConnPool is an implementation of http2.ClientConnPool
 // which never dials. We let the HTTP/1.1 client dial and use its TLS
 // connection instead.
-type http2noDialClientConnPool struct{ *http2clientConnPool }
+type noDialClientConnPool struct{ *clientConnPool }
 
-func (p http2noDialClientConnPool) GetClientConn(req *http.Request, addr string) (*http2ClientConn, error) {
-	return p.getClientConn(req, addr, http2noDialOnMiss)
+func (p noDialClientConnPool) GetClientConn(req *http.Request, addr string) (*ClientConn, error) {
+	return p.getClientConn(req, addr, noDialOnMiss)
 }
 
 // shouldRetryDial reports whether the current request should
 // retry dialing after the call finished unsuccessfully, for example
 // if the dial was canceled because of a context cancellation or
 // deadline expiry.
-func http2shouldRetryDial(call *http2dialCall, req *http.Request) bool {
+func shouldRetryDial(call *dialCall, req *http.Request) bool {
 	if call.err == nil {
 		// No error, no need to retry
 		return false

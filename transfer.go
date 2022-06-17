@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal"
 	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/imroc/req/v3/internal/dump"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -304,7 +305,7 @@ func (t *transferWriter) writeHeader(w io.Writer, trace *httptrace.ClientTrace) 
 }
 
 // always closes t.BodyCloser
-func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
+func (t *transferWriter) writeBody(w io.Writer, dumps []*dump.Dumper) (err error) {
 	var ncopy int64
 	closed := false
 	defer func() {
@@ -318,7 +319,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
 
 	rw := w // raw writer
 	for _, dump := range dumps {
-		if dump.RequestBody {
+		if dump.RequestBody() {
 			w = dump.WrapWriter(w)
 		}
 	}
@@ -335,7 +336,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
 			}
 			cw := internal.NewChunkedWriter(rw)
 			for _, dump := range dumps {
-				if dump.RequestBody {
+				if dump.RequestBody() {
 					cw = dump.WrapWriteCloser(cw)
 				}
 			}
@@ -362,8 +363,8 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dumper) (err error) {
 			return err
 		}
 		for _, dump := range dumps {
-			if dump.RequestBody {
-				dump.dump([]byte("\r\n"))
+			if dump.RequestBody() {
+				dump.Dump([]byte("\r\n"))
 			}
 		}
 	}

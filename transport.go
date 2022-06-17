@@ -18,7 +18,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/imroc/req/v3/internal/common"
+	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/socks"
+	reqtls "github.com/imroc/req/v3/internal/tls"
 	"github.com/imroc/req/v3/internal/util"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
@@ -225,7 +229,7 @@ type Transport struct {
 	// must return a http.RoundTripper that then handles the request.
 	// If TLSNextProto is not nil, HTTP/2 support is not enabled
 	// automatically.
-	TLSNextProto map[string]func(authority string, c TLSConn) http.RoundTripper
+	TLSNextProto map[string]func(authority string, c reqtls.Conn) http.RoundTripper
 
 	// ProxyConnectHeader optionally specifies headers to send to
 	// proxies during CONNECT requests.
@@ -258,7 +262,7 @@ type Transport struct {
 	// If zero, a default (currently 4KB) is used.
 	ReadBufferSize int
 
-	t2 *http2Transport // non-nil if http2 wired up
+	t2 *http2.Transport // non-nil if http2 wired up
 
 	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero
 	// Dial, DialTLS, or DialContext func or TLSClientConfig is provided.
@@ -269,7 +273,7 @@ type Transport struct {
 
 	*ResponseOptions
 
-	dump *dumper
+	dump *dump.Dumper
 
 	// Debugf is the optional debug function.
 	Debugf func(format string, v ...interface{})
@@ -293,17 +297,17 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 	switch b := res.Body.(type) {
 	case *gzipReader:
 		b.body.body = wrap(b.body.body)
-	case *http2gzipReader:
-		b.body = wrap(b.body)
+	case *http2.GzipReader:
+		b.Body = wrap(b.Body)
 	default:
 		res.Body = wrap(res.Body)
 	}
 }
 
 func (t *Transport) dumpResponseBody(res *http.Response, req *http.Request) {
-	dumps := getDumpers(req.Context(), t.dump)
+	dumps := dump.GetDumpers(req.Context(), t.dump)
 	for _, dump := range dumps {
-		if dump.ResponseBody {
+		if dump.ResponseBody() {
 			res.Body = dump.WrapReadCloser(res.Body)
 		}
 	}
@@ -411,7 +415,7 @@ func (t *Transport) Clone() *Transport {
 		t2.TLSClientConfig = t.TLSClientConfig.Clone()
 	}
 	if t.TLSNextProto != nil {
-		npm := map[string]func(authority string, c TLSConn) http.RoundTripper{}
+		npm := map[string]func(authority string, c reqtls.Conn) http.RoundTripper{}
 		for k, v := range t.TLSNextProto {
 			npm[k] = v
 		}
@@ -591,7 +595,7 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 		}
 
 		// Failed. Clean up and determine whether to retry.
-		if http2isNoCachedConnError(err) {
+		if http2.IsNoCachedConnError(err) {
 			if t.removeIdleConn(pconn) {
 				t.decConnsPerHost(pconn.cacheKey)
 			}
@@ -674,7 +678,7 @@ func rewindBody(req *http.Request) (rewound *http.Request, err error) {
 // HTTP request on a new connection. The non-nil input error is the
 // error from roundTrip.
 func (pc *persistConn) shouldRetryRequest(req *http.Request, err error) bool {
-	if http2isNoCachedConnError(err) {
+	if http2.IsNoCachedConnError(err) {
 		// Issue 16582: if the user started a bunch of
 		// requests at once, they can all pick the same conn
 		// and violate the server's max concurrent streams.
@@ -773,7 +777,7 @@ func (t *Transport) CloseIdleConnections() {
 // cancelable context instead. CancelRequest cannot cancel HTTP/2
 // requests.
 func (t *Transport) CancelRequest(req *http.Request) {
-	t.cancelRequest(cancelKey{req}, errRequestCanceled)
+	t.cancelRequest(cancelKey{req}, common.ErrRequestCanceled)
 }
 
 // Cancel an in-flight request, recording the error value.
@@ -1345,7 +1349,7 @@ func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (pc *persi
 			case <-req.Context().Done():
 				return nil, req.Context().Err()
 			case err := <-cancelc:
-				if err == errRequestCanceled {
+				if err == common.ErrRequestCanceled {
 					err = errRequestCanceledConn
 				}
 				return nil, err
@@ -1359,7 +1363,7 @@ func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (pc *persi
 	case <-req.Context().Done():
 		return nil, req.Context().Err()
 	case err := <-cancelc:
-		if err == errRequestCanceled {
+		if err == common.ErrRequestCanceled {
 			err = errRequestCanceledConn
 		}
 		return nil, err
@@ -1509,7 +1513,7 @@ func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace
 	}
 	pc.tlsState = &cs
 	pc.conn = tlsConn
-	if !forProxy && pc.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+	if !forProxy && pc.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
 		return newHttp2NotSupportedError(cs.NegotiatedProtocol)
 	}
 	return nil
@@ -1569,7 +1573,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 				trace.TLSHandshakeDone(cs, nil)
 			}
 			pconn.tlsState = &cs
-			if cm.proxyURL == nil && pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2NextProtoTLS {
+			if cm.proxyURL == nil && pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
 				return nil, newHttp2NotSupportedError(cs.NegotiatedProtocol)
 			}
 		}
@@ -1898,7 +1902,7 @@ func fixPragmaCacheControl(header http.Header) {
 // 100-continue") from the server. It returns the final non-100 one.
 // trace is optional.
 func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
-	dumps := getDumpers(req.Context(), pc.t.dump)
+	dumps := dump.GetDumpers(req.Context(), pc.t.dump)
 	tp := newTextprotoReader(pc.br, dumps)
 	resp := &http.Response{
 		Request: req,
@@ -2013,7 +2017,7 @@ func (pc *persistConn) cancelRequest(err error) {
 	pc.mu.Lock()
 	defer pc.mu.Unlock()
 	pc.canceledErr = err
-	pc.closeLocked(errRequestCanceled)
+	pc.closeLocked(common.ErrRequestCanceled)
 }
 
 // closeConnIfStillIdle closes the connection if it's still sitting idle.
@@ -2530,9 +2534,9 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 	}
 
 	rw := w // raw writer
-	dumps := getDumpers(r.Context(), pc.t.dump)
+	dumps := dump.GetDumpers(r.Context(), pc.t.dump)
 	for _, dump := range dumps {
-		if dump.RequestHeader {
+		if dump.RequestHeader() {
 			w = dump.WrapWriter(w)
 		}
 	}
@@ -2749,7 +2753,7 @@ func (pc *persistConn) roundTrip(req *transportRequest) (resp *http.Response, er
 	testHookEnterRoundTrip()
 	if !pc.t.replaceReqCanceler(req.cancelKey, pc.cancelRequest) {
 		pc.t.putOrCloseIdleConn(pc)
-		return nil, errRequestCanceled
+		return nil, common.ErrRequestCanceled
 	}
 	pc.mu.Lock()
 	pc.numExpectedResponses++
@@ -2874,7 +2878,7 @@ func (pc *persistConn) roundTrip(req *transportRequest) (resp *http.Response, er
 			}
 			return re.res, nil
 		case <-cancelChan:
-			canceled = pc.t.cancelRequest(req.cancelKey, errRequestCanceled)
+			canceled = pc.t.cancelRequest(req.cancelKey, common.ErrRequestCanceled)
 			cancelChan = nil
 		case <-ctxDoneChan:
 			canceled = pc.t.cancelRequest(req.cancelKey, req.Context().Err())

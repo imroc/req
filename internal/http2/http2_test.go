@@ -2,29 +2,30 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"flag"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"testing"
 	"time"
 )
 
 func init() {
-	http2inTests = true
-	http2DebugGoroutines = true
-	flag.BoolVar(&http2VerboseLogs, "verboseh2", http2VerboseLogs, "Verbose HTTP/2 debug logging")
+	inTests = true
+	DebugGoroutines = true
+	flag.BoolVar(&VerboseLogs, "verboseh2", VerboseLogs, "Verbose HTTP/2 debug logging")
 }
 
 func TestSettingString(t *testing.T) {
 	tests := []struct {
-		s    http2Setting
+		s    Setting
 		want string
 	}{
-		{http2Setting{http2SettingMaxFrameSize, 123}, "[MAX_FRAME_SIZE = 123]"},
-		{http2Setting{1<<16 - 1, 123}, "[UNKNOWN_SETTING_65535 = 123]"},
+		{Setting{SettingMaxFrameSize, 123}, "[MAX_FRAME_SIZE = 123]"},
+		{Setting{1<<16 - 1, 123}, "[UNKNOWN_SETTING_65535 = 123]"},
 	}
 	for i, tt := range tests {
 		got := fmt.Sprint(tt.s)
@@ -47,7 +48,7 @@ func TestSorterPoolAllocs(t *testing.T) {
 		"b": nil,
 		"c": nil,
 	}
-	sorter := new(http2sorter)
+	sorter := new(sorter)
 
 	if allocs := testing.AllocsPerRun(100, func() {
 		sorter.SortStrings(ss)
@@ -80,39 +81,39 @@ func waitCondition(waitFor, checkEvery time.Duration, fn func() bool) bool {
 
 func TestSettingValid(t *testing.T) {
 	cases := []struct {
-		id  http2SettingID
+		id  SettingID
 		val uint32
 	}{
 		{
-			id:  http2SettingEnablePush,
+			id:  SettingEnablePush,
 			val: 2,
 		},
 		{
-			id:  http2SettingInitialWindowSize,
+			id:  SettingInitialWindowSize,
 			val: 1 << 31,
 		},
 		{
-			id:  http2SettingMaxFrameSize,
+			id:  SettingMaxFrameSize,
 			val: 0,
 		},
 	}
 	for _, c := range cases {
-		s := &http2Setting{ID: c.id, Val: c.val}
-		assertEqual(t, true, s.Valid() != nil)
+		s := &Setting{ID: c.id, Val: c.val}
+		tests.AssertEqual(t, true, s.Valid() != nil)
 	}
-	s := &http2Setting{ID: http2SettingMaxHeaderListSize}
-	assertEqual(t, true, s.Valid() == nil)
+	s := &Setting{ID: SettingMaxHeaderListSize}
+	tests.AssertEqual(t, true, s.Valid() == nil)
 }
 
 func TestBodyAllowedForStatus(t *testing.T) {
-	assertEqual(t, false, http2bodyAllowedForStatus(101))
-	assertEqual(t, false, http2bodyAllowedForStatus(204))
-	assertEqual(t, false, http2bodyAllowedForStatus(304))
-	assertEqual(t, true, http2bodyAllowedForStatus(900))
+	tests.AssertEqual(t, false, bodyAllowedForStatus(101))
+	tests.AssertEqual(t, false, bodyAllowedForStatus(204))
+	tests.AssertEqual(t, false, bodyAllowedForStatus(304))
+	tests.AssertEqual(t, true, bodyAllowedForStatus(900))
 }
 
 func TestHttpError(t *testing.T) {
-	e := &http2httpError{msg: "test"}
-	assertEqual(t, "test", e.Error())
-	assertEqual(t, true, e.Temporary())
+	e := &httpError{msg: "test"}
+	tests.AssertEqual(t, "test", e.Error())
+	tests.AssertEqual(t, true, e.Temporary())
 }

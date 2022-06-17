@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/util"
 	"net/textproto"
 	"strings"
@@ -32,13 +33,13 @@ type textprotoReader struct {
 // To avoid denial of service attacks, the provided bufio.Reader
 // should be reading from an io.LimitReader or similar textprotoReader to bound
 // the size of responses.
-func newTextprotoReader(r *bufio.Reader, dumps []*dumper) *textprotoReader {
+func newTextprotoReader(r *bufio.Reader, dumps []*dump.Dumper) *textprotoReader {
 	commonHeaderOnce.Do(initCommonHeader)
 	t := &textprotoReader{R: r}
 	if len(dumps) > 0 {
-		dd := []*dumper{}
+		dd := []*dump.Dumper{}
 		for _, dump := range dumps {
-			if dump.ResponseHeader {
+			if dump.ResponseHeader() {
 				dd = append(dd, dump)
 			}
 		}
@@ -57,7 +58,7 @@ func newTextprotoReader(r *bufio.Reader, dumps []*dumper) *textprotoReader {
 			}
 			err = nil
 			for _, dump := range dumps {
-				dump.dump(line)
+				dump.Dump(line)
 			}
 			if line[len(line)-1] == '\n' {
 				drop := 1

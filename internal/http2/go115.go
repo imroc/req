@@ -5,16 +5,17 @@
 //go:build go1.15
 // +build go1.15
 
-package req
+package http2
 
 import (
 	"context"
 	"crypto/tls"
+	reqtls "github.com/imroc/req/v3/internal/tls"
 )
 
 // dialTLSWithContext uses tls.Dialer, added in Go 1.15, to open a TLS
 // connection.
-func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (TLSConn, error) {
+func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (reqtls.Conn, error) {
 	dialer := &tls.Dialer{
 		Config: cfg,
 	}
@@ -22,6 +23,6 @@ func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr s
 	if err != nil {
 		return nil, err
 	}
-	tlsCn := cn.(TLSConn) // DialContext comment promises this will always succeed
+	tlsCn := cn.(reqtls.Conn) // DialContext comment promises this will always succeed
 	return tlsCn, nil
 }

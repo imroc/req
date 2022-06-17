@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"github.com/imroc/req/v3/internal/tests"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -27,9 +28,9 @@ func testRetry(t *testing.T, setFunc func(r *Request)) {
 		})
 	setFunc(r)
 	resp, err := r.Get("/too-many")
-	assertNoError(t, err)
-	assertEqual(t, 3, resp.Request.RetryAttempt)
-	assertEqual(t, 3, attempt)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, 3, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 3, attempt)
 }
 
 func TestRetryInterval(t *testing.T) {
@@ -54,7 +55,7 @@ func TestAddRetryHook(t *testing.T) {
 			test = "test2"
 		})
 	})
-	assertEqual(t, "test2", test)
+	tests.AssertEqual(t, "test2", test)
 }
 
 func TestRetryOverride(t *testing.T) {
@@ -73,9 +74,9 @@ func TestRetryOverride(t *testing.T) {
 		}).SetRetryCondition(func(resp *Response, err error) bool {
 		return err != nil || resp.StatusCode == http.StatusTooManyRequests
 	}).Get("/too-many")
-	assertNoError(t, err)
-	assertEqual(t, "test1", test)
-	assertEqual(t, 2, resp.Request.RetryAttempt)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, "test1", test)
+	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
 }
 
 func TestAddRetryCondition(t *testing.T) {
@@ -91,9 +92,9 @@ func TestAddRetryCondition(t *testing.T) {
 		SetRetryHook(func(resp *Response, err error) {
 			attempt++
 		}).Get("/too-many")
-	assertNoError(t, err)
-	assertEqual(t, 0, attempt)
-	assertEqual(t, 0, resp.Request.RetryAttempt)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, 0, attempt)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 
 	attempt = 0
 	resp, err = tc().
@@ -107,9 +108,9 @@ func TestAddRetryCondition(t *testing.T) {
 		SetCommonRetryHook(func(resp *Response, err error) {
 			attempt++
 		}).R().Get("/too-many")
-	assertNoError(t, err)
-	assertEqual(t, 0, attempt)
-	assertEqual(t, 0, resp.Request.RetryAttempt)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, 0, attempt)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 
 }
 
@@ -118,13 +119,13 @@ func TestRetryWithUnreplayableBody(t *testing.T) {
 		SetRetryCount(1).
 		SetBody(bytes.NewBufferString("test")).
 		Post("/")
-	assertEqual(t, errRetryableWithUnReplayableBody, err)
+	tests.AssertEqual(t, errRetryableWithUnReplayableBody, err)
 
 	_, err = tc().R().
 		SetRetryCount(1).
 		SetBody(ioutil.NopCloser(bytes.NewBufferString("test"))).
 		Post("/")
-	assertEqual(t, errRetryableWithUnReplayableBody, err)
+	tests.AssertEqual(t, errRetryableWithUnReplayableBody, err)
 }
 
 func TestRetryWithSetResult(t *testing.T) {
@@ -137,7 +138,7 @@ func TestRetryWithSetResult(t *testing.T) {
 		SetResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
-	assertEqual(t, "test=test", headers.Get("Cookie"))
+	tests.AssertEqual(t, "test=test", headers.Get("Cookie"))
 }
 
 func TestRetryWithModify(t *testing.T) {
@@ -156,7 +157,7 @@ func TestRetryWithModify(t *testing.T) {
 		SetBearerAuthToken(tokens[tokenIndex]).
 		Get("/protected")
 	assertSuccess(t, resp, err)
-	assertEqual(t, 2, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
 }
 
 func TestRetryFalse(t *testing.T) {
@@ -165,7 +166,7 @@ func TestRetryFalse(t *testing.T) {
 		SetRetryCondition(func(resp *Response, err error) bool {
 			return false
 		}).Get("https://non-exists-host.com.cn")
-	assertNotNil(t, err)
-	assertIsNil(t, resp.Response)
-	assertEqual(t, 0, resp.Request.RetryAttempt)
+	tests.AssertNotNil(t, err)
+	tests.AssertIsNil(t, resp.Response)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 }

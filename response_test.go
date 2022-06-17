@@ -1,6 +1,7 @@
 package req
 
 import (
+	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"testing"
 )
@@ -18,8 +19,8 @@ func TestUnmarshalJson(t *testing.T) {
 	resp, err := tc().R().Get("/json")
 	assertSuccess(t, resp, err)
 	err = resp.UnmarshalJson(&user)
-	assertNoError(t, err)
-	assertEqual(t, "roc", user.Name)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, "roc", user.Name)
 }
 
 func TestUnmarshalXml(t *testing.T) {
@@ -27,8 +28,8 @@ func TestUnmarshalXml(t *testing.T) {
 	resp, err := tc().R().Get("/xml")
 	assertSuccess(t, resp, err)
 	err = resp.UnmarshalXml(&user)
-	assertNoError(t, err)
-	assertEqual(t, "roc", user.Name)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, "roc", user.Name)
 }
 
 func TestUnmarshal(t *testing.T) {
@@ -36,8 +37,8 @@ func TestUnmarshal(t *testing.T) {
 	resp, err := tc().R().Get("/xml")
 	assertSuccess(t, resp, err)
 	err = resp.Unmarshal(&user)
-	assertNoError(t, err)
-	assertEqual(t, "roc", user.Name)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, "roc", user.Name)
 }
 
 func TestResponseResult(t *testing.T) {
@@ -46,10 +47,10 @@ func TestResponseResult(t *testing.T) {
 	if !ok {
 		t.Fatal("Response.Result() should return *User")
 	}
-	assertEqual(t, "roc", user.Name)
+	tests.AssertEqual(t, "roc", user.Name)
 
-	assertEqual(t, true, resp.TotalTime() > 0)
-	assertEqual(t, false, resp.ReceivedAt().IsZero())
+	tests.AssertEqual(t, true, resp.TotalTime() > 0)
+	tests.AssertEqual(t, false, resp.ReceivedAt().IsZero())
 }
 
 func TestResponseError(t *testing.T) {
@@ -58,14 +59,14 @@ func TestResponseError(t *testing.T) {
 	if !ok {
 		t.Fatal("Response.Error() should return *Message")
 	}
-	assertEqual(t, "not allowed", msg.Message)
+	tests.AssertEqual(t, "not allowed", msg.Message)
 }
 
 func TestResponseWrap(t *testing.T) {
 	resp, err := tc().R().Get("/json")
 	assertSuccess(t, resp, err)
-	assertEqual(t, true, resp.GetStatusCode() == http.StatusOK)
-	assertEqual(t, true, resp.GetStatus() == "200 OK")
-	assertEqual(t, true, resp.GetHeader(hdrContentTypeKey) == jsonContentType)
-	assertEqual(t, true, len(resp.GetHeaderValues(hdrContentTypeKey)) == 1)
+	tests.AssertEqual(t, true, resp.GetStatusCode() == http.StatusOK)
+	tests.AssertEqual(t, true, resp.GetStatus() == "200 OK")
+	tests.AssertEqual(t, true, resp.GetHeader(hdrContentTypeKey) == jsonContentType)
+	tests.AssertEqual(t, true, len(resp.GetHeaderValues(hdrContentTypeKey)) == 1)
 }

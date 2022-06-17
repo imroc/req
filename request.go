@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"github.com/hashicorp/go-multierror"
+	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
@@ -743,7 +744,7 @@ func (r *Request) SetDumpOptions(opt *DumpOptions) *Request {
 
 // EnableDump enables dump, including all content for the request and response by default.
 func (r *Request) EnableDump() *Request {
-	return r.SetContext(context.WithValue(r.Context(), dumperKey, newDumper(r.getDumpOptions())))
+	return r.SetContext(context.WithValue(r.Context(), dump.DumperKey, newDumper(r.getDumpOptions())))
 }
 
 // EnableDumpWithoutBody enables dump only header for the request and response.

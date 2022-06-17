@@ -2,11 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"reflect"
 	"strings"
@@ -16,26 +17,26 @@ import (
 	"golang.org/x/net/http2/hpack"
 )
 
-func testFramer() (*http2Framer, *bytes.Buffer) {
+func testFramer() (*Framer, *bytes.Buffer) {
 	buf := new(bytes.Buffer)
-	return http2NewFramer(buf, buf), buf
+	return NewFramer(buf, buf), buf
 }
 
 func TestFrameSizes(t *testing.T) {
 	// Catch people rearranging the FrameHeader fields.
-	if got, want := int(unsafe.Sizeof(http2FrameHeader{})), 12; got != want {
+	if got, want := int(unsafe.Sizeof(FrameHeader{})), 12; got != want {
 		t.Errorf("FrameHeader size = %d; want %d", got, want)
 	}
 }
 
 func TestFrameTypeString(t *testing.T) {
 	tests := []struct {
-		ft   http2FrameType
+		ft   FrameType
 		want string
 	}{
-		{http2FrameData, "DATA"},
-		{http2FramePing, "PING"},
-		{http2FrameGoAway, "GOAWAY"},
+		{FrameData, "DATA"},
+		{FramePing, "PING"},
+		{FrameGoAway, "GOAWAY"},
 		{0xf, "UNKNOWN_FRAME_TYPE_15"},
 	}
 
@@ -51,7 +52,7 @@ func TestWriteRST(t *testing.T) {
 	fr, buf := testFramer()
 	var streamID uint32 = 1<<24 + 2<<16 + 3<<8 + 4
 	var errCode uint32 = 7<<24 + 6<<16 + 5<<8 + 4
-	fr.WriteRSTStream(streamID, http2ErrCode(errCode))
+	fr.WriteRSTStream(streamID, ErrCode(errCode))
 	const wantEnc = "\x00\x00\x04\x03\x00\x01\x02\x03\x04\x07\x06\x05\x04"
 	if buf.String() != wantEnc {
 		t.Errorf("encoded as %q; want %q", buf.Bytes(), wantEnc)
@@ -60,8 +61,8 @@ func TestWriteRST(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := &http2RSTStreamFrame{
-		http2FrameHeader: http2FrameHeader{
+	want := &RSTStreamFrame{
+		FrameHeader: FrameHeader{
 			valid:    true,
 			Type:     0x3,
 			Flags:    0x0,
@@ -88,9 +89,9 @@ func TestWriteData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	df, ok := f.(*http2DataFrame)
+	df, ok := f.(*DataFrame)
 	if !ok {
-		t.Fatalf("got %T; want *http2DataFrame", f)
+		t.Fatalf("got %T; want *DataFrame", f)
 	}
 	if !bytes.Equal(df.Data(), data) {
 		t.Errorf("got %q; want %q", df.Data(), data)
@@ -106,7 +107,7 @@ func TestWriteDataPadded(t *testing.T) {
 		endStream  bool
 		data       []byte
 		pad        []byte
-		wantHeader http2FrameHeader
+		wantHeader FrameHeader
 	}{
 		// Unpadded:
 		0: {
@@ -114,9 +115,9 @@ func TestWriteDataPadded(t *testing.T) {
 			endStream: true,
 			data:      []byte("foo"),
 			pad:       nil,
-			wantHeader: http2FrameHeader{
-				Type:     http2FrameData,
-				Flags:    http2FlagDataEndStream,
+			wantHeader: FrameHeader{
+				Type:     FrameData,
+				Flags:    FlagDataEndStream,
 				Length:   3,
 				StreamID: 1,
 			},
@@ -128,9 +129,9 @@ func TestWriteDataPadded(t *testing.T) {
 			endStream: true,
 			data:      []byte("foo"),
 			pad:       []byte{},
-			wantHeader: http2FrameHeader{
-				Type:     http2FrameData,
-				Flags:    http2FlagDataEndStream | http2FlagDataPadded,
+			wantHeader: FrameHeader{
+				Type:     FrameData,
+				Flags:    FlagDataEndStream | FlagDataPadded,
 				Length:   4,
 				StreamID: 1,
 			},
@@ -142,9 +143,9 @@ func TestWriteDataPadded(t *testing.T) {
 			endStream: false,
 			data:      []byte("foo"),
 			pad:       []byte{0, 0, 0},
-			wantHeader: http2FrameHeader{
-				Type:     http2FrameData,
-				Flags:    http2FlagDataPadded,
+			wantHeader: FrameHeader{
+				Type:     FrameData,
+				Flags:    FlagDataPadded,
 				Length:   7,
 				StreamID: 1,
 			},
@@ -164,14 +165,14 @@ func TestWriteDataPadded(t *testing.T) {
 			t.Errorf("%d. read %+v; want %+v", i, got, tt.wantHeader)
 			continue
 		}
-		df := f.(*http2DataFrame)
+		df := f.(*DataFrame)
 		if !bytes.Equal(df.Data(), tt.data) {
 			t.Errorf("%d. got %q; want %q", i, df.Data(), tt.data)
 		}
 	}
 }
 
-func (fh http2FrameHeader) Equal(b http2FrameHeader) bool {
+func (fh FrameHeader) Equal(b FrameHeader) bool {
 	return fh.valid == b.valid &&
 		fh.Type == b.Type &&
 		fh.Flags == b.Flags &&
@@ -182,98 +183,98 @@ func (fh http2FrameHeader) Equal(b http2FrameHeader) bool {
 func TestWriteHeaders(t *testing.T) {
 	tests := []struct {
 		name      string
-		p         http2HeadersFrameParam
+		p         HeadersFrameParam
 		wantEnc   string
-		wantFrame *http2HeadersFrame
+		wantFrame *HeadersFrame
 	}{
 		{
 			"basic",
-			http2HeadersFrameParam{
+			HeadersFrameParam{
 				StreamID:      42,
 				BlockFragment: []byte("abc"),
-				Priority:      http2PriorityParam{},
+				Priority:      PriorityParam{},
 			},
 			"\x00\x00\x03\x01\x00\x00\x00\x00*abc",
-			&http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
+			&HeadersFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: 42,
-					Type:     http2FrameHeaders,
+					Type:     FrameHeaders,
 					Length:   uint32(len("abc")),
 				},
-				Priority:      http2PriorityParam{},
+				Priority:      PriorityParam{},
 				headerFragBuf: []byte("abc"),
 			},
 		},
 		{
 			"basic + end flags",
-			http2HeadersFrameParam{
+			HeadersFrameParam{
 				StreamID:      42,
 				BlockFragment: []byte("abc"),
 				EndStream:     true,
 				EndHeaders:    true,
-				Priority:      http2PriorityParam{},
+				Priority:      PriorityParam{},
 			},
 			"\x00\x00\x03\x01\x05\x00\x00\x00*abc",
-			&http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
+			&HeadersFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: 42,
-					Type:     http2FrameHeaders,
-					Flags:    http2FlagHeadersEndStream | http2FlagHeadersEndHeaders,
+					Type:     FrameHeaders,
+					Flags:    FlagHeadersEndStream | FlagHeadersEndHeaders,
 					Length:   uint32(len("abc")),
 				},
-				Priority:      http2PriorityParam{},
+				Priority:      PriorityParam{},
 				headerFragBuf: []byte("abc"),
 			},
 		},
 		{
 			"with padding",
-			http2HeadersFrameParam{
+			HeadersFrameParam{
 				StreamID:      42,
 				BlockFragment: []byte("abc"),
 				EndStream:     true,
 				EndHeaders:    true,
 				PadLength:     5,
-				Priority:      http2PriorityParam{},
+				Priority:      PriorityParam{},
 			},
 			"\x00\x00\t\x01\r\x00\x00\x00*\x05abc\x00\x00\x00\x00\x00",
-			&http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
+			&HeadersFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: 42,
-					Type:     http2FrameHeaders,
-					Flags:    http2FlagHeadersEndStream | http2FlagHeadersEndHeaders | http2FlagHeadersPadded,
+					Type:     FrameHeaders,
+					Flags:    FlagHeadersEndStream | FlagHeadersEndHeaders | FlagHeadersPadded,
 					Length:   uint32(1 + len("abc") + 5), // pad length + contents + padding
 				},
-				Priority:      http2PriorityParam{},
+				Priority:      PriorityParam{},
 				headerFragBuf: []byte("abc"),
 			},
 		},
 		{
 			"with priority",
-			http2HeadersFrameParam{
+			HeadersFrameParam{
 				StreamID:      42,
 				BlockFragment: []byte("abc"),
 				EndStream:     true,
 				EndHeaders:    true,
 				PadLength:     2,
-				Priority: http2PriorityParam{
+				Priority: PriorityParam{
 					StreamDep: 15,
 					Exclusive: true,
 					Weight:    127,
 				},
 			},
 			"\x00\x00\v\x01-\x00\x00\x00*\x02\x80\x00\x00\x0f\u007fabc\x00\x00",
-			&http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
+			&HeadersFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: 42,
-					Type:     http2FrameHeaders,
-					Flags:    http2FlagHeadersEndStream | http2FlagHeadersEndHeaders | http2FlagHeadersPadded | http2FlagHeadersPriority,
+					Type:     FrameHeaders,
+					Flags:    FlagHeadersEndStream | FlagHeadersEndHeaders | FlagHeadersPadded | FlagHeadersPriority,
 					Length:   uint32(1 + 5 + len("abc") + 2), // pad length + priority + contents + padding
 				},
-				Priority: http2PriorityParam{
+				Priority: PriorityParam{
 					StreamDep: 15,
 					Exclusive: true,
 					Weight:    127,
@@ -283,28 +284,28 @@ func TestWriteHeaders(t *testing.T) {
 		},
 		{
 			"with priority stream dep zero", // golang.org/issue/15444
-			http2HeadersFrameParam{
+			HeadersFrameParam{
 				StreamID:      42,
 				BlockFragment: []byte("abc"),
 				EndStream:     true,
 				EndHeaders:    true,
 				PadLength:     2,
-				Priority: http2PriorityParam{
+				Priority: PriorityParam{
 					StreamDep: 0,
 					Exclusive: true,
 					Weight:    127,
 				},
 			},
 			"\x00\x00\v\x01-\x00\x00\x00*\x02\x80\x00\x00\x00\u007fabc\x00\x00",
-			&http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
+			&HeadersFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: 42,
-					Type:     http2FrameHeaders,
-					Flags:    http2FlagHeadersEndStream | http2FlagHeadersEndHeaders | http2FlagHeadersPadded | http2FlagHeadersPriority,
+					Type:     FrameHeaders,
+					Flags:    FlagHeadersEndStream | FlagHeadersEndHeaders | FlagHeadersPadded | FlagHeadersPriority,
 					Length:   uint32(1 + 5 + len("abc") + 2), // pad length + priority + contents + padding
 				},
-				Priority: http2PriorityParam{
+				Priority: PriorityParam{
 					StreamDep: 0,
 					Exclusive: true,
 					Weight:    127,
@@ -314,19 +315,19 @@ func TestWriteHeaders(t *testing.T) {
 		},
 		{
 			"zero length",
-			http2HeadersFrameParam{
+			HeadersFrameParam{
 				StreamID: 42,
-				Priority: http2PriorityParam{},
+				Priority: PriorityParam{},
 			},
 			"\x00\x00\x00\x01\x00\x00\x00\x00*",
-			&http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
+			&HeadersFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: 42,
-					Type:     http2FrameHeaders,
+					Type:     FrameHeaders,
 					Length:   0,
 				},
-				Priority: http2PriorityParam{},
+				Priority: PriorityParam{},
 			},
 		},
 	}
@@ -352,9 +353,9 @@ func TestWriteHeaders(t *testing.T) {
 
 func TestWriteInvalidStreamDep(t *testing.T) {
 	fr, _ := testFramer()
-	err := fr.WriteHeaders(http2HeadersFrameParam{
+	err := fr.WriteHeaders(HeadersFrameParam{
 		StreamID: 42,
-		Priority: http2PriorityParam{
+		Priority: PriorityParam{
 			StreamDep: 1 << 31,
 		},
 	})
@@ -362,7 +363,7 @@ func TestWriteInvalidStreamDep(t *testing.T) {
 		t.Errorf("header error = %v; want %q", err, errDepStreamID)
 	}
 
-	err = fr.WritePriority(2, http2PriorityParam{StreamDep: 1 << 31})
+	err = fr.WritePriority(2, PriorityParam{StreamDep: 1 << 31})
 	if err != errDepStreamID {
 		t.Errorf("priority error = %v; want %q", err, errDepStreamID)
 	}
@@ -375,17 +376,17 @@ func TestWriteContinuation(t *testing.T) {
 		end  bool
 		frag []byte
 
-		wantFrame *http2ContinuationFrame
+		wantFrame *ContinuationFrame
 	}{
 		{
 			"not end",
 			false,
 			[]byte("abc"),
-			&http2ContinuationFrame{
-				http2FrameHeader: http2FrameHeader{
+			&ContinuationFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: streamID,
-					Type:     http2FrameContinuation,
+					Type:     FrameContinuation,
 					Length:   uint32(len("abc")),
 				},
 				headerFragBuf: []byte("abc"),
@@ -395,12 +396,12 @@ func TestWriteContinuation(t *testing.T) {
 			"end",
 			true,
 			[]byte("def"),
-			&http2ContinuationFrame{
-				http2FrameHeader: http2FrameHeader{
+			&ContinuationFrame{
+				FrameHeader: FrameHeader{
 					valid:    true,
 					StreamID: streamID,
-					Type:     http2FrameContinuation,
-					Flags:    http2FlagContinuationEndHeaders,
+					Type:     FrameContinuation,
+					Flags:    FlagContinuationEndHeaders,
 					Length:   uint32(len("def")),
 				},
 				headerFragBuf: []byte("def"),
@@ -429,24 +430,24 @@ func TestWritePriority(t *testing.T) {
 	const streamID = 42
 	tests := []struct {
 		name      string
-		priority  http2PriorityParam
-		wantFrame *http2PriorityFrame
+		priority  PriorityParam
+		wantFrame *PriorityFrame
 	}{
 		{
 			"not exclusive",
-			http2PriorityParam{
+			PriorityParam{
 				StreamDep: 2,
 				Exclusive: false,
 				Weight:    127,
 			},
-			&http2PriorityFrame{
-				http2FrameHeader{
+			&PriorityFrame{
+				FrameHeader{
 					valid:    true,
 					StreamID: streamID,
-					Type:     http2FramePriority,
+					Type:     FramePriority,
 					Length:   5,
 				},
-				http2PriorityParam{
+				PriorityParam{
 					StreamDep: 2,
 					Exclusive: false,
 					Weight:    127,
@@ -456,19 +457,19 @@ func TestWritePriority(t *testing.T) {
 
 		{
 			"exclusive",
-			http2PriorityParam{
+			PriorityParam{
 				StreamDep: 3,
 				Exclusive: true,
 				Weight:    77,
 			},
-			&http2PriorityFrame{
-				http2FrameHeader{
+			&PriorityFrame{
+				FrameHeader{
 					valid:    true,
 					StreamID: streamID,
-					Type:     http2FramePriority,
+					Type:     FramePriority,
 					Length:   5,
 				},
-				http2PriorityParam{
+				PriorityParam{
 					StreamDep: 3,
 					Exclusive: true,
 					Weight:    77,
@@ -495,7 +496,7 @@ func TestWritePriority(t *testing.T) {
 
 func TestWriteSettings(t *testing.T) {
 	fr, buf := testFramer()
-	settings := []http2Setting{{1, 2}, {3, 4}}
+	settings := []Setting{{1, 2}, {3, 4}}
 	fr.WriteSettings(settings...)
 	const wantEnc = "\x00\x00\f\x04\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x02\x00\x03\x00\x00\x00\x04"
 	if buf.String() != wantEnc {
@@ -505,12 +506,12 @@ func TestWriteSettings(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sf, ok := f.(*http2SettingsFrame)
+	sf, ok := f.(*SettingsFrame)
 	if !ok {
 		t.Fatalf("Got a %T; want a SettingsFrame", f)
 	}
-	var got []http2Setting
-	sf.ForeachSetting(func(s http2Setting) error {
+	var got []Setting
+	sf.ForeachSetting(func(s Setting) error {
 		got = append(got, s)
 		valBack, ok := sf.Value(s.ID)
 		if !ok || valBack != s.Val {
@@ -547,8 +548,8 @@ func TestWriteWindowUpdate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := &http2WindowUpdateFrame{
-		http2FrameHeader: http2FrameHeader{
+	want := &WindowUpdateFrame{
+		FrameHeader: FrameHeader{
 			valid:    true,
 			Type:     0x8,
 			Flags:    0x0,
@@ -570,9 +571,9 @@ func testWritePing(t *testing.T, ack bool) {
 	if err := fr.WritePing(ack, [8]byte{1, 2, 3, 4, 5, 6, 7, 8}); err != nil {
 		t.Fatal(err)
 	}
-	var wantFlags http2Flags
+	var wantFlags Flags
 	if ack {
-		wantFlags = http2FlagPingAck
+		wantFlags = FlagPingAck
 	}
 	var wantEnc = "\x00\x00\x08\x06" + string(wantFlags) + "\x00\x00\x00\x00" + "\x01\x02\x03\x04\x05\x06\x07\x08"
 	if buf.String() != wantEnc {
@@ -583,8 +584,8 @@ func testWritePing(t *testing.T, ack bool) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := &http2PingFrame{
-		http2FrameHeader: http2FrameHeader{
+	want := &PingFrame{
+		FrameHeader: FrameHeader{
 			valid:    true,
 			Type:     0x6,
 			Flags:    wantFlags,
@@ -601,20 +602,20 @@ func testWritePing(t *testing.T, ack bool) {
 func TestReadFrameHeader(t *testing.T) {
 	tests := []struct {
 		in   string
-		want http2FrameHeader
+		want FrameHeader
 	}{
-		{in: "\x00\x00\x00" + "\x00" + "\x00" + "\x00\x00\x00\x00", want: http2FrameHeader{}},
-		{in: "\x01\x02\x03" + "\x04" + "\x05" + "\x06\x07\x08\x09", want: http2FrameHeader{
+		{in: "\x00\x00\x00" + "\x00" + "\x00" + "\x00\x00\x00\x00", want: FrameHeader{}},
+		{in: "\x01\x02\x03" + "\x04" + "\x05" + "\x06\x07\x08\x09", want: FrameHeader{
 			Length: 66051, Type: 4, Flags: 5, StreamID: 101124105,
 		}},
 		// Ignore high bit:
-		{in: "\xff\xff\xff" + "\xff" + "\xff" + "\xff\xff\xff\xff", want: http2FrameHeader{
+		{in: "\xff\xff\xff" + "\xff" + "\xff" + "\xff\xff\xff\xff", want: FrameHeader{
 			Length: 16777215, Type: 255, Flags: 255, StreamID: 2147483647}},
-		{in: "\xff\xff\xff" + "\xff" + "\xff" + "\x7f\xff\xff\xff", want: http2FrameHeader{
+		{in: "\xff\xff\xff" + "\xff" + "\xff" + "\x7f\xff\xff\xff", want: FrameHeader{
 			Length: 16777215, Type: 255, Flags: 255, StreamID: 2147483647}},
 	}
 	for i, tt := range tests {
-		got, err := http2readFrameHeader(make([]byte, 9), strings.NewReader(tt.in))
+		got, err := readFrameHeader(make([]byte, 9), strings.NewReader(tt.in))
 		if err != nil {
 			t.Errorf("%d. readFrameHeader(%q) = %v", i, tt.in, err)
 			continue
@@ -629,8 +630,8 @@ func TestReadFrameHeader(t *testing.T) {
 func TestReadWriteFrameHeader(t *testing.T) {
 	tests := []struct {
 		len      uint32
-		typ      http2FrameType
-		flags    http2Flags
+		typ      FrameType
+		flags    Flags
 		streamID uint32
 	}{
 		{len: 0, typ: 255, flags: 1, streamID: 0},
@@ -652,7 +653,7 @@ func TestReadWriteFrameHeader(t *testing.T) {
 		fr.startWrite(tt.typ, tt.flags, tt.streamID)
 		fr.writeBytes(make([]byte, tt.len))
 		fr.endWrite()
-		fh, err := http2ReadFrameHeader(buf)
+		fh, err := ReadFrameHeader(buf)
 		if err != nil {
 			t.Errorf("ReadFrameHeader(%+v) = %v", tt, err)
 			continue
@@ -688,8 +689,8 @@ func TestWriteGoAway(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := &http2GoAwayFrame{
-		http2FrameHeader: http2FrameHeader{
+	want := &GoAwayFrame{
+		FrameHeader: FrameHeader{
 			valid:    true,
 			Type:     0x7,
 			Flags:    0,
@@ -703,13 +704,13 @@ func TestWriteGoAway(t *testing.T) {
 	if !reflect.DeepEqual(f, want) {
 		t.Fatalf("parsed back:\n%#v\nwant:\n%#v", f, want)
 	}
-	if got := string(f.(*http2GoAwayFrame).DebugData()); got != debug {
+	if got := string(f.(*GoAwayFrame).DebugData()); got != debug {
 		t.Errorf("debug data = %q; want %q", got, debug)
 	}
 }
 
 func TestWritePushPromise(t *testing.T) {
-	pp := http2PushPromiseParam{
+	pp := PushPromiseParam{
 		StreamID:      42,
 		PromiseID:     42,
 		BlockFragment: []byte("abc"),
@@ -726,12 +727,12 @@ func TestWritePushPromise(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, ok := f.(*http2PushPromiseFrame)
+	_, ok := f.(*PushPromiseFrame)
 	if !ok {
 		t.Fatalf("got %T; want *PushPromiseFrame", f)
 	}
-	want := &http2PushPromiseFrame{
-		http2FrameHeader: http2FrameHeader{
+	want := &PushPromiseFrame{
+		FrameHeader: FrameHeader{
 			valid:    true,
 			Type:     0x5,
 			Flags:    0x0,
@@ -748,49 +749,49 @@ func TestWritePushPromise(t *testing.T) {
 
 // test checkFrameOrder and that HEADERS and CONTINUATION frames can't be intermingled.
 func TestReadFrameOrder(t *testing.T) {
-	head := func(f *http2Framer, id uint32, end bool) {
-		f.WriteHeaders(http2HeadersFrameParam{
+	head := func(f *Framer, id uint32, end bool) {
+		f.WriteHeaders(HeadersFrameParam{
 			StreamID:      id,
 			BlockFragment: []byte("foo"), // unused, but non-empty
 			EndHeaders:    end,
 		})
 	}
-	cont := func(f *http2Framer, id uint32, end bool) {
+	cont := func(f *Framer, id uint32, end bool) {
 		f.WriteContinuation(id, end, []byte("foo"))
 	}
 
 	tests := [...]struct {
 		name    string
-		w       func(*http2Framer)
+		w       func(*Framer)
 		atLeast int
 		wantErr string
 	}{
 		0: {
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, true)
 			},
 		},
 		1: {
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, true)
 				head(f, 2, true)
 			},
 		},
 		2: {
 			wantErr: "got HEADERS for stream 2; expected CONTINUATION following HEADERS for stream 1",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, false)
 				head(f, 2, true)
 			},
 		},
 		3: {
 			wantErr: "got DATA for stream 1; expected CONTINUATION following HEADERS for stream 1",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, false)
 			},
 		},
 		4: {
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, false)
 				cont(f, 1, true)
 				head(f, 2, true)
@@ -798,7 +799,7 @@ func TestReadFrameOrder(t *testing.T) {
 		},
 		5: {
 			wantErr: "got CONTINUATION for stream 2; expected stream 1",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, false)
 				cont(f, 2, true)
 				head(f, 2, true)
@@ -806,32 +807,32 @@ func TestReadFrameOrder(t *testing.T) {
 		},
 		6: {
 			wantErr: "unexpected CONTINUATION for stream 1",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				cont(f, 1, true)
 			},
 		},
 		7: {
 			wantErr: "unexpected CONTINUATION for stream 1",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				cont(f, 1, false)
 			},
 		},
 		8: {
 			wantErr: "HEADERS frame with stream ID 0",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 0, true)
 			},
 		},
 		9: {
 			wantErr: "CONTINUATION frame with stream ID 0",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				cont(f, 0, true)
 			},
 		},
 		10: {
 			wantErr: "unexpected CONTINUATION for stream 1",
 			atLeast: 5,
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				head(f, 1, false)
 				cont(f, 1, false)
 				cont(f, 1, false)
@@ -843,7 +844,7 @@ func TestReadFrameOrder(t *testing.T) {
 	}
 	for i, tt := range tests {
 		buf := new(bytes.Buffer)
-		f := http2NewFramer(buf, buf)
+		f := NewFramer(buf, buf)
 		f.AllowIllegalWrites = true
 		tt.w(f)
 		f.WriteData(1, true, nil) // to test transition away from last step
@@ -852,7 +853,7 @@ func TestReadFrameOrder(t *testing.T) {
 		n := 0
 		var log bytes.Buffer
 		for {
-			var got http2Frame
+			var got Frame
 			got, err = f.ReadFrame()
 			fmt.Fprintf(&log, "  read %v, %v\n", got, err)
 			if err != nil {
@@ -868,7 +869,7 @@ func TestReadFrameOrder(t *testing.T) {
 			t.Errorf("%d. after %d good frames, ReadFrame = %v; want success\n%s", i, n, err, log.Bytes())
 			continue
 		}
-		if !ok && err != http2ConnectionError(http2ErrCodeProtocol) {
+		if !ok && err != ConnectionError(ErrCodeProtocol) {
 			t.Errorf("%d. after %d good frames, ReadFrame = %v; want ConnectionError(ErrCodeProtocol)\n%s", i, n, err, log.Bytes())
 			continue
 		}
@@ -906,11 +907,11 @@ func (he *hpackEncoder) encodeHeaderRaw(t *testing.T, headers ...string) []byte 
 }
 
 func TestMetaFrameHeader(t *testing.T) {
-	write := func(f *http2Framer, frags ...[]byte) {
+	write := func(f *Framer, frags ...[]byte) {
 		for i, frag := range frags {
 			end := (i == len(frags)-1)
 			if i == 0 {
-				f.WriteHeaders(http2HeadersFrameParam{
+				f.WriteHeaders(HeadersFrameParam{
 					StreamID:      1,
 					BlockFragment: frag,
 					EndHeaders:    end,
@@ -921,11 +922,11 @@ func TestMetaFrameHeader(t *testing.T) {
 		}
 	}
 
-	want := func(flags http2Flags, length uint32, pairs ...string) *http2MetaHeadersFrame {
-		mh := &http2MetaHeadersFrame{
-			http2HeadersFrame: &http2HeadersFrame{
-				http2FrameHeader: http2FrameHeader{
-					Type:     http2FrameHeaders,
+	want := func(flags Flags, length uint32, pairs ...string) *MetaHeadersFrame {
+		mh := &MetaHeadersFrame{
+			HeadersFrame: &HeadersFrame{
+				FrameHeader: FrameHeader{
+					Type:     FrameHeaders,
 					Flags:    flags,
 					Length:   length,
 					StreamID: 1,
@@ -942,34 +943,34 @@ func TestMetaFrameHeader(t *testing.T) {
 		}
 		return mh
 	}
-	truncated := func(mh *http2MetaHeadersFrame) *http2MetaHeadersFrame {
+	truncated := func(mh *MetaHeadersFrame) *MetaHeadersFrame {
 		mh.Truncated = true
 		return mh
 	}
 
-	const noFlags http2Flags = 0
+	const noFlags Flags = 0
 
 	oneKBString := strings.Repeat("a", 1<<10)
 
 	tests := [...]struct {
 		name              string
-		w                 func(*http2Framer)
+		w                 func(*Framer)
 		want              interface{} // *MetaHeaderFrame or error
 		wantErrReason     string
 		maxHeaderListSize uint32
 	}{
 		0: {
 			name: "single_headers",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				var he hpackEncoder
 				all := he.encodeHeaderRaw(t, ":method", "GET", ":path", "/")
 				write(f, all)
 			},
-			want: want(http2FlagHeadersEndHeaders, 2, ":method", "GET", ":path", "/"),
+			want: want(FlagHeadersEndHeaders, 2, ":method", "GET", ":path", "/"),
 		},
 		1: {
 			name: "with_continuation",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				var he hpackEncoder
 				all := he.encodeHeaderRaw(t, ":method", "GET", ":path", "/", "foo", "bar")
 				write(f, all[:1], all[1:])
@@ -978,7 +979,7 @@ func TestMetaFrameHeader(t *testing.T) {
 		},
 		2: {
 			name: "with_two_continuation",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				var he hpackEncoder
 				all := he.encodeHeaderRaw(t, ":method", "GET", ":path", "/", "foo", "bar")
 				write(f, all[:2], all[2:4], all[4:])
@@ -987,7 +988,7 @@ func TestMetaFrameHeader(t *testing.T) {
 		},
 		3: {
 			name: "big_string_okay",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				var he hpackEncoder
 				all := he.encodeHeaderRaw(t, ":method", "GET", ":path", "/", "foo", oneKBString)
 				write(f, all[:2], all[2:])
@@ -996,17 +997,17 @@ func TestMetaFrameHeader(t *testing.T) {
 		},
 		4: {
 			name: "big_string_error",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				var he hpackEncoder
 				all := he.encodeHeaderRaw(t, ":method", "GET", ":path", "/", "foo", oneKBString)
 				write(f, all[:2], all[2:])
 			},
 			maxHeaderListSize: (1 << 10) / 2,
-			want:              http2ConnectionError(http2ErrCodeCompression),
+			want:              ConnectionError(ErrCodeCompression),
 		},
 		5: {
 			name: "max_header_list_truncated",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				var he hpackEncoder
 				var pairs = []string{":method", "GET", ":path", "/"}
 				for i := 0; i < 100; i++ {
@@ -1034,71 +1035,71 @@ func TestMetaFrameHeader(t *testing.T) {
 		},
 		6: {
 			name: "pseudo_order",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				write(f, encodeHeaderRaw(t,
 					":method", "GET",
 					"foo", "bar",
 					":path", "/", // bogus
 				))
 			},
-			want:          http2streamError(1, http2ErrCodeProtocol),
+			want:          streamError(1, ErrCodeProtocol),
 			wantErrReason: "pseudo header field after regular",
 		},
 		7: {
 			name: "pseudo_unknown",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				write(f, encodeHeaderRaw(t,
 					":unknown", "foo", // bogus
 					"foo", "bar",
 				))
 			},
-			want:          http2streamError(1, http2ErrCodeProtocol),
+			want:          streamError(1, ErrCodeProtocol),
 			wantErrReason: "invalid pseudo-header \":unknown\"",
 		},
 		8: {
 			name: "pseudo_mix_request_response",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				write(f, encodeHeaderRaw(t,
 					":method", "GET",
 					":status", "100",
 				))
 			},
-			want:          http2streamError(1, http2ErrCodeProtocol),
+			want:          streamError(1, ErrCodeProtocol),
 			wantErrReason: "mix of request and response pseudo headers",
 		},
 		9: {
 			name: "pseudo_dup",
-			w: func(f *http2Framer) {
+			w: func(f *Framer) {
 				write(f, encodeHeaderRaw(t,
 					":method", "GET",
 					":method", "POST",
 				))
 			},
-			want:          http2streamError(1, http2ErrCodeProtocol),
+			want:          streamError(1, ErrCodeProtocol),
 			wantErrReason: "duplicate pseudo-header \":method\"",
 		},
 		10: {
 			name: "trailer_okay_no_pseudo",
-			w:    func(f *http2Framer) { write(f, encodeHeaderRaw(t, "foo", "bar")) },
-			want: want(http2FlagHeadersEndHeaders, 8, "foo", "bar"),
+			w:    func(f *Framer) { write(f, encodeHeaderRaw(t, "foo", "bar")) },
+			want: want(FlagHeadersEndHeaders, 8, "foo", "bar"),
 		},
 		11: {
 			name:          "invalid_field_name",
-			w:             func(f *http2Framer) { write(f, encodeHeaderRaw(t, "CapitalBad", "x")) },
-			want:          http2streamError(1, http2ErrCodeProtocol),
+			w:             func(f *Framer) { write(f, encodeHeaderRaw(t, "CapitalBad", "x")) },
+			want:          streamError(1, ErrCodeProtocol),
 			wantErrReason: "invalid header field name \"CapitalBad\"",
 		},
 		12: {
 			name:          "invalid_field_value",
-			w:             func(f *http2Framer) { write(f, encodeHeaderRaw(t, "key", "bad_null\x00")) },
-			want:          http2streamError(1, http2ErrCodeProtocol),
+			w:             func(f *Framer) { write(f, encodeHeaderRaw(t, "key", "bad_null\x00")) },
+			want:          streamError(1, ErrCodeProtocol),
 			wantErrReason: `invalid header field value for "key"`,
 		},
 	}
 	for i, tt := range tests {
 		buf := new(bytes.Buffer)
-		f := http2NewFramer(buf, buf)
-		f.ReadMetaHeaders = hpack.NewDecoder(http2initialHeaderTableSize, nil)
+		f := NewFramer(buf, buf)
+		f.ReadMetaHeaders = hpack.NewDecoder(initialHeaderTableSize, nil)
 		f.MaxHeaderListSize = tt.maxHeaderListSize
 		tt.w(f)
 
@@ -1115,16 +1116,16 @@ func TestMetaFrameHeader(t *testing.T) {
 
 			// Ignore the StreamError.Cause field, if it matches the wantErrReason.
 			// The test table above predates the Cause field.
-			if se, ok := err.(http2StreamError); ok && se.Cause != nil && se.Cause.Error() == tt.wantErrReason {
+			if se, ok := err.(StreamError); ok && se.Cause != nil && se.Cause.Error() == tt.wantErrReason {
 				se.Cause = nil
 				got = se
 			}
 		}
 		if !reflect.DeepEqual(got, tt.want) {
-			if mhg, ok := got.(*http2MetaHeadersFrame); ok {
-				if mhw, ok := tt.want.(*http2MetaHeadersFrame); ok {
-					hg := mhg.http2HeadersFrame
-					hw := mhw.http2HeadersFrame
+			if mhg, ok := got.(*MetaHeadersFrame); ok {
+				if mhw, ok := tt.want.(*MetaHeadersFrame); ok {
+					hg := mhg.HeadersFrame
+					hw := mhw.HeadersFrame
 					if hg != nil && hw != nil && !reflect.DeepEqual(*hg, *hw) {
 						t.Errorf("%s: headers differ:\n got: %+v\nwant: %+v\n", name, *hg, *hw)
 					}
@@ -1210,7 +1211,7 @@ func TestNoSetReuseFrames(t *testing.T) {
 	}
 }
 
-func readAndVerifyDataFrame(data string, length byte, fr *http2Framer, buf *bytes.Buffer, t *testing.T) *http2DataFrame {
+func readAndVerifyDataFrame(data string, length byte, fr *Framer, buf *bytes.Buffer, t *testing.T) *DataFrame {
 	var streamID uint32 = 1<<24 + 2<<16 + 3<<8 + 4
 	fr.WriteData(streamID, true, []byte(data))
 	wantEnc := "\x00\x00" + string(length) + "\x00\x01\x01\x02\x03\x04" + data
@@ -1221,9 +1222,9 @@ func readAndVerifyDataFrame(data string, length byte, fr *http2Framer, buf *byte
 	if err != nil {
 		t.Fatal(err)
 	}
-	df, ok := f.(*http2DataFrame)
+	df, ok := f.(*DataFrame)
 	if !ok {
-		t.Fatalf("got %T; want *http2DataFrame", f)
+		t.Fatalf("got %T; want *DataFrame", f)
 	}
 	if !bytes.Equal(df.Data(), []byte(data)) {
 		t.Errorf("got %q; want %q", df.Data(), []byte(data))
@@ -1241,27 +1242,27 @@ func encodeHeaderRaw(t *testing.T, pairs ...string) []byte {
 
 func TestSettingsDuplicates(t *testing.T) {
 	tests := []struct {
-		settings []http2Setting
+		settings []Setting
 		want     bool
 	}{
 		{nil, false},
-		{[]http2Setting{{ID: 1}}, false},
-		{[]http2Setting{{ID: 1}, {ID: 2}}, false},
-		{[]http2Setting{{ID: 1}, {ID: 2}}, false},
-		{[]http2Setting{{ID: 1}, {ID: 2}, {ID: 3}}, false},
-		{[]http2Setting{{ID: 1}, {ID: 2}, {ID: 3}}, false},
-		{[]http2Setting{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}}, false},
+		{[]Setting{{ID: 1}}, false},
+		{[]Setting{{ID: 1}, {ID: 2}}, false},
+		{[]Setting{{ID: 1}, {ID: 2}}, false},
+		{[]Setting{{ID: 1}, {ID: 2}, {ID: 3}}, false},
+		{[]Setting{{ID: 1}, {ID: 2}, {ID: 3}}, false},
+		{[]Setting{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4}}, false},
 
-		{[]http2Setting{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 2}}, true},
-		{[]http2Setting{{ID: 4}, {ID: 2}, {ID: 3}, {ID: 4}}, true},
+		{[]Setting{{ID: 1}, {ID: 2}, {ID: 3}, {ID: 2}}, true},
+		{[]Setting{{ID: 4}, {ID: 2}, {ID: 3}, {ID: 4}}, true},
 
-		{[]http2Setting{
+		{[]Setting{
 			{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4},
 			{ID: 5}, {ID: 6}, {ID: 7}, {ID: 8},
 			{ID: 9}, {ID: 10}, {ID: 11}, {ID: 12},
 		}, false},
 
-		{[]http2Setting{
+		{[]Setting{
 			{ID: 1}, {ID: 2}, {ID: 3}, {ID: 4},
 			{ID: 5}, {ID: 6}, {ID: 7}, {ID: 8},
 			{ID: 9}, {ID: 10}, {ID: 11}, {ID: 11},
@@ -1274,7 +1275,7 @@ func TestSettingsDuplicates(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%d. ReadFrame: %v", i, err)
 		}
-		sf := f.(*http2SettingsFrame)
+		sf := f.(*SettingsFrame)
 		got := sf.HasDuplicates()
 		if got != tt.want {
 			t.Errorf("%d. HasDuplicates = %v; want %v", i, got, tt.want)
@@ -1284,195 +1285,195 @@ func TestSettingsDuplicates(t *testing.T) {
 }
 
 func TestParseSettingsFrame(t *testing.T) {
-	fh := http2FrameHeader{}
-	fh.Flags = http2FlagSettingsAck
+	fh := FrameHeader{}
+	fh.Flags = FlagSettingsAck
 	fh.Length = 1
 	countErr := func(s string) {}
-	_, err := http2parseSettingsFrame(nil, fh, countErr, nil)
-	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	_, err := parseSettingsFrame(nil, fh, countErr, nil)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
-	fh = http2FrameHeader{StreamID: 1}
-	_, err = http2parseSettingsFrame(nil, fh, countErr, nil)
-	assertErrorContains(t, err, "PROTOCOL_ERROR")
+	fh = FrameHeader{StreamID: 1}
+	_, err = parseSettingsFrame(nil, fh, countErr, nil)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
 
-	fh = http2FrameHeader{}
-	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("roc"))
-	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	fh = FrameHeader{}
+	_, err = parseSettingsFrame(nil, fh, countErr, []byte("roc"))
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
-	fh = http2FrameHeader{valid: true}
-	_, err = http2parseSettingsFrame(nil, fh, countErr, []byte("rocroc"))
-	assertNoError(t, err)
+	fh = FrameHeader{valid: true}
+	_, err = parseSettingsFrame(nil, fh, countErr, []byte("rocroc"))
+	tests.AssertNoError(t, err)
 }
 
 func TestParsePushPromise(t *testing.T) {
-	fh := http2FrameHeader{}
+	fh := FrameHeader{}
 	countError := func(string) {}
-	_, err := http2parsePushPromise(nil, fh, countError, nil)
-	assertErrorContains(t, err, "PROTOCOL_ERROR")
+	_, err := parsePushPromise(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 1
-	fh.Flags = http2FlagPushPromisePadded
-	_, err = http2parsePushPromise(nil, fh, countError, nil)
-	assertErrorContains(t, err, "EOF")
+	fh.Flags = FlagPushPromisePadded
+	_, err = parsePushPromise(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "EOF")
 
 	fh.Flags = 0
-	_, err = http2parsePushPromise(nil, fh, countError, nil)
-	assertErrorContains(t, err, "EOF")
+	_, err = parsePushPromise(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "EOF")
 
-	_, err = http2parsePushPromise(nil, fh, countError, []byte("ksjfksjksjflskk"))
-	assertNoError(t, err)
+	_, err = parsePushPromise(nil, fh, countError, []byte("ksjfksjksjflskk"))
+	tests.AssertNoError(t, err)
 }
 
 func TestSummarizeFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
-	var f http2Frame
-	f = &http2SettingsFrame{http2FrameHeader: fh, p: []byte{0x09, 0x01, 0x80, 0x20, 0x00, 0x11}}
-	s := http2summarizeFrame(f)
-	assertContains(t, s, "len=0", true)
+	fh := FrameHeader{valid: true}
+	var f Frame
+	f = &SettingsFrame{FrameHeader: fh, p: []byte{0x09, 0x01, 0x80, 0x20, 0x00, 0x11}}
+	s := summarizeFrame(f)
+	tests.AssertContains(t, s, "len=0", true)
 
-	f = &http2DataFrame{http2FrameHeader: fh}
-	s = http2summarizeFrame(f)
-	assertContains(t, s, `data=""`, true)
+	f = &DataFrame{FrameHeader: fh}
+	s = summarizeFrame(f)
+	tests.AssertContains(t, s, `data=""`, true)
 
-	f = &http2WindowUpdateFrame{http2FrameHeader: fh}
-	s = http2summarizeFrame(f)
-	assertContains(t, s, "conn", true)
+	f = &WindowUpdateFrame{FrameHeader: fh}
+	s = summarizeFrame(f)
+	tests.AssertContains(t, s, "conn", true)
 
-	f = &http2PingFrame{http2FrameHeader: fh}
-	s = http2summarizeFrame(f)
-	assertContains(t, s, "ping", true)
+	f = &PingFrame{FrameHeader: fh}
+	s = summarizeFrame(f)
+	tests.AssertContains(t, s, "ping", true)
 
-	f = &http2GoAwayFrame{http2FrameHeader: fh}
-	s = http2summarizeFrame(f)
-	assertContains(t, s, "laststreamid", true)
+	f = &GoAwayFrame{FrameHeader: fh}
+	s = summarizeFrame(f)
+	tests.AssertContains(t, s, "laststreamid", true)
 
-	f = &http2RSTStreamFrame{http2FrameHeader: fh}
-	s = http2summarizeFrame(f)
-	assertContains(t, s, "no_error", true)
+	f = &RSTStreamFrame{FrameHeader: fh}
+	s = summarizeFrame(f)
+	tests.AssertContains(t, s, "no_error", true)
 }
 
 func TestParseDataFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	countError := func(string) {}
-	_, err := http2parseDataFrame(nil, fh, countError, nil)
-	assertErrorContains(t, err, "DATA frame with stream ID 0")
+	_, err := parseDataFrame(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "DATA frame with stream ID 0")
 
 	fh.StreamID = 1
-	fh.Flags = http2FlagDataPadded
-	fc := &http2frameCache{}
+	fh.Flags = FlagDataPadded
+	fc := &frameCache{}
 	payload := []byte{0x09, 0x00, 0x00, 0x98, 0x11, 0x12}
-	_, err = http2parseDataFrame(fc, fh, countError, payload)
-	assertErrorContains(t, err, "pad size larger than data payload")
+	_, err = parseDataFrame(fc, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "pad size larger than data payload")
 
 	payload = []byte{0x02, 0x00, 0x00, 0x98, 0x11, 0x12}
-	_, err = http2parseDataFrame(fc, fh, countError, payload)
-	assertNoError(t, err)
+	_, err = parseDataFrame(fc, fh, countError, payload)
+	tests.AssertNoError(t, err)
 }
 
 func TestParseWindowUpdateFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	countError := func(string) {}
-	_, err := http2parseWindowUpdateFrame(nil, fh, countError, nil)
-	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	_, err := parseWindowUpdateFrame(nil, fh, countError, nil)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	p := []byte{0x00, 0x00, 0x00, 0x00}
-	_, err = http2parseWindowUpdateFrame(nil, fh, countError, p)
-	assertErrorContains(t, err, "PROTOCOL_ERROR")
+	_, err = parseWindowUpdateFrame(nil, fh, countError, p)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 255
 	p[0] = 0x01
 	p[3] = 0x01
-	_, err = http2parseWindowUpdateFrame(nil, fh, countError, p)
-	assertNoError(t, err)
+	_, err = parseWindowUpdateFrame(nil, fh, countError, p)
+	tests.AssertNoError(t, err)
 }
 
 func TestParseUnknownFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	countError := func(string) {}
 	p := []byte("test")
-	f, err := http2parseUnknownFrame(nil, fh, countError, p)
-	assertNoError(t, err)
-	uf, ok := f.(*http2UnknownFrame)
+	f, err := parseUnknownFrame(nil, fh, countError, p)
+	tests.AssertNoError(t, err)
+	uf, ok := f.(*UnknownFrame)
 	if !ok {
-		t.Fatalf("not http2UnknownFrame type: %#+v", f)
+		t.Fatalf("not UnknownFrame type: %#+v", f)
 	}
-	assertEqual(t, p, uf.Payload())
+	tests.AssertEqual(t, p, uf.Payload())
 }
 
 func TestParseRSTStreamFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	countError := func(string) {}
 	p := []byte("test.")
-	_, err := http2parseRSTStreamFrame(nil, fh, countError, p)
-	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	_, err := parseRSTStreamFrame(nil, fh, countError, p)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	p = []byte("test")
-	_, err = http2parseRSTStreamFrame(nil, fh, countError, p)
-	assertErrorContains(t, err, "PROTOCOL_ERROR")
+	_, err = parseRSTStreamFrame(nil, fh, countError, p)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 1
-	_, err = http2parseRSTStreamFrame(nil, fh, countError, p)
-	assertNoError(t, err)
+	_, err = parseRSTStreamFrame(nil, fh, countError, p)
+	tests.AssertNoError(t, err)
 }
 
 func TestParsePingFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	countError := func(string) {}
 	payload := []byte("")
-	_, err := http2parsePingFrame(nil, fh, countError, payload)
-	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	_, err := parsePingFrame(nil, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
 
 	payload = []byte("testtest")
 	fh.StreamID = 1
-	_, err = http2parsePingFrame(nil, fh, countError, payload)
-	assertErrorContains(t, err, "PROTOCOL_ERROR")
+	_, err = parsePingFrame(nil, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 0
-	_, err = http2parsePingFrame(nil, fh, countError, payload)
-	assertNoError(t, err)
+	_, err = parsePingFrame(nil, fh, countError, payload)
+	tests.AssertNoError(t, err)
 }
 
 func TestParseGoAwayFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	countError := func(string) {}
 	payload := []byte("")
 
 	fh.StreamID = 1
-	_, err := http2parseGoAwayFrame(nil, fh, countError, payload)
-	assertErrorContains(t, err, "PROTOCOL_ERROR")
+	_, err := parseGoAwayFrame(nil, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "PROTOCOL_ERROR")
 
 	fh.StreamID = 0
-	_, err = http2parseGoAwayFrame(nil, fh, countError, payload)
-	assertErrorContains(t, err, "FRAME_SIZE_ERROR")
+	_, err = parseGoAwayFrame(nil, fh, countError, payload)
+	tests.AssertErrorContains(t, err, "FRAME_SIZE_ERROR")
 }
 
 func TestPushPromiseFrame(t *testing.T) {
-	fh := http2FrameHeader{valid: true}
+	fh := FrameHeader{valid: true}
 	buf := []byte("test")
-	f := &http2PushPromiseFrame{http2FrameHeader: fh, headerFragBuf: buf}
-	assertEqual(t, buf, f.HeaderBlockFragment())
-	assertEqual(t, false, f.HeadersEnded())
+	f := &PushPromiseFrame{FrameHeader: fh, headerFragBuf: buf}
+	tests.AssertEqual(t, buf, f.HeaderBlockFragment())
+	tests.AssertEqual(t, false, f.HeadersEnded())
 }
 
 func TestH2Framer(t *testing.T) {
-	f := &http2Framer{}
+	f := &Framer{}
 	f.debugWriteLoggerf = func(s string, i ...interface{}) {}
 	f.logWrite()
-	assertNotNil(t, f.debugFramer)
-	assertIsNil(t, f.ErrorDetail())
+	tests.AssertNotNil(t, f.debugFramer)
+	tests.AssertIsNil(t, f.ErrorDetail())
 
 	f.w = new(bytes.Buffer)
-	err := f.WriteRawFrame(http2FrameData, http2FlagDataEndStream, 1, nil)
-	assertNoError(t, err)
+	err := f.WriteRawFrame(FrameData, FlagDataEndStream, 1, nil)
+	tests.AssertNoError(t, err)
 
-	param := http2PushPromiseParam{}
+	param := PushPromiseParam{}
 	err = f.WritePushPromise(param)
-	assertErrorContains(t, err, "invalid stream ID")
+	tests.AssertErrorContains(t, err, "invalid stream ID")
 
 	param.StreamID = 1
 	param.EndHeaders = true
 	param.PadLength = 2
 	f.AllowIllegalWrites = true
 	err = f.WritePushPromise(param)
-	assertNoError(t, err)
+	tests.AssertNoError(t, err)
 }

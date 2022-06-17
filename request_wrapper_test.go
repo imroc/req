@@ -3,6 +3,7 @@ package req
 import (
 	"bytes"
 	"context"
+	"github.com/imroc/req/v3/internal/tests"
 	"net/http"
 	"testing"
 	"time"
@@ -13,7 +14,7 @@ func init() {
 }
 
 func TestGlobalWrapperForRequestSettings(t *testing.T) {
-	assertAllNotNil(t,
+	tests.AssertAllNotNil(t,
 		SetFiles(map[string]string{"test": "req.go"}),
 		SetFile("test", "req.go"),
 		SetFileReader("test", "test.txt", bytes.NewBufferString("test")),
@@ -112,8 +113,8 @@ func testGlobalWrapperMustSendMethods(t *testing.T) {
 	url := getTestServerURL() + "/"
 	for _, tc := range testCases {
 		resp := tc.SendReq(url)
-		assertNotNil(t, resp.Response)
-		assertEqual(t, tc.ExpectMethod, resp.Header.Get("Method"))
+		tests.AssertNotNil(t, resp.Response)
+		tests.AssertEqual(t, tc.ExpectMethod, resp.Header.Get("Method"))
 	}
 }
 
@@ -155,6 +156,6 @@ func testGlobalWrapperSendMethods(t *testing.T) {
 	for _, tc := range testCases {
 		resp, err := tc.SendReq(url)
 		assertSuccess(t, resp, err)
-		assertEqual(t, tc.ExpectMethod, resp.Header.Get("Method"))
+		tests.AssertEqual(t, tc.ExpectMethod, resp.Header.Get("Method"))
 	}
 }

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"github.com/imroc/req/v3/internal/ascii"
@@ -11,16 +11,16 @@ import (
 )
 
 var (
-	http2commonBuildOnce   sync.Once
-	http2commonLowerHeader map[string]string // Go-Canonical-Case -> lower-case
-	http2commonCanonHeader map[string]string // lower-case -> Go-Canonical-Case
+	commonBuildOnce   sync.Once
+	commonLowerHeader map[string]string // Go-Canonical-Case -> lower-case
+	commonCanonHeader map[string]string // lower-case -> Go-Canonical-Case
 )
 
-func http2buildCommonHeaderMapsOnce() {
-	http2commonBuildOnce.Do(http2buildCommonHeaderMaps)
+func buildCommonHeaderMapsOnce() {
+	commonBuildOnce.Do(buildCommonHeaderMaps)
 }
 
-func http2buildCommonHeaderMaps() {
+func buildCommonHeaderMaps() {
 	common := []string{
 		"accept",
 		"accept-charset",
@@ -70,18 +70,18 @@ func http2buildCommonHeaderMaps() {
 		"via",
 		"www-authenticate",
 	}
-	http2commonLowerHeader = make(map[string]string, len(common))
-	http2commonCanonHeader = make(map[string]string, len(common))
+	commonLowerHeader = make(map[string]string, len(common))
+	commonCanonHeader = make(map[string]string, len(common))
 	for _, v := range common {
 		chk := http.CanonicalHeaderKey(v)
-		http2commonLowerHeader[chk] = v
-		http2commonCanonHeader[v] = chk
+		commonLowerHeader[chk] = v
+		commonCanonHeader[v] = chk
 	}
 }
 
-func http2lowerHeader(v string) (lower string, isAscii bool) {
-	http2buildCommonHeaderMapsOnce()
-	if s, ok := http2commonLowerHeader[v]; ok {
+func lowerHeader(v string) (lower string, isAscii bool) {
+	buildCommonHeaderMapsOnce()
+	if s, ok := commonLowerHeader[v]; ok {
 		return s, true
 	}
 	return ascii.ToLower(v)

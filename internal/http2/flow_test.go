@@ -2,13 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import "testing"
 
 func TestFlow(t *testing.T) {
-	var st http2flow
-	var conn http2flow
+	var st flow
+	var conn flow
 	st.add(3)
 	conn.add(2)
 
@@ -30,7 +30,7 @@ func TestFlow(t *testing.T) {
 }
 
 func TestFlowAdd(t *testing.T) {
-	var f http2flow
+	var f flow
 	if !f.add(1) {
 		t.Fatal("failed to add 1")
 	}
@@ -52,7 +52,7 @@ func TestFlowAdd(t *testing.T) {
 }
 
 func TestFlowAddOverflow(t *testing.T) {
-	var f http2flow
+	var f flow
 	if !f.add(0) {
 		t.Fatal("failed to add 0")
 	}

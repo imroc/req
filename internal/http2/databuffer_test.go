@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"bytes"
@@ -40,7 +40,7 @@ func fmtDataChunks(chunks [][]byte) string {
 	return out
 }
 
-func testDataBuffer(t *testing.T, wantBytes []byte, setup func(t *testing.T) *http2dataBuffer) {
+func testDataBuffer(t *testing.T, wantBytes []byte, setup func(t *testing.T) *dataBuffer) {
 	// Run setup, then read the remaining bytes from the dataBuffer and check
 	// that they match wantBytes. We use different read sizes to check corner
 	// cases in Read.
@@ -83,8 +83,8 @@ func TestDataBufferAllocation(t *testing.T) {
 		wantRead.Write(p)
 	}
 
-	testDataBuffer(t, wantRead.Bytes(), func(t *testing.T) *http2dataBuffer {
-		b := &http2dataBuffer{}
+	testDataBuffer(t, wantRead.Bytes(), func(t *testing.T) *dataBuffer {
+		b := &dataBuffer{}
 		for _, p := range writes {
 			if n, err := b.Write(p); n != len(p) || err != nil {
 				t.Fatalf("Write(%q x %d)=%v,%v want %v,nil", p[:1], len(p), n, err, len(p))
@@ -118,8 +118,8 @@ func TestDataBufferAllocationWithExpected(t *testing.T) {
 		wantRead.Write(p)
 	}
 
-	testDataBuffer(t, wantRead.Bytes(), func(t *testing.T) *http2dataBuffer {
-		b := &http2dataBuffer{expected: 32 * 1024}
+	testDataBuffer(t, wantRead.Bytes(), func(t *testing.T) *dataBuffer {
+		b := &dataBuffer{expected: 32 * 1024}
 		for _, p := range writes {
 			if n, err := b.Write(p); n != len(p) || err != nil {
 				t.Fatalf("Write(%q x %d)=%v,%v want %v,nil", p[:1], len(p), n, err, len(p))
@@ -138,8 +138,8 @@ func TestDataBufferAllocationWithExpected(t *testing.T) {
 }
 
 func TestDataBufferWriteAfterPartialRead(t *testing.T) {
-	testDataBuffer(t, []byte("cdxyz"), func(t *testing.T) *http2dataBuffer {
-		b := &http2dataBuffer{}
+	testDataBuffer(t, []byte("cdxyz"), func(t *testing.T) *dataBuffer {
+		b := &dataBuffer{}
 		if n, err := b.Write([]byte("abcd")); n != 4 || err != nil {
 			t.Fatalf("Write(\"abcd\")=%v,%v want 4,nil", n, err)
 		}

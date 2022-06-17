@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/util"
 	"golang.org/x/net/publicsuffix"
 )
@@ -34,7 +35,7 @@ func SetDefaultClient(c *Client) {
 	}
 }
 
-var defaultClient *Client = C()
+var defaultClient = C()
 
 // Client is the req's http client.
 type Client struct {
@@ -58,7 +59,6 @@ type Client struct {
 	scheme                  string
 	log                     Logger
 	t                       *Transport
-	t2                      *http2Transport
 	dumpOptions             *DumpOptions
 	httpClient              *http.Client
 	beforeRequest           []RequestMiddleware
@@ -652,7 +652,7 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 	}
 	c.dumpOptions = opt
 	if c.t.dump != nil {
-		c.t.dump.DumpOptions = opt
+		c.t.dump.SetOptions(dumpOptions{opt})
 	}
 	return c
 }
@@ -882,14 +882,15 @@ func NewClient() *Client {
 // Clone copy and returns the Client
 func (c *Client) Clone() *Client {
 	t := c.t.Clone()
-	t2, _ := http2ConfigureTransports(t)
+	t2, _ := http2.ConfigureTransports(transportImpl{t})
+	t.t2 = t2
+
 	client := *c.httpClient
 	client.Transport = t
 
 	cc := *c
 	cc.httpClient = &client
 	cc.t = t
-	cc.t2 = t2
 
 	cc.Headers = cloneHeaders(c.Headers)
 	cc.Cookies = cloneCookies(c.Cookies)
@@ -922,7 +923,9 @@ func C() *Client {
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
 	}
-	t2, _ := http2ConfigureTransports(t)
+	t2, _ := http2.ConfigureTransports(transportImpl{t})
+	t.t2 = t2
+
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	httpClient := &http.Client{
 		Transport: t,
@@ -945,7 +948,6 @@ func C() *Client {
 		log:           createDefaultLogger(),
 		httpClient:    httpClient,
 		t:             t,
-		t2:            t2,
 		jsonMarshal:   json.Marshal,
 		jsonUnmarshal: json.Unmarshal,
 		xmlMarshal:    xml.Marshal,

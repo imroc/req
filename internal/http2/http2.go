@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"bufio"
@@ -18,72 +18,72 @@ import (
 )
 
 var (
-	http2VerboseLogs    bool
-	http2logFrameWrites bool
-	http2logFrameReads  bool
-	http2inTests        bool
+	VerboseLogs    bool
+	logFrameWrites bool
+	logFrameReads  bool
+	inTests        bool
 )
 
 func init() {
 	e := os.Getenv("GODEBUG")
 	if strings.Contains(e, "http2debug=1") {
-		http2VerboseLogs = true
+		VerboseLogs = true
 	}
 	if strings.Contains(e, "http2debug=2") {
-		http2VerboseLogs = true
-		http2logFrameWrites = true
-		http2logFrameReads = true
+		VerboseLogs = true
+		logFrameWrites = true
+		logFrameReads = true
 	}
 }
 
 const (
 	// ClientPreface is the string that must be sent by new
 	// connections from clients.
-	http2ClientPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+	ClientPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
 
 	// NextProtoTLS is the NPN/ALPN protocol negotiated during
 	// HTTP/2's TLS setup.
-	http2NextProtoTLS = "h2"
+	NextProtoTLS = "h2"
 
 	// http://http2.github.io/http2-spec/#SettingValues
-	http2initialHeaderTableSize = 4096
+	initialHeaderTableSize = 4096
 
-	http2initialWindowSize = 65535 // 6.9.2 Initial Flow Control Window Size
+	initialWindowSize = 65535 // 6.9.2 Initial Flow Control Window Size
 )
 
 var (
-	http2clientPreface = []byte(http2ClientPreface)
+	clientPreface = []byte(ClientPreface)
 )
 
 // Setting is a setting parameter: which setting it is, and its value.
-type http2Setting struct {
+type Setting struct {
 	// ID is which setting is being set.
 	// See http://http2.github.io/http2-spec/#SettingValues
-	ID http2SettingID
+	ID SettingID
 
 	// Val is the value.
 	Val uint32
 }
 
-func (s http2Setting) String() string {
+func (s Setting) String() string {
 	return fmt.Sprintf("[%v = %d]", s.ID, s.Val)
 }
 
 // Valid reports whether the setting is valid.
-func (s http2Setting) Valid() error {
+func (s Setting) Valid() error {
 	// Limits and error codes from 6.5.2 Defined SETTINGS Parameters
 	switch s.ID {
-	case http2SettingEnablePush:
+	case SettingEnablePush:
 		if s.Val != 1 && s.Val != 0 {
-			return http2ConnectionError(http2ErrCodeProtocol)
+			return ConnectionError(ErrCodeProtocol)
 		}
-	case http2SettingInitialWindowSize:
+	case SettingInitialWindowSize:
 		if s.Val > 1<<31-1 {
-			return http2ConnectionError(http2ErrCodeFlowControl)
+			return ConnectionError(ErrCodeFlowControl)
 		}
-	case http2SettingMaxFrameSize:
+	case SettingMaxFrameSize:
 		if s.Val < 16384 || s.Val > 1<<24-1 {
-			return http2ConnectionError(http2ErrCodeProtocol)
+			return ConnectionError(ErrCodeProtocol)
 		}
 	}
 	return nil
@@ -91,28 +91,28 @@ func (s http2Setting) Valid() error {
 
 // A SettingID is an HTTP/2 setting as defined in
 // http://http2.github.io/http2-spec/#iana-settings
-type http2SettingID uint16
+type SettingID uint16
 
 const (
-	http2SettingHeaderTableSize      http2SettingID = 0x1
-	http2SettingEnablePush           http2SettingID = 0x2
-	http2SettingMaxConcurrentStreams http2SettingID = 0x3
-	http2SettingInitialWindowSize    http2SettingID = 0x4
-	http2SettingMaxFrameSize         http2SettingID = 0x5
-	http2SettingMaxHeaderListSize    http2SettingID = 0x6
+	SettingHeaderTableSize      SettingID = 0x1
+	SettingEnablePush           SettingID = 0x2
+	SettingMaxConcurrentStreams SettingID = 0x3
+	SettingInitialWindowSize    SettingID = 0x4
+	SettingMaxFrameSize         SettingID = 0x5
+	SettingMaxHeaderListSize    SettingID = 0x6
 )
 
-var http2settingName = map[http2SettingID]string{
-	http2SettingHeaderTableSize:      "HEADER_TABLE_SIZE",
-	http2SettingEnablePush:           "ENABLE_PUSH",
-	http2SettingMaxConcurrentStreams: "MAX_CONCURRENT_STREAMS",
-	http2SettingInitialWindowSize:    "INITIAL_WINDOW_SIZE",
-	http2SettingMaxFrameSize:         "MAX_FRAME_SIZE",
-	http2SettingMaxHeaderListSize:    "MAX_HEADER_LIST_SIZE",
+var settingName = map[SettingID]string{
+	SettingHeaderTableSize:      "HEADER_TABLE_SIZE",
+	SettingEnablePush:           "ENABLE_PUSH",
+	SettingMaxConcurrentStreams: "MAX_CONCURRENT_STREAMS",
+	SettingInitialWindowSize:    "INITIAL_WINDOW_SIZE",
+	SettingMaxFrameSize:         "MAX_FRAME_SIZE",
+	SettingMaxHeaderListSize:    "MAX_HEADER_LIST_SIZE",
 }
 
-func (s http2SettingID) String() string {
-	if v, ok := http2settingName[s]; ok {
+func (s SettingID) String() string {
+	if v, ok := settingName[s]; ok {
 		return v
 	}
 	return fmt.Sprintf("UNKNOWN_SETTING_%d", uint16(s))
@@ -126,7 +126,7 @@ func (s http2SettingID) String() string {
 //   characters that are compared in a case-insensitive
 //   fashion. However, header field names MUST be converted to
 //   lowercase prior to their encoding in HTTP/2. "
-func http2validWireHeaderFieldName(v string) bool {
+func validWireHeaderFieldName(v string) bool {
 	if len(v) == 0 {
 		return false
 	}
@@ -141,7 +141,7 @@ func http2validWireHeaderFieldName(v string) bool {
 	return true
 }
 
-func http2httpCodeString(code int) string {
+func httpCodeString(code int) string {
 	switch code {
 	case 200:
 		return "200"
@@ -157,15 +157,15 @@ func http2httpCodeString(code int) string {
 // TODO: pick a less arbitrary value? this is a bit under
 // (3 x typical 1500 byte MTU) at least. Other than that,
 // not much thought went into it.
-const http2bufWriterPoolBufferSize = 4 << 10
+const bufWriterPoolBufferSize = 4 << 10
 
-var http2bufWriterPool = sync.Pool{
+var bufWriterPool = sync.Pool{
 	New: func() interface{} {
-		return bufio.NewWriterSize(nil, http2bufWriterPoolBufferSize)
+		return bufio.NewWriterSize(nil, bufWriterPoolBufferSize)
 	},
 }
 
-func http2mustUint31(v int32) uint32 {
+func mustUint31(v int32) uint32 {
 	if v < 0 || v > 2147483647 {
 		panic("out of range")
 	}
@@ -174,7 +174,7 @@ func http2mustUint31(v int32) uint32 {
 
 // bodyAllowedForStatus reports whether a given response status code
 // permits a body. See RFC 7230, section 3.3.
-func http2bodyAllowedForStatus(status int) bool {
+func bodyAllowedForStatus(status int) bool {
 	switch {
 	case status >= 100 && status <= 199:
 		return false
@@ -186,41 +186,41 @@ func http2bodyAllowedForStatus(status int) bool {
 	return true
 }
 
-type http2httpError struct {
-	_       http2incomparable
+type httpError struct {
+	_       incomparable
 	msg     string
 	timeout bool
 }
 
-func (e *http2httpError) Error() string { return e.msg }
+func (e *httpError) Error() string { return e.msg }
 
-func (e *http2httpError) Timeout() bool { return e.timeout }
+func (e *httpError) Timeout() bool { return e.timeout }
 
-func (e *http2httpError) Temporary() bool { return true }
+func (e *httpError) Temporary() bool { return true }
 
-var errH2Timeout error = &http2httpError{msg: "http2: timeout awaiting response headers", timeout: true}
+var errH2Timeout error = &httpError{msg: "http2: timeout awaiting response headers", timeout: true}
 
-type http2connectionStater interface {
+type connectionStater interface {
 	ConnectionState() tls.ConnectionState
 }
 
-var http2sorterPool = sync.Pool{New: func() interface{} { return new(http2sorter) }}
+var sorterPool = sync.Pool{New: func() interface{} { return new(sorter) }}
 
-type http2sorter struct {
+type sorter struct {
 	v []string // owned by sorter
 }
 
-func (s *http2sorter) Len() int { return len(s.v) }
+func (s *sorter) Len() int { return len(s.v) }
 
-func (s *http2sorter) Swap(i, j int) { s.v[i], s.v[j] = s.v[j], s.v[i] }
+func (s *sorter) Swap(i, j int) { s.v[i], s.v[j] = s.v[j], s.v[i] }
 
-func (s *http2sorter) Less(i, j int) bool { return s.v[i] < s.v[j] }
+func (s *sorter) Less(i, j int) bool { return s.v[i] < s.v[j] }
 
 // Keys returns the sorted keys of h.
 //
 // The returned slice is only valid until s used again or returned to
 // its pool.
-func (s *http2sorter) Keys(h http.Header) []string {
+func (s *sorter) Keys(h http.Header) []string {
 	keys := s.v[:0]
 	for k := range h {
 		keys = append(keys, k)
@@ -230,7 +230,7 @@ func (s *http2sorter) Keys(h http.Header) []string {
 	return keys
 }
 
-func (s *http2sorter) SortStrings(ss []string) {
+func (s *sorter) SortStrings(ss []string) {
 	// Our sorter works on s.v, which sorter owns, so
 	// stash it away while we sort the user's buffer.
 	save := s.v
@@ -252,11 +252,11 @@ func (s *http2sorter) SortStrings(ss []string) {
 // We used to enforce that the path also didn't start with "//", but
 // Google's GFE accepts such paths and Chrome sends them, so ignore
 // that part of the spec. See golang.org/issue/19103.
-func http2validPseudoPath(v string) bool {
+func validPseudoPath(v string) bool {
 	return (len(v) > 0 && v[0] == '/') || v == "*"
 }
 
 // incomparable is a zero-width, non-comparable type. Adding it to a struct
 // makes that struct also non-comparable, and generally doesn't add
 // any size (as long as it's first).
-type http2incomparable [0]func()
+type incomparable [0]func()

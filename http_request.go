@@ -136,13 +136,6 @@ func reqExpectsContinue(r *http.Request) bool {
 	return hasToken(headerGet(r.Header, "Expect"), "100-continue")
 }
 
-func reqWantsHttp10KeepAlive(r *http.Request) bool {
-	if r.ProtoMajor != 1 || r.ProtoMinor != 0 {
-		return false
-	}
-	return hasToken(headerGet(r.Header, "Connection"), "keep-alive")
-}
-
 func reqWantsClose(r *http.Request) bool {
 	if r.Close {
 		return true

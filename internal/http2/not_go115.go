@@ -5,10 +5,10 @@
 //go:build !go1.15
 // +build !go1.15
 
-package req
+package http2
 
 // dialTLSWithContext opens a TLS connection.
-func (t *http2Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (TLSConn, error) {
+func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (TLSConn, error) {
 	cn, err := tls.Dial(network, addr, cfg)
 	if err != nil {
 		return nil, err

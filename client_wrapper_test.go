@@ -22,7 +22,7 @@ func TestGlobalWrapper(t *testing.T) {
 	form := make(url.Values)
 	form.Add("test", "test")
 
-	assertAllNotNil(t,
+	tests.AssertAllNotNil(t,
 		SetCommonError(nil),
 		SetCookieJar(nil),
 		SetDialTLS(nil),
@@ -122,19 +122,19 @@ func TestGlobalWrapper(t *testing.T) {
 	os.Remove(tests.GetTestFilePath("tmpdump.out"))
 
 	config := GetTLSClientConfig()
-	assertEqual(t, config, DefaultClient().t.TLSClientConfig)
+	tests.AssertEqual(t, config, DefaultClient().t.TLSClientConfig)
 
 	r := R()
-	assertEqual(t, true, r != nil)
+	tests.AssertEqual(t, true, r != nil)
 	c := C()
 
 	c.SetTimeout(10 * time.Second)
 	SetDefaultClient(c)
-	assertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
-	assertEqual(t, GetClient(), DefaultClient().httpClient)
+	tests.AssertEqual(t, true, DefaultClient().httpClient.Timeout == 10*time.Second)
+	tests.AssertEqual(t, GetClient(), DefaultClient().httpClient)
 
 	r = NewRequest()
-	assertEqual(t, true, r != nil)
+	tests.AssertEqual(t, true, r != nil)
 	c = NewClient()
-	assertEqual(t, true, c != nil)
+	tests.AssertEqual(t, true, c != nil)
 }

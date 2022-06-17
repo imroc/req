@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"errors"
@@ -21,14 +21,14 @@ import (
 // improved enough that we can instead allocate chunks like this:
 // make([]byte, max(16<<10, expectedBytesRemaining))
 var (
-	http2dataChunkSizeClasses = []int{
+	dataChunkSizeClasses = []int{
 		1 << 10,
 		2 << 10,
 		4 << 10,
 		8 << 10,
 		16 << 10,
 	}
-	http2dataChunkPools = [...]sync.Pool{
+	dataChunkPools = [...]sync.Pool{
 		{New: func() interface{} { return make([]byte, 1<<10) }},
 		{New: func() interface{} { return make([]byte, 2<<10) }},
 		{New: func() interface{} { return make([]byte, 4<<10) }},
@@ -37,20 +37,20 @@ var (
 	}
 )
 
-func http2getDataBufferChunk(size int64) []byte {
+func getDataBufferChunk(size int64) []byte {
 	i := 0
-	for ; i < len(http2dataChunkSizeClasses)-1; i++ {
-		if size <= int64(http2dataChunkSizeClasses[i]) {
+	for ; i < len(dataChunkSizeClasses)-1; i++ {
+		if size <= int64(dataChunkSizeClasses[i]) {
 			break
 		}
 	}
-	return http2dataChunkPools[i].Get().([]byte)
+	return dataChunkPools[i].Get().([]byte)
 }
 
-func http2putDataBufferChunk(p []byte) {
-	for i, n := range http2dataChunkSizeClasses {
+func putDataBufferChunk(p []byte) {
+	for i, n := range dataChunkSizeClasses {
 		if len(p) == n {
-			http2dataChunkPools[i].Put(p)
+			dataChunkPools[i].Put(p)
 			return
 		}
 	}
@@ -62,7 +62,7 @@ func http2putDataBufferChunk(p []byte) {
 // The buffer is divided into chunks so the server can limit the
 // total memory used by a single connection without limiting the
 // request body size on any single stream.
-type http2dataBuffer struct {
+type dataBuffer struct {
 	chunks   [][]byte
 	r        int   // next byte to read is chunks[0][r]
 	w        int   // next byte to write is chunks[len(chunks)-1][w]
@@ -74,7 +74,7 @@ var errReadEmpty = errors.New("read from empty dataBuffer")
 
 // Read copies bytes from the buffer into p.
 // It is an error to read when no data is available.
-func (b *http2dataBuffer) Read(p []byte) (int, error) {
+func (b *dataBuffer) Read(p []byte) (int, error) {
 	if b.size == 0 {
 		return 0, errReadEmpty
 	}
@@ -88,7 +88,7 @@ func (b *http2dataBuffer) Read(p []byte) (int, error) {
 		b.size -= n
 		// If the first chunk has been consumed, advance to the next chunk.
 		if b.r == len(b.chunks[0]) {
-			http2putDataBufferChunk(b.chunks[0])
+			putDataBufferChunk(b.chunks[0])
 			end := len(b.chunks) - 1
 			copy(b.chunks[:end], b.chunks[1:])
 			b.chunks[end] = nil
@@ -99,7 +99,7 @@ func (b *http2dataBuffer) Read(p []byte) (int, error) {
 	return ntotal, nil
 }
 
-func (b *http2dataBuffer) bytesFromFirstChunk() []byte {
+func (b *dataBuffer) bytesFromFirstChunk() []byte {
 	if len(b.chunks) == 1 {
 		return b.chunks[0][b.r:b.w]
 	}
@@ -107,12 +107,12 @@ func (b *http2dataBuffer) bytesFromFirstChunk() []byte {
 }
 
 // Len returns the number of bytes of the unread portion of the buffer.
-func (b *http2dataBuffer) Len() int {
+func (b *dataBuffer) Len() int {
 	return b.size
 }
 
 // Write appends p to the buffer.
-func (b *http2dataBuffer) Write(p []byte) (int, error) {
+func (b *dataBuffer) Write(p []byte) (int, error) {
 	ntotal := len(p)
 	for len(p) > 0 {
 		// If the last chunk is empty, allocate a new chunk. Try to allocate
@@ -132,14 +132,14 @@ func (b *http2dataBuffer) Write(p []byte) (int, error) {
 	return ntotal, nil
 }
 
-func (b *http2dataBuffer) lastChunkOrAlloc(want int64) []byte {
+func (b *dataBuffer) lastChunkOrAlloc(want int64) []byte {
 	if len(b.chunks) != 0 {
 		last := b.chunks[len(b.chunks)-1]
 		if b.w < len(last) {
 			return last
 		}
 	}
-	chunk := http2getDataBufferChunk(want)
+	chunk := getDataBufferChunk(want)
 	b.chunks = append(b.chunks, chunk)
 	b.w = 0
 	return chunk

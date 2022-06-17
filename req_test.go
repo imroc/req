@@ -67,63 +67,8 @@ func getTestServerURL() string {
 
 func getTestFileContent(t *testing.T, filename string) []byte {
 	b, err := ioutil.ReadFile(tests.GetTestFilePath(filename))
-	assertNoError(t, err)
+	tests.AssertNoError(t, err)
 	return b
-}
-
-func assertIsNil(t *testing.T, v interface{}) {
-	if !isNil(v) {
-		t.Errorf("[%v] was expected to be nil", v)
-	}
-}
-
-func assertAllNotNil(t *testing.T, vv ...interface{}) {
-	for _, v := range vv {
-		assertNotNil(t, v)
-	}
-}
-
-func assertNotNil(t *testing.T, v interface{}) {
-	if isNil(v) {
-		t.Fatalf("[%v] was expected to be non-nil", v)
-	}
-}
-
-func assertEqual(t *testing.T, e, g interface{}) {
-	if !equal(e, g) {
-		t.Errorf("Expected [%+v], got [%+v]", e, g)
-	}
-	return
-}
-
-func assertNoError(t *testing.T, err error) {
-	if err != nil {
-		t.Errorf("Error occurred [%v]", err)
-	}
-}
-
-func assertErrorContains(t *testing.T, err error, s string) {
-	if err == nil {
-		t.Error("err is nil")
-		return
-	}
-	if !strings.Contains(err.Error(), s) {
-		t.Errorf("%q is not included in error %q", s, err.Error())
-	}
-}
-
-func assertContains(t *testing.T, s, substr string, shouldContain bool) {
-	s = strings.ToLower(s)
-	isContain := strings.Contains(s, substr)
-	if shouldContain {
-		if !isContain {
-			t.Errorf("%q is not included in %s", substr, s)
-		}
-	} else {
-		if isContain {
-			t.Errorf("%q is included in %s", substr, s)
-		}
-	}
 }
 
 func assertClone(t *testing.T, e, g interface{}) {
@@ -155,22 +100,6 @@ func assertClone(t *testing.T, e, g interface{}) {
 			t.Errorf("Field %s.%s is not equal, expected [%v], got [%v]", et.Name(), et.Field(i).Name, ee, gg)
 		}
 	}
-}
-
-func equal(expected, got interface{}) bool {
-	return reflect.DeepEqual(expected, got)
-}
-
-func isNil(v interface{}) bool {
-	if v == nil {
-		return true
-	}
-	rv := reflect.ValueOf(v)
-	kind := rv.Kind()
-	if kind >= reflect.Chan && kind <= reflect.Slice && rv.IsNil() {
-		return true
-	}
-	return false
 }
 
 // Echo is used in "/echo" API.
@@ -392,28 +321,28 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func assertStatus(t *testing.T, resp *Response, err error, statusCode int, status string) {
-	assertNoError(t, err)
-	assertNotNil(t, resp)
-	assertNotNil(t, resp.Body)
-	assertEqual(t, statusCode, resp.StatusCode)
-	assertEqual(t, status, resp.Status)
+	tests.AssertNoError(t, err)
+	tests.AssertNotNil(t, resp)
+	tests.AssertNotNil(t, resp.Body)
+	tests.AssertEqual(t, statusCode, resp.StatusCode)
+	tests.AssertEqual(t, status, resp.Status)
 }
 
 func assertSuccess(t *testing.T, resp *Response, err error) {
-	assertNoError(t, err)
-	assertNotNil(t, resp.Response)
-	assertNotNil(t, resp.Response.Body)
-	assertEqual(t, http.StatusOK, resp.StatusCode)
-	assertEqual(t, "200 OK", resp.Status)
+	tests.AssertNoError(t, err)
+	tests.AssertNotNil(t, resp.Response)
+	tests.AssertNotNil(t, resp.Response.Body)
+	tests.AssertEqual(t, http.StatusOK, resp.StatusCode)
+	tests.AssertEqual(t, "200 OK", resp.Status)
 	if !resp.IsSuccess() {
 		t.Error("Response.IsSuccess should return true")
 	}
 }
 
 func assertIsError(t *testing.T, resp *Response, err error) {
-	assertNoError(t, err)
-	assertNotNil(t, resp)
-	assertNotNil(t, resp.Body)
+	tests.AssertNoError(t, err)
+	tests.AssertNotNil(t, resp)
+	tests.AssertNotNil(t, resp.Body)
 	if !resp.IsError() {
 		t.Error("Response.IsError should return true")
 	}

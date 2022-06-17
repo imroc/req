@@ -1,4 +1,4 @@
-package req
+package http2
 
 import (
 	"bufio"
@@ -38,283 +38,283 @@ import (
 // https://www.iana.org/assignments/tls-parameters/tls-parameters.txt
 
 const (
-	http2cipher_TLS_NULL_WITH_NULL_NULL                      uint16 = 0x0000
-	http2cipher_TLS_RSA_WITH_NULL_MD5                        uint16 = 0x0001
-	http2cipher_TLS_RSA_WITH_NULL_SHA                        uint16 = 0x0002
-	http2cipher_TLS_RSA_EXPORT_WITH_RC4_40_MD5               uint16 = 0x0003
-	http2cipher_TLS_RSA_WITH_RC4_128_MD5                     uint16 = 0x0004
-	http2cipher_TLS_RSA_WITH_RC4_128_SHA                     uint16 = 0x0005
-	http2cipher_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5           uint16 = 0x0006
-	http2cipher_TLS_RSA_WITH_IDEA_CBC_SHA                    uint16 = 0x0007
-	http2cipher_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA            uint16 = 0x0008
-	http2cipher_TLS_RSA_WITH_DES_CBC_SHA                     uint16 = 0x0009
-	http2cipher_TLS_RSA_WITH_3DES_EDE_CBC_SHA                uint16 = 0x000A
-	http2cipher_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA         uint16 = 0x000B
-	http2cipher_TLS_DH_DSS_WITH_DES_CBC_SHA                  uint16 = 0x000C
-	http2cipher_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA             uint16 = 0x000D
-	http2cipher_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA         uint16 = 0x000E
-	http2cipher_TLS_DH_RSA_WITH_DES_CBC_SHA                  uint16 = 0x000F
-	http2cipher_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA             uint16 = 0x0010
-	http2cipher_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0011
-	http2cipher_TLS_DHE_DSS_WITH_DES_CBC_SHA                 uint16 = 0x0012
-	http2cipher_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0013
-	http2cipher_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0014
-	http2cipher_TLS_DHE_RSA_WITH_DES_CBC_SHA                 uint16 = 0x0015
-	http2cipher_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0016
-	http2cipher_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5           uint16 = 0x0017
-	http2cipher_TLS_DH_anon_WITH_RC4_128_MD5                 uint16 = 0x0018
-	http2cipher_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0019
-	http2cipher_TLS_DH_anon_WITH_DES_CBC_SHA                 uint16 = 0x001A
-	http2cipher_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA            uint16 = 0x001B
-	http2cipher_TLS_KRB5_WITH_DES_CBC_SHA                    uint16 = 0x001E
-	http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_SHA               uint16 = 0x001F
-	http2cipher_TLS_KRB5_WITH_RC4_128_SHA                    uint16 = 0x0020
-	http2cipher_TLS_KRB5_WITH_IDEA_CBC_SHA                   uint16 = 0x0021
-	http2cipher_TLS_KRB5_WITH_DES_CBC_MD5                    uint16 = 0x0022
-	http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_MD5               uint16 = 0x0023
-	http2cipher_TLS_KRB5_WITH_RC4_128_MD5                    uint16 = 0x0024
-	http2cipher_TLS_KRB5_WITH_IDEA_CBC_MD5                   uint16 = 0x0025
-	http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA          uint16 = 0x0026
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA          uint16 = 0x0027
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_SHA              uint16 = 0x0028
-	http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5          uint16 = 0x0029
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5          uint16 = 0x002A
-	http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_MD5              uint16 = 0x002B
-	http2cipher_TLS_PSK_WITH_NULL_SHA                        uint16 = 0x002C
-	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA                    uint16 = 0x002D
-	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA                    uint16 = 0x002E
-	http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA                 uint16 = 0x002F
-	http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA              uint16 = 0x0030
-	http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA              uint16 = 0x0031
-	http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA             uint16 = 0x0032
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA             uint16 = 0x0033
-	http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA             uint16 = 0x0034
-	http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA                 uint16 = 0x0035
-	http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA              uint16 = 0x0036
-	http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA              uint16 = 0x0037
-	http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA             uint16 = 0x0038
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA             uint16 = 0x0039
-	http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA             uint16 = 0x003A
-	http2cipher_TLS_RSA_WITH_NULL_SHA256                     uint16 = 0x003B
-	http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA256              uint16 = 0x003C
-	http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA256              uint16 = 0x003D
-	http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA256           uint16 = 0x003E
-	http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA256           uint16 = 0x003F
-	http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA256          uint16 = 0x0040
-	http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA            uint16 = 0x0041
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA         uint16 = 0x0042
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA         uint16 = 0x0043
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0044
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0045
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0046
-	http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA256          uint16 = 0x0067
-	http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA256           uint16 = 0x0068
-	http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA256           uint16 = 0x0069
-	http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA256          uint16 = 0x006A
-	http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA256          uint16 = 0x006B
-	http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA256          uint16 = 0x006C
-	http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA256          uint16 = 0x006D
-	http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA            uint16 = 0x0084
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA         uint16 = 0x0085
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA         uint16 = 0x0086
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0087
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0088
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0089
-	http2cipher_TLS_PSK_WITH_RC4_128_SHA                     uint16 = 0x008A
-	http2cipher_TLS_PSK_WITH_3DES_EDE_CBC_SHA                uint16 = 0x008B
-	http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA                 uint16 = 0x008C
-	http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA                 uint16 = 0x008D
-	http2cipher_TLS_DHE_PSK_WITH_RC4_128_SHA                 uint16 = 0x008E
-	http2cipher_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x008F
-	http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x0090
-	http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x0091
-	http2cipher_TLS_RSA_PSK_WITH_RC4_128_SHA                 uint16 = 0x0092
-	http2cipher_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0093
-	http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x0094
-	http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x0095
-	http2cipher_TLS_RSA_WITH_SEED_CBC_SHA                    uint16 = 0x0096
-	http2cipher_TLS_DH_DSS_WITH_SEED_CBC_SHA                 uint16 = 0x0097
-	http2cipher_TLS_DH_RSA_WITH_SEED_CBC_SHA                 uint16 = 0x0098
-	http2cipher_TLS_DHE_DSS_WITH_SEED_CBC_SHA                uint16 = 0x0099
-	http2cipher_TLS_DHE_RSA_WITH_SEED_CBC_SHA                uint16 = 0x009A
-	http2cipher_TLS_DH_anon_WITH_SEED_CBC_SHA                uint16 = 0x009B
-	http2cipher_TLS_RSA_WITH_AES_128_GCM_SHA256              uint16 = 0x009C
-	http2cipher_TLS_RSA_WITH_AES_256_GCM_SHA384              uint16 = 0x009D
-	http2cipher_TLS_DH_RSA_WITH_AES_128_GCM_SHA256           uint16 = 0x00A0
-	http2cipher_TLS_DH_RSA_WITH_AES_256_GCM_SHA384           uint16 = 0x00A1
-	http2cipher_TLS_DH_DSS_WITH_AES_128_GCM_SHA256           uint16 = 0x00A4
-	http2cipher_TLS_DH_DSS_WITH_AES_256_GCM_SHA384           uint16 = 0x00A5
-	http2cipher_TLS_DH_anon_WITH_AES_128_GCM_SHA256          uint16 = 0x00A6
-	http2cipher_TLS_DH_anon_WITH_AES_256_GCM_SHA384          uint16 = 0x00A7
-	http2cipher_TLS_PSK_WITH_AES_128_GCM_SHA256              uint16 = 0x00A8
-	http2cipher_TLS_PSK_WITH_AES_256_GCM_SHA384              uint16 = 0x00A9
-	http2cipher_TLS_RSA_PSK_WITH_AES_128_GCM_SHA256          uint16 = 0x00AC
-	http2cipher_TLS_RSA_PSK_WITH_AES_256_GCM_SHA384          uint16 = 0x00AD
-	http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA256              uint16 = 0x00AE
-	http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA384              uint16 = 0x00AF
-	http2cipher_TLS_PSK_WITH_NULL_SHA256                     uint16 = 0x00B0
-	http2cipher_TLS_PSK_WITH_NULL_SHA384                     uint16 = 0x00B1
-	http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00B2
-	http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00B3
-	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA256                 uint16 = 0x00B4
-	http2cipher_TLS_DHE_PSK_WITH_NULL_SHA384                 uint16 = 0x00B5
-	http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00B6
-	http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00B7
-	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA256                 uint16 = 0x00B8
-	http2cipher_TLS_RSA_PSK_WITH_NULL_SHA384                 uint16 = 0x00B9
-	http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256         uint16 = 0x00BA
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256      uint16 = 0x00BB
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256      uint16 = 0x00BC
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BD
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BE
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BF
-	http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256         uint16 = 0x00C0
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256      uint16 = 0x00C1
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256      uint16 = 0x00C2
-	http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C3
-	http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C4
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C5
-	http2cipher_TLS_EMPTY_RENEGOTIATION_INFO_SCSV            uint16 = 0x00FF
-	http2cipher_TLS_ECDH_ECDSA_WITH_NULL_SHA                 uint16 = 0xC001
-	http2cipher_TLS_ECDH_ECDSA_WITH_RC4_128_SHA              uint16 = 0xC002
-	http2cipher_TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA         uint16 = 0xC003
-	http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA          uint16 = 0xC004
-	http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA          uint16 = 0xC005
-	http2cipher_TLS_ECDHE_ECDSA_WITH_NULL_SHA                uint16 = 0xC006
-	http2cipher_TLS_ECDHE_ECDSA_WITH_RC4_128_SHA             uint16 = 0xC007
-	http2cipher_TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA        uint16 = 0xC008
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA         uint16 = 0xC009
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA         uint16 = 0xC00A
-	http2cipher_TLS_ECDH_RSA_WITH_NULL_SHA                   uint16 = 0xC00B
-	http2cipher_TLS_ECDH_RSA_WITH_RC4_128_SHA                uint16 = 0xC00C
-	http2cipher_TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA           uint16 = 0xC00D
-	http2cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA            uint16 = 0xC00E
-	http2cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA            uint16 = 0xC00F
-	http2cipher_TLS_ECDHE_RSA_WITH_NULL_SHA                  uint16 = 0xC010
-	http2cipher_TLS_ECDHE_RSA_WITH_RC4_128_SHA               uint16 = 0xC011
-	http2cipher_TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA          uint16 = 0xC012
-	http2cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA           uint16 = 0xC013
-	http2cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA           uint16 = 0xC014
-	http2cipher_TLS_ECDH_anon_WITH_NULL_SHA                  uint16 = 0xC015
-	http2cipher_TLS_ECDH_anon_WITH_RC4_128_SHA               uint16 = 0xC016
-	http2cipher_TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA          uint16 = 0xC017
-	http2cipher_TLS_ECDH_anon_WITH_AES_128_CBC_SHA           uint16 = 0xC018
-	http2cipher_TLS_ECDH_anon_WITH_AES_256_CBC_SHA           uint16 = 0xC019
-	http2cipher_TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA            uint16 = 0xC01A
-	http2cipher_TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA        uint16 = 0xC01B
-	http2cipher_TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA        uint16 = 0xC01C
-	http2cipher_TLS_SRP_SHA_WITH_AES_128_CBC_SHA             uint16 = 0xC01D
-	http2cipher_TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA         uint16 = 0xC01E
-	http2cipher_TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA         uint16 = 0xC01F
-	http2cipher_TLS_SRP_SHA_WITH_AES_256_CBC_SHA             uint16 = 0xC020
-	http2cipher_TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA         uint16 = 0xC021
-	http2cipher_TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA         uint16 = 0xC022
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256      uint16 = 0xC023
-	http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384      uint16 = 0xC024
-	http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256       uint16 = 0xC025
-	http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384       uint16 = 0xC026
-	http2cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256        uint16 = 0xC027
-	http2cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384        uint16 = 0xC028
-	http2cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256         uint16 = 0xC029
-	http2cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384         uint16 = 0xC02A
-	http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256       uint16 = 0xC02D
-	http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384       uint16 = 0xC02E
-	http2cipher_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256        uint16 = 0xC02F
-	http2cipher_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256         uint16 = 0xC031
-	http2cipher_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384         uint16 = 0xC032
-	http2cipher_TLS_ECDHE_PSK_WITH_RC4_128_SHA               uint16 = 0xC033
-	http2cipher_TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA          uint16 = 0xC034
-	http2cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA           uint16 = 0xC035
-	http2cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA           uint16 = 0xC036
-	http2cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256        uint16 = 0xC037
-	http2cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384        uint16 = 0xC038
-	http2cipher_TLS_ECDHE_PSK_WITH_NULL_SHA                  uint16 = 0xC039
-	http2cipher_TLS_ECDHE_PSK_WITH_NULL_SHA256               uint16 = 0xC03A
-	http2cipher_TLS_ECDHE_PSK_WITH_NULL_SHA384               uint16 = 0xC03B
-	http2cipher_TLS_RSA_WITH_ARIA_128_CBC_SHA256             uint16 = 0xC03C
-	http2cipher_TLS_RSA_WITH_ARIA_256_CBC_SHA384             uint16 = 0xC03D
-	http2cipher_TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256          uint16 = 0xC03E
-	http2cipher_TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384          uint16 = 0xC03F
-	http2cipher_TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256          uint16 = 0xC040
-	http2cipher_TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384          uint16 = 0xC041
-	http2cipher_TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC042
-	http2cipher_TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC043
-	http2cipher_TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC044
-	http2cipher_TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC045
-	http2cipher_TLS_DH_anon_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC046
-	http2cipher_TLS_DH_anon_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC047
-	http2cipher_TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256     uint16 = 0xC048
-	http2cipher_TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384     uint16 = 0xC049
-	http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256      uint16 = 0xC04A
-	http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384      uint16 = 0xC04B
-	http2cipher_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256       uint16 = 0xC04C
-	http2cipher_TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384       uint16 = 0xC04D
-	http2cipher_TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256        uint16 = 0xC04E
-	http2cipher_TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384        uint16 = 0xC04F
-	http2cipher_TLS_RSA_WITH_ARIA_128_GCM_SHA256             uint16 = 0xC050
-	http2cipher_TLS_RSA_WITH_ARIA_256_GCM_SHA384             uint16 = 0xC051
-	http2cipher_TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256          uint16 = 0xC054
-	http2cipher_TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384          uint16 = 0xC055
-	http2cipher_TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256          uint16 = 0xC058
-	http2cipher_TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384          uint16 = 0xC059
-	http2cipher_TLS_DH_anon_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC05A
-	http2cipher_TLS_DH_anon_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC05B
-	http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256      uint16 = 0xC05E
-	http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384      uint16 = 0xC05F
-	http2cipher_TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256        uint16 = 0xC062
-	http2cipher_TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384        uint16 = 0xC063
-	http2cipher_TLS_PSK_WITH_ARIA_128_CBC_SHA256             uint16 = 0xC064
-	http2cipher_TLS_PSK_WITH_ARIA_256_CBC_SHA384             uint16 = 0xC065
-	http2cipher_TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC066
-	http2cipher_TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC067
-	http2cipher_TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC068
-	http2cipher_TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC069
-	http2cipher_TLS_PSK_WITH_ARIA_128_GCM_SHA256             uint16 = 0xC06A
-	http2cipher_TLS_PSK_WITH_ARIA_256_GCM_SHA384             uint16 = 0xC06B
-	http2cipher_TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC06E
-	http2cipher_TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC06F
-	http2cipher_TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256       uint16 = 0xC070
-	http2cipher_TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384       uint16 = 0xC071
-	http2cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256 uint16 = 0xC072
-	http2cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384 uint16 = 0xC073
-	http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256  uint16 = 0xC074
-	http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384  uint16 = 0xC075
-	http2cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256   uint16 = 0xC076
-	http2cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384   uint16 = 0xC077
-	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256    uint16 = 0xC078
-	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384    uint16 = 0xC079
-	http2cipher_TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256         uint16 = 0xC07A
-	http2cipher_TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384         uint16 = 0xC07B
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256      uint16 = 0xC07E
-	http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384      uint16 = 0xC07F
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256      uint16 = 0xC082
-	http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384      uint16 = 0xC083
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC084
-	http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC085
-	http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256  uint16 = 0xC088
-	http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384  uint16 = 0xC089
-	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256    uint16 = 0xC08C
-	http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384    uint16 = 0xC08D
-	http2cipher_TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256         uint16 = 0xC08E
-	http2cipher_TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384         uint16 = 0xC08F
-	http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC092
-	http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC093
-	http2cipher_TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256         uint16 = 0xC094
-	http2cipher_TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384         uint16 = 0xC095
-	http2cipher_TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0xC096
-	http2cipher_TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384     uint16 = 0xC097
-	http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0xC098
-	http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384     uint16 = 0xC099
-	http2cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256   uint16 = 0xC09A
-	http2cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384   uint16 = 0xC09B
-	http2cipher_TLS_RSA_WITH_AES_128_CCM                     uint16 = 0xC09C
-	http2cipher_TLS_RSA_WITH_AES_256_CCM                     uint16 = 0xC09D
-	http2cipher_TLS_RSA_WITH_AES_128_CCM_8                   uint16 = 0xC0A0
-	http2cipher_TLS_RSA_WITH_AES_256_CCM_8                   uint16 = 0xC0A1
-	http2cipher_TLS_PSK_WITH_AES_128_CCM                     uint16 = 0xC0A4
-	http2cipher_TLS_PSK_WITH_AES_256_CCM                     uint16 = 0xC0A5
-	http2cipher_TLS_PSK_WITH_AES_128_CCM_8                   uint16 = 0xC0A8
-	http2cipher_TLS_PSK_WITH_AES_256_CCM_8                   uint16 = 0xC0A9
+	cipher_TLS_NULL_WITH_NULL_NULL                      uint16 = 0x0000
+	cipher_TLS_RSA_WITH_NULL_MD5                        uint16 = 0x0001
+	cipher_TLS_RSA_WITH_NULL_SHA                        uint16 = 0x0002
+	cipher_TLS_RSA_EXPORT_WITH_RC4_40_MD5               uint16 = 0x0003
+	cipher_TLS_RSA_WITH_RC4_128_MD5                     uint16 = 0x0004
+	cipher_TLS_RSA_WITH_RC4_128_SHA                     uint16 = 0x0005
+	cipher_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5           uint16 = 0x0006
+	cipher_TLS_RSA_WITH_IDEA_CBC_SHA                    uint16 = 0x0007
+	cipher_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA            uint16 = 0x0008
+	cipher_TLS_RSA_WITH_DES_CBC_SHA                     uint16 = 0x0009
+	cipher_TLS_RSA_WITH_3DES_EDE_CBC_SHA                uint16 = 0x000A
+	cipher_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA         uint16 = 0x000B
+	cipher_TLS_DH_DSS_WITH_DES_CBC_SHA                  uint16 = 0x000C
+	cipher_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA             uint16 = 0x000D
+	cipher_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA         uint16 = 0x000E
+	cipher_TLS_DH_RSA_WITH_DES_CBC_SHA                  uint16 = 0x000F
+	cipher_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA             uint16 = 0x0010
+	cipher_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0011
+	cipher_TLS_DHE_DSS_WITH_DES_CBC_SHA                 uint16 = 0x0012
+	cipher_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0013
+	cipher_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0014
+	cipher_TLS_DHE_RSA_WITH_DES_CBC_SHA                 uint16 = 0x0015
+	cipher_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0016
+	cipher_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5           uint16 = 0x0017
+	cipher_TLS_DH_anon_WITH_RC4_128_MD5                 uint16 = 0x0018
+	cipher_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA        uint16 = 0x0019
+	cipher_TLS_DH_anon_WITH_DES_CBC_SHA                 uint16 = 0x001A
+	cipher_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA            uint16 = 0x001B
+	cipher_TLS_KRB5_WITH_DES_CBC_SHA                    uint16 = 0x001E
+	cipher_TLS_KRB5_WITH_3DES_EDE_CBC_SHA               uint16 = 0x001F
+	cipher_TLS_KRB5_WITH_RC4_128_SHA                    uint16 = 0x0020
+	cipher_TLS_KRB5_WITH_IDEA_CBC_SHA                   uint16 = 0x0021
+	cipher_TLS_KRB5_WITH_DES_CBC_MD5                    uint16 = 0x0022
+	cipher_TLS_KRB5_WITH_3DES_EDE_CBC_MD5               uint16 = 0x0023
+	cipher_TLS_KRB5_WITH_RC4_128_MD5                    uint16 = 0x0024
+	cipher_TLS_KRB5_WITH_IDEA_CBC_MD5                   uint16 = 0x0025
+	cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA          uint16 = 0x0026
+	cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA          uint16 = 0x0027
+	cipher_TLS_KRB5_EXPORT_WITH_RC4_40_SHA              uint16 = 0x0028
+	cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5          uint16 = 0x0029
+	cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5          uint16 = 0x002A
+	cipher_TLS_KRB5_EXPORT_WITH_RC4_40_MD5              uint16 = 0x002B
+	cipher_TLS_PSK_WITH_NULL_SHA                        uint16 = 0x002C
+	cipher_TLS_DHE_PSK_WITH_NULL_SHA                    uint16 = 0x002D
+	cipher_TLS_RSA_PSK_WITH_NULL_SHA                    uint16 = 0x002E
+	cipher_TLS_RSA_WITH_AES_128_CBC_SHA                 uint16 = 0x002F
+	cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA              uint16 = 0x0030
+	cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA              uint16 = 0x0031
+	cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA             uint16 = 0x0032
+	cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA             uint16 = 0x0033
+	cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA             uint16 = 0x0034
+	cipher_TLS_RSA_WITH_AES_256_CBC_SHA                 uint16 = 0x0035
+	cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA              uint16 = 0x0036
+	cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA              uint16 = 0x0037
+	cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA             uint16 = 0x0038
+	cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA             uint16 = 0x0039
+	cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA             uint16 = 0x003A
+	cipher_TLS_RSA_WITH_NULL_SHA256                     uint16 = 0x003B
+	cipher_TLS_RSA_WITH_AES_128_CBC_SHA256              uint16 = 0x003C
+	cipher_TLS_RSA_WITH_AES_256_CBC_SHA256              uint16 = 0x003D
+	cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA256           uint16 = 0x003E
+	cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA256           uint16 = 0x003F
+	cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA256          uint16 = 0x0040
+	cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA            uint16 = 0x0041
+	cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA         uint16 = 0x0042
+	cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA         uint16 = 0x0043
+	cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0044
+	cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0045
+	cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA        uint16 = 0x0046
+	cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA256          uint16 = 0x0067
+	cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA256           uint16 = 0x0068
+	cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA256           uint16 = 0x0069
+	cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA256          uint16 = 0x006A
+	cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA256          uint16 = 0x006B
+	cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA256          uint16 = 0x006C
+	cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA256          uint16 = 0x006D
+	cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA            uint16 = 0x0084
+	cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA         uint16 = 0x0085
+	cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA         uint16 = 0x0086
+	cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0087
+	cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0088
+	cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA        uint16 = 0x0089
+	cipher_TLS_PSK_WITH_RC4_128_SHA                     uint16 = 0x008A
+	cipher_TLS_PSK_WITH_3DES_EDE_CBC_SHA                uint16 = 0x008B
+	cipher_TLS_PSK_WITH_AES_128_CBC_SHA                 uint16 = 0x008C
+	cipher_TLS_PSK_WITH_AES_256_CBC_SHA                 uint16 = 0x008D
+	cipher_TLS_DHE_PSK_WITH_RC4_128_SHA                 uint16 = 0x008E
+	cipher_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x008F
+	cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x0090
+	cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x0091
+	cipher_TLS_RSA_PSK_WITH_RC4_128_SHA                 uint16 = 0x0092
+	cipher_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA            uint16 = 0x0093
+	cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA             uint16 = 0x0094
+	cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA             uint16 = 0x0095
+	cipher_TLS_RSA_WITH_SEED_CBC_SHA                    uint16 = 0x0096
+	cipher_TLS_DH_DSS_WITH_SEED_CBC_SHA                 uint16 = 0x0097
+	cipher_TLS_DH_RSA_WITH_SEED_CBC_SHA                 uint16 = 0x0098
+	cipher_TLS_DHE_DSS_WITH_SEED_CBC_SHA                uint16 = 0x0099
+	cipher_TLS_DHE_RSA_WITH_SEED_CBC_SHA                uint16 = 0x009A
+	cipher_TLS_DH_anon_WITH_SEED_CBC_SHA                uint16 = 0x009B
+	cipher_TLS_RSA_WITH_AES_128_GCM_SHA256              uint16 = 0x009C
+	cipher_TLS_RSA_WITH_AES_256_GCM_SHA384              uint16 = 0x009D
+	cipher_TLS_DH_RSA_WITH_AES_128_GCM_SHA256           uint16 = 0x00A0
+	cipher_TLS_DH_RSA_WITH_AES_256_GCM_SHA384           uint16 = 0x00A1
+	cipher_TLS_DH_DSS_WITH_AES_128_GCM_SHA256           uint16 = 0x00A4
+	cipher_TLS_DH_DSS_WITH_AES_256_GCM_SHA384           uint16 = 0x00A5
+	cipher_TLS_DH_anon_WITH_AES_128_GCM_SHA256          uint16 = 0x00A6
+	cipher_TLS_DH_anon_WITH_AES_256_GCM_SHA384          uint16 = 0x00A7
+	cipher_TLS_PSK_WITH_AES_128_GCM_SHA256              uint16 = 0x00A8
+	cipher_TLS_PSK_WITH_AES_256_GCM_SHA384              uint16 = 0x00A9
+	cipher_TLS_RSA_PSK_WITH_AES_128_GCM_SHA256          uint16 = 0x00AC
+	cipher_TLS_RSA_PSK_WITH_AES_256_GCM_SHA384          uint16 = 0x00AD
+	cipher_TLS_PSK_WITH_AES_128_CBC_SHA256              uint16 = 0x00AE
+	cipher_TLS_PSK_WITH_AES_256_CBC_SHA384              uint16 = 0x00AF
+	cipher_TLS_PSK_WITH_NULL_SHA256                     uint16 = 0x00B0
+	cipher_TLS_PSK_WITH_NULL_SHA384                     uint16 = 0x00B1
+	cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00B2
+	cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00B3
+	cipher_TLS_DHE_PSK_WITH_NULL_SHA256                 uint16 = 0x00B4
+	cipher_TLS_DHE_PSK_WITH_NULL_SHA384                 uint16 = 0x00B5
+	cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA256          uint16 = 0x00B6
+	cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA384          uint16 = 0x00B7
+	cipher_TLS_RSA_PSK_WITH_NULL_SHA256                 uint16 = 0x00B8
+	cipher_TLS_RSA_PSK_WITH_NULL_SHA384                 uint16 = 0x00B9
+	cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256         uint16 = 0x00BA
+	cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256      uint16 = 0x00BB
+	cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256      uint16 = 0x00BC
+	cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BD
+	cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BE
+	cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0x00BF
+	cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256         uint16 = 0x00C0
+	cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256      uint16 = 0x00C1
+	cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256      uint16 = 0x00C2
+	cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C3
+	cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C4
+	cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256     uint16 = 0x00C5
+	cipher_TLS_EMPTY_RENEGOTIATION_INFO_SCSV            uint16 = 0x00FF
+	cipher_TLS_ECDH_ECDSA_WITH_NULL_SHA                 uint16 = 0xC001
+	cipher_TLS_ECDH_ECDSA_WITH_RC4_128_SHA              uint16 = 0xC002
+	cipher_TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA         uint16 = 0xC003
+	cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA          uint16 = 0xC004
+	cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA          uint16 = 0xC005
+	cipher_TLS_ECDHE_ECDSA_WITH_NULL_SHA                uint16 = 0xC006
+	cipher_TLS_ECDHE_ECDSA_WITH_RC4_128_SHA             uint16 = 0xC007
+	cipher_TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA        uint16 = 0xC008
+	cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA         uint16 = 0xC009
+	cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA         uint16 = 0xC00A
+	cipher_TLS_ECDH_RSA_WITH_NULL_SHA                   uint16 = 0xC00B
+	cipher_TLS_ECDH_RSA_WITH_RC4_128_SHA                uint16 = 0xC00C
+	cipher_TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA           uint16 = 0xC00D
+	cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA            uint16 = 0xC00E
+	cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA            uint16 = 0xC00F
+	cipher_TLS_ECDHE_RSA_WITH_NULL_SHA                  uint16 = 0xC010
+	cipher_TLS_ECDHE_RSA_WITH_RC4_128_SHA               uint16 = 0xC011
+	cipher_TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA          uint16 = 0xC012
+	cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA           uint16 = 0xC013
+	cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA           uint16 = 0xC014
+	cipher_TLS_ECDH_anon_WITH_NULL_SHA                  uint16 = 0xC015
+	cipher_TLS_ECDH_anon_WITH_RC4_128_SHA               uint16 = 0xC016
+	cipher_TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA          uint16 = 0xC017
+	cipher_TLS_ECDH_anon_WITH_AES_128_CBC_SHA           uint16 = 0xC018
+	cipher_TLS_ECDH_anon_WITH_AES_256_CBC_SHA           uint16 = 0xC019
+	cipher_TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA            uint16 = 0xC01A
+	cipher_TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA        uint16 = 0xC01B
+	cipher_TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA        uint16 = 0xC01C
+	cipher_TLS_SRP_SHA_WITH_AES_128_CBC_SHA             uint16 = 0xC01D
+	cipher_TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA         uint16 = 0xC01E
+	cipher_TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA         uint16 = 0xC01F
+	cipher_TLS_SRP_SHA_WITH_AES_256_CBC_SHA             uint16 = 0xC020
+	cipher_TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA         uint16 = 0xC021
+	cipher_TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA         uint16 = 0xC022
+	cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256      uint16 = 0xC023
+	cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384      uint16 = 0xC024
+	cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256       uint16 = 0xC025
+	cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384       uint16 = 0xC026
+	cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256        uint16 = 0xC027
+	cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384        uint16 = 0xC028
+	cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256         uint16 = 0xC029
+	cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384         uint16 = 0xC02A
+	cipher_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256       uint16 = 0xC02D
+	cipher_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384       uint16 = 0xC02E
+	cipher_TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256        uint16 = 0xC02F
+	cipher_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256         uint16 = 0xC031
+	cipher_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384         uint16 = 0xC032
+	cipher_TLS_ECDHE_PSK_WITH_RC4_128_SHA               uint16 = 0xC033
+	cipher_TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA          uint16 = 0xC034
+	cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA           uint16 = 0xC035
+	cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA           uint16 = 0xC036
+	cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256        uint16 = 0xC037
+	cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384        uint16 = 0xC038
+	cipher_TLS_ECDHE_PSK_WITH_NULL_SHA                  uint16 = 0xC039
+	cipher_TLS_ECDHE_PSK_WITH_NULL_SHA256               uint16 = 0xC03A
+	cipher_TLS_ECDHE_PSK_WITH_NULL_SHA384               uint16 = 0xC03B
+	cipher_TLS_RSA_WITH_ARIA_128_CBC_SHA256             uint16 = 0xC03C
+	cipher_TLS_RSA_WITH_ARIA_256_CBC_SHA384             uint16 = 0xC03D
+	cipher_TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256          uint16 = 0xC03E
+	cipher_TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384          uint16 = 0xC03F
+	cipher_TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256          uint16 = 0xC040
+	cipher_TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384          uint16 = 0xC041
+	cipher_TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC042
+	cipher_TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC043
+	cipher_TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC044
+	cipher_TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC045
+	cipher_TLS_DH_anon_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC046
+	cipher_TLS_DH_anon_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC047
+	cipher_TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256     uint16 = 0xC048
+	cipher_TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384     uint16 = 0xC049
+	cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256      uint16 = 0xC04A
+	cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384      uint16 = 0xC04B
+	cipher_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256       uint16 = 0xC04C
+	cipher_TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384       uint16 = 0xC04D
+	cipher_TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256        uint16 = 0xC04E
+	cipher_TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384        uint16 = 0xC04F
+	cipher_TLS_RSA_WITH_ARIA_128_GCM_SHA256             uint16 = 0xC050
+	cipher_TLS_RSA_WITH_ARIA_256_GCM_SHA384             uint16 = 0xC051
+	cipher_TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256          uint16 = 0xC054
+	cipher_TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384          uint16 = 0xC055
+	cipher_TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256          uint16 = 0xC058
+	cipher_TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384          uint16 = 0xC059
+	cipher_TLS_DH_anon_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC05A
+	cipher_TLS_DH_anon_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC05B
+	cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256      uint16 = 0xC05E
+	cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384      uint16 = 0xC05F
+	cipher_TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256        uint16 = 0xC062
+	cipher_TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384        uint16 = 0xC063
+	cipher_TLS_PSK_WITH_ARIA_128_CBC_SHA256             uint16 = 0xC064
+	cipher_TLS_PSK_WITH_ARIA_256_CBC_SHA384             uint16 = 0xC065
+	cipher_TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC066
+	cipher_TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC067
+	cipher_TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256         uint16 = 0xC068
+	cipher_TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384         uint16 = 0xC069
+	cipher_TLS_PSK_WITH_ARIA_128_GCM_SHA256             uint16 = 0xC06A
+	cipher_TLS_PSK_WITH_ARIA_256_GCM_SHA384             uint16 = 0xC06B
+	cipher_TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256         uint16 = 0xC06E
+	cipher_TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384         uint16 = 0xC06F
+	cipher_TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256       uint16 = 0xC070
+	cipher_TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384       uint16 = 0xC071
+	cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256 uint16 = 0xC072
+	cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384 uint16 = 0xC073
+	cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256  uint16 = 0xC074
+	cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384  uint16 = 0xC075
+	cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256   uint16 = 0xC076
+	cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384   uint16 = 0xC077
+	cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256    uint16 = 0xC078
+	cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384    uint16 = 0xC079
+	cipher_TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256         uint16 = 0xC07A
+	cipher_TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384         uint16 = 0xC07B
+	cipher_TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256      uint16 = 0xC07E
+	cipher_TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384      uint16 = 0xC07F
+	cipher_TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256      uint16 = 0xC082
+	cipher_TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384      uint16 = 0xC083
+	cipher_TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC084
+	cipher_TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC085
+	cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256  uint16 = 0xC088
+	cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384  uint16 = 0xC089
+	cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256    uint16 = 0xC08C
+	cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384    uint16 = 0xC08D
+	cipher_TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256         uint16 = 0xC08E
+	cipher_TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384         uint16 = 0xC08F
+	cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256     uint16 = 0xC092
+	cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384     uint16 = 0xC093
+	cipher_TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256         uint16 = 0xC094
+	cipher_TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384         uint16 = 0xC095
+	cipher_TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0xC096
+	cipher_TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384     uint16 = 0xC097
+	cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256     uint16 = 0xC098
+	cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384     uint16 = 0xC099
+	cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256   uint16 = 0xC09A
+	cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384   uint16 = 0xC09B
+	cipher_TLS_RSA_WITH_AES_128_CCM                     uint16 = 0xC09C
+	cipher_TLS_RSA_WITH_AES_256_CCM                     uint16 = 0xC09D
+	cipher_TLS_RSA_WITH_AES_128_CCM_8                   uint16 = 0xC0A0
+	cipher_TLS_RSA_WITH_AES_256_CCM_8                   uint16 = 0xC0A1
+	cipher_TLS_PSK_WITH_AES_128_CCM                     uint16 = 0xC0A4
+	cipher_TLS_PSK_WITH_AES_256_CCM                     uint16 = 0xC0A5
+	cipher_TLS_PSK_WITH_AES_128_CCM_8                   uint16 = 0xC0A8
+	cipher_TLS_PSK_WITH_AES_256_CCM_8                   uint16 = 0xC0A9
 )
 
 // isBadCipher reports whether the cipher is blacklisted by the HTTP/2 spec.
@@ -324,284 +324,284 @@ const (
 // "This list includes those cipher suites that do not
 // offer an ephemeral key exchange and those that are
 // based on the TLS null, stream or block cipher type"
-func http2isBadCipher(cipher uint16) bool {
+func isBadCipher(cipher uint16) bool {
 	switch cipher {
-	case http2cipher_TLS_NULL_WITH_NULL_NULL,
-		http2cipher_TLS_RSA_WITH_NULL_MD5,
-		http2cipher_TLS_RSA_WITH_NULL_SHA,
-		http2cipher_TLS_RSA_EXPORT_WITH_RC4_40_MD5,
-		http2cipher_TLS_RSA_WITH_RC4_128_MD5,
-		http2cipher_TLS_RSA_WITH_RC4_128_SHA,
-		http2cipher_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
-		http2cipher_TLS_RSA_WITH_IDEA_CBC_SHA,
-		http2cipher_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA,
-		http2cipher_TLS_RSA_WITH_DES_CBC_SHA,
-		http2cipher_TLS_RSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_DES_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_DES_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_DES_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_DES_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5,
-		http2cipher_TLS_DH_anon_WITH_RC4_128_MD5,
-		http2cipher_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_DES_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_KRB5_WITH_DES_CBC_SHA,
-		http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_KRB5_WITH_RC4_128_SHA,
-		http2cipher_TLS_KRB5_WITH_IDEA_CBC_SHA,
-		http2cipher_TLS_KRB5_WITH_DES_CBC_MD5,
-		http2cipher_TLS_KRB5_WITH_3DES_EDE_CBC_MD5,
-		http2cipher_TLS_KRB5_WITH_RC4_128_MD5,
-		http2cipher_TLS_KRB5_WITH_IDEA_CBC_MD5,
-		http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA,
-		http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA,
-		http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_SHA,
-		http2cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5,
-		http2cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5,
-		http2cipher_TLS_KRB5_EXPORT_WITH_RC4_40_MD5,
-		http2cipher_TLS_PSK_WITH_NULL_SHA,
-		http2cipher_TLS_DHE_PSK_WITH_NULL_SHA,
-		http2cipher_TLS_RSA_PSK_WITH_NULL_SHA,
-		http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_RSA_WITH_NULL_SHA256,
-		http2cipher_TLS_RSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_RSA_WITH_AES_256_CBC_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA256,
-		http2cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA256,
-		http2cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
-		http2cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA256,
-		http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA,
-		http2cipher_TLS_PSK_WITH_RC4_128_SHA,
-		http2cipher_TLS_PSK_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_DHE_PSK_WITH_RC4_128_SHA,
-		http2cipher_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_RSA_PSK_WITH_RC4_128_SHA,
-		http2cipher_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_RSA_WITH_SEED_CBC_SHA,
-		http2cipher_TLS_DH_DSS_WITH_SEED_CBC_SHA,
-		http2cipher_TLS_DH_RSA_WITH_SEED_CBC_SHA,
-		http2cipher_TLS_DHE_DSS_WITH_SEED_CBC_SHA,
-		http2cipher_TLS_DHE_RSA_WITH_SEED_CBC_SHA,
-		http2cipher_TLS_DH_anon_WITH_SEED_CBC_SHA,
-		http2cipher_TLS_RSA_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_RSA_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_DH_RSA_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_DH_DSS_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_DH_anon_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_DH_anon_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_PSK_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_PSK_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_PSK_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_PSK_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_PSK_WITH_NULL_SHA256,
-		http2cipher_TLS_PSK_WITH_NULL_SHA384,
-		http2cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_DHE_PSK_WITH_NULL_SHA256,
-		http2cipher_TLS_DHE_PSK_WITH_NULL_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_NULL_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_NULL_SHA384,
-		http2cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256,
-		http2cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256,
-		http2cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256,
-		http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256,
-		http2cipher_TLS_EMPTY_RENEGOTIATION_INFO_SCSV,
-		http2cipher_TLS_ECDH_ECDSA_WITH_NULL_SHA,
-		http2cipher_TLS_ECDH_ECDSA_WITH_RC4_128_SHA,
-		http2cipher_TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_NULL_SHA,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_ECDH_RSA_WITH_NULL_SHA,
-		http2cipher_TLS_ECDH_RSA_WITH_RC4_128_SHA,
-		http2cipher_TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_ECDHE_RSA_WITH_NULL_SHA,
-		http2cipher_TLS_ECDHE_RSA_WITH_RC4_128_SHA,
-		http2cipher_TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_ECDH_anon_WITH_NULL_SHA,
-		http2cipher_TLS_ECDH_anon_WITH_RC4_128_SHA,
-		http2cipher_TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_ECDH_anon_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_ECDH_anon_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
-		http2cipher_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
-		http2cipher_TLS_ECDHE_PSK_WITH_RC4_128_SHA,
-		http2cipher_TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA,
-		http2cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA,
-		http2cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA,
-		http2cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_PSK_WITH_NULL_SHA,
-		http2cipher_TLS_ECDHE_PSK_WITH_NULL_SHA256,
-		http2cipher_TLS_ECDHE_PSK_WITH_NULL_SHA384,
-		http2cipher_TLS_RSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_RSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_DH_anon_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_DH_anon_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_RSA_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_RSA_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_DH_anon_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_DH_anon_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_PSK_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_PSK_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_PSK_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_PSK_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384,
-		http2cipher_TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384,
-		http2cipher_TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256,
-		http2cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384,
-		http2cipher_TLS_RSA_WITH_AES_128_CCM,
-		http2cipher_TLS_RSA_WITH_AES_256_CCM,
-		http2cipher_TLS_RSA_WITH_AES_128_CCM_8,
-		http2cipher_TLS_RSA_WITH_AES_256_CCM_8,
-		http2cipher_TLS_PSK_WITH_AES_128_CCM,
-		http2cipher_TLS_PSK_WITH_AES_256_CCM,
-		http2cipher_TLS_PSK_WITH_AES_128_CCM_8,
-		http2cipher_TLS_PSK_WITH_AES_256_CCM_8:
+	case cipher_TLS_NULL_WITH_NULL_NULL,
+		cipher_TLS_RSA_WITH_NULL_MD5,
+		cipher_TLS_RSA_WITH_NULL_SHA,
+		cipher_TLS_RSA_EXPORT_WITH_RC4_40_MD5,
+		cipher_TLS_RSA_WITH_RC4_128_MD5,
+		cipher_TLS_RSA_WITH_RC4_128_SHA,
+		cipher_TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,
+		cipher_TLS_RSA_WITH_IDEA_CBC_SHA,
+		cipher_TLS_RSA_EXPORT_WITH_DES40_CBC_SHA,
+		cipher_TLS_RSA_WITH_DES_CBC_SHA,
+		cipher_TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_DH_DSS_EXPORT_WITH_DES40_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_DES_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_DH_RSA_EXPORT_WITH_DES40_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_DES_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_DHE_DSS_EXPORT_WITH_DES40_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_DES_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_DHE_RSA_EXPORT_WITH_DES40_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_DES_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_DH_anon_EXPORT_WITH_RC4_40_MD5,
+		cipher_TLS_DH_anon_WITH_RC4_128_MD5,
+		cipher_TLS_DH_anon_EXPORT_WITH_DES40_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_DES_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_KRB5_WITH_DES_CBC_SHA,
+		cipher_TLS_KRB5_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_KRB5_WITH_RC4_128_SHA,
+		cipher_TLS_KRB5_WITH_IDEA_CBC_SHA,
+		cipher_TLS_KRB5_WITH_DES_CBC_MD5,
+		cipher_TLS_KRB5_WITH_3DES_EDE_CBC_MD5,
+		cipher_TLS_KRB5_WITH_RC4_128_MD5,
+		cipher_TLS_KRB5_WITH_IDEA_CBC_MD5,
+		cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_SHA,
+		cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_SHA,
+		cipher_TLS_KRB5_EXPORT_WITH_RC4_40_SHA,
+		cipher_TLS_KRB5_EXPORT_WITH_DES_CBC_40_MD5,
+		cipher_TLS_KRB5_EXPORT_WITH_RC2_CBC_40_MD5,
+		cipher_TLS_KRB5_EXPORT_WITH_RC4_40_MD5,
+		cipher_TLS_PSK_WITH_NULL_SHA,
+		cipher_TLS_DHE_PSK_WITH_NULL_SHA,
+		cipher_TLS_RSA_PSK_WITH_NULL_SHA,
+		cipher_TLS_RSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA,
+		cipher_TLS_RSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA,
+		cipher_TLS_RSA_WITH_NULL_SHA256,
+		cipher_TLS_RSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_RSA_WITH_AES_256_CBC_SHA256,
+		cipher_TLS_DH_DSS_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_DH_RSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_DHE_DSS_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_DH_DSS_WITH_AES_256_CBC_SHA256,
+		cipher_TLS_DH_RSA_WITH_AES_256_CBC_SHA256,
+		cipher_TLS_DHE_DSS_WITH_AES_256_CBC_SHA256,
+		cipher_TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+		cipher_TLS_DH_anon_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_DH_anon_WITH_AES_256_CBC_SHA256,
+		cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA,
+		cipher_TLS_PSK_WITH_RC4_128_SHA,
+		cipher_TLS_PSK_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_PSK_WITH_AES_128_CBC_SHA,
+		cipher_TLS_PSK_WITH_AES_256_CBC_SHA,
+		cipher_TLS_DHE_PSK_WITH_RC4_128_SHA,
+		cipher_TLS_DHE_PSK_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA,
+		cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA,
+		cipher_TLS_RSA_PSK_WITH_RC4_128_SHA,
+		cipher_TLS_RSA_PSK_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA,
+		cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA,
+		cipher_TLS_RSA_WITH_SEED_CBC_SHA,
+		cipher_TLS_DH_DSS_WITH_SEED_CBC_SHA,
+		cipher_TLS_DH_RSA_WITH_SEED_CBC_SHA,
+		cipher_TLS_DHE_DSS_WITH_SEED_CBC_SHA,
+		cipher_TLS_DHE_RSA_WITH_SEED_CBC_SHA,
+		cipher_TLS_DH_anon_WITH_SEED_CBC_SHA,
+		cipher_TLS_RSA_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_RSA_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_DH_RSA_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_DH_RSA_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_DH_DSS_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_DH_DSS_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_DH_anon_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_DH_anon_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_PSK_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_PSK_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_RSA_PSK_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_RSA_PSK_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_PSK_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_PSK_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_PSK_WITH_NULL_SHA256,
+		cipher_TLS_PSK_WITH_NULL_SHA384,
+		cipher_TLS_DHE_PSK_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_DHE_PSK_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_DHE_PSK_WITH_NULL_SHA256,
+		cipher_TLS_DHE_PSK_WITH_NULL_SHA384,
+		cipher_TLS_RSA_PSK_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_RSA_PSK_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_RSA_PSK_WITH_NULL_SHA256,
+		cipher_TLS_RSA_PSK_WITH_NULL_SHA384,
+		cipher_TLS_RSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_DHE_DSS_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_DHE_RSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_DH_anon_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_RSA_WITH_CAMELLIA_256_CBC_SHA256,
+		cipher_TLS_DH_DSS_WITH_CAMELLIA_256_CBC_SHA256,
+		cipher_TLS_DH_RSA_WITH_CAMELLIA_256_CBC_SHA256,
+		cipher_TLS_DHE_DSS_WITH_CAMELLIA_256_CBC_SHA256,
+		cipher_TLS_DHE_RSA_WITH_CAMELLIA_256_CBC_SHA256,
+		cipher_TLS_DH_anon_WITH_CAMELLIA_256_CBC_SHA256,
+		cipher_TLS_EMPTY_RENEGOTIATION_INFO_SCSV,
+		cipher_TLS_ECDH_ECDSA_WITH_NULL_SHA,
+		cipher_TLS_ECDH_ECDSA_WITH_RC4_128_SHA,
+		cipher_TLS_ECDH_ECDSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_ECDHE_ECDSA_WITH_NULL_SHA,
+		cipher_TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+		cipher_TLS_ECDHE_ECDSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_ECDH_RSA_WITH_NULL_SHA,
+		cipher_TLS_ECDH_RSA_WITH_RC4_128_SHA,
+		cipher_TLS_ECDH_RSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_ECDHE_RSA_WITH_NULL_SHA,
+		cipher_TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+		cipher_TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_ECDH_anon_WITH_NULL_SHA,
+		cipher_TLS_ECDH_anon_WITH_RC4_128_SHA,
+		cipher_TLS_ECDH_anon_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_ECDH_anon_WITH_AES_128_CBC_SHA,
+		cipher_TLS_ECDH_anon_WITH_AES_256_CBC_SHA,
+		cipher_TLS_SRP_SHA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_SRP_SHA_RSA_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_SRP_SHA_DSS_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_SRP_SHA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_SRP_SHA_RSA_WITH_AES_128_CBC_SHA,
+		cipher_TLS_SRP_SHA_DSS_WITH_AES_128_CBC_SHA,
+		cipher_TLS_SRP_SHA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_SRP_SHA_RSA_WITH_AES_256_CBC_SHA,
+		cipher_TLS_SRP_SHA_DSS_WITH_AES_256_CBC_SHA,
+		cipher_TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
+		cipher_TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
+		cipher_TLS_ECDHE_PSK_WITH_RC4_128_SHA,
+		cipher_TLS_ECDHE_PSK_WITH_3DES_EDE_CBC_SHA,
+		cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA,
+		cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA,
+		cipher_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256,
+		cipher_TLS_ECDHE_PSK_WITH_AES_256_CBC_SHA384,
+		cipher_TLS_ECDHE_PSK_WITH_NULL_SHA,
+		cipher_TLS_ECDHE_PSK_WITH_NULL_SHA256,
+		cipher_TLS_ECDHE_PSK_WITH_NULL_SHA384,
+		cipher_TLS_RSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_RSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_DH_DSS_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_DH_DSS_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_DH_RSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_DH_RSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_DHE_DSS_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_DHE_DSS_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_DHE_RSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_DHE_RSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_DH_anon_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_DH_anon_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_ECDHE_ECDSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_ECDHE_ECDSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_ECDHE_RSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_ECDHE_RSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_ECDH_RSA_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_ECDH_RSA_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_RSA_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_RSA_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_DH_RSA_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_DH_RSA_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_DH_DSS_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_DH_DSS_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_DH_anon_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_DH_anon_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_ECDH_ECDSA_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_ECDH_ECDSA_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_ECDH_RSA_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_ECDH_RSA_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_PSK_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_PSK_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_DHE_PSK_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_DHE_PSK_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_RSA_PSK_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_RSA_PSK_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_PSK_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_PSK_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_RSA_PSK_WITH_ARIA_128_GCM_SHA256,
+		cipher_TLS_RSA_PSK_WITH_ARIA_256_GCM_SHA384,
+		cipher_TLS_ECDHE_PSK_WITH_ARIA_128_CBC_SHA256,
+		cipher_TLS_ECDHE_PSK_WITH_ARIA_256_CBC_SHA384,
+		cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_ECDHE_ECDSA_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_ECDHE_RSA_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_RSA_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_RSA_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_DH_RSA_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_DH_RSA_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_DH_DSS_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_DH_DSS_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_DH_anon_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_DH_anon_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_ECDH_ECDSA_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_ECDH_RSA_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_ECDH_RSA_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_PSK_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_PSK_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_GCM_SHA256,
+		cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_GCM_SHA384,
+		cipher_TLS_PSK_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_PSK_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_DHE_PSK_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_DHE_PSK_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_RSA_PSK_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_RSA_PSK_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_128_CBC_SHA256,
+		cipher_TLS_ECDHE_PSK_WITH_CAMELLIA_256_CBC_SHA384,
+		cipher_TLS_RSA_WITH_AES_128_CCM,
+		cipher_TLS_RSA_WITH_AES_256_CCM,
+		cipher_TLS_RSA_WITH_AES_128_CCM_8,
+		cipher_TLS_RSA_WITH_AES_256_CCM_8,
+		cipher_TLS_PSK_WITH_AES_128_CCM,
+		cipher_TLS_PSK_WITH_AES_256_CCM,
+		cipher_TLS_PSK_WITH_AES_128_CCM_8,
+		cipher_TLS_PSK_WITH_AES_256_CCM_8:
 		return true
 	default:
 		return false
@@ -609,11 +609,11 @@ func http2isBadCipher(cipher uint16) bool {
 }
 
 const (
-	http2prefaceTimeout         = 10 * time.Second
-	http2firstSettingsTimeout   = 2 * time.Second // should be in-flight with preface anyway
-	http2handlerChunkWriteSize  = 4 << 10
-	http2defaultMaxStreams      = 250 // TODO: make this 100 as the GFE seems to?
-	http2maxQueuedControlFrames = 10000
+	prefaceTimeout         = 10 * time.Second
+	firstSettingsTimeout   = 2 * time.Second // should be in-flight with preface anyway
+	handlerChunkWriteSize  = 4 << 10
+	defaultMaxStreams      = 250 // TODO: make this 100 as the GFE seems to?
+	maxQueuedControlFrames = 10000
 )
 
 var (
@@ -623,24 +623,24 @@ var (
 	errStreamClosed       = errors.New("http2: stream closed")
 )
 
-var http2responseWriterStatePool = sync.Pool{
+var responseWriterStatePool = sync.Pool{
 	New: func() interface{} {
-		rws := &http2responseWriterState{}
-		rws.bw = bufio.NewWriterSize(http2chunkWriter{rws}, http2handlerChunkWriteSize)
+		rws := &responseWriterState{}
+		rws.bw = bufio.NewWriterSize(chunkWriter{rws}, handlerChunkWriteSize)
 		return rws
 	},
 }
 
 // Test hooks.
 var (
-	http2testHookOnConn        func()
-	http2testHookGetServerConn func(*http2serverConn)
-	http2testHookOnPanicMu     *sync.Mutex // nil except in tests
-	http2testHookOnPanic       func(sc *http2serverConn, panicVal interface{}) (rePanic bool)
+	testHookOnConn        func()
+	testHookGetServerConn func(*serverConn)
+	testHookOnPanicMu     *sync.Mutex // nil except in tests
+	testHookOnPanic       func(sc *serverConn, panicVal interface{}) (rePanic bool)
 )
 
 // Server is an HTTP/2 server.
-type http2Server struct {
+type Server struct {
 	// MaxHandlers limits the number of http.Handler ServeHTTP goroutines
 	// which may run at a time over all connections.
 	// Negative or zero no limit.
@@ -685,7 +685,7 @@ type http2Server struct {
 
 	// NewWriteScheduler constructs a write scheduler for a connection.
 	// If nil, a default scheduler is chosen.
-	NewWriteScheduler func() http2WriteScheduler
+	NewWriteScheduler func() WriteScheduler
 
 	// CountError, if non-nil, is called on HTTP/2 server errors.
 	// It's intended to increment a metric for monitoring, such
@@ -696,44 +696,44 @@ type http2Server struct {
 	// Internal state. This is a pointer (rather than embedded directly)
 	// so that we don't embed a Mutex in this struct, which will make the
 	// struct non-copyable, which might break some callers.
-	state *http2serverInternalState
+	state *serverInternalState
 }
 
-func (s *http2Server) initialConnRecvWindowSize() int32 {
-	if s.MaxUploadBufferPerConnection > http2initialWindowSize {
+func (s *Server) initialConnRecvWindowSize() int32 {
+	if s.MaxUploadBufferPerConnection > initialWindowSize {
 		return s.MaxUploadBufferPerConnection
 	}
 	return 1 << 20
 }
 
-func (s *http2Server) initialStreamRecvWindowSize() int32 {
+func (s *Server) initialStreamRecvWindowSize() int32 {
 	if s.MaxUploadBufferPerStream > 0 {
 		return s.MaxUploadBufferPerStream
 	}
 	return 1 << 20
 }
 
-func (s *http2Server) maxReadFrameSize() uint32 {
-	if v := s.MaxReadFrameSize; v >= http2minMaxFrameSize && v <= http2maxFrameSize {
+func (s *Server) maxReadFrameSize() uint32 {
+	if v := s.MaxReadFrameSize; v >= minMaxFrameSize && v <= maxFrameSize {
 		return v
 	}
-	return http2defaultMaxReadFrameSize
+	return defaultMaxReadFrameSize
 }
 
-func (s *http2Server) maxConcurrentStreams() uint32 {
+func (s *Server) maxConcurrentStreams() uint32 {
 	if v := s.MaxConcurrentStreams; v > 0 {
 		return v
 	}
-	return http2defaultMaxStreams
+	return defaultMaxStreams
 }
 
 // maxQueuedControlFrames is the maximum number of control frames like
 // SETTINGS, PING and RST_STREAM that will be queued for writing before
 // the connection is closed to prevent memory exhaustion attacks.
-func (s *http2Server) maxQueuedControlFrames() int {
+func (s *Server) maxQueuedControlFrames() int {
 	// TODO: if anybody asks, add a Server field, and remember to define the
 	// behavior of negative values.
-	return http2maxQueuedControlFrames
+	return maxQueuedControlFrames
 }
 
 // ServeConn serves HTTP/2 requests on the provided connection and
@@ -750,31 +750,31 @@ func (s *http2Server) maxQueuedControlFrames() int {
 // implemented in terms of providing a suitably-behaving net.Conn.
 //
 // The opts parameter is optional. If nil, default values are used.
-func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts) {
-	baseCtx, cancel := http2serverConnBaseContext(c, opts)
+func (s *Server) ServeConn(c net.Conn, opts *ServeConnOpts) {
+	baseCtx, cancel := serverConnBaseContext(c, opts)
 	defer cancel()
 
-	sc := &http2serverConn{
+	sc := &serverConn{
 		srv:                         s,
 		hs:                          opts.baseConfig(),
 		conn:                        c,
 		baseCtx:                     baseCtx,
 		remoteAddrStr:               c.RemoteAddr().String(),
-		bw:                          http2newBufferedWriter(c),
+		bw:                          newBufferedWriter(c),
 		handler:                     opts.handler(),
-		streams:                     make(map[uint32]*http2stream),
-		readFrameCh:                 make(chan http2readFrameResult),
-		wantWriteFrameCh:            make(chan http2FrameWriteRequest, 8),
+		streams:                     make(map[uint32]*stream),
+		readFrameCh:                 make(chan readFrameResult),
+		wantWriteFrameCh:            make(chan FrameWriteRequest, 8),
 		serveMsgCh:                  make(chan interface{}, 8),
-		wroteFrameCh:                make(chan http2frameWriteResult, 1), // buffered; one send in writeFrameAsync
-		bodyReadCh:                  make(chan http2bodyReadMsg),         // buffering doesn't matter either way
+		wroteFrameCh:                make(chan frameWriteResult, 1), // buffered; one send in writeFrameAsync
+		bodyReadCh:                  make(chan bodyReadMsg),         // buffering doesn't matter either way
 		doneServing:                 make(chan struct{}),
 		clientMaxStreams:            math.MaxUint32, // Section 6.5.2: "Initially, there is no limit to this value"
 		advMaxStreams:               s.maxConcurrentStreams(),
-		initialStreamSendWindowSize: http2initialWindowSize,
-		maxFrameSize:                http2initialMaxFrameSize,
-		headerTableSize:             http2initialHeaderTableSize,
-		serveG:                      http2newGoroutineLock(),
+		initialStreamSendWindowSize: initialWindowSize,
+		maxFrameSize:                initialMaxFrameSize,
+		headerTableSize:             initialHeaderTableSize,
+		serveG:                      newGoroutineLock(),
 		pushEnabled:                 true,
 	}
 
@@ -793,23 +793,23 @@ func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts) {
 	if s.NewWriteScheduler != nil {
 		sc.writeSched = s.NewWriteScheduler()
 	} else {
-		sc.writeSched = http2NewRandomWriteScheduler()
+		sc.writeSched = NewRandomWriteScheduler()
 	}
 
 	// These start at the RFC-specified defaults. If there is a higher
 	// configured value for inflow, that will be updated when we send a
 	// WINDOW_UPDATE shortly after sending SETTINGS.
-	sc.flow.add(http2initialWindowSize)
-	sc.inflow.add(http2initialWindowSize)
+	sc.flow.add(initialWindowSize)
+	sc.inflow.add(initialWindowSize)
 	sc.hpackEncoder = hpack.NewEncoder(&sc.headerWriteBuf)
 
-	fr := http2NewFramer(sc.bw, c)
-	fr.ReadMetaHeaders = hpack.NewDecoder(http2initialHeaderTableSize, nil)
+	fr := NewFramer(sc.bw, c)
+	fr.ReadMetaHeaders = hpack.NewDecoder(initialHeaderTableSize, nil)
 	fr.MaxHeaderListSize = sc.maxHeaderListSize()
 	fr.SetMaxReadFrameSize(s.maxReadFrameSize())
 	sc.framer = fr
 
-	if tc, ok := c.(http2connectionStater); ok {
+	if tc, ok := c.(connectionStater); ok {
 		sc.tlsState = new(tls.ConnectionState)
 		*sc.tlsState = tc.ConnectionState()
 		// 9.2 Use of TLS Features
@@ -823,7 +823,7 @@ func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts) {
 		// this section with a connection error (Section
 		// 5.4.1) of type INADEQUATE_SECURITY.
 		if sc.tlsState.Version < tls.VersionTLS12 {
-			sc.rejectConn(http2ErrCodeInadequateSecurity, "TLS version too low")
+			sc.rejectConn(ErrCodeInadequateSecurity, "TLS version too low")
 			return
 		}
 
@@ -839,7 +839,7 @@ func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts) {
 			// So for now, do nothing here again.
 		}
 
-		if !s.PermitProhibitedCipherSuites && http2isBadCipher(sc.tlsState.CipherSuite) {
+		if !s.PermitProhibitedCipherSuites && isBadCipher(sc.tlsState.CipherSuite) {
 			// "Endpoints MAY choose to generate a connection error
 			// (Section 5.4.1) of type INADEQUATE_SECURITY if one of
 			// the prohibited cipher suites are negotiated."
@@ -850,23 +850,23 @@ func (s *http2Server) ServeConn(c net.Conn, opts *http2ServeConnOpts) {
 			// excuses here. If we really must, we could allow an
 			// "AllowInsecureWeakCiphers" option on the server later.
 			// Let's see how it plays out first.
-			sc.rejectConn(http2ErrCodeInadequateSecurity, fmt.Sprintf("Prohibited TLS 1.2 Cipher Suite: %x", sc.tlsState.CipherSuite))
+			sc.rejectConn(ErrCodeInadequateSecurity, fmt.Sprintf("Prohibited TLS 1.2 Cipher Suite: %x", sc.tlsState.CipherSuite))
 			return
 		}
 	}
 
-	if hook := http2testHookGetServerConn; hook != nil {
+	if hook := testHookGetServerConn; hook != nil {
 		hook(sc)
 	}
 	sc.serve()
 }
 
-type http2serverInternalState struct {
+type serverInternalState struct {
 	mu          sync.Mutex
-	activeConns map[*http2serverConn]struct{}
+	activeConns map[*serverConn]struct{}
 }
 
-func (s *http2serverInternalState) registerConn(sc *http2serverConn) {
+func (s *serverInternalState) registerConn(sc *serverConn) {
 	if s == nil {
 		return // if the Server was used without calling ConfigureServer
 	}
@@ -875,7 +875,7 @@ func (s *http2serverInternalState) registerConn(sc *http2serverConn) {
 	s.mu.Unlock()
 }
 
-func (s *http2serverInternalState) unregisterConn(sc *http2serverConn) {
+func (s *serverInternalState) unregisterConn(sc *serverConn) {
 	if s == nil {
 		return // if the Server was used without calling ConfigureServer
 	}
@@ -884,7 +884,7 @@ func (s *http2serverInternalState) unregisterConn(sc *http2serverConn) {
 	s.mu.Unlock()
 }
 
-func (s *http2serverInternalState) startGracefulShutdown() {
+func (s *serverInternalState) startGracefulShutdown() {
 	if s == nil {
 		return // if the Server was used without calling ConfigureServer
 	}
@@ -896,7 +896,7 @@ func (s *http2serverInternalState) startGracefulShutdown() {
 }
 
 // ServeConnOpts are options for the Server.ServeConn method.
-type http2ServeConnOpts struct {
+type ServeConnOpts struct {
 	// Context is the base context to use.
 	// If nil, context.Background is used.
 	Context context.Context
@@ -911,21 +911,21 @@ type http2ServeConnOpts struct {
 	Handler http.Handler
 }
 
-func (o *http2ServeConnOpts) context() context.Context {
+func (o *ServeConnOpts) context() context.Context {
 	if o != nil && o.Context != nil {
 		return o.Context
 	}
 	return context.Background()
 }
 
-func (o *http2ServeConnOpts) baseConfig() *http.Server {
+func (o *ServeConnOpts) baseConfig() *http.Server {
 	if o != nil && o.BaseConfig != nil {
 		return o.BaseConfig
 	}
 	return new(http.Server)
 }
 
-func (o *http2ServeConnOpts) handler() http.Handler {
+func (o *ServeConnOpts) handler() http.Handler {
 	if o != nil {
 		if o.Handler != nil {
 			return o.Handler
@@ -937,7 +937,7 @@ func (o *http2ServeConnOpts) handler() http.Handler {
 	return http.DefaultServeMux
 }
 
-func http2serverConnBaseContext(c net.Conn, opts *http2ServeConnOpts) (ctx context.Context, cancel func()) {
+func serverConnBaseContext(c net.Conn, opts *ServeConnOpts) (ctx context.Context, cancel func()) {
 	ctx, cancel = context.WithCancel(opts.context())
 	ctx = context.WithValue(ctx, http.LocalAddrContextKey, c.LocalAddr())
 	if hs := opts.baseConfig(); hs != nil {
@@ -949,45 +949,45 @@ func http2serverConnBaseContext(c net.Conn, opts *http2ServeConnOpts) (ctx conte
 // bufferedWriter is a buffered writer that writes to w.
 // Its buffered writer is lazily allocated as needed, to minimize
 // idle memory usage with many connections.
-type http2bufferedWriter struct {
-	_  http2incomparable
+type bufferedWriter struct {
+	_  incomparable
 	w  io.Writer     // immutable
 	bw *bufio.Writer // non-nil when data is buffered
 }
 
-func http2newBufferedWriter(w io.Writer) *http2bufferedWriter {
-	return &http2bufferedWriter{w: w}
+func newBufferedWriter(w io.Writer) *bufferedWriter {
+	return &bufferedWriter{w: w}
 }
 
-func (w *http2bufferedWriter) Available() int {
+func (w *bufferedWriter) Available() int {
 	if w.bw == nil {
-		return http2bufWriterPoolBufferSize
+		return bufWriterPoolBufferSize
 	}
 	return w.bw.Available()
 }
 
-func (w *http2bufferedWriter) Write(p []byte) (n int, err error) {
+func (w *bufferedWriter) Write(p []byte) (n int, err error) {
 	if w.bw == nil {
-		bw := http2bufWriterPool.Get().(*bufio.Writer)
+		bw := bufWriterPool.Get().(*bufio.Writer)
 		bw.Reset(w.w)
 		w.bw = bw
 	}
 	return w.bw.Write(p)
 }
 
-func (w *http2bufferedWriter) Flush() error {
+func (w *bufferedWriter) Flush() error {
 	bw := w.bw
 	if bw == nil {
 		return nil
 	}
 	err := bw.Flush()
 	bw.Reset(nil)
-	http2bufWriterPool.Put(bw)
+	bufWriterPool.Put(bw)
 	w.bw = nil
 	return err
 }
 
-func (sc *http2serverConn) rejectConn(err http2ErrCode, debug string) {
+func (sc *serverConn) rejectConn(err ErrCode, debug string) {
 	sc.vlogf("http2: server rejecting conn: %v, %s", err, debug)
 	// ignoring errors. hanging up anyway.
 	sc.framer.WriteGoAway(0, err, []byte(debug))
@@ -995,29 +995,29 @@ func (sc *http2serverConn) rejectConn(err http2ErrCode, debug string) {
 	sc.conn.Close()
 }
 
-type http2serverConn struct {
+type serverConn struct {
 	// Immutable:
-	srv              *http2Server
+	srv              *Server
 	hs               *http.Server
 	conn             net.Conn
-	bw               *http2bufferedWriter // writing to conn
+	bw               *bufferedWriter // writing to conn
 	handler          http.Handler
 	baseCtx          context.Context
-	framer           *http2Framer
-	doneServing      chan struct{}               // closed when serverConn.serve ends
-	readFrameCh      chan http2readFrameResult   // written by serverConn.readFrames
-	wantWriteFrameCh chan http2FrameWriteRequest // from handlers -> serve
-	wroteFrameCh     chan http2frameWriteResult  // from writeFrameAsync -> serve, tickles more frame writes
-	bodyReadCh       chan http2bodyReadMsg       // from handlers -> serve
-	serveMsgCh       chan interface{}            // misc messages & code to send to / run on the serve loop
-	flow             http2flow                   // conn-wide (not stream-specific) outbound flow control
-	inflow           http2flow                   // conn-wide inbound flow control
-	tlsState         *tls.ConnectionState        // shared by all handlers, like net/http
+	framer           *Framer
+	doneServing      chan struct{}          // closed when serverConn.serve ends
+	readFrameCh      chan readFrameResult   // written by serverConn.readFrames
+	wantWriteFrameCh chan FrameWriteRequest // from handlers -> serve
+	wroteFrameCh     chan frameWriteResult  // from writeFrameAsync -> serve, tickles more frame writes
+	bodyReadCh       chan bodyReadMsg       // from handlers -> serve
+	serveMsgCh       chan interface{}       // misc messages & code to send to / run on the serve loop
+	flow             flow                   // conn-wide (not stream-specific) outbound flow control
+	inflow           flow                   // conn-wide inbound flow control
+	tlsState         *tls.ConnectionState   // shared by all handlers, like net/http
 	remoteAddrStr    string
-	writeSched       http2WriteScheduler
+	writeSched       WriteScheduler
 
 	// Everything following is owned by the serve loop; use serveG.check():
-	serveG                      http2goroutineLock // used to verify funcs are on serve()
+	serveG                      goroutineLock // used to verify funcs are on serve()
 	pushEnabled                 bool
 	sawFirstSettings            bool // got the initial SETTINGS frame after the preface
 	needToSendSettingsAck       bool
@@ -1029,7 +1029,7 @@ type http2serverConn struct {
 	curPushedStreams            uint32 // number of open streams initiated by server push
 	maxClientStreamID           uint32 // max ever seen from client (odd), or 0 if there have been no client requests
 	maxPushPromiseID            uint32 // ID of the last push promise (even), or 0 if there have been no pushes
-	streams                     map[uint32]*http2stream
+	streams                     map[uint32]*stream
 	initialStreamSendWindowSize int32
 	maxFrameSize                int32
 	headerTableSize             uint32
@@ -1041,7 +1041,7 @@ type http2serverConn struct {
 	inGoAway                    bool              // we've started to or sent GOAWAY
 	inFrameScheduleLoop         bool              // whether we're in the scheduleFrameWrite loop
 	needToSendGoAway            bool              // we need to schedule a GOAWAY frame write
-	goAwayCode                  http2ErrCode
+	goAwayCode                  ErrCode
 	shutdownTimer               *time.Timer // nil until used
 	idleTimer                   *time.Timer // nil if unused
 
@@ -1053,7 +1053,7 @@ type http2serverConn struct {
 	shutdownOnce sync.Once
 }
 
-func (sc *http2serverConn) maxHeaderListSize() uint32 {
+func (sc *serverConn) maxHeaderListSize() uint32 {
 	n := sc.hs.MaxHeaderBytes
 	if n <= 0 {
 		n = http.DefaultMaxHeaderBytes
@@ -1065,29 +1065,29 @@ func (sc *http2serverConn) maxHeaderListSize() uint32 {
 	return uint32(n + typicalHeaders*perFieldOverhead)
 }
 
-func (sc *http2serverConn) curOpenStreams() uint32 {
+func (sc *serverConn) curOpenStreams() uint32 {
 	sc.serveG.check()
 	return sc.curClientStreams + sc.curPushedStreams
 }
 
 // A closeWaiter is like a sync.WaitGroup but only goes 1 to 0 (open to closed).
-type http2closeWaiter chan struct{}
+type closeWaiter chan struct{}
 
 // Init makes a closeWaiter usable.
 // It exists because so a closeWaiter value can be placed inside a
 // larger struct and have the Mutex and Cond's memory in the same
 // allocation.
-func (cw *http2closeWaiter) Init() {
+func (cw *closeWaiter) Init() {
 	*cw = make(chan struct{})
 }
 
 // Close marks the closeWaiter as closed and unblocks any waiters.
-func (cw http2closeWaiter) Close() {
+func (cw closeWaiter) Close() {
 	close(cw)
 }
 
 // Wait waits for the closeWaiter to become closed.
-func (cw http2closeWaiter) Wait() {
+func (cw closeWaiter) Wait() {
 	<-cw
 }
 
@@ -1098,21 +1098,21 @@ func (cw http2closeWaiter) Wait() {
 // handler, this struct intentionally has no pointer to the
 // *responseWriter{,State} itself, as the Handler ending nils out the
 // responseWriter's state field.
-type http2stream struct {
+type stream struct {
 	// immutable:
-	sc        *http2serverConn
+	sc        *serverConn
 	id        uint32
-	body      *http2pipe       // non-nil if expecting DATA frames
-	cw        http2closeWaiter // closed wait stream transitions to closed state
+	body      *pipe       // non-nil if expecting DATA frames
+	cw        closeWaiter // closed wait stream transitions to closed state
 	ctx       context.Context
 	cancelCtx func()
 
 	// owned by serverConn's serve loop:
-	bodyBytes        int64     // body bytes seen so far
-	declBodyBytes    int64     // or -1 if undeclared
-	flow             http2flow // limits writing from Handler to client
-	inflow           http2flow // what the client is allowed to POST/etc to us
-	state            http2streamState
+	bodyBytes        int64 // body bytes seen so far
+	declBodyBytes    int64 // or -1 if undeclared
+	flow             flow  // limits writing from Handler to client
+	inflow           flow  // what the client is allowed to POST/etc to us
+	state            streamState
 	resetQueued      bool        // RST_STREAM queued for write; set by sc.resetStream
 	gotTrailerHeader bool        // HEADER frame for trailers was seen
 	wroteHeaders     bool        // whether we wrote headers (not status 100)
@@ -1122,25 +1122,25 @@ type http2stream struct {
 	reqTrailer http.Header // handler's Request.Trailer
 }
 
-func (sc *http2serverConn) Framer() *http2Framer { return sc.framer }
+func (sc *serverConn) Framer() *Framer { return sc.framer }
 
-func (sc *http2serverConn) CloseConn() error { return sc.conn.Close() }
+func (sc *serverConn) CloseConn() error { return sc.conn.Close() }
 
-func (sc *http2serverConn) Flush() error { return sc.bw.Flush() }
+func (sc *serverConn) Flush() error { return sc.bw.Flush() }
 
-func (sc *http2serverConn) HeaderEncoder() (*hpack.Encoder, *bytes.Buffer) {
+func (sc *serverConn) HeaderEncoder() (*hpack.Encoder, *bytes.Buffer) {
 	return sc.hpackEncoder, &sc.headerWriteBuf
 }
 
 const (
 	// SETTINGS_MAX_FRAME_SIZE default
 	// http://http2.github.io/http2-spec/#rfc.section.6.5.2
-	http2initialMaxFrameSize = 16384
+	initialMaxFrameSize = 16384
 
-	http2defaultMaxReadFrameSize = 1 << 20
+	defaultMaxReadFrameSize = 1 << 20
 )
 
-type http2streamState int
+type streamState int
 
 // HTTP/2 stream states.
 //
@@ -1155,26 +1155,26 @@ type http2streamState int
 // "reserved (remote)" is omitted since the client code does not
 // support server push.
 const (
-	http2stateIdle http2streamState = iota
-	http2stateOpen
-	http2stateHalfClosedLocal
-	http2stateHalfClosedRemote
-	http2stateClosed
+	stateIdle streamState = iota
+	stateOpen
+	stateHalfClosedLocal
+	stateHalfClosedRemote
+	stateClosed
 )
 
-var http2stateName = [...]string{
-	http2stateIdle:             "Idle",
-	http2stateOpen:             "Open",
-	http2stateHalfClosedLocal:  "HalfClosedLocal",
-	http2stateHalfClosedRemote: "HalfClosedRemote",
-	http2stateClosed:           "Closed",
+var stateName = [...]string{
+	stateIdle:             "Idle",
+	stateOpen:             "Open",
+	stateHalfClosedLocal:  "HalfClosedLocal",
+	stateHalfClosedRemote: "HalfClosedRemote",
+	stateClosed:           "Closed",
 }
 
-func (st http2streamState) String() string {
-	return http2stateName[st]
+func (st streamState) String() string {
+	return stateName[st]
 }
 
-func (sc *http2serverConn) state(streamID uint32) (http2streamState, *http2stream) {
+func (sc *serverConn) state(streamID uint32) (streamState, *stream) {
 	sc.serveG.check()
 	// http://tools.ietf.org/html/rfc7540#section-5.1
 	if st, ok := sc.streams[streamID]; ok {
@@ -1188,32 +1188,32 @@ func (sc *http2serverConn) state(streamID uint32) (http2streamState, *http2strea
 	// state when the first frame for stream 7 is sent or received."
 	if streamID%2 == 1 {
 		if streamID <= sc.maxClientStreamID {
-			return http2stateClosed, nil
+			return stateClosed, nil
 		}
 	} else {
 		if streamID <= sc.maxPushPromiseID {
-			return http2stateClosed, nil
+			return stateClosed, nil
 		}
 	}
-	return http2stateIdle, nil
+	return stateIdle, nil
 }
 
 // setConnState calls the net/http ConnState hook for this connection, if configured.
 // Note that the net/http package does StateNew and StateClosed for us.
 // There is currently no plan for StateHijacked or hijacking HTTP/2 connections.
-func (sc *http2serverConn) setConnState(state http.ConnState) {
+func (sc *serverConn) setConnState(state http.ConnState) {
 	if sc.hs.ConnState != nil {
 		sc.hs.ConnState(sc.conn, state)
 	}
 }
 
-func (sc *http2serverConn) vlogf(format string, args ...interface{}) {
-	if http2VerboseLogs {
+func (sc *serverConn) vlogf(format string, args ...interface{}) {
+	if VerboseLogs {
 		sc.logf(format, args...)
 	}
 }
 
-func (sc *http2serverConn) logf(format string, args ...interface{}) {
+func (sc *serverConn) logf(format string, args ...interface{}) {
 	if lg := sc.hs.ErrorLog; lg != nil {
 		lg.Printf(format, args...)
 	} else {
@@ -1225,7 +1225,7 @@ func (sc *http2serverConn) logf(format string, args ...interface{}) {
 //
 // TODO: remove this helper function once http2 can use build
 // tags. See comment in isClosedConnError.
-func http2errno(v error) uintptr {
+func errno(v error) uintptr {
 	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Uintptr {
 		return uintptr(rv.Uint())
 	}
@@ -1234,7 +1234,7 @@ func http2errno(v error) uintptr {
 
 // isClosedConnError reports whether err is an error from use of a closed
 // network connection.
-func http2isClosedConnError(err error) bool {
+func isClosedConnError(err error) bool {
 	if err == nil {
 		return false
 	}
@@ -1248,7 +1248,7 @@ func http2isClosedConnError(err error) bool {
 	}
 
 	// TODO(bradfitz): x/tools/cmd/bundle doesn't really support
-	// build tags, so I can't make an http2_windows.go file with
+	// build tags, so I can't make an _windows.go file with
 	// Windows-specific stuff. Fix that and move this, once we
 	// have a way to bundle this into std's net/http somehow.
 	if runtime.GOOS == "windows" {
@@ -1256,7 +1256,7 @@ func http2isClosedConnError(err error) bool {
 			if se, ok := oe.Err.(*os.SyscallError); ok && se.Syscall == "wsarecv" {
 				const WSAECONNABORTED = 10053
 				const WSAECONNRESET = 10054
-				if n := http2errno(se.Err); n == WSAECONNRESET || n == WSAECONNABORTED {
+				if n := errno(se.Err); n == WSAECONNRESET || n == WSAECONNABORTED {
 					return true
 				}
 			}
@@ -1265,11 +1265,11 @@ func http2isClosedConnError(err error) bool {
 	return false
 }
 
-func (sc *http2serverConn) condlogf(err error, format string, args ...interface{}) {
+func (sc *serverConn) condlogf(err error, format string, args ...interface{}) {
 	if err == nil {
 		return
 	}
-	if err == io.EOF || err == io.ErrUnexpectedEOF || http2isClosedConnError(err) || err == errPrefaceTimeout {
+	if err == io.EOF || err == io.ErrUnexpectedEOF || isClosedConnError(err) || err == errPrefaceTimeout {
 		// Boring, expected errors.
 		sc.vlogf(format, args...)
 	} else {
@@ -1277,10 +1277,10 @@ func (sc *http2serverConn) condlogf(err error, format string, args ...interface{
 	}
 }
 
-func (sc *http2serverConn) canonicalHeader(v string) string {
+func (sc *serverConn) canonicalHeader(v string) string {
 	sc.serveG.check()
-	http2buildCommonHeaderMapsOnce()
-	cv, ok := http2commonCanonHeader[v]
+	buildCommonHeaderMapsOnce()
+	cv, ok := commonCanonHeader[v]
 	if ok {
 		return cv
 	}
@@ -1304,8 +1304,8 @@ func (sc *http2serverConn) canonicalHeader(v string) string {
 	return cv
 }
 
-type http2readFrameResult struct {
-	f   http2Frame // valid until readMore is called
+type readFrameResult struct {
+	f   Frame // valid until readMore is called
 	err error
 
 	// readMore should be called once the consumer no longer needs or
@@ -1315,23 +1315,23 @@ type http2readFrameResult struct {
 }
 
 // A gate lets two goroutines coordinate their activities.
-type http2gate chan struct{}
+type gate chan struct{}
 
-func (g http2gate) Done() { g <- struct{}{} }
+func (g gate) Done() { g <- struct{}{} }
 
-func (g http2gate) Wait() { <-g }
+func (g gate) Wait() { <-g }
 
 // readFrames is the loop that reads incoming frames.
 // It takes care to only read one frame at a time, blocking until the
 // consumer is done with the frame.
 // It's run on its own goroutine.
-func (sc *http2serverConn) readFrames() {
-	gate := make(http2gate)
+func (sc *serverConn) readFrames() {
+	gate := make(gate)
 	gateDone := gate.Done
 	for {
 		f, err := sc.framer.ReadFrame()
 		select {
-		case sc.readFrameCh <- http2readFrameResult{f, err, gateDone}:
+		case sc.readFrameCh <- readFrameResult{f, err, gateDone}:
 		case <-sc.doneServing:
 			return
 		}
@@ -1340,58 +1340,58 @@ func (sc *http2serverConn) readFrames() {
 		case <-sc.doneServing:
 			return
 		}
-		if http2terminalReadFrameError(err) {
+		if terminalReadFrameError(err) {
 			return
 		}
 	}
 }
 
 // frameWriteResult is the message passed from writeFrameAsync to the serve goroutine.
-type http2frameWriteResult struct {
-	_   http2incomparable
-	wr  http2FrameWriteRequest // what was written (or attempted)
-	err error                  // result of the writeFrame call
+type frameWriteResult struct {
+	_   incomparable
+	wr  FrameWriteRequest // what was written (or attempted)
+	err error             // result of the writeFrame call
 }
 
 // writeFrameAsync runs in its own goroutine and writes a single frame
 // and then reports when it's done.
 // At most one goroutine can be running writeFrameAsync at a time per
 // serverConn.
-func (sc *http2serverConn) writeFrameAsync(wr http2FrameWriteRequest) {
+func (sc *serverConn) writeFrameAsync(wr FrameWriteRequest) {
 	err := wr.write.writeFrame(sc)
-	sc.wroteFrameCh <- http2frameWriteResult{wr: wr, err: err}
+	sc.wroteFrameCh <- frameWriteResult{wr: wr, err: err}
 }
 
-func (sc *http2serverConn) closeAllStreamsOnConnClose() {
+func (sc *serverConn) closeAllStreamsOnConnClose() {
 	sc.serveG.check()
 	for _, st := range sc.streams {
 		sc.closeStream(st, errClientDisconnected)
 	}
 }
 
-func (sc *http2serverConn) stopShutdownTimer() {
+func (sc *serverConn) stopShutdownTimer() {
 	sc.serveG.check()
 	if t := sc.shutdownTimer; t != nil {
 		t.Stop()
 	}
 }
 
-func (sc *http2serverConn) notePanic() {
+func (sc *serverConn) notePanic() {
 	// Note: this is for serverConn.serve panicking, not http.Handler code.
-	if http2testHookOnPanicMu != nil {
-		http2testHookOnPanicMu.Lock()
-		defer http2testHookOnPanicMu.Unlock()
+	if testHookOnPanicMu != nil {
+		testHookOnPanicMu.Lock()
+		defer testHookOnPanicMu.Unlock()
 	}
-	if http2testHookOnPanic != nil {
+	if testHookOnPanic != nil {
 		if e := recover(); e != nil {
-			if http2testHookOnPanic(sc, e) {
+			if testHookOnPanic(sc, e) {
 				panic(e)
 			}
 		}
 	}
 }
 
-func (sc *http2serverConn) serve() {
+func (sc *serverConn) serve() {
 	sc.serveG.check()
 	defer sc.notePanic()
 	defer sc.conn.Close()
@@ -1399,23 +1399,23 @@ func (sc *http2serverConn) serve() {
 	defer sc.stopShutdownTimer()
 	defer close(sc.doneServing) // unblocks handlers trying to send
 
-	if http2VerboseLogs {
+	if VerboseLogs {
 		sc.vlogf("http2: server connection from %v on %p", sc.conn.RemoteAddr(), sc.hs)
 	}
 
-	sc.writeFrame(http2FrameWriteRequest{
-		write: http2writeSettings{
-			{http2SettingMaxFrameSize, sc.srv.maxReadFrameSize()},
-			{http2SettingMaxConcurrentStreams, sc.advMaxStreams},
-			{http2SettingMaxHeaderListSize, sc.maxHeaderListSize()},
-			{http2SettingInitialWindowSize, uint32(sc.srv.initialStreamRecvWindowSize())},
+	sc.writeFrame(FrameWriteRequest{
+		write: writeSettings{
+			{SettingMaxFrameSize, sc.srv.maxReadFrameSize()},
+			{SettingMaxConcurrentStreams, sc.advMaxStreams},
+			{SettingMaxHeaderListSize, sc.maxHeaderListSize()},
+			{SettingInitialWindowSize, uint32(sc.srv.initialStreamRecvWindowSize())},
 		},
 	})
 	sc.unackedSettings++
 
 	// Each connection starts with initialWindowSize inflow tokens.
 	// If a higher value is configured, we add more tokens.
-	if diff := sc.srv.initialConnRecvWindowSize() - http2initialWindowSize; diff > 0 {
+	if diff := sc.srv.initialConnRecvWindowSize() - initialWindowSize; diff > 0 {
 		sc.sendWindowUpdate(nil, int(diff))
 	}
 
@@ -1437,7 +1437,7 @@ func (sc *http2serverConn) serve() {
 
 	go sc.readFrames() // closed by defer sc.conn.Close above
 
-	settingsTimer := time.AfterFunc(http2firstSettingsTimeout, sc.onSettingsTimer)
+	settingsTimer := time.AfterFunc(firstSettingsTimeout, sc.onSettingsTimer)
 	defer settingsTimer.Stop()
 
 	loopNum := 0
@@ -1445,7 +1445,7 @@ func (sc *http2serverConn) serve() {
 		loopNum++
 		select {
 		case wr := <-sc.wantWriteFrameCh:
-			if se, ok := wr.write.(http2StreamError); ok {
+			if se, ok := wr.write.(StreamError); ok {
 				sc.resetStream(se)
 				break
 			}
@@ -1476,23 +1476,23 @@ func (sc *http2serverConn) serve() {
 			switch v := msg.(type) {
 			case func(int):
 				v(loopNum) // for testing
-			case *http2serverMessage:
+			case *serverMessage:
 				switch v {
-				case http2settingsTimerMsg:
+				case settingsTimerMsg:
 					sc.logf("timeout waiting for SETTINGS frames from %v", sc.conn.RemoteAddr())
 					return
-				case http2idleTimerMsg:
+				case idleTimerMsg:
 					sc.vlogf("connection is idle")
-					sc.goAway(http2ErrCodeNo)
-				case http2shutdownTimerMsg:
+					sc.goAway(ErrCodeNo)
+				case shutdownTimerMsg:
 					sc.vlogf("GOAWAY close timer fired; closing conn from %v", sc.conn.RemoteAddr())
 					return
-				case http2gracefulShutdownMsg:
+				case gracefulShutdownMsg:
 					sc.startGracefulShutdownInternal()
 				default:
 					panic("unknown timer")
 				}
-			case *http2startPushRequest:
+			case *startPushRequest:
 				sc.startPush(v)
 			default:
 				panic(fmt.Sprintf("unexpected type %T", v))
@@ -1511,14 +1511,14 @@ func (sc *http2serverConn) serve() {
 		// with no error code (graceful shutdown), don't start the timer until
 		// all open streams have been completed.
 		sentGoAway := sc.inGoAway && !sc.needToSendGoAway && !sc.writingFrame
-		gracefulShutdownComplete := sc.goAwayCode == http2ErrCodeNo && sc.curOpenStreams() == 0
-		if sentGoAway && sc.shutdownTimer == nil && (sc.goAwayCode != http2ErrCodeNo || gracefulShutdownComplete) {
-			sc.shutDownIn(http2goAwayTimeout)
+		gracefulShutdownComplete := sc.goAwayCode == ErrCodeNo && sc.curOpenStreams() == 0
+		if sentGoAway && sc.shutdownTimer == nil && (sc.goAwayCode != ErrCodeNo || gracefulShutdownComplete) {
+			sc.shutDownIn(goAwayTimeout)
 		}
 	}
 }
 
-func (sc *http2serverConn) awaitGracefulShutdown(sharedCh <-chan struct{}, privateCh chan struct{}) {
+func (sc *serverConn) awaitGracefulShutdown(sharedCh <-chan struct{}, privateCh chan struct{}) {
 	select {
 	case <-sc.doneServing:
 	case <-sharedCh:
@@ -1526,23 +1526,23 @@ func (sc *http2serverConn) awaitGracefulShutdown(sharedCh <-chan struct{}, priva
 	}
 }
 
-type http2serverMessage int
+type serverMessage int
 
 // Message values sent to serveMsgCh.
 var (
-	http2settingsTimerMsg    = new(http2serverMessage)
-	http2idleTimerMsg        = new(http2serverMessage)
-	http2shutdownTimerMsg    = new(http2serverMessage)
-	http2gracefulShutdownMsg = new(http2serverMessage)
+	settingsTimerMsg    = new(serverMessage)
+	idleTimerMsg        = new(serverMessage)
+	shutdownTimerMsg    = new(serverMessage)
+	gracefulShutdownMsg = new(serverMessage)
 )
 
-func (sc *http2serverConn) onSettingsTimer() { sc.sendServeMsg(http2settingsTimerMsg) }
+func (sc *serverConn) onSettingsTimer() { sc.sendServeMsg(settingsTimerMsg) }
 
-func (sc *http2serverConn) onIdleTimer() { sc.sendServeMsg(http2idleTimerMsg) }
+func (sc *serverConn) onIdleTimer() { sc.sendServeMsg(idleTimerMsg) }
 
-func (sc *http2serverConn) onShutdownTimer() { sc.sendServeMsg(http2shutdownTimerMsg) }
+func (sc *serverConn) onShutdownTimer() { sc.sendServeMsg(shutdownTimerMsg) }
 
-func (sc *http2serverConn) sendServeMsg(msg interface{}) {
+func (sc *serverConn) sendServeMsg(msg interface{}) {
 	sc.serveG.checkNotOn() // NOT
 	select {
 	case sc.serveMsgCh <- msg:
@@ -1555,27 +1555,27 @@ var errPrefaceTimeout = errors.New("timeout waiting for client preface")
 // readPreface reads the ClientPreface greeting from the peer or
 // returns errPrefaceTimeout on timeout, or an error if the greeting
 // is invalid.
-func (sc *http2serverConn) readPreface() error {
+func (sc *serverConn) readPreface() error {
 	errc := make(chan error, 1)
 	go func() {
 		// Read the client preface
-		buf := make([]byte, len(http2ClientPreface))
+		buf := make([]byte, len(ClientPreface))
 		if _, err := io.ReadFull(sc.conn, buf); err != nil {
 			errc <- err
-		} else if !bytes.Equal(buf, http2clientPreface) {
+		} else if !bytes.Equal(buf, clientPreface) {
 			errc <- fmt.Errorf("bogus greeting %q", buf)
 		} else {
 			errc <- nil
 		}
 	}()
-	timer := time.NewTimer(http2prefaceTimeout) // TODO: configurable on *http2Server?
+	timer := time.NewTimer(prefaceTimeout) // TODO: configurable on *Server?
 	defer timer.Stop()
 	select {
 	case <-timer.C:
 		return errPrefaceTimeout
 	case err := <-errc:
 		if err == nil {
-			if http2VerboseLogs {
+			if VerboseLogs {
 				sc.vlogf("http2: server: client %v said hello", sc.conn.RemoteAddr())
 			}
 		}
@@ -1583,21 +1583,21 @@ func (sc *http2serverConn) readPreface() error {
 	}
 }
 
-var http2errChanPool = sync.Pool{
+var errChanPool = sync.Pool{
 	New: func() interface{} { return make(chan error, 1) },
 }
 
-var http2writeDataPool = sync.Pool{
-	New: func() interface{} { return new(http2writeData) },
+var writeDataPool = sync.Pool{
+	New: func() interface{} { return new(writeData) },
 }
 
 // writeDataFromHandler writes DATA response frames from a handler on
 // the given stream.
-func (sc *http2serverConn) writeDataFromHandler(stream *http2stream, data []byte, endStream bool) error {
-	ch := http2errChanPool.Get().(chan error)
-	writeArg := http2writeDataPool.Get().(*http2writeData)
-	*writeArg = http2writeData{stream.id, data, endStream}
-	err := sc.writeFrameFromHandler(http2FrameWriteRequest{
+func (sc *serverConn) writeDataFromHandler(stream *stream, data []byte, endStream bool) error {
+	ch := errChanPool.Get().(chan error)
+	writeArg := writeDataPool.Get().(*writeData)
+	*writeArg = writeData{stream.id, data, endStream}
+	err := sc.writeFrameFromHandler(FrameWriteRequest{
 		write:  writeArg,
 		stream: stream,
 		done:   ch,
@@ -1626,9 +1626,9 @@ func (sc *http2serverConn) writeDataFromHandler(stream *http2stream, data []byte
 			return errStreamClosed
 		}
 	}
-	http2errChanPool.Put(ch)
+	errChanPool.Put(ch)
 	if frameWriteDone {
-		http2writeDataPool.Put(writeArg)
+		writeDataPool.Put(writeArg)
 	}
 	return err
 }
@@ -1640,7 +1640,7 @@ func (sc *http2serverConn) writeDataFromHandler(stream *http2stream, data []byte
 // deadlock writing to sc.wantWriteFrameCh (which is only mildly
 // buffered and is read by serve itself). If you're on the serve
 // goroutine, call writeFrame instead.
-func (sc *http2serverConn) writeFrameFromHandler(wr http2FrameWriteRequest) error {
+func (sc *serverConn) writeFrameFromHandler(wr FrameWriteRequest) error {
 	sc.serveG.checkNotOn() // NOT
 	select {
 	case sc.wantWriteFrameCh <- wr:
@@ -1660,7 +1660,7 @@ func (sc *http2serverConn) writeFrameFromHandler(wr http2FrameWriteRequest) erro
 // make it onto the wire
 //
 // If you're not on the serve goroutine, use writeFrameFromHandler instead.
-func (sc *http2serverConn) writeFrame(wr http2FrameWriteRequest) {
+func (sc *serverConn) writeFrame(wr FrameWriteRequest) {
 	sc.serveG.check()
 
 	// If true, wr will not be written and wr.done will not be signaled.
@@ -1685,8 +1685,8 @@ func (sc *http2serverConn) writeFrame(wr http2FrameWriteRequest) {
 	// may result in duplicate RST_STREAMs in some cases, but the client should
 	// ignore those.
 	if wr.StreamID() != 0 {
-		_, isReset := wr.write.(http2StreamError)
-		if state, _ := sc.state(wr.StreamID()); state == http2stateClosed && !isReset {
+		_, isReset := wr.write.(StreamError)
+		if state, _ := sc.state(wr.StreamID()); state == stateClosed && !isReset {
 			ignoreWrite = true
 		}
 	}
@@ -1694,9 +1694,9 @@ func (sc *http2serverConn) writeFrame(wr http2FrameWriteRequest) {
 	// Don't send a 100-continue response if we've already sent headers.
 	// See golang.org/issue/14030.
 	switch wr.write.(type) {
-	case *http2writeResHeaders:
+	case *writeResHeaders:
 		wr.stream.wroteHeaders = true
-	case http2write100ContinueHeadersFrame:
+	case write100ContinueHeadersFrame:
 		if wr.stream.wroteHeaders {
 			// We do not need to notify wr.done because this frame is
 			// never written with wr.done != nil.
@@ -1724,7 +1724,7 @@ func (sc *http2serverConn) writeFrame(wr http2FrameWriteRequest) {
 // startFrameWrite starts a goroutine to write wr (in a separate
 // goroutine since that might block on the network), and updates the
 // serve goroutine's state about the world, updated from info in wr.
-func (sc *http2serverConn) startFrameWrite(wr http2FrameWriteRequest) {
+func (sc *serverConn) startFrameWrite(wr FrameWriteRequest) {
 	sc.serveG.check()
 	if sc.writingFrame {
 		panic("internal error: can only be writing one frame at a time")
@@ -1733,19 +1733,19 @@ func (sc *http2serverConn) startFrameWrite(wr http2FrameWriteRequest) {
 	st := wr.stream
 	if st != nil {
 		switch st.state {
-		case http2stateHalfClosedLocal:
+		case stateHalfClosedLocal:
 			switch wr.write.(type) {
-			case http2StreamError, http2handlerPanicRST, http2writeWindowUpdate:
+			case StreamError, handlerPanicRST, writeWindowUpdate:
 				// RFC 7540 Section 5.1 allows sending RST_STREAM, PRIORITY, and WINDOW_UPDATE
 				// in this state. (We never send PRIORITY from the server, so that is not checked.)
 			default:
 				panic(fmt.Sprintf("internal error: attempt to send frame on a half-closed-local stream: %v", wr))
 			}
-		case http2stateClosed:
+		case stateClosed:
 			panic(fmt.Sprintf("internal error: attempt to send frame on a closed stream: %v", wr))
 		}
 	}
-	if wpp, ok := wr.write.(*http2writePushPromise); ok {
+	if wpp, ok := wr.write.(*writePushPromise); ok {
 		var err error
 		wpp.promisedID, err = wpp.allocatePromisedID()
 		if err != nil {
@@ -1760,7 +1760,7 @@ func (sc *http2serverConn) startFrameWrite(wr http2FrameWriteRequest) {
 	if wr.write.staysWithinBuffer(sc.bw.Available()) {
 		sc.writingFrameAsync = false
 		err := wr.write.writeFrame(sc)
-		sc.wroteFrame(http2frameWriteResult{wr: wr, err: err})
+		sc.wroteFrame(frameWriteResult{wr: wr, err: err})
 	} else {
 		sc.writingFrameAsync = true
 		go sc.writeFrameAsync(wr)
@@ -1770,11 +1770,11 @@ func (sc *http2serverConn) startFrameWrite(wr http2FrameWriteRequest) {
 // errHandlerPanicked is the error given to any callers blocked in a read from
 // Request.Body when the main goroutine panics. Since most handlers read in the
 // main ServeHTTP goroutine, this will show up rarely.
-var http2errHandlerPanicked = errors.New("http2: handler panicked")
+var errHandlerPanicked = errors.New("http2: handler panicked")
 
 // wroteFrame is called on the serve goroutine with the result of
 // whatever happened on writeFrameAsync.
-func (sc *http2serverConn) wroteFrame(res http2frameWriteResult) {
+func (sc *serverConn) wroteFrame(res frameWriteResult) {
 	sc.serveG.check()
 	if !sc.writingFrame {
 		panic("internal error: expected to be already writing a frame")
@@ -1784,13 +1784,13 @@ func (sc *http2serverConn) wroteFrame(res http2frameWriteResult) {
 
 	wr := res.wr
 
-	if http2writeEndsStream(wr.write) {
+	if writeEndsStream(wr.write) {
 		st := wr.stream
 		if st == nil {
 			panic("internal error: expecting non-nil stream")
 		}
 		switch st.state {
-		case http2stateOpen:
+		case stateOpen:
 			// Here we would go to stateHalfClosedLocal in
 			// theory, but since our handler is done and
 			// the net/http package provides no mechanism
@@ -1801,24 +1801,24 @@ func (sc *http2serverConn) wroteFrame(res http2frameWriteResult) {
 			// hanging up on them. We'll transition to
 			// stateClosed after the RST_STREAM frame is
 			// written.
-			st.state = http2stateHalfClosedLocal
+			st.state = stateHalfClosedLocal
 			// Section 8.1: a server MAY request that the client abort
 			// transmission of a request without error by sending a
 			// RST_STREAM with an error code of NO_ERROR after sending
 			// a complete response.
-			sc.resetStream(http2streamError(st.id, http2ErrCodeNo))
-		case http2stateHalfClosedRemote:
+			sc.resetStream(streamError(st.id, ErrCodeNo))
+		case stateHalfClosedRemote:
 			sc.closeStream(st, errHandlerComplete)
 		}
 	} else {
 		switch v := wr.write.(type) {
-		case http2StreamError:
+		case StreamError:
 			// st may be unknown if the RST_STREAM was generated to reject bad input.
 			if st, ok := sc.streams[v.StreamID]; ok {
 				sc.closeStream(st, v)
 			}
-		case http2handlerPanicRST:
-			sc.closeStream(wr.stream, http2errHandlerPanicked)
+		case handlerPanicRST:
+			sc.closeStream(wr.stream, errHandlerPanicked)
 		}
 	}
 
@@ -1838,7 +1838,7 @@ func (sc *http2serverConn) wroteFrame(res http2frameWriteResult) {
 //
 // If a frame isn't being written and there's nothing else to send, we
 // flush the write buffer.
-func (sc *http2serverConn) scheduleFrameWrite() {
+func (sc *serverConn) scheduleFrameWrite() {
 	sc.serveG.check()
 	if sc.writingFrame || sc.inFrameScheduleLoop {
 		return
@@ -1847,8 +1847,8 @@ func (sc *http2serverConn) scheduleFrameWrite() {
 	for !sc.writingFrameAsync {
 		if sc.needToSendGoAway {
 			sc.needToSendGoAway = false
-			sc.startFrameWrite(http2FrameWriteRequest{
-				write: &http2writeGoAway{
+			sc.startFrameWrite(FrameWriteRequest{
+				write: &writeGoAway{
 					maxStreamID: sc.maxClientStreamID,
 					code:        sc.goAwayCode,
 				},
@@ -1857,10 +1857,10 @@ func (sc *http2serverConn) scheduleFrameWrite() {
 		}
 		if sc.needToSendSettingsAck {
 			sc.needToSendSettingsAck = false
-			sc.startFrameWrite(http2FrameWriteRequest{write: http2writeSettingsAck{}})
+			sc.startFrameWrite(FrameWriteRequest{write: writeSettingsAck{}})
 			continue
 		}
-		if !sc.inGoAway || sc.goAwayCode == http2ErrCodeNo {
+		if !sc.inGoAway || sc.goAwayCode == ErrCodeNo {
 			if wr, ok := sc.writeSched.Pop(); ok {
 				if wr.isControl() {
 					sc.queuedControlFrames--
@@ -1870,7 +1870,7 @@ func (sc *http2serverConn) scheduleFrameWrite() {
 			}
 		}
 		if sc.needsFrameFlush {
-			sc.startFrameWrite(http2FrameWriteRequest{write: http2flushFrameWriter{}})
+			sc.startFrameWrite(FrameWriteRequest{write: flushFrameWriter{}})
 			sc.needsFrameFlush = false // after startFrameWrite, since it sets this true
 			continue
 		}
@@ -1880,15 +1880,15 @@ func (sc *http2serverConn) scheduleFrameWrite() {
 }
 
 // startGracefulShutdown gracefully shuts down a connection. This
-// sends GOAWAY with http2ErrCodeNo to tell the client we're gracefully
+// sends GOAWAY with ErrCodeNo to tell the client we're gracefully
 // shutting down. The connection isn't closed until all current
 // streams are done.
 //
 // startGracefulShutdown returns immediately; it does not wait until
 // the connection has shut down.
-func (sc *http2serverConn) startGracefulShutdown() {
+func (sc *serverConn) startGracefulShutdown() {
 	sc.serveG.checkNotOn() // NOT
-	sc.shutdownOnce.Do(func() { sc.sendServeMsg(http2gracefulShutdownMsg) })
+	sc.shutdownOnce.Do(func() { sc.sendServeMsg(gracefulShutdownMsg) })
 }
 
 // After sending GOAWAY with an error code (non-graceful shutdown), the
@@ -1907,13 +1907,13 @@ func (sc *http2serverConn) startGracefulShutdown() {
 // loopback interface making the expected RTT very small.
 //
 // TODO: configurable?
-var http2goAwayTimeout = 1 * time.Second
+var goAwayTimeout = 1 * time.Second
 
-func (sc *http2serverConn) startGracefulShutdownInternal() {
-	sc.goAway(http2ErrCodeNo)
+func (sc *serverConn) startGracefulShutdownInternal() {
+	sc.goAway(ErrCodeNo)
 }
 
-func (sc *http2serverConn) goAway(code http2ErrCode) {
+func (sc *serverConn) goAway(code ErrCode) {
 	sc.serveG.check()
 	if sc.inGoAway {
 		return
@@ -1924,14 +1924,14 @@ func (sc *http2serverConn) goAway(code http2ErrCode) {
 	sc.scheduleFrameWrite()
 }
 
-func (sc *http2serverConn) shutDownIn(d time.Duration) {
+func (sc *serverConn) shutDownIn(d time.Duration) {
 	sc.serveG.check()
 	sc.shutdownTimer = time.AfterFunc(d, sc.onShutdownTimer)
 }
 
-func (sc *http2serverConn) resetStream(se http2StreamError) {
+func (sc *serverConn) resetStream(se StreamError) {
 	sc.serveG.check()
-	sc.writeFrame(http2FrameWriteRequest{write: se})
+	sc.writeFrame(FrameWriteRequest{write: se})
 	if st, ok := sc.streams[se.StreamID]; ok {
 		st.resetQueued = true
 	}
@@ -1942,22 +1942,22 @@ func (sc *http2serverConn) resetStream(se http2StreamError) {
 // window to exceed this maximum it MUST terminate either the stream
 // or the connection, as appropriate. For streams, [...]; for the
 // connection, a GOAWAY frame with a FLOW_CONTROL_ERROR code."
-type http2goAwayFlowError struct{}
+type goAwayFlowError struct{}
 
-func (http2goAwayFlowError) Error() string { return "connection exceeded flow control window size" }
+func (goAwayFlowError) Error() string { return "connection exceeded flow control window size" }
 
 // processFrameFromReader processes the serve loop's read from readFrameCh from the
 // frame-reading goroutine.
 // processFrameFromReader returns whether the connection should be kept open.
-func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool {
+func (sc *serverConn) processFrameFromReader(res readFrameResult) bool {
 	sc.serveG.check()
 	err := res.err
 	if err != nil {
 		if err == errFrameTooLarge {
-			sc.goAway(http2ErrCodeFrameSize)
+			sc.goAway(ErrCodeFrameSize)
 			return true // goAway will close the loop
 		}
-		clientGone := err == io.EOF || err == io.ErrUnexpectedEOF || http2isClosedConnError(err)
+		clientGone := err == io.EOF || err == io.ErrUnexpectedEOF || isClosedConnError(err)
 		if clientGone {
 			// TODO: could we also get into this state if
 			// the peer does a half close
@@ -1971,8 +1971,8 @@ func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool
 		}
 	} else {
 		f := res.f
-		if http2VerboseLogs {
-			sc.vlogf("http2: server read frame %v", http2summarizeFrame(f))
+		if VerboseLogs {
+			sc.vlogf("http2: server read frame %v", summarizeFrame(f))
 		}
 		err = sc.processFrame(f)
 		if err == nil {
@@ -1981,15 +1981,15 @@ func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool
 	}
 
 	switch ev := err.(type) {
-	case http2StreamError:
+	case StreamError:
 		sc.resetStream(ev)
 		return true
-	case http2goAwayFlowError:
-		sc.goAway(http2ErrCodeFlowControl)
+	case goAwayFlowError:
+		sc.goAway(ErrCodeFlowControl)
 		return true
-	case http2ConnectionError:
+	case ConnectionError:
 		sc.logf("http2: server connection error from %v: %v", sc.conn.RemoteAddr(), ev)
-		sc.goAway(http2ErrCode(ev))
+		sc.goAway(ErrCode(ev))
 		return true // goAway will handle shutdown
 	default:
 		if res.err != nil {
@@ -2001,45 +2001,45 @@ func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool
 	}
 }
 
-func (sc *http2serverConn) processFrame(f http2Frame) error {
+func (sc *serverConn) processFrame(f Frame) error {
 	sc.serveG.check()
 
 	// First frame received must be SETTINGS.
 	if !sc.sawFirstSettings {
-		if _, ok := f.(*http2SettingsFrame); !ok {
-			return sc.countError("first_settings", http2ConnectionError(http2ErrCodeProtocol))
+		if _, ok := f.(*SettingsFrame); !ok {
+			return sc.countError("first_settings", ConnectionError(ErrCodeProtocol))
 		}
 		sc.sawFirstSettings = true
 	}
 
 	switch f := f.(type) {
-	case *http2SettingsFrame:
+	case *SettingsFrame:
 		return sc.processSettings(f)
-	case *http2MetaHeadersFrame:
+	case *MetaHeadersFrame:
 		return sc.processHeaders(f)
-	case *http2WindowUpdateFrame:
+	case *WindowUpdateFrame:
 		return sc.processWindowUpdate(f)
-	case *http2PingFrame:
+	case *PingFrame:
 		return sc.processPing(f)
-	case *http2DataFrame:
+	case *DataFrame:
 		return sc.processData(f)
-	case *http2RSTStreamFrame:
+	case *RSTStreamFrame:
 		return sc.processResetStream(f)
-	case *http2PriorityFrame:
+	case *PriorityFrame:
 		return sc.processPriority(f)
-	case *http2GoAwayFrame:
+	case *GoAwayFrame:
 		return sc.processGoAway(f)
-	case *http2PushPromiseFrame:
+	case *PushPromiseFrame:
 		// A client cannot push. Thus, servers MUST treat the receipt of a PUSH_PROMISE
 		// frame as a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
-		return sc.countError("push_promise", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("push_promise", ConnectionError(ErrCodeProtocol))
 	default:
 		sc.vlogf("http2: server ignoring frame: %v", f.Header())
 		return nil
 	}
 }
 
-func (sc *http2serverConn) processPing(f *http2PingFrame) error {
+func (sc *serverConn) processPing(f *PingFrame) error {
 	sc.serveG.check()
 	if f.IsAck() {
 		// 6.7 PING: " An endpoint MUST NOT respond to PING frames
@@ -2052,26 +2052,26 @@ func (sc *http2serverConn) processPing(f *http2PingFrame) error {
 		// identifier field value other than 0x0, the recipient MUST
 		// respond with a connection error (Section 5.4.1) of type
 		// PROTOCOL_ERROR."
-		return sc.countError("ping_on_stream", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("ping_on_stream", ConnectionError(ErrCodeProtocol))
 	}
-	if sc.inGoAway && sc.goAwayCode != http2ErrCodeNo {
+	if sc.inGoAway && sc.goAwayCode != ErrCodeNo {
 		return nil
 	}
-	sc.writeFrame(http2FrameWriteRequest{write: http2writePingAck{f}})
+	sc.writeFrame(FrameWriteRequest{write: writePingAck{f}})
 	return nil
 }
 
-func (sc *http2serverConn) processWindowUpdate(f *http2WindowUpdateFrame) error {
+func (sc *serverConn) processWindowUpdate(f *WindowUpdateFrame) error {
 	sc.serveG.check()
 	switch {
 	case f.StreamID != 0: // stream-level flow control
 		state, st := sc.state(f.StreamID)
-		if state == http2stateIdle {
+		if state == stateIdle {
 			// Section 5.1: "Receiving any frame other than HEADERS
 			// or PRIORITY on a stream in this state MUST be
 			// treated as a connection error (Section 5.4.1) of
 			// type PROTOCOL_ERROR."
-			return sc.countError("stream_idle", http2ConnectionError(http2ErrCodeProtocol))
+			return sc.countError("stream_idle", ConnectionError(ErrCodeProtocol))
 		}
 		if st == nil {
 			// "WINDOW_UPDATE can be sent by a peer that has sent a
@@ -2082,42 +2082,42 @@ func (sc *http2serverConn) processWindowUpdate(f *http2WindowUpdateFrame) error 
 			return nil
 		}
 		if !st.flow.add(int32(f.Increment)) {
-			return sc.countError("bad_flow", http2streamError(f.StreamID, http2ErrCodeFlowControl))
+			return sc.countError("bad_flow", streamError(f.StreamID, ErrCodeFlowControl))
 		}
 	default: // connection-level flow control
 		if !sc.flow.add(int32(f.Increment)) {
-			return http2goAwayFlowError{}
+			return goAwayFlowError{}
 		}
 	}
 	sc.scheduleFrameWrite()
 	return nil
 }
 
-func (sc *http2serverConn) processResetStream(f *http2RSTStreamFrame) error {
+func (sc *serverConn) processResetStream(f *RSTStreamFrame) error {
 	sc.serveG.check()
 
 	state, st := sc.state(f.StreamID)
-	if state == http2stateIdle {
+	if state == stateIdle {
 		// 6.4 "RST_STREAM frames MUST NOT be sent for a
 		// stream in the "idle" state. If a RST_STREAM frame
 		// identifying an idle stream is received, the
 		// recipient MUST treat this as a connection error
 		// (Section 5.4.1) of type PROTOCOL_ERROR.
-		return sc.countError("reset_idle_stream", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("reset_idle_stream", ConnectionError(ErrCodeProtocol))
 	}
 	if st != nil {
 		st.cancelCtx()
-		sc.closeStream(st, http2streamError(f.StreamID, f.ErrCode))
+		sc.closeStream(st, streamError(f.StreamID, f.ErrCode))
 	}
 	return nil
 }
 
-func (sc *http2serverConn) closeStream(st *http2stream, err error) {
+func (sc *serverConn) closeStream(st *stream, err error) {
 	sc.serveG.check()
-	if st.state == http2stateIdle || st.state == http2stateClosed {
+	if st.state == stateIdle || st.state == stateClosed {
 		panic(fmt.Sprintf("invariant; can't close stream in state %v", st.state))
 	}
-	st.state = http2stateClosed
+	st.state = stateClosed
 	if st.writeDeadline != nil {
 		st.writeDeadline.Stop()
 	}
@@ -2132,7 +2132,7 @@ func (sc *http2serverConn) closeStream(st *http2stream, err error) {
 		if sc.srv.IdleTimeout != 0 {
 			sc.idleTimer.Reset(sc.srv.IdleTimeout)
 		}
-		if http2h1ServerKeepAlivesDisabled(sc.hs) {
+		if h1ServerKeepAlivesDisabled(sc.hs) {
 			sc.startGracefulShutdownInternal()
 		}
 	}
@@ -2147,7 +2147,7 @@ func (sc *http2serverConn) closeStream(st *http2stream, err error) {
 	sc.writeSched.CloseStream(st.id)
 }
 
-func (sc *http2serverConn) processSettings(f *http2SettingsFrame) error {
+func (sc *serverConn) processSettings(f *SettingsFrame) error {
 	sc.serveG.check()
 	if f.IsAck() {
 		sc.unackedSettings--
@@ -2155,7 +2155,7 @@ func (sc *http2serverConn) processSettings(f *http2SettingsFrame) error {
 			// Why is the peer ACKing settings we never sent?
 			// The spec doesn't mention this case, but
 			// hang up on them anyway.
-			return sc.countError("ack_mystery", http2ConnectionError(http2ErrCodeProtocol))
+			return sc.countError("ack_mystery", ConnectionError(ErrCodeProtocol))
 		}
 		return nil
 	}
@@ -2163,7 +2163,7 @@ func (sc *http2serverConn) processSettings(f *http2SettingsFrame) error {
 		// This isn't actually in the spec, but hang up on
 		// suspiciously large settings frames or those with
 		// duplicate entries.
-		return sc.countError("settings_big_or_dups", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("settings_big_or_dups", ConnectionError(ErrCodeProtocol))
 	}
 	if err := f.ForeachSetting(sc.processSetting); err != nil {
 		return err
@@ -2175,40 +2175,40 @@ func (sc *http2serverConn) processSettings(f *http2SettingsFrame) error {
 	return nil
 }
 
-func (sc *http2serverConn) processSetting(s http2Setting) error {
+func (sc *serverConn) processSetting(s Setting) error {
 	sc.serveG.check()
 	if err := s.Valid(); err != nil {
 		return err
 	}
-	if http2VerboseLogs {
+	if VerboseLogs {
 		sc.vlogf("http2: server processing setting %v", s)
 	}
 	switch s.ID {
-	case http2SettingHeaderTableSize:
+	case SettingHeaderTableSize:
 		sc.headerTableSize = s.Val
 		sc.hpackEncoder.SetMaxDynamicTableSize(s.Val)
-	case http2SettingEnablePush:
+	case SettingEnablePush:
 		sc.pushEnabled = s.Val != 0
-	case http2SettingMaxConcurrentStreams:
+	case SettingMaxConcurrentStreams:
 		sc.clientMaxStreams = s.Val
-	case http2SettingInitialWindowSize:
+	case SettingInitialWindowSize:
 		return sc.processSettingInitialWindowSize(s.Val)
-	case http2SettingMaxFrameSize:
+	case SettingMaxFrameSize:
 		sc.maxFrameSize = int32(s.Val) // the maximum valid s.Val is < 2^31
-	case http2SettingMaxHeaderListSize:
+	case SettingMaxHeaderListSize:
 		sc.peerMaxHeaderListSize = s.Val
 	default:
 		// Unknown setting: "An endpoint that receives a SETTINGS
 		// frame with any unknown or unsupported identifier MUST
 		// ignore that setting."
-		if http2VerboseLogs {
+		if VerboseLogs {
 			sc.vlogf("http2: server ignoring unknown setting %v", s)
 		}
 	}
 	return nil
 }
 
-func (sc *http2serverConn) processSettingInitialWindowSize(val uint32) error {
+func (sc *serverConn) processSettingInitialWindowSize(val uint32) error {
 	sc.serveG.check()
 	// Note: val already validated to be within range by
 	// processSetting's Valid call.
@@ -2230,16 +2230,16 @@ func (sc *http2serverConn) processSettingInitialWindowSize(val uint32) error {
 			// control window to exceed the maximum size as a
 			// connection error (Section 5.4.1) of type
 			// FLOW_CONTROL_ERROR."
-			return sc.countError("setting_win_size", http2ConnectionError(http2ErrCodeFlowControl))
+			return sc.countError("setting_win_size", ConnectionError(ErrCodeFlowControl))
 		}
 	}
 	return nil
 }
 
-func (sc *http2serverConn) processData(f *http2DataFrame) error {
+func (sc *serverConn) processData(f *DataFrame) error {
 	sc.serveG.check()
 	id := f.Header().StreamID
-	if sc.inGoAway && (sc.goAwayCode != http2ErrCodeNo || id > sc.maxClientStreamID) {
+	if sc.inGoAway && (sc.goAwayCode != ErrCodeNo || id > sc.maxClientStreamID) {
 		// Discard all DATA frames if the GOAWAY is due to an
 		// error, or:
 		//
@@ -2252,7 +2252,7 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 
 	data := f.Data()
 	state, st := sc.state(id)
-	if id == 0 || state == http2stateIdle {
+	if id == 0 || state == stateIdle {
 		// Section 6.1: "DATA frames MUST be associated with a
 		// stream. If a DATA frame is received whose stream
 		// identifier field is 0x0, the recipient MUST respond
@@ -2263,13 +2263,13 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 		// or PRIORITY on a stream in this state MUST be
 		// treated as a connection error (Section 5.4.1) of
 		// type PROTOCOL_ERROR."
-		return sc.countError("data_on_idle", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("data_on_idle", ConnectionError(ErrCodeProtocol))
 	}
 
 	// "If a DATA frame is received whose stream is not in "open"
 	// or "half closed (local)" state, the recipient MUST respond
 	// with a stream error (Section 5.4.2) of type STREAM_CLOSED."
-	if st == nil || state != http2stateOpen || st.gotTrailerHeader || st.resetQueued {
+	if st == nil || state != stateOpen || st.gotTrailerHeader || st.resetQueued {
 		// This includes sending a RST_STREAM if the stream is
 		// in stateHalfClosedLocal (which currently means that
 		// the http.Handler returned, so it's done reading &
@@ -2280,7 +2280,7 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 		// and return any flow control bytes since we're not going
 		// to consume them.
 		if sc.inflow.available() < int32(f.Length) {
-			return sc.countError("data_flow", http2streamError(id, http2ErrCodeFlowControl))
+			return sc.countError("data_flow", streamError(id, ErrCodeFlowControl))
 		}
 		// Deduct the flow control from inflow, since we're
 		// going to immediately add it back in
@@ -2293,7 +2293,7 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 			// Already have a stream error in flight. Don't send another.
 			return nil
 		}
-		return sc.countError("closed", http2streamError(id, http2ErrCodeStreamClosed))
+		return sc.countError("closed", streamError(id, ErrCodeStreamClosed))
 	}
 	if st.body == nil {
 		panic("internal error: should have a body in this state")
@@ -2305,12 +2305,12 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 		// RFC 7540, sec 8.1.2.6: A request or response is also malformed if the
 		// value of a content-length header field does not equal the sum of the
 		// DATA frame payload lengths that form the body.
-		return sc.countError("send_too_much", http2streamError(id, http2ErrCodeProtocol))
+		return sc.countError("send_too_much", streamError(id, ErrCodeProtocol))
 	}
 	if f.Length > 0 {
 		// Check whether the client has flow control quota.
 		if st.inflow.available() < int32(f.Length) {
-			return sc.countError("flow_on_data_length", http2streamError(id, http2ErrCodeFlowControl))
+			return sc.countError("flow_on_data_length", streamError(id, ErrCodeFlowControl))
 		}
 		st.inflow.take(int32(f.Length))
 
@@ -2318,7 +2318,7 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 			wrote, err := st.body.Write(data)
 			if err != nil {
 				sc.sendWindowUpdate(nil, int(f.Length)-wrote)
-				return sc.countError("body_write_err", http2streamError(id, http2ErrCodeStreamClosed))
+				return sc.countError("body_write_err", streamError(id, ErrCodeStreamClosed))
 			}
 			if wrote != len(data) {
 				panic("internal error: bad Writer")
@@ -2339,9 +2339,9 @@ func (sc *http2serverConn) processData(f *http2DataFrame) error {
 	return nil
 }
 
-func (sc *http2serverConn) processGoAway(f *http2GoAwayFrame) error {
+func (sc *serverConn) processGoAway(f *GoAwayFrame) error {
 	sc.serveG.check()
-	if f.ErrCode != http2ErrCodeNo {
+	if f.ErrCode != ErrCodeNo {
 		sc.logf("http2: received GOAWAY %+v, starting graceful shutdown", f)
 	} else {
 		sc.vlogf("http2: received GOAWAY %+v, starting graceful shutdown", f)
@@ -2354,13 +2354,13 @@ func (sc *http2serverConn) processGoAway(f *http2GoAwayFrame) error {
 }
 
 // isPushed reports whether the stream is server-initiated.
-func (st *http2stream) isPushed() bool {
+func (st *stream) isPushed() bool {
 	return st.id%2 == 0
 }
 
 // endStream closes a Request.Body's pipe. It is called when a DATA
 // frame says a request body is over (or after trailers).
-func (st *http2stream) endStream() {
+func (st *stream) endStream() {
 	sc := st.sc
 	sc.serveG.check()
 
@@ -2371,12 +2371,12 @@ func (st *http2stream) endStream() {
 		st.body.closeWithErrorAndCode(io.EOF, st.copyTrailersToHandlerRequest)
 		st.body.CloseWithError(io.EOF)
 	}
-	st.state = http2stateHalfClosedRemote
+	st.state = stateHalfClosedRemote
 }
 
 // copyTrailersToHandlerRequest is run in the Handler's goroutine in
 // its Request.Body.Read just before it gets io.EOF.
-func (st *http2stream) copyTrailersToHandlerRequest() {
+func (st *stream) copyTrailersToHandlerRequest() {
 	for k, vv := range st.trailer {
 		if _, ok := st.reqTrailer[k]; ok {
 			// Only copy it over it was pre-declared.
@@ -2387,11 +2387,11 @@ func (st *http2stream) copyTrailersToHandlerRequest() {
 
 // onWriteTimeout is run on its own goroutine (from time.AfterFunc)
 // when the stream's WriteTimeout has fired.
-func (st *http2stream) onWriteTimeout() {
-	st.sc.writeFrameFromHandler(http2FrameWriteRequest{write: http2streamError(st.id, http2ErrCodeInternal)})
+func (st *stream) onWriteTimeout() {
+	st.sc.writeFrameFromHandler(FrameWriteRequest{write: streamError(st.id, ErrCodeInternal)})
 }
 
-func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
+func (sc *serverConn) processHeaders(f *MetaHeadersFrame) error {
 	sc.serveG.check()
 	id := f.StreamID
 	if sc.inGoAway {
@@ -2404,7 +2404,7 @@ func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
 	// stream identifier MUST respond with a connection error
 	// (Section 5.4.1) of type PROTOCOL_ERROR.
 	if id%2 != 1 {
-		return sc.countError("headers_even", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("headers_even", ConnectionError(ErrCodeProtocol))
 	}
 	// A HEADERS frame can be used to create a new stream or
 	// send a trailer for an open one. If we already have a stream
@@ -2420,8 +2420,8 @@ func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
 		// WINDOW_UPDATE, PRIORITY, or RST_STREAM, for a stream that is in
 		// this state, it MUST respond with a stream error (Section 5.4.2) of
 		// type STREAM_CLOSED.
-		if st.state == http2stateHalfClosedRemote {
-			return sc.countError("headers_half_closed", http2streamError(id, http2ErrCodeStreamClosed))
+		if st.state == stateHalfClosedRemote {
+			return sc.countError("headers_half_closed", streamError(id, ErrCodeStreamClosed))
 		}
 		return st.processTrailerHeaders(f)
 	}
@@ -2432,7 +2432,7 @@ func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
 	// receives an unexpected stream identifier MUST respond with
 	// a connection error (Section 5.4.1) of type PROTOCOL_ERROR.
 	if id <= sc.maxClientStreamID {
-		return sc.countError("stream_went_down", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("stream_went_down", ConnectionError(ErrCodeProtocol))
 	}
 	sc.maxClientStreamID = id
 
@@ -2449,19 +2449,19 @@ func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
 	if sc.curClientStreams+1 > sc.advMaxStreams {
 		if sc.unackedSettings == 0 {
 			// They should know better.
-			return sc.countError("over_max_streams", http2streamError(id, http2ErrCodeProtocol))
+			return sc.countError("over_max_streams", streamError(id, ErrCodeProtocol))
 		}
 		// Assume it's a network race, where they just haven't
 		// received our last SETTINGS update. But actually
 		// this can't happen yet, because we don't yet provide
 		// a way for users to adjust server parameters at
 		// runtime.
-		return sc.countError("over_max_streams_race", http2streamError(id, http2ErrCodeRefusedStream))
+		return sc.countError("over_max_streams_race", streamError(id, ErrCodeRefusedStream))
 	}
 
-	initialState := http2stateOpen
+	initialState := stateOpen
 	if f.StreamEnded() {
-		initialState = http2stateHalfClosedRemote
+		initialState = stateHalfClosedRemote
 	}
 	st := sc.newStream(id, 0, initialState)
 
@@ -2480,15 +2480,15 @@ func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
 	if st.reqTrailer != nil {
 		st.trailer = make(http.Header)
 	}
-	st.body = req.Body.(*http2requestBody).pipe // may be nil
+	st.body = req.Body.(*requestBody).pipe // may be nil
 	st.declBodyBytes = req.ContentLength
 
 	handler := sc.handler.ServeHTTP
 	if f.Truncated {
 		// Their header list was too long. Send a 431 error.
-		handler = http2handleHeaderListTooLong
-	} else if err := http2checkValidHTTP2RequestHeaders(req.Header); err != nil {
-		handler = http2new400Handler(err)
+		handler = handleHeaderListTooLong
+	} else if err := checkValidHTTP2RequestHeaders(req.Header); err != nil {
+		handler = new400Handler(err)
 	}
 
 	// The net/http package sets the read deadline from the
@@ -2506,19 +2506,19 @@ func (sc *http2serverConn) processHeaders(f *http2MetaHeadersFrame) error {
 	return nil
 }
 
-func (st *http2stream) processTrailerHeaders(f *http2MetaHeadersFrame) error {
+func (st *stream) processTrailerHeaders(f *MetaHeadersFrame) error {
 	sc := st.sc
 	sc.serveG.check()
 	if st.gotTrailerHeader {
-		return sc.countError("dup_trailers", http2ConnectionError(http2ErrCodeProtocol))
+		return sc.countError("dup_trailers", ConnectionError(ErrCodeProtocol))
 	}
 	st.gotTrailerHeader = true
 	if !f.StreamEnded() {
-		return sc.countError("trailers_not_ended", http2streamError(st.id, http2ErrCodeProtocol))
+		return sc.countError("trailers_not_ended", streamError(st.id, ErrCodeProtocol))
 	}
 
 	if len(f.PseudoFields()) > 0 {
-		return sc.countError("trailers_pseudo", http2streamError(st.id, http2ErrCodeProtocol))
+		return sc.countError("trailers_pseudo", streamError(st.id, ErrCodeProtocol))
 	}
 	if st.trailer != nil {
 		for _, hf := range f.RegularFields() {
@@ -2527,7 +2527,7 @@ func (st *http2stream) processTrailerHeaders(f *http2MetaHeadersFrame) error {
 				// TODO: send more details to the peer somehow. But http2 has
 				// no way to send debug data at a stream level. Discuss with
 				// HTTP folk.
-				return sc.countError("trailers_bogus", http2streamError(st.id, http2ErrCodeProtocol))
+				return sc.countError("trailers_bogus", streamError(st.id, ErrCodeProtocol))
 			}
 			st.trailer[key] = append(st.trailer[key], hf.Value)
 		}
@@ -2536,36 +2536,36 @@ func (st *http2stream) processTrailerHeaders(f *http2MetaHeadersFrame) error {
 	return nil
 }
 
-func (sc *http2serverConn) checkPriority(streamID uint32, p http2PriorityParam) error {
+func (sc *serverConn) checkPriority(streamID uint32, p PriorityParam) error {
 	if streamID == p.StreamDep {
 		// Section 5.3.1: "A stream cannot depend on itself. An endpoint MUST treat
 		// this as a stream error (Section 5.4.2) of type PROTOCOL_ERROR."
 		// Section 5.3.3 says that a stream can depend on one of its dependencies,
 		// so it's only self-dependencies that are forbidden.
-		return sc.countError("priority", http2streamError(streamID, http2ErrCodeProtocol))
+		return sc.countError("priority", streamError(streamID, ErrCodeProtocol))
 	}
 	return nil
 }
 
-func (sc *http2serverConn) processPriority(f *http2PriorityFrame) error {
+func (sc *serverConn) processPriority(f *PriorityFrame) error {
 	if sc.inGoAway {
 		return nil
 	}
-	if err := sc.checkPriority(f.StreamID, f.http2PriorityParam); err != nil {
+	if err := sc.checkPriority(f.StreamID, f.PriorityParam); err != nil {
 		return err
 	}
-	sc.writeSched.AdjustStream(f.StreamID, f.http2PriorityParam)
+	sc.writeSched.AdjustStream(f.StreamID, f.PriorityParam)
 	return nil
 }
 
-func (sc *http2serverConn) newStream(id, pusherID uint32, state http2streamState) *http2stream {
+func (sc *serverConn) newStream(id, pusherID uint32, state streamState) *stream {
 	sc.serveG.check()
 	if id == 0 {
 		panic("internal error: cannot create stream with id 0")
 	}
 
 	ctx, cancelCtx := context.WithCancel(sc.baseCtx)
-	st := &http2stream{
+	st := &stream{
 		sc:        sc,
 		id:        id,
 		state:     state,
@@ -2582,7 +2582,7 @@ func (sc *http2serverConn) newStream(id, pusherID uint32, state http2streamState
 	}
 
 	sc.streams[id] = st
-	sc.writeSched.OpenStream(st.id, http2OpenStreamOptions{PusherID: pusherID})
+	sc.writeSched.OpenStream(st.id, OpenStreamOptions{PusherID: pusherID})
 	if st.isPushed() {
 		sc.curPushedStreams++
 	} else {
@@ -2595,10 +2595,10 @@ func (sc *http2serverConn) newStream(id, pusherID uint32, state http2streamState
 	return st
 }
 
-func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHeadersFrame) (*http2responseWriter, *http.Request, error) {
+func (sc *serverConn) newWriterAndRequest(st *stream, f *MetaHeadersFrame) (*responseWriter, *http.Request, error) {
 	sc.serveG.check()
 
-	rp := http2requestParam{
+	rp := requestParam{
 		method:    f.PseudoValue("method"),
 		scheme:    f.PseudoValue("scheme"),
 		authority: f.PseudoValue("authority"),
@@ -2608,7 +2608,7 @@ func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHead
 	isConnect := rp.method == "CONNECT"
 	if isConnect {
 		if rp.path != "" || rp.scheme != "" || rp.authority == "" {
-			return nil, nil, sc.countError("bad_connect", http2streamError(f.StreamID, http2ErrCodeProtocol))
+			return nil, nil, sc.countError("bad_connect", streamError(f.StreamID, ErrCodeProtocol))
 		}
 	} else if rp.method == "" || rp.path == "" || (rp.scheme != "https" && rp.scheme != "http") {
 		// See 8.1.2.6 Malformed Requests and Responses:
@@ -2621,13 +2621,13 @@ func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHead
 		// "All HTTP/2 requests MUST include exactly one valid
 		// value for the :method, :scheme, and :path
 		// pseudo-header fields"
-		return nil, nil, sc.countError("bad_path_method", http2streamError(f.StreamID, http2ErrCodeProtocol))
+		return nil, nil, sc.countError("bad_path_method", streamError(f.StreamID, ErrCodeProtocol))
 	}
 
 	bodyOpen := !f.StreamEnded()
 	if rp.method == "HEAD" && bodyOpen {
 		// HEAD requests can't have bodies
-		return nil, nil, sc.countError("head_body", http2streamError(f.StreamID, http2ErrCodeProtocol))
+		return nil, nil, sc.countError("head_body", streamError(f.StreamID, ErrCodeProtocol))
 	}
 
 	rp.header = make(http.Header)
@@ -2652,20 +2652,20 @@ func (sc *http2serverConn) newWriterAndRequest(st *http2stream, f *http2MetaHead
 		} else {
 			req.ContentLength = -1
 		}
-		req.Body.(*http2requestBody).pipe = &http2pipe{
-			b: &http2dataBuffer{expected: req.ContentLength},
+		req.Body.(*requestBody).pipe = &pipe{
+			b: &dataBuffer{expected: req.ContentLength},
 		}
 	}
 	return rw, req, nil
 }
 
-type http2requestParam struct {
+type requestParam struct {
 	method                  string
 	scheme, authority, path string
 	header                  http.Header
 }
 
-func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2requestParam) (*http2responseWriter, *http.Request, error) {
+func (sc *serverConn) newWriterAndRequestNoBody(st *stream, rp requestParam) (*responseWriter, *http.Request, error) {
 	sc.serveG.check()
 
 	var tlsState *tls.ConnectionState // nil if not scheme https
@@ -2710,12 +2710,12 @@ func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2re
 		var err error
 		u, err = url.ParseRequestURI(rp.path)
 		if err != nil {
-			return nil, nil, sc.countError("bad_path", http2streamError(st.id, http2ErrCodeProtocol))
+			return nil, nil, sc.countError("bad_path", streamError(st.id, ErrCodeProtocol))
 		}
 		requestURI = rp.path
 	}
 
-	body := &http2requestBody{
+	body := &requestBody{
 		conn:          sc,
 		stream:        st,
 		needsContinue: needsContinue,
@@ -2736,29 +2736,29 @@ func (sc *http2serverConn) newWriterAndRequestNoBody(st *http2stream, rp http2re
 	}
 	req = req.WithContext(st.ctx)
 
-	rws := http2responseWriterStatePool.Get().(*http2responseWriterState)
+	rws := responseWriterStatePool.Get().(*responseWriterState)
 	bwSave := rws.bw
-	*rws = http2responseWriterState{} // zero all the fields
+	*rws = responseWriterState{} // zero all the fields
 	rws.conn = sc
 	rws.bw = bwSave
-	rws.bw.Reset(http2chunkWriter{rws})
+	rws.bw.Reset(chunkWriter{rws})
 	rws.stream = st
 	rws.req = req
 	rws.body = body
 
-	rw := &http2responseWriter{rws: rws}
+	rw := &responseWriter{rws: rws}
 	return rw, req, nil
 }
 
 // Run on its own goroutine.
-func (sc *http2serverConn) runHandler(rw *http2responseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) {
+func (sc *serverConn) runHandler(rw *responseWriter, req *http.Request, handler func(http.ResponseWriter, *http.Request)) {
 	didPanic := true
 	defer func() {
 		rw.rws.stream.cancelCtx()
 		if didPanic {
 			e := recover()
-			sc.writeFrameFromHandler(http2FrameWriteRequest{
-				write:  http2handlerPanicRST{rw.rws.stream.id},
+			sc.writeFrameFromHandler(FrameWriteRequest{
+				write:  handlerPanicRST{rw.rws.stream.id},
 				stream: rw.rws.stream,
 			})
 			// Same as net/http:
@@ -2776,7 +2776,7 @@ func (sc *http2serverConn) runHandler(rw *http2responseWriter, req *http.Request
 	didPanic = false
 }
 
-func http2handleHeaderListTooLong(w http.ResponseWriter, r *http.Request) {
+func handleHeaderListTooLong(w http.ResponseWriter, r *http.Request) {
 	// 10.5.1 Limits on Header Block Size:
 	// .. "A server that receives a larger header block than it is
 	// willing to handle can send an HTTP 431 (Request Header Fields Too
@@ -2788,7 +2788,7 @@ func http2handleHeaderListTooLong(w http.ResponseWriter, r *http.Request) {
 
 // called from handler goroutines.
 // h may be nil.
-func (sc *http2serverConn) writeHeaders(st *http2stream, headerData *http2writeResHeaders) error {
+func (sc *serverConn) writeHeaders(st *stream, headerData *writeResHeaders) error {
 	sc.serveG.checkNotOn() // NOT on
 	var errc chan error
 	if headerData.h != nil {
@@ -2796,9 +2796,9 @@ func (sc *http2serverConn) writeHeaders(st *http2stream, headerData *http2writeR
 		// waiting for this frame to be written, so an http.Flush mid-handler
 		// writes out the correct value of keys, before a handler later potentially
 		// mutates it.
-		errc = http2errChanPool.Get().(chan error)
+		errc = errChanPool.Get().(chan error)
 	}
-	if err := sc.writeFrameFromHandler(http2FrameWriteRequest{
+	if err := sc.writeFrameFromHandler(FrameWriteRequest{
 		write:  headerData,
 		stream: st,
 		done:   errc,
@@ -2808,7 +2808,7 @@ func (sc *http2serverConn) writeHeaders(st *http2stream, headerData *http2writeR
 	if errc != nil {
 		select {
 		case err := <-errc:
-			http2errChanPool.Put(errc)
+			errChanPool.Put(errc)
 			return err
 		case <-sc.doneServing:
 			return errClientDisconnected
@@ -2820,37 +2820,37 @@ func (sc *http2serverConn) writeHeaders(st *http2stream, headerData *http2writeR
 }
 
 // called from handler goroutines.
-func (sc *http2serverConn) write100ContinueHeaders(st *http2stream) {
-	sc.writeFrameFromHandler(http2FrameWriteRequest{
-		write:  http2write100ContinueHeadersFrame{st.id},
+func (sc *serverConn) write100ContinueHeaders(st *stream) {
+	sc.writeFrameFromHandler(FrameWriteRequest{
+		write:  write100ContinueHeadersFrame{st.id},
 		stream: st,
 	})
 }
 
 // A bodyReadMsg tells the server loop that the http.Handler read n
 // bytes of the DATA from the client on the given stream.
-type http2bodyReadMsg struct {
-	st *http2stream
+type bodyReadMsg struct {
+	st *stream
 	n  int
 }
 
 // called from handler goroutines.
 // Notes that the handler for the given stream ID read n bytes of its body
 // and schedules flow control tokens to be sent.
-func (sc *http2serverConn) noteBodyReadFromHandler(st *http2stream, n int, err error) {
+func (sc *serverConn) noteBodyReadFromHandler(st *stream, n int, err error) {
 	sc.serveG.checkNotOn() // NOT on
 	if n > 0 {
 		select {
-		case sc.bodyReadCh <- http2bodyReadMsg{st, n}:
+		case sc.bodyReadCh <- bodyReadMsg{st, n}:
 		case <-sc.doneServing:
 		}
 	}
 }
 
-func (sc *http2serverConn) noteBodyRead(st *http2stream, n int) {
+func (sc *serverConn) noteBodyRead(st *stream, n int) {
 	sc.serveG.check()
 	sc.sendWindowUpdate(nil, n) // conn-level
-	if st.state != http2stateHalfClosedRemote && st.state != http2stateClosed {
+	if st.state != stateHalfClosedRemote && st.state != stateClosed {
 		// Don't send this WINDOW_UPDATE if the stream is closed
 		// remotely.
 		sc.sendWindowUpdate(st, n)
@@ -2858,7 +2858,7 @@ func (sc *http2serverConn) noteBodyRead(st *http2stream, n int) {
 }
 
 // st may be nil for conn-level
-func (sc *http2serverConn) sendWindowUpdate(st *http2stream, n int) {
+func (sc *serverConn) sendWindowUpdate(st *stream, n int) {
 	sc.serveG.check()
 	// "The legal range for the increment to the flow control
 	// window is 1 to 2^31-1 (2,147,483,647) octets."
@@ -2874,7 +2874,7 @@ func (sc *http2serverConn) sendWindowUpdate(st *http2stream, n int) {
 }
 
 // st may be nil for conn-level
-func (sc *http2serverConn) sendWindowUpdate32(st *http2stream, n int32) {
+func (sc *serverConn) sendWindowUpdate32(st *stream, n int32) {
 	sc.serveG.check()
 	if n == 0 {
 		return
@@ -2886,8 +2886,8 @@ func (sc *http2serverConn) sendWindowUpdate32(st *http2stream, n int32) {
 	if st != nil {
 		streamID = st.id
 	}
-	sc.writeFrame(http2FrameWriteRequest{
-		write:  http2writeWindowUpdate{streamID: streamID, n: uint32(n)},
+	sc.writeFrame(FrameWriteRequest{
+		write:  writeWindowUpdate{streamID: streamID, n: uint32(n)},
 		stream: st,
 	})
 	var ok bool
@@ -2903,17 +2903,17 @@ func (sc *http2serverConn) sendWindowUpdate32(st *http2stream, n int32) {
 
 // requestBody is the Handler's Request.Body type.
 // Read and Close may be called concurrently.
-type http2requestBody struct {
-	_             http2incomparable
-	stream        *http2stream
-	conn          *http2serverConn
-	closed        bool       // for use by Close only
-	sawEOF        bool       // for use by Read only
-	pipe          *http2pipe // non-nil if we have a HTTP entity message body
-	needsContinue bool       // need to send a 100-continue
+type requestBody struct {
+	_             incomparable
+	stream        *stream
+	conn          *serverConn
+	closed        bool  // for use by Close only
+	sawEOF        bool  // for use by Read only
+	pipe          *pipe // non-nil if we have a HTTP entity message body
+	needsContinue bool  // need to send a 100-continue
 }
 
-func (b *http2requestBody) Close() error {
+func (b *requestBody) Close() error {
 	if b.pipe != nil && !b.closed {
 		b.pipe.BreakWithError(errClosedBody)
 	}
@@ -2921,7 +2921,7 @@ func (b *http2requestBody) Close() error {
 	return nil
 }
 
-func (b *http2requestBody) Read(p []byte) (n int, err error) {
+func (b *requestBody) Read(p []byte) (n int, err error) {
 	if b.needsContinue {
 		b.needsContinue = false
 		b.conn.write100ContinueHeaders(b.stream)
@@ -2933,7 +2933,7 @@ func (b *http2requestBody) Read(p []byte) (n int, err error) {
 	if err == io.EOF {
 		b.sawEOF = true
 	}
-	if b.conn == nil && http2inTests {
+	if b.conn == nil && inTests {
 		return
 	}
 	b.conn.noteBodyReadFromHandler(b.stream, n, err)
@@ -2946,28 +2946,28 @@ func (b *http2requestBody) Read(p []byte) (n int, err error) {
 // request (in handlerDone) and calls on the responseWriter thereafter
 // simply crash (caller's mistake), but the much larger responseWriterState
 // and buffers are reused between multiple requests.
-type http2responseWriter struct {
-	rws *http2responseWriterState
+type responseWriter struct {
+	rws *responseWriterState
 }
 
 // from pkg io
-type http2stringWriter interface {
+type stringWriter interface {
 	WriteString(s string) (n int, err error)
 }
 
 // Optional http.ResponseWriter interfaces implemented.
 var (
-	_ http.CloseNotifier = (*http2responseWriter)(nil)
-	_ http.Flusher       = (*http2responseWriter)(nil)
-	_ http2stringWriter  = (*http2responseWriter)(nil)
+	_ http.CloseNotifier = (*responseWriter)(nil)
+	_ http.Flusher       = (*responseWriter)(nil)
+	_ stringWriter       = (*responseWriter)(nil)
 )
 
-type http2responseWriterState struct {
+type responseWriterState struct {
 	// immutable within a request:
-	stream *http2stream
+	stream *stream
 	req    *http.Request
-	body   *http2requestBody // to close at end of request, if DATA frames didn't
-	conn   *http2serverConn
+	body   *requestBody // to close at end of request, if DATA frames didn't
+	conn   *serverConn
 
 	// TODO: adjust buffer writing sizes based on server config, frame size updates from peer, etc
 	bw *bufio.Writer // writing to a chunkWriter{this *responseWriterState}
@@ -2989,13 +2989,13 @@ type http2responseWriterState struct {
 	closeNotifierCh chan bool  // nil until first used
 }
 
-type http2chunkWriter struct{ rws *http2responseWriterState }
+type chunkWriter struct{ rws *responseWriterState }
 
-func (cw http2chunkWriter) Write(p []byte) (n int, err error) { return cw.rws.writeChunk(p) }
+func (cw chunkWriter) Write(p []byte) (n int, err error) { return cw.rws.writeChunk(p) }
 
-func (rws *http2responseWriterState) hasTrailers() bool { return len(rws.trailers) > 0 }
+func (rws *responseWriterState) hasTrailers() bool { return len(rws.trailers) > 0 }
 
-func (rws *http2responseWriterState) hasNonemptyTrailers() bool {
+func (rws *responseWriterState) hasNonemptyTrailers() bool {
 	for _, trailer := range rws.trailers {
 		if _, ok := rws.handlerHeader[trailer]; ok {
 			return true
@@ -3007,14 +3007,14 @@ func (rws *http2responseWriterState) hasNonemptyTrailers() bool {
 // declareTrailer is called for each Trailer header when the
 // response header is written. It notes that a header will need to be
 // written in the trailers at the end of the response.
-func (rws *http2responseWriterState) declareTrailer(k string) {
+func (rws *responseWriterState) declareTrailer(k string) {
 	k = http.CanonicalHeaderKey(k)
 	if !httpguts.ValidTrailerHeader(k) {
 		// Forbidden by RFC 7230, section 4.1.2.
 		rws.conn.logf("ignoring invalid trailer %q", k)
 		return
 	}
-	if !http2strSliceContains(rws.trailers, k) {
+	if !strSliceContains(rws.trailers, k) {
 		rws.trailers = append(rws.trailers, k)
 	}
 }
@@ -3025,7 +3025,7 @@ func (rws *http2responseWriterState) declareTrailer(k string) {
 //
 // writeChunk is also responsible (on the first chunk) for sending the
 // HEADER response.
-func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
+func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 	if !rws.wroteHeader {
 		rws.writeHeader(200)
 	}
@@ -3042,7 +3042,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 				clen = ""
 			}
 		}
-		if clen == "" && rws.handlerDone && http2bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
+		if clen == "" && rws.handlerDone && bodyAllowedForStatus(rws.status) && (len(p) > 0 || !isHeadResp) {
 			clen = strconv.Itoa(len(p))
 		}
 		_, hasContentType := rws.snapHeader["Content-Type"]
@@ -3050,7 +3050,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 		// sniff the body. See Issue golang.org/issue/31753.
 		ce := rws.snapHeader.Get("Content-Encoding")
 		hasCE := len(ce) > 0
-		if !hasCE && !hasContentType && http2bodyAllowedForStatus(rws.status) && len(p) > 0 {
+		if !hasCE && !hasContentType && bodyAllowedForStatus(rws.status) && len(p) > 0 {
 			ctype = http.DetectContentType(p)
 		}
 		var date string
@@ -3060,7 +3060,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 		}
 
 		for _, v := range rws.snapHeader["Trailer"] {
-			http2foreachHeaderElement(v, rws.declareTrailer)
+			foreachHeaderElement(v, rws.declareTrailer)
 		}
 
 		// "Connection" headers aren't allowed in HTTP/2 (RFC 7540, 8.1.2.2),
@@ -3077,7 +3077,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 		}
 
 		endStream := (rws.handlerDone && !rws.hasTrailers() && len(p) == 0) || isHeadResp
-		err = rws.conn.writeHeaders(rws.stream, &http2writeResHeaders{
+		err = rws.conn.writeHeaders(rws.stream, &writeResHeaders{
 			streamID:      rws.stream.id,
 			httpResCode:   rws.status,
 			h:             rws.snapHeader,
@@ -3118,7 +3118,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 	}
 
 	if rws.handlerDone && hasNonemptyTrailers {
-		err = rws.conn.writeHeaders(rws.stream, &http2writeResHeaders{
+		err = rws.conn.writeHeaders(rws.stream, &writeResHeaders{
 			streamID:  rws.stream.id,
 			h:         rws.handlerHeader,
 			trailers:  rws.trailers,
@@ -3144,7 +3144,7 @@ func (rws *http2responseWriterState) writeChunk(p []byte) (n int, err error) {
 // is preferred:
 //    https://golang.org/pkg/net/http/#ResponseWriter
 //    https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
-const http2TrailerPrefix = "Trailer:"
+const TrailerPrefix = "Trailer:"
 
 // promoteUndeclaredTrailers permits http.Handlers to set trailers
 // after the header has already been flushed. Because the Go
@@ -3167,24 +3167,24 @@ const http2TrailerPrefix = "Trailer:"
 //
 // This method runs after the Handler is done and promotes any Header
 // fields to be trailers.
-func (rws *http2responseWriterState) promoteUndeclaredTrailers() {
+func (rws *responseWriterState) promoteUndeclaredTrailers() {
 	for k, vv := range rws.handlerHeader {
-		if !strings.HasPrefix(k, http2TrailerPrefix) {
+		if !strings.HasPrefix(k, TrailerPrefix) {
 			continue
 		}
-		trailerKey := strings.TrimPrefix(k, http2TrailerPrefix)
+		trailerKey := strings.TrimPrefix(k, TrailerPrefix)
 		rws.declareTrailer(trailerKey)
 		rws.handlerHeader[http.CanonicalHeaderKey(trailerKey)] = vv
 	}
 
 	if len(rws.trailers) > 1 {
-		sorter := http2sorterPool.Get().(*http2sorter)
+		sorter := sorterPool.Get().(*sorter)
 		sorter.SortStrings(rws.trailers)
-		http2sorterPool.Put(sorter)
+		sorterPool.Put(sorter)
 	}
 }
 
-func (w *http2responseWriter) Flush() {
+func (w *responseWriter) Flush() {
 	rws := w.rws
 	if rws == nil {
 		panic("Header called after Handler finished")
@@ -3203,7 +3203,7 @@ func (w *http2responseWriter) Flush() {
 	}
 }
 
-func (w *http2responseWriter) CloseNotify() <-chan bool {
+func (w *responseWriter) CloseNotify() <-chan bool {
 	rws := w.rws
 	if rws == nil {
 		panic("CloseNotify called after Handler finished")
@@ -3223,7 +3223,7 @@ func (w *http2responseWriter) CloseNotify() <-chan bool {
 	return ch
 }
 
-func (w *http2responseWriter) Header() http.Header {
+func (w *responseWriter) Header() http.Header {
 	rws := w.rws
 	if rws == nil {
 		panic("Header called after Handler finished")
@@ -3235,7 +3235,7 @@ func (w *http2responseWriter) Header() http.Header {
 }
 
 // checkWriteHeaderCode is a copy of net/http's checkWriteHeaderCode.
-func http2checkWriteHeaderCode(code int) {
+func checkWriteHeaderCode(code int) {
 	// Issue 22880: require valid WriteHeader status codes.
 	// For now we only enforce that it's three digits.
 	// In the future we might block things over 599 (600 and above aren't defined
@@ -3252,7 +3252,7 @@ func http2checkWriteHeaderCode(code int) {
 	}
 }
 
-func (w *http2responseWriter) WriteHeader(code int) {
+func (w *responseWriter) WriteHeader(code int) {
 	rws := w.rws
 	if rws == nil {
 		panic("WriteHeader called after Handler finished")
@@ -3260,18 +3260,18 @@ func (w *http2responseWriter) WriteHeader(code int) {
 	rws.writeHeader(code)
 }
 
-func (rws *http2responseWriterState) writeHeader(code int) {
+func (rws *responseWriterState) writeHeader(code int) {
 	if !rws.wroteHeader {
-		http2checkWriteHeaderCode(code)
+		checkWriteHeaderCode(code)
 		rws.wroteHeader = true
 		rws.status = code
 		if len(rws.handlerHeader) > 0 {
-			rws.snapHeader = http2cloneHeader(rws.handlerHeader)
+			rws.snapHeader = cloneHeader(rws.handlerHeader)
 		}
 	}
 }
 
-func http2cloneHeader(h http.Header) http.Header {
+func cloneHeader(h http.Header) http.Header {
 	h2 := make(http.Header, len(h))
 	for k, vv := range h {
 		vv2 := make([]string, len(vv))
@@ -3289,16 +3289,16 @@ func http2cloneHeader(h http.Header) http.Header {
 // * -> chunkWriter{rws}
 // * -> responseWriterState.writeChunk(p []byte)
 // * -> responseWriterState.writeChunk (most of the magic; see comment there)
-func (w *http2responseWriter) Write(p []byte) (n int, err error) {
+func (w *responseWriter) Write(p []byte) (n int, err error) {
 	return w.write(len(p), p, "")
 }
 
-func (w *http2responseWriter) WriteString(s string) (n int, err error) {
+func (w *responseWriter) WriteString(s string) (n int, err error) {
 	return w.write(len(s), nil, s)
 }
 
 // either dataB or dataS is non-zero.
-func (w *http2responseWriter) write(lenData int, dataB []byte, dataS string) (n int, err error) {
+func (w *responseWriter) write(lenData int, dataB []byte, dataS string) (n int, err error) {
 	rws := w.rws
 	if rws == nil {
 		panic("Write called after Handler finished")
@@ -3306,7 +3306,7 @@ func (w *http2responseWriter) write(lenData int, dataB []byte, dataS string) (n 
 	if !rws.wroteHeader {
 		w.WriteHeader(200)
 	}
-	if !http2bodyAllowedForStatus(rws.status) {
+	if !bodyAllowedForStatus(rws.status) {
 		return 0, http.ErrBodyNotAllowed
 	}
 	rws.wroteBytes += int64(len(dataB)) + int64(len(dataS)) // only one can be set
@@ -3321,7 +3321,7 @@ func (w *http2responseWriter) write(lenData int, dataB []byte, dataS string) (n 
 	return rws.bw.WriteString(dataS)
 }
 
-func (w *http2responseWriter) handlerDone() {
+func (w *responseWriter) handlerDone() {
 	rws := w.rws
 	dirty := rws.dirty
 	rws.handlerDone = true
@@ -3334,7 +3334,7 @@ func (w *http2responseWriter) handlerDone() {
 		// there might still be write goroutines outstanding
 		// from the serverConn referencing the rws memory. See
 		// issue 20704.
-		http2responseWriterStatePool.Put(rws)
+		responseWriterStatePool.Put(rws)
 	}
 }
 
@@ -3344,9 +3344,9 @@ var (
 	errPushLimitReached = errors.New("http2: push would exceed peer's SETTINGS_MAX_CONCURRENT_STREAMS")
 )
 
-var _ http.Pusher = (*http2responseWriter)(nil)
+var _ http.Pusher = (*responseWriter)(nil)
 
-func (w *http2responseWriter) Push(target string, opts *http.PushOptions) error {
+func (w *responseWriter) Push(target string, opts *http.PushOptions) error {
 	st := w.rws.stream
 	sc := st.sc
 	sc.serveG.checkNotOn()
@@ -3409,7 +3409,7 @@ func (w *http2responseWriter) Push(target string, opts *http.PushOptions) error 
 			return fmt.Errorf("promised request headers cannot include %q", k)
 		}
 	}
-	if err := http2checkValidHTTP2RequestHeaders(opts.Header); err != nil {
+	if err := checkValidHTTP2RequestHeaders(opts.Header); err != nil {
 		return err
 	}
 
@@ -3420,12 +3420,12 @@ func (w *http2responseWriter) Push(target string, opts *http.PushOptions) error 
 		return fmt.Errorf("method %q must be GET or HEAD", opts.Method)
 	}
 
-	msg := &http2startPushRequest{
+	msg := &startPushRequest{
 		parent: st,
 		method: opts.Method,
 		url:    u,
-		header: http2cloneHeader(opts.Header),
-		done:   http2errChanPool.Get().(chan error),
+		header: cloneHeader(opts.Header),
+		done:   errChanPool.Get().(chan error),
 	}
 
 	select {
@@ -3442,26 +3442,26 @@ func (w *http2responseWriter) Push(target string, opts *http.PushOptions) error 
 	case <-st.cw:
 		return errStreamClosed
 	case err := <-msg.done:
-		http2errChanPool.Put(msg.done)
+		errChanPool.Put(msg.done)
 		return err
 	}
 }
 
-type http2startPushRequest struct {
-	parent *http2stream
+type startPushRequest struct {
+	parent *stream
 	method string
 	url    *url.URL
 	header http.Header
 	done   chan error
 }
 
-func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
+func (sc *serverConn) startPush(msg *startPushRequest) {
 	sc.serveG.check()
 
 	// http://tools.ietf.org/html/rfc7540#section-6.6.
 	// PUSH_PROMISE frames MUST only be sent on a peer-initiated stream that
 	// is in either the "open" or "half-closed (remote)" state.
-	if msg.parent.state != http2stateOpen && msg.parent.state != http2stateHalfClosedRemote {
+	if msg.parent.state != stateOpen && msg.parent.state != stateHalfClosedRemote {
 		// responseWriter.Push checks that the stream is peer-initiated.
 		msg.done <- errStreamClosed
 		return
@@ -3505,13 +3505,13 @@ func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
 		// transition to "half closed (remote)" after sending the initial HEADERS, but
 		// we start in "half closed (remote)" for simplicity.
 		// See further comments at the definition of stateHalfClosedRemote.
-		promised := sc.newStream(promisedID, msg.parent.id, http2stateHalfClosedRemote)
-		rw, req, err := sc.newWriterAndRequestNoBody(promised, http2requestParam{
+		promised := sc.newStream(promisedID, msg.parent.id, stateHalfClosedRemote)
+		rw, req, err := sc.newWriterAndRequestNoBody(promised, requestParam{
 			method:    msg.method,
 			scheme:    msg.url.Scheme,
 			authority: msg.url.Host,
 			path:      msg.url.RequestURI(),
-			header:    http2cloneHeader(msg.header), // clone since handler runs concurrently with writing the PUSH_PROMISE
+			header:    cloneHeader(msg.header), // clone since handler runs concurrently with writing the PUSH_PROMISE
 		})
 		if err != nil {
 			// Should not happen, since we've already validated msg.url.
@@ -3522,8 +3522,8 @@ func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
 		return promisedID, nil
 	}
 
-	sc.writeFrame(http2FrameWriteRequest{
-		write: &http2writePushPromise{
+	sc.writeFrame(FrameWriteRequest{
+		write: &writePushPromise{
 			streamID:           msg.parent.id,
 			method:             msg.method,
 			url:                msg.url,
@@ -3536,7 +3536,7 @@ func (sc *http2serverConn) startPush(msg *http2startPushRequest) {
 }
 
 // From http://httpwg.org/specs/rfc7540.html#rfc.section.8.1.2.2
-var http2connHeaders = []string{
+var connHeaders = []string{
 	"Connection",
 	"Keep-Alive",
 	"Proxy-Connection",
@@ -3547,8 +3547,8 @@ var http2connHeaders = []string{
 // checkValidHTTP2RequestHeaders checks whether h is a valid HTTP/2 request,
 // per RFC 7540 Section 8.1.2.2.
 // The returned error is reported to users.
-func http2checkValidHTTP2RequestHeaders(h http.Header) error {
-	for _, k := range http2connHeaders {
+func checkValidHTTP2RequestHeaders(h http.Header) error {
+	for _, k := range connHeaders {
 		if _, ok := h[k]; ok {
 			return fmt.Errorf("request header %q is not valid in HTTP/2", k)
 		}
@@ -3560,7 +3560,7 @@ func http2checkValidHTTP2RequestHeaders(h http.Header) error {
 	return nil
 }
 
-func http2new400Handler(err error) http.HandlerFunc {
+func new400Handler(err error) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
@@ -3569,7 +3569,7 @@ func http2new400Handler(err error) http.HandlerFunc {
 // h1ServerKeepAlivesDisabled reports whether hs has its keep-alives
 // disabled. See comments on h1ServerShutdownChan above for why
 // the code is written this way.
-func http2h1ServerKeepAlivesDisabled(hs *http.Server) bool {
+func h1ServerKeepAlivesDisabled(hs *http.Server) bool {
 	var x interface{} = hs
 	type I interface {
 		doKeepAlives() bool
@@ -3580,7 +3580,7 @@ func http2h1ServerKeepAlivesDisabled(hs *http.Server) bool {
 	return false
 }
 
-func (sc *http2serverConn) countError(name string, err error) error {
+func (sc *serverConn) countError(name string, err error) error {
 	if sc == nil || sc.srv == nil {
 		return err
 	}
@@ -3589,18 +3589,18 @@ func (sc *http2serverConn) countError(name string, err error) error {
 		return err
 	}
 	var typ string
-	var code http2ErrCode
+	var code ErrCode
 	switch e := err.(type) {
-	case http2ConnectionError:
+	case ConnectionError:
 		typ = "conn"
-		code = http2ErrCode(e)
-	case http2StreamError:
+		code = ErrCode(e)
+	case StreamError:
 		typ = "stream"
-		code = http2ErrCode(e.Code)
+		code = ErrCode(e.Code)
 	default:
 		return err
 	}
-	codeStr := http2errCodeName[code]
+	codeStr := errCodeName[code]
 	if codeStr == "" {
 		codeStr = strconv.Itoa(int(code))
 	}
@@ -3609,8 +3609,8 @@ func (sc *http2serverConn) countError(name string, err error) error {
 }
 
 // writeFramer is implemented by any type that is used to write frames.
-type http2writeFramer interface {
-	writeFrame(http2writeContext) error
+type writeFramer interface {
+	writeFrame(writeContext) error
 
 	// staysWithinBuffer reports whether this writer promises that
 	// it will only write less than or equal to size bytes, and it
@@ -3622,14 +3622,14 @@ type http2writeFramer interface {
 // types below. All the writeFrame methods below are scheduled via the
 // frame writing scheduler (see writeScheduler in writesched.go).
 //
-// This interface is implemented by *http2serverConn.
+// This interface is implemented by *serverConn.
 //
 // TODO: decide whether to a) use this in the client code (which didn't
 // end up using this yet, because it has a simpler design, not
 // currently implementing priorities), or b) delete this and
 // make the server code a bit more concrete.
-type http2writeContext interface {
-	Framer() *http2Framer
+type writeContext interface {
+	Framer() *Framer
 	Flush() error
 	CloseConn() error
 	// HeaderEncoder returns an HPACK encoder that writes to the
@@ -3640,11 +3640,11 @@ type http2writeContext interface {
 // writeEndsStream reports whether w writes a frame that will transition
 // the stream to a half-closed local state. This returns false for RST_STREAM,
 // which closes the entire stream (not just the local half).
-func http2writeEndsStream(w http2writeFramer) bool {
+func writeEndsStream(w writeFramer) bool {
 	switch v := w.(type) {
-	case *http2writeData:
+	case *writeData:
 		return v.endStream
-	case *http2writeResHeaders:
+	case *writeResHeaders:
 		return v.endStream
 	case nil:
 		// This can only happen if the caller reuses w after it's
@@ -3655,110 +3655,110 @@ func http2writeEndsStream(w http2writeFramer) bool {
 	return false
 }
 
-type http2flushFrameWriter struct{}
+type flushFrameWriter struct{}
 
-func (http2flushFrameWriter) writeFrame(ctx http2writeContext) error {
+func (flushFrameWriter) writeFrame(ctx writeContext) error {
 	return ctx.Flush()
 }
 
-func (http2flushFrameWriter) staysWithinBuffer(max int) bool { return false }
+func (flushFrameWriter) staysWithinBuffer(max int) bool { return false }
 
-type http2writeSettings []http2Setting
+type writeSettings []Setting
 
-func (s http2writeSettings) staysWithinBuffer(max int) bool {
+func (s writeSettings) staysWithinBuffer(max int) bool {
 	const settingSize = 6 // uint16 + uint32
-	return http2frameHeaderLen+settingSize*len(s) <= max
+	return frameHeaderLen+settingSize*len(s) <= max
 
 }
 
-func (s http2writeSettings) writeFrame(ctx http2writeContext) error {
-	return ctx.Framer().WriteSettings([]http2Setting(s)...)
+func (s writeSettings) writeFrame(ctx writeContext) error {
+	return ctx.Framer().WriteSettings([]Setting(s)...)
 }
 
-type http2writeGoAway struct {
+type writeGoAway struct {
 	maxStreamID uint32
-	code        http2ErrCode
+	code        ErrCode
 }
 
-func (p *http2writeGoAway) writeFrame(ctx http2writeContext) error {
+func (p *writeGoAway) writeFrame(ctx writeContext) error {
 	err := ctx.Framer().WriteGoAway(p.maxStreamID, p.code, nil)
 	ctx.Flush() // ignore error: we're hanging up on them anyway
 	return err
 }
 
-func (*http2writeGoAway) staysWithinBuffer(max int) bool { return false } // flushes
+func (*writeGoAway) staysWithinBuffer(max int) bool { return false } // flushes
 
-type http2writeData struct {
+type writeData struct {
 	streamID  uint32
 	p         []byte
 	endStream bool
 }
 
-func (w *http2writeData) String() string {
+func (w *writeData) String() string {
 	return fmt.Sprintf("writeData(stream=%d, p=%d, endStream=%v)", w.streamID, len(w.p), w.endStream)
 }
 
-func (w *http2writeData) writeFrame(ctx http2writeContext) error {
+func (w *writeData) writeFrame(ctx writeContext) error {
 	return ctx.Framer().WriteData(w.streamID, w.endStream, w.p)
 }
 
-func (w *http2writeData) staysWithinBuffer(max int) bool {
-	return http2frameHeaderLen+len(w.p) <= max
+func (w *writeData) staysWithinBuffer(max int) bool {
+	return frameHeaderLen+len(w.p) <= max
 }
 
 // handlerPanicRST is the message sent from handler goroutines when
 // the handler panics.
-type http2handlerPanicRST struct {
+type handlerPanicRST struct {
 	StreamID uint32
 }
 
-func (hp http2handlerPanicRST) writeFrame(ctx http2writeContext) error {
-	return ctx.Framer().WriteRSTStream(hp.StreamID, http2ErrCodeInternal)
+func (hp handlerPanicRST) writeFrame(ctx writeContext) error {
+	return ctx.Framer().WriteRSTStream(hp.StreamID, ErrCodeInternal)
 }
 
-func (hp http2handlerPanicRST) staysWithinBuffer(max int) bool { return http2frameHeaderLen+4 <= max }
+func (hp handlerPanicRST) staysWithinBuffer(max int) bool { return frameHeaderLen+4 <= max }
 
-func (se http2StreamError) writeFrame(ctx http2writeContext) error {
+func (se StreamError) writeFrame(ctx writeContext) error {
 	return ctx.Framer().WriteRSTStream(se.StreamID, se.Code)
 }
 
-func (se http2StreamError) staysWithinBuffer(max int) bool { return http2frameHeaderLen+4 <= max }
+func (se StreamError) staysWithinBuffer(max int) bool { return frameHeaderLen+4 <= max }
 
-type http2writePingAck struct{ pf *http2PingFrame }
+type writePingAck struct{ pf *PingFrame }
 
-func (w http2writePingAck) writeFrame(ctx http2writeContext) error {
+func (w writePingAck) writeFrame(ctx writeContext) error {
 	return ctx.Framer().WritePing(true, w.pf.Data)
 }
 
-func (w http2writePingAck) staysWithinBuffer(max int) bool {
-	return http2frameHeaderLen+len(w.pf.Data) <= max
+func (w writePingAck) staysWithinBuffer(max int) bool {
+	return frameHeaderLen+len(w.pf.Data) <= max
 }
 
-type http2writeSettingsAck struct{}
+type writeSettingsAck struct{}
 
-func (http2writeSettingsAck) writeFrame(ctx http2writeContext) error {
+func (writeSettingsAck) writeFrame(ctx writeContext) error {
 	return ctx.Framer().WriteSettingsAck()
 }
 
-func (http2writeSettingsAck) staysWithinBuffer(max int) bool { return http2frameHeaderLen <= max }
+func (writeSettingsAck) staysWithinBuffer(max int) bool { return frameHeaderLen <= max }
 
 // splitHeaderBlock splits headerBlock into fragments so that each fragment fits
 // in a single frame, then calls fn for each fragment. firstFrag/lastFrag are true
 // for the first/last fragment, respectively.
-func http2splitHeaderBlock(ctx http2writeContext, headerBlock []byte, fn func(ctx http2writeContext, frag []byte, firstFrag, lastFrag bool) error) error {
+func splitHeaderBlock(ctx writeContext, headerBlock []byte, fn func(ctx writeContext, frag []byte, firstFrag, lastFrag bool) error) error {
 	// For now we're lazy and just pick the minimum MAX_FRAME_SIZE
 	// that all peers must support (16KB). Later we could care
 	// more and send larger frames if the peer advertised it, but
 	// there's little point. Most headers are small anyway (so we
 	// generally won't have CONTINUATION frames), and extra frames
 	// only waste 9 bytes anyway.
-	const http2maxFrameSize = 16384
+	const maxFrameSize = 16384
 
 	first := true
 	for len(headerBlock) > 0 {
 		frag := headerBlock
-		if len(frag) > http2maxFrameSize {
-			frag = frag[:http2maxFrameSize]
+		if len(frag) > maxFrameSize {
+			frag = frag[:maxFrameSize]
 		}
 		headerBlock = headerBlock[len(frag):]
 		if err := fn(ctx, frag, first, len(headerBlock) == 0); err != nil {
@@ -3771,7 +3771,7 @@ func http2splitHeaderBlock(ctx http2writeContext, headerBlock []byte, fn func(ct
 
 // writeResHeaders is a request to write a HEADERS and 0+ CONTINUATION frames
 // for HTTP response headers or trailers from a server handler.
-type http2writeResHeaders struct {
+type writeResHeaders struct {
 	streamID    uint32
 	httpResCode int         // 0 means no ":status" line
 	h           http.Header // may be nil
@@ -3783,14 +3783,14 @@ type http2writeResHeaders struct {
 	contentLength string
 }
 
-func http2encKV(enc *hpack.Encoder, k, v string) {
-	if http2VerboseLogs {
+func encKV(enc *hpack.Encoder, k, v string) {
+	if VerboseLogs {
 		log.Printf("http2: server encoding header %q = %q", k, v)
 	}
 	enc.WriteField(hpack.HeaderField{Name: k, Value: v})
 }
 
-func (w *http2writeResHeaders) staysWithinBuffer(max int) bool {
+func (w *writeResHeaders) staysWithinBuffer(max int) bool {
 	// TODO: this is a common one. It'd be nice to return true
 	// here and get into the fast path if we could be clever and
 	// calculate the size fast enough, or at least a conservative
@@ -3801,24 +3801,24 @@ func (w *http2writeResHeaders) staysWithinBuffer(max int) bool {
 	return false
 }
 
-func (w *http2writeResHeaders) writeFrame(ctx http2writeContext) error {
+func (w *writeResHeaders) writeFrame(ctx writeContext) error {
 	enc, buf := ctx.HeaderEncoder()
 	buf.Reset()
 
 	if w.httpResCode != 0 {
-		http2encKV(enc, ":status", http2httpCodeString(w.httpResCode))
+		encKV(enc, ":status", httpCodeString(w.httpResCode))
 	}
 
-	http2encodeHeaders(enc, w.h, w.trailers)
+	encodeHeaders(enc, w.h, w.trailers)
 
 	if w.contentType != "" {
-		http2encKV(enc, "content-type", w.contentType)
+		encKV(enc, "content-type", w.contentType)
 	}
 	if w.contentLength != "" {
-		http2encKV(enc, "content-length", w.contentLength)
+		encKV(enc, "content-length", w.contentLength)
 	}
 	if w.date != "" {
-		http2encKV(enc, "date", w.date)
+		encKV(enc, "date", w.date)
 	}
 
 	headerBlock := buf.Bytes()
@@ -3826,12 +3826,12 @@ func (w *http2writeResHeaders) writeFrame(ctx http2writeContext) error {
 		panic("unexpected empty hpack")
 	}
 
-	return http2splitHeaderBlock(ctx, headerBlock, w.writeHeaderBlock)
+	return splitHeaderBlock(ctx, headerBlock, w.writeHeaderBlock)
 }
 
-func (w *http2writeResHeaders) writeHeaderBlock(ctx http2writeContext, frag []byte, firstFrag, lastFrag bool) error {
+func (w *writeResHeaders) writeHeaderBlock(ctx writeContext, frag []byte, firstFrag, lastFrag bool) error {
 	if firstFrag {
-		return ctx.Framer().WriteHeaders(http2HeadersFrameParam{
+		return ctx.Framer().WriteHeaders(HeadersFrameParam{
 			StreamID:      w.streamID,
 			BlockFragment: frag,
 			EndStream:     w.endStream,
@@ -3842,7 +3842,7 @@ func (w *http2writeResHeaders) writeHeaderBlock(ctx http2writeContext, frag []by
 }
 
 // writePushPromise is a request to write a PUSH_PROMISE and 0+ CONTINUATION frames.
-type http2writePushPromise struct {
+type writePushPromise struct {
 	streamID uint32   // pusher stream
 	method   string   // for :method
 	url      *url.URL // for :scheme, :authority, :path
@@ -3854,32 +3854,32 @@ type http2writePushPromise struct {
 	promisedID         uint32
 }
 
-func (w *http2writePushPromise) staysWithinBuffer(max int) bool {
+func (w *writePushPromise) staysWithinBuffer(max int) bool {
 	// TODO: see writeResHeaders.staysWithinBuffer
 	return false
 }
 
-func (w *http2writePushPromise) writeFrame(ctx http2writeContext) error {
+func (w *writePushPromise) writeFrame(ctx writeContext) error {
 	enc, buf := ctx.HeaderEncoder()
 	buf.Reset()
 
-	http2encKV(enc, ":method", w.method)
-	http2encKV(enc, ":scheme", w.url.Scheme)
-	http2encKV(enc, ":authority", w.url.Host)
-	http2encKV(enc, ":path", w.url.RequestURI())
-	http2encodeHeaders(enc, w.h, nil)
+	encKV(enc, ":method", w.method)
+	encKV(enc, ":scheme", w.url.Scheme)
+	encKV(enc, ":authority", w.url.Host)
+	encKV(enc, ":path", w.url.RequestURI())
+	encodeHeaders(enc, w.h, nil)
 
 	headerBlock := buf.Bytes()
 	if len(headerBlock) == 0 {
 		panic("unexpected empty hpack")
 	}
 
-	return http2splitHeaderBlock(ctx, headerBlock, w.writeHeaderBlock)
+	return splitHeaderBlock(ctx, headerBlock, w.writeHeaderBlock)
 }
 
-func (w *http2writePushPromise) writeHeaderBlock(ctx http2writeContext, frag []byte, firstFrag, lastFrag bool) error {
+func (w *writePushPromise) writeHeaderBlock(ctx writeContext, frag []byte, firstFrag, lastFrag bool) error {
 	if firstFrag {
-		return ctx.Framer().WritePushPromise(http2PushPromiseParam{
+		return ctx.Framer().WritePushPromise(PushPromiseParam{
 			StreamID:      w.streamID,
 			PromiseID:     w.promisedID,
 			BlockFragment: frag,
@@ -3889,15 +3889,15 @@ func (w *http2writePushPromise) writeHeaderBlock(ctx http2writeContext, frag []b
 	return ctx.Framer().WriteContinuation(w.streamID, lastFrag, frag)
 }
 
-type http2write100ContinueHeadersFrame struct {
+type write100ContinueHeadersFrame struct {
 	streamID uint32
 }
 
-func (w http2write100ContinueHeadersFrame) writeFrame(ctx http2writeContext) error {
+func (w write100ContinueHeadersFrame) writeFrame(ctx writeContext) error {
 	enc, buf := ctx.HeaderEncoder()
 	buf.Reset()
-	http2encKV(enc, ":status", "100")
-	return ctx.Framer().WriteHeaders(http2HeadersFrameParam{
+	encKV(enc, ":status", "100")
+	return ctx.Framer().WriteHeaders(HeadersFrameParam{
 		StreamID:      w.streamID,
 		BlockFragment: buf.Bytes(),
 		EndStream:     false,
@@ -3905,42 +3905,42 @@ func (w http2write100ContinueHeadersFrame) writeFrame(ctx http2writeContext) err
 	})
 }
 
-func (w http2write100ContinueHeadersFrame) staysWithinBuffer(max int) bool {
+func (w write100ContinueHeadersFrame) staysWithinBuffer(max int) bool {
 	// Sloppy but conservative:
 	return 9+2*(len(":status")+len("100")) <= max
 }
 
-type http2writeWindowUpdate struct {
+type writeWindowUpdate struct {
 	streamID uint32 // or 0 for conn-level
 	n        uint32
 }
 
-func (wu http2writeWindowUpdate) staysWithinBuffer(max int) bool { return http2frameHeaderLen+4 <= max }
+func (wu writeWindowUpdate) staysWithinBuffer(max int) bool { return frameHeaderLen+4 <= max }
 
-func (wu http2writeWindowUpdate) writeFrame(ctx http2writeContext) error {
+func (wu writeWindowUpdate) writeFrame(ctx writeContext) error {
 	return ctx.Framer().WriteWindowUpdate(wu.streamID, wu.n)
 }
 
 // encodeHeaders encodes an http.Header. If keys is not nil, then (k, h[k])
 // is encoded only if k is in keys.
-func http2encodeHeaders(enc *hpack.Encoder, h http.Header, keys []string) {
+func encodeHeaders(enc *hpack.Encoder, h http.Header, keys []string) {
 	if keys == nil {
-		sorter := http2sorterPool.Get().(*http2sorter)
+		sorter := sorterPool.Get().(*sorter)
 		// Using defer here, since the returned keys from the
 		// sorter.Keys method is only valid until the sorter
 		// is returned:
-		defer http2sorterPool.Put(sorter)
+		defer sorterPool.Put(sorter)
 		keys = sorter.Keys(h)
 	}
 	for _, k := range keys {
 		vv := h[k]
-		k, ascii := http2lowerHeader(k)
+		k, ascii := lowerHeader(k)
 		if !ascii {
 			// Skip writing invalid headers. Per RFC 7540, Section 8.1.2, header
 			// field names have to be ASCII characters (just as in HTTP/1.x).
 			continue
 		}
-		if !http2validWireHeaderFieldName(k) {
+		if !validWireHeaderFieldName(k) {
 			// Skip it as backup paranoia. Per
 			// golang.org/issue/14048, these should
 			// already be rejected at a higher level.
@@ -3957,18 +3957,18 @@ func http2encodeHeaders(enc *hpack.Encoder, h http.Header, keys []string) {
 			if isTE && v != "trailers" {
 				continue
 			}
-			http2encKV(enc, k, v)
+			encKV(enc, k, v)
 		}
 	}
 }
 
 // WriteScheduler is the interface implemented by HTTP/2 write schedulers.
 // Methods are never called concurrently.
-type http2WriteScheduler interface {
+type WriteScheduler interface {
 	// OpenStream opens a new stream in the write scheduler.
 	// It is illegal to call this with streamID=0 or with a streamID that is
 	// already open -- the call may panic.
-	OpenStream(streamID uint32, options http2OpenStreamOptions)
+	OpenStream(streamID uint32, options OpenStreamOptions)
 
 	// CloseStream closes a stream in the write scheduler. Any frames queued on
 	// this stream should be discarded. It is illegal to call this on a stream
@@ -3979,38 +3979,38 @@ type http2WriteScheduler interface {
 	// on a stream that has not yet been opened or has been closed. Note that
 	// RFC 7540 allows PRIORITY frames to be sent on streams in any state. See:
 	// https://tools.ietf.org/html/rfc7540#section-5.1
-	AdjustStream(streamID uint32, priority http2PriorityParam)
+	AdjustStream(streamID uint32, priority PriorityParam)
 
 	// Push queues a frame in the scheduler. In most cases, this will not be
 	// called with wr.StreamID()!=0 unless that stream is currently open. The one
 	// exception is RST_STREAM frames, which may be sent on idle or closed streams.
-	Push(wr http2FrameWriteRequest)
+	Push(wr FrameWriteRequest)
 
 	// Pop dequeues the next frame to write. Returns false if no frames can
 	// be written. Frames with a given wr.StreamID() are Pop'd in the same
 	// order they are Push'd, except RST_STREAM frames. No frames should be
 	// discarded except by CloseStream.
-	Pop() (wr http2FrameWriteRequest, ok bool)
+	Pop() (wr FrameWriteRequest, ok bool)
 }
 
 // OpenStreamOptions specifies extra options for WriteScheduler.OpenStream.
-type http2OpenStreamOptions struct {
+type OpenStreamOptions struct {
 	// PusherID is zero if the stream was initiated by the client. Otherwise,
 	// PusherID names the stream that pushed the newly opened stream.
 	PusherID uint32
 }
 
 // FrameWriteRequest is a request to write a frame.
-type http2FrameWriteRequest struct {
+type FrameWriteRequest struct {
 	// write is the interface value that does the writing, once the
 	// WriteScheduler has selected this frame to write. The write
 	// functions are all defined in write.go.
-	write http2writeFramer
+	write writeFramer
 
 	// stream is the stream on which this frame will be written.
 	// nil for non-stream frames like PING and SETTINGS.
 	// nil for RST_STREAM streams, which use the StreamError.StreamID field instead.
-	stream *http2stream
+	stream *stream
 
 	// done, if non-nil, must be a buffered channel with space for
 	// 1 message and is sent the return value from write (or an
@@ -4020,10 +4020,10 @@ type http2FrameWriteRequest struct {
 
 // StreamID returns the id of the stream this frame will be written to.
 // 0 is used for non-stream frames such as PING and SETTINGS.
-func (wr http2FrameWriteRequest) StreamID() uint32 {
+func (wr FrameWriteRequest) StreamID() uint32 {
 	if wr.stream == nil {
-		if se, ok := wr.write.(http2StreamError); ok {
-			// (*http2serverConn).resetStream doesn't set
+		if se, ok := wr.write.(StreamError); ok {
+			// (*serverConn).resetStream doesn't set
 			// stream because it doesn't necessarily have
 			// one. So special case this type of write
 			// message.
@@ -4036,14 +4036,14 @@ func (wr http2FrameWriteRequest) StreamID() uint32 {
 
 // isControl reports whether wr is a control frame for MaxQueuedControlFrames
 // purposes. That includes non-stream frames and RST_STREAM frames.
-func (wr http2FrameWriteRequest) isControl() bool {
+func (wr FrameWriteRequest) isControl() bool {
 	return wr.stream == nil
 }
 
 // DataSize returns the number of flow control bytes that must be consumed
 // to write this entire frame. This is 0 for non-DATA frames.
-func (wr http2FrameWriteRequest) DataSize() int {
-	if wd, ok := wr.write.(*http2writeData); ok {
+func (wr FrameWriteRequest) DataSize() int {
+	if wd, ok := wr.write.(*writeData); ok {
 		return len(wd.p)
 	}
 	return 0
@@ -4059,11 +4059,11 @@ func (wr http2FrameWriteRequest) DataSize() int {
 // returns (consumed, rest, 2), where 'consumed' contains the consumed bytes and
 // 'rest' contains the remaining bytes. The consumed bytes are deducted from the
 // underlying stream's flow control budget.
-func (wr http2FrameWriteRequest) Consume(n int32) (http2FrameWriteRequest, http2FrameWriteRequest, int) {
-	var empty http2FrameWriteRequest
+func (wr FrameWriteRequest) Consume(n int32) (FrameWriteRequest, FrameWriteRequest, int) {
+	var empty FrameWriteRequest
 
 	// Non-DATA frames are always consumed whole.
-	wd, ok := wr.write.(*http2writeData)
+	wd, ok := wr.write.(*writeData)
 	if !ok || len(wd.p) == 0 {
 		return wr, empty, 1
 	}
@@ -4081,9 +4081,9 @@ func (wr http2FrameWriteRequest) Consume(n int32) (http2FrameWriteRequest, http2
 	}
 	if len(wd.p) > int(allowed) {
 		wr.stream.flow.take(allowed)
-		consumed := http2FrameWriteRequest{
+		consumed := FrameWriteRequest{
 			stream: wr.stream,
-			write: &http2writeData{
+			write: &writeData{
 				streamID: wd.streamID,
 				p:        wd.p[:allowed],
 				// Even if the original had endStream set, there
@@ -4095,9 +4095,9 @@ func (wr http2FrameWriteRequest) Consume(n int32) (http2FrameWriteRequest, http2
 			// this intermediate frame, so no need to wait.
 			done: nil,
 		}
-		rest := http2FrameWriteRequest{
+		rest := FrameWriteRequest{
 			stream: wr.stream,
-			write: &http2writeData{
+			write: &writeData{
 				streamID:  wd.streamID,
 				p:         wd.p[allowed:],
 				endStream: wd.endStream,
@@ -4114,7 +4114,7 @@ func (wr http2FrameWriteRequest) Consume(n int32) (http2FrameWriteRequest, http2
 }
 
 // String is for debugging only.
-func (wr http2FrameWriteRequest) String() string {
+func (wr FrameWriteRequest) String() string {
 	var des string
 	if s, ok := wr.write.(fmt.Stringer); ok {
 		des = s.String()
@@ -4126,7 +4126,7 @@ func (wr http2FrameWriteRequest) String() string {
 
 // replyToWriter sends err to wr.done and panics if the send must block
 // This does nothing if wr.done is nil.
-func (wr *http2FrameWriteRequest) replyToWriter(err error) {
+func (wr *FrameWriteRequest) replyToWriter(err error) {
 	if wr.done == nil {
 		return
 	}
@@ -4139,24 +4139,24 @@ func (wr *http2FrameWriteRequest) replyToWriter(err error) {
 }
 
 // writeQueue is used by implementations of WriteScheduler.
-type http2writeQueue struct {
-	s []http2FrameWriteRequest
+type writeQueue struct {
+	s []FrameWriteRequest
 }
 
-func (q *http2writeQueue) empty() bool { return len(q.s) == 0 }
+func (q *writeQueue) empty() bool { return len(q.s) == 0 }
 
-func (q *http2writeQueue) push(wr http2FrameWriteRequest) {
+func (q *writeQueue) push(wr FrameWriteRequest) {
 	q.s = append(q.s, wr)
 }
 
-func (q *http2writeQueue) shift() http2FrameWriteRequest {
+func (q *writeQueue) shift() FrameWriteRequest {
 	if len(q.s) == 0 {
 		panic("invalid use of queue")
 	}
 	wr := q.s[0]
 	// TODO: less copy-happy queue.
 	copy(q.s, q.s[1:])
-	q.s[len(q.s)-1] = http2FrameWriteRequest{}
+	q.s[len(q.s)-1] = FrameWriteRequest{}
 	q.s = q.s[:len(q.s)-1]
 	return wr
 }
@@ -4165,14 +4165,14 @@ func (q *http2writeQueue) shift() http2FrameWriteRequest {
 // entirely consumed, it is removed from the queue. If the frame
 // is partially consumed, the frame is kept with the consumed
 // bytes removed. Returns true iff any bytes were consumed.
-func (q *http2writeQueue) consume(n int32) (http2FrameWriteRequest, bool) {
+func (q *writeQueue) consume(n int32) (FrameWriteRequest, bool) {
 	if len(q.s) == 0 {
-		return http2FrameWriteRequest{}, false
+		return FrameWriteRequest{}, false
 	}
 	consumed, rest, numresult := q.s[0].Consume(n)
 	switch numresult {
 	case 0:
-		return http2FrameWriteRequest{}, false
+		return FrameWriteRequest{}, false
 	case 1:
 		q.shift()
 	case 2:
@@ -4181,24 +4181,24 @@ func (q *http2writeQueue) consume(n int32) (http2FrameWriteRequest, bool) {
 	return consumed, true
 }
 
-type http2writeQueuePool []*http2writeQueue
+type writeQueuePool []*writeQueue
 
 // put inserts an unused writeQueue into the pool.
 
 // put inserts an unused writeQueue into the pool.
-func (p *http2writeQueuePool) put(q *http2writeQueue) {
+func (p *writeQueuePool) put(q *writeQueue) {
 	for i := range q.s {
-		q.s[i] = http2FrameWriteRequest{}
+		q.s[i] = FrameWriteRequest{}
 	}
 	q.s = q.s[:0]
 	*p = append(*p, q)
 }
 
 // get returns an empty writeQueue.
-func (p *http2writeQueuePool) get() *http2writeQueue {
+func (p *writeQueuePool) get() *writeQueue {
 	ln := len(*p)
 	if ln == 0 {
-		return new(http2writeQueue)
+		return new(writeQueue)
 	}
 	x := ln - 1
 	q := (*p)[x]
@@ -4208,12 +4208,12 @@ func (p *http2writeQueuePool) get() *http2writeQueue {
 }
 
 // RFC 7540, Section 5.3.5: the default weight is 16.
-const http2priorityDefaultWeight = 15 // 16 = 15 + 1
+const priorityDefaultWeight = 15 // 16 = 15 + 1
 
 // PriorityWriteSchedulerConfig configures a priorityWriteScheduler.
-type http2PriorityWriteSchedulerConfig struct {
+type PriorityWriteSchedulerConfig struct {
 	// MaxClosedNodesInTree controls the maximum number of closed streams to
-	// retain in the priority tree. http2Setting this to zero saves a small amount
+	// retain in the priority tree. Setting this to zero saves a small amount
 	// of memory at the cost of performance.
 	//
 	// See RFC 7540, Section 5.3.4:
@@ -4227,7 +4227,7 @@ type http2PriorityWriteSchedulerConfig struct {
 	MaxClosedNodesInTree int
 
 	// MaxIdleNodesInTree controls the maximum number of idle streams to
-	// retain in the priority tree. http2Setting this to zero saves a small amount
+	// retain in the priority tree. Setting this to zero saves a small amount
 	// of memory at the cost of performance.
 	//
 	// See RFC 7540, Section 5.3.4:
@@ -4252,19 +4252,19 @@ type http2PriorityWriteSchedulerConfig struct {
 // NewPriorityWriteScheduler constructs a WriteScheduler that schedules
 // frames by following HTTP/2 priorities as described in RFC 7540 Section 5.3.
 // If cfg is nil, default options are used.
-func http2NewPriorityWriteScheduler(cfg *http2PriorityWriteSchedulerConfig) http2WriteScheduler {
+func NewPriorityWriteScheduler(cfg *PriorityWriteSchedulerConfig) WriteScheduler {
 	if cfg == nil {
 		// For justification of these defaults, see:
 		// https://docs.google.com/document/d/1oLhNg1skaWD4_DtaoCxdSRN5erEXrH-KnLrMwEpOtFY
-		cfg = &http2PriorityWriteSchedulerConfig{
+		cfg = &PriorityWriteSchedulerConfig{
 			MaxClosedNodesInTree:     10,
 			MaxIdleNodesInTree:       10,
 			ThrottleOutOfOrderWrites: false,
 		}
 	}
 
-	ws := &http2priorityWriteScheduler{
-		nodes:                make(map[uint32]*http2priorityNode),
+	ws := &priorityWriteScheduler{
+		nodes:                make(map[uint32]*priorityNode),
 		maxClosedNodesInTree: cfg.MaxClosedNodesInTree,
 		maxIdleNodesInTree:   cfg.MaxIdleNodesInTree,
 		enableWriteThrottle:  cfg.ThrottleOutOfOrderWrites,
@@ -4278,32 +4278,32 @@ func http2NewPriorityWriteScheduler(cfg *http2PriorityWriteSchedulerConfig) http
 	return ws
 }
 
-type http2priorityNodeState int
+type priorityNodeState int
 
 const (
-	http2priorityNodeOpen http2priorityNodeState = iota
-	http2priorityNodeClosed
-	http2priorityNodeIdle
+	priorityNodeOpen priorityNodeState = iota
+	priorityNodeClosed
+	priorityNodeIdle
 )
 
 // priorityNode is a node in an HTTP/2 priority tree.
 // Each node is associated with a single stream ID.
 // See RFC 7540, Section 5.3.
-type http2priorityNode struct {
-	q            http2writeQueue        // queue of pending frames to write
-	id           uint32                 // id of the stream, or 0 for the root of the tree
-	weight       uint8                  // the actual weight is weight+1, so the value is in [1,256]
-	state        http2priorityNodeState // open | closed | idle
-	bytes        int64                  // number of bytes written by this node, or 0 if closed
-	subtreeBytes int64                  // sum(node.bytes) of all nodes in this subtree
+type priorityNode struct {
+	q            writeQueue        // queue of pending frames to write
+	id           uint32            // id of the stream, or 0 for the root of the tree
+	weight       uint8             // the actual weight is weight+1, so the value is in [1,256]
+	state        priorityNodeState // open | closed | idle
+	bytes        int64             // number of bytes written by this node, or 0 if closed
+	subtreeBytes int64             // sum(node.bytes) of all nodes in this subtree
 
 	// These links form the priority tree.
-	parent     *http2priorityNode
-	kids       *http2priorityNode // start of the kids list
-	prev, next *http2priorityNode // doubly-linked list of siblings
+	parent     *priorityNode
+	kids       *priorityNode // start of the kids list
+	prev, next *priorityNode // doubly-linked list of siblings
 }
 
-func (n *http2priorityNode) setParent(parent *http2priorityNode) {
+func (n *priorityNode) setParent(parent *priorityNode) {
 	if n == parent {
 		panic("setParent to self")
 	}
@@ -4338,7 +4338,7 @@ func (n *http2priorityNode) setParent(parent *http2priorityNode) {
 	}
 }
 
-func (n *http2priorityNode) addBytes(b int64) {
+func (n *priorityNode) addBytes(b int64) {
 	n.bytes += b
 	for ; n != nil; n = n.parent {
 		n.subtreeBytes += b
@@ -4351,7 +4351,7 @@ func (n *http2priorityNode) addBytes(b int64) {
 //
 // f(n, openParent) takes two arguments: the node to visit, n, and a bool that is true
 // if any ancestor p of n is still open (ignoring the root node).
-func (n *http2priorityNode) walkReadyInOrder(openParent bool, tmp *[]*http2priorityNode, f func(*http2priorityNode, bool) bool) bool {
+func (n *priorityNode) walkReadyInOrder(openParent bool, tmp *[]*priorityNode, f func(*priorityNode, bool) bool) bool {
 	if !n.q.empty() && f(n, openParent) {
 		return true
 	}
@@ -4362,7 +4362,7 @@ func (n *http2priorityNode) walkReadyInOrder(openParent bool, tmp *[]*http2prior
 	// Don't consider the root "open" when updating openParent since
 	// we can't send data frames on the root stream (only control frames).
 	if n.id != 0 {
-		openParent = openParent || (n.state == http2priorityNodeOpen)
+		openParent = openParent || (n.state == priorityNodeOpen)
 	}
 
 	// Common case: only one kid or all kids have the same weight.
@@ -4392,7 +4392,7 @@ func (n *http2priorityNode) walkReadyInOrder(openParent bool, tmp *[]*http2prior
 		*tmp = append(*tmp, n.kids)
 		n.kids.setParent(nil)
 	}
-	sort.Sort(http2sortPriorityNodeSiblings(*tmp))
+	sort.Sort(sortPriorityNodeSiblings(*tmp))
 	for i := len(*tmp) - 1; i >= 0; i-- {
 		(*tmp)[i].setParent(n) // setParent inserts at the head of n.kids
 	}
@@ -4404,13 +4404,13 @@ func (n *http2priorityNode) walkReadyInOrder(openParent bool, tmp *[]*http2prior
 	return false
 }
 
-type http2sortPriorityNodeSiblings []*http2priorityNode
+type sortPriorityNodeSiblings []*priorityNode
 
-func (z http2sortPriorityNodeSiblings) Len() int { return len(z) }
+func (z sortPriorityNodeSiblings) Len() int { return len(z) }
 
-func (z http2sortPriorityNodeSiblings) Swap(i, k int) { z[i], z[k] = z[k], z[i] }
+func (z sortPriorityNodeSiblings) Swap(i, k int) { z[i], z[k] = z[k], z[i] }
 
-func (z http2sortPriorityNodeSiblings) Less(i, k int) bool {
+func (z sortPriorityNodeSiblings) Less(i, k int) bool {
 	// Prefer the subtree that has sent fewer bytes relative to its weight.
 	// See sections 5.3.2 and 5.3.4.
 	wi, bi := float64(z[i].weight+1), float64(z[i].subtreeBytes)
@@ -4424,13 +4424,13 @@ func (z http2sortPriorityNodeSiblings) Less(i, k int) bool {
 	return bi/bk <= wi/wk
 }
 
-type http2priorityWriteScheduler struct {
+type priorityWriteScheduler struct {
 	// root is the root of the priority tree, where root.id = 0.
 	// The root queues control frames that are not associated with any stream.
-	root http2priorityNode
+	root priorityNode
 
 	// nodes maps stream ids to priority tree nodes.
-	nodes map[uint32]*http2priorityNode
+	nodes map[uint32]*priorityNode
 
 	// maxID is the maximum stream id in nodes.
 	maxID uint32
@@ -4438,7 +4438,7 @@ type http2priorityWriteScheduler struct {
 	// lists of nodes that have been closed or are idle, but are kept in
 	// the tree for improved prioritization. When the lengths exceed either
 	// maxClosedNodesInTree or maxIdleNodesInTree, old nodes are discarded.
-	closedNodes, idleNodes []*http2priorityNode
+	closedNodes, idleNodes []*priorityNode
 
 	// From the config.
 	maxClosedNodesInTree int
@@ -4447,19 +4447,19 @@ type http2priorityWriteScheduler struct {
 	enableWriteThrottle  bool
 
 	// tmp is scratch space for priorityNode.walkReadyInOrder to reduce allocations.
-	tmp []*http2priorityNode
+	tmp []*priorityNode
 
 	// pool of empty queues for reuse.
-	queuePool http2writeQueuePool
+	queuePool writeQueuePool
 }
 
-func (ws *http2priorityWriteScheduler) OpenStream(streamID uint32, options http2OpenStreamOptions) {
+func (ws *priorityWriteScheduler) OpenStream(streamID uint32, options OpenStreamOptions) {
 	// The stream may be currently idle but cannot be opened or closed.
 	if curr := ws.nodes[streamID]; curr != nil {
-		if curr.state != http2priorityNodeIdle {
+		if curr.state != priorityNodeIdle {
 			panic(fmt.Sprintf("stream %d already opened", streamID))
 		}
-		curr.state = http2priorityNodeOpen
+		curr.state = priorityNodeOpen
 		return
 	}
 
@@ -4471,11 +4471,11 @@ func (ws *http2priorityWriteScheduler) OpenStream(streamID uint32, options http2
 	if parent == nil {
 		parent = &ws.root
 	}
-	n := &http2priorityNode{
+	n := &priorityNode{
 		q:      *ws.queuePool.get(),
 		id:     streamID,
-		weight: http2priorityDefaultWeight,
-		state:  http2priorityNodeOpen,
+		weight: priorityDefaultWeight,
+		state:  priorityNodeOpen,
 	}
 	n.setParent(parent)
 	ws.nodes[streamID] = n
@@ -4484,19 +4484,19 @@ func (ws *http2priorityWriteScheduler) OpenStream(streamID uint32, options http2
 	}
 }
 
-func (ws *http2priorityWriteScheduler) CloseStream(streamID uint32) {
+func (ws *priorityWriteScheduler) CloseStream(streamID uint32) {
 	if streamID == 0 {
 		panic("violation of WriteScheduler interface: cannot close stream 0")
 	}
 	if ws.nodes[streamID] == nil {
 		panic(fmt.Sprintf("violation of WriteScheduler interface: unknown stream %d", streamID))
 	}
-	if ws.nodes[streamID].state != http2priorityNodeOpen {
+	if ws.nodes[streamID].state != priorityNodeOpen {
 		panic(fmt.Sprintf("violation of WriteScheduler interface: stream %d already closed", streamID))
 	}
 
 	n := ws.nodes[streamID]
-	n.state = http2priorityNodeClosed
+	n.state = priorityNodeClosed
 	n.addBytes(-n.bytes)
 
 	q := n.q
@@ -4509,7 +4509,7 @@ func (ws *http2priorityWriteScheduler) CloseStream(streamID uint32) {
 	}
 }
 
-func (ws *http2priorityWriteScheduler) AdjustStream(streamID uint32, priority http2PriorityParam) {
+func (ws *priorityWriteScheduler) AdjustStream(streamID uint32, priority PriorityParam) {
 	if streamID == 0 {
 		panic("adjustPriority on root")
 	}
@@ -4523,11 +4523,11 @@ func (ws *http2priorityWriteScheduler) AdjustStream(streamID uint32, priority ht
 			return
 		}
 		ws.maxID = streamID
-		n = &http2priorityNode{
+		n = &priorityNode{
 			q:      *ws.queuePool.get(),
 			id:     streamID,
-			weight: http2priorityDefaultWeight,
-			state:  http2priorityNodeIdle,
+			weight: priorityDefaultWeight,
+			state:  priorityNodeIdle,
 		}
 		n.setParent(&ws.root)
 		ws.nodes[streamID] = n
@@ -4539,7 +4539,7 @@ func (ws *http2priorityWriteScheduler) AdjustStream(streamID uint32, priority ht
 	parent := ws.nodes[priority.StreamDep]
 	if parent == nil {
 		n.setParent(&ws.root)
-		n.weight = http2priorityDefaultWeight
+		n.weight = priorityDefaultWeight
 		return
 	}
 
@@ -4580,8 +4580,8 @@ func (ws *http2priorityWriteScheduler) AdjustStream(streamID uint32, priority ht
 	n.weight = priority.Weight
 }
 
-func (ws *http2priorityWriteScheduler) Push(wr http2FrameWriteRequest) {
-	var n *http2priorityNode
+func (ws *priorityWriteScheduler) Push(wr FrameWriteRequest) {
+	var n *priorityNode
 	if id := wr.StreamID(); id == 0 {
 		n = &ws.root
 	} else {
@@ -4601,8 +4601,8 @@ func (ws *http2priorityWriteScheduler) Push(wr http2FrameWriteRequest) {
 	n.q.push(wr)
 }
 
-func (ws *http2priorityWriteScheduler) Pop() (wr http2FrameWriteRequest, ok bool) {
-	ws.root.walkReadyInOrder(false, &ws.tmp, func(n *http2priorityNode, openParent bool) bool {
+func (ws *priorityWriteScheduler) Pop() (wr FrameWriteRequest, ok bool) {
+	ws.root.walkReadyInOrder(false, &ws.tmp, func(n *priorityNode, openParent bool) bool {
 		limit := int32(math.MaxInt32)
 		if openParent {
 			limit = ws.writeThrottleLimit
@@ -4628,7 +4628,7 @@ func (ws *http2priorityWriteScheduler) Pop() (wr http2FrameWriteRequest, ok bool
 	return wr, ok
 }
 
-func (ws *http2priorityWriteScheduler) addClosedOrIdleNode(list *[]*http2priorityNode, maxSize int, n *http2priorityNode) {
+func (ws *priorityWriteScheduler) addClosedOrIdleNode(list *[]*priorityNode, maxSize int, n *priorityNode) {
 	if maxSize == 0 {
 		return
 	}
@@ -4642,7 +4642,7 @@ func (ws *http2priorityWriteScheduler) addClosedOrIdleNode(list *[]*http2priorit
 	*list = append(*list, n)
 }
 
-func (ws *http2priorityWriteScheduler) removeNode(n *http2priorityNode) {
+func (ws *priorityWriteScheduler) removeNode(n *priorityNode) {
 	for k := n.kids; k != nil; k = k.next {
 		k.setParent(n.parent)
 	}
@@ -4654,28 +4654,28 @@ func (ws *http2priorityWriteScheduler) removeNode(n *http2priorityNode) {
 // priorities. Control frames like SETTINGS and PING are written before DATA
 // frames, but if no control frames are queued and multiple streams have queued
 // HEADERS or DATA frames, Pop selects a ready stream arbitrarily.
-func http2NewRandomWriteScheduler() http2WriteScheduler {
-	return &http2randomWriteScheduler{sq: make(map[uint32]*http2writeQueue)}
+func NewRandomWriteScheduler() WriteScheduler {
+	return &randomWriteScheduler{sq: make(map[uint32]*writeQueue)}
 }
 
-type http2randomWriteScheduler struct {
+type randomWriteScheduler struct {
 	// zero are frames not associated with a specific stream.
-	zero http2writeQueue
+	zero writeQueue
 
 	// sq contains the stream-specific queues, keyed by stream ID.
 	// When a stream is idle, closed, or emptied, it's deleted
 	// from the map.
-	sq map[uint32]*http2writeQueue
+	sq map[uint32]*writeQueue
 
 	// pool of empty queues for reuse.
-	queuePool http2writeQueuePool
+	queuePool writeQueuePool
 }
 
-func (ws *http2randomWriteScheduler) OpenStream(streamID uint32, options http2OpenStreamOptions) {
+func (ws *randomWriteScheduler) OpenStream(streamID uint32, options OpenStreamOptions) {
 	// no-op: idle streams are not tracked
 }
 
-func (ws *http2randomWriteScheduler) CloseStream(streamID uint32) {
+func (ws *randomWriteScheduler) CloseStream(streamID uint32) {
 	q, ok := ws.sq[streamID]
 	if !ok {
 		return
@@ -4684,11 +4684,11 @@ func (ws *http2randomWriteScheduler) CloseStream(streamID uint32) {
 	ws.queuePool.put(q)
 }
 
-func (ws *http2randomWriteScheduler) AdjustStream(streamID uint32, priority http2PriorityParam) {
+func (ws *randomWriteScheduler) AdjustStream(streamID uint32, priority PriorityParam) {
 	// no-op: priorities are ignored
 }
 
-func (ws *http2randomWriteScheduler) Push(wr http2FrameWriteRequest) {
+func (ws *randomWriteScheduler) Push(wr FrameWriteRequest) {
 	if wr.isControl() {
 		ws.zero.push(wr)
 		return
@@ -4702,7 +4702,7 @@ func (ws *http2randomWriteScheduler) Push(wr http2FrameWriteRequest) {
 	q.push(wr)
 }
 
-func (ws *http2randomWriteScheduler) Pop() (http2FrameWriteRequest, bool) {
+func (ws *randomWriteScheduler) Pop() (FrameWriteRequest, bool) {
 	// Control and RST_STREAM frames first.
 	if !ws.zero.empty() {
 		return ws.zero.shift(), true
@@ -4717,7 +4717,7 @@ func (ws *http2randomWriteScheduler) Pop() (http2FrameWriteRequest, bool) {
 			return wr, true
 		}
 	}
-	return http2FrameWriteRequest{}, false
+	return FrameWriteRequest{}, false
 }
 
 var stderrVerbose = flag.Bool("stderr_verbose", false, "Mirror verbosity to stderr, unbuffered")
@@ -4757,15 +4757,15 @@ type serverTester struct {
 	cc             net.Conn // client conn
 	t              testing.TB
 	ts             *httptest.Server
-	fr             *http2Framer
+	fr             *Framer
 	serverLogBuf   safeBuffer // logger for httptest.Server
 	logFilter      []string   // substrings to filter out
 	scMu           sync.Mutex // guards sc
-	sc             *http2serverConn
+	sc             *serverConn
 	hpackDec       *hpack.Decoder
 	decodedHeaders [][2]string
 
-	// If http2debug!=2, then we capture Frame debug logs that will be written
+	// If debug!=2, then we capture Frame debug logs that will be written
 	// to t.Log after a test fails. The read and write logs use separate locks
 	// and buffers so we don't accidentally introduce synchronization between
 	// the read and write goroutines, which may hide data races.
@@ -4798,14 +4798,14 @@ func (st *serverTester) decodeHeader(headerBlock []byte) (pairs [][2]string) {
 }
 
 func init() {
-	http2testHookOnPanicMu = new(sync.Mutex)
-	http2goAwayTimeout = 25 * time.Millisecond
+	testHookOnPanicMu = new(sync.Mutex)
+	goAwayTimeout = 25 * time.Millisecond
 }
 
 func resetHooks() {
-	http2testHookOnPanicMu.Lock()
-	http2testHookOnPanic = nil
-	http2testHookOnPanicMu.Unlock()
+	testHookOnPanicMu.Lock()
+	testHookOnPanic = nil
+	testHookOnPanicMu.Unlock()
 }
 
 // ConfigureServer adds HTTP/2 support to a net/http Server.
@@ -4813,14 +4813,14 @@ func resetHooks() {
 // The configuration conf may be nil.
 //
 // ConfigureServer must be called before s begins serving.
-func http2ConfigureServer(s *http.Server, conf *http2Server) error {
+func ConfigureServer(s *http.Server, conf *Server) error {
 	if s == nil {
 		panic("nil *http.Server")
 	}
 	if conf == nil {
-		conf = new(http2Server)
+		conf = new(Server)
 	}
-	conf.state = &http2serverInternalState{activeConns: make(map[*http2serverConn]struct{})}
+	conf.state = &serverInternalState{activeConns: make(map[*serverConn]struct{})}
 	if h1, h2 := s, conf; h2.IdleTimeout == 0 {
 		if h1.IdleTimeout != 0 {
 			h2.IdleTimeout = h1.IdleTimeout
@@ -4860,10 +4860,10 @@ func http2ConfigureServer(s *http.Server, conf *http2Server) error {
 
 	s.TLSConfig.PreferServerCipherSuites = true
 
-	if !http2strSliceContains(s.TLSConfig.NextProtos, http2NextProtoTLS) {
-		s.TLSConfig.NextProtos = append(s.TLSConfig.NextProtos, http2NextProtoTLS)
+	if !strSliceContains(s.TLSConfig.NextProtos, NextProtoTLS) {
+		s.TLSConfig.NextProtos = append(s.TLSConfig.NextProtos, NextProtoTLS)
 	}
-	if !http2strSliceContains(s.TLSConfig.NextProtos, "http/1.1") {
+	if !strSliceContains(s.TLSConfig.NextProtos, "http/1.1") {
 		s.TLSConfig.NextProtos = append(s.TLSConfig.NextProtos, "http/1.1")
 	}
 
@@ -4871,8 +4871,8 @@ func http2ConfigureServer(s *http.Server, conf *http2Server) error {
 		s.TLSNextProto = map[string]func(*http.Server, *tls.Conn, http.Handler){}
 	}
 	protoHandler := func(hs *http.Server, c *tls.Conn, h http.Handler) {
-		if http2testHookOnConn != nil {
-			http2testHookOnConn()
+		if testHookOnConn != nil {
+			testHookOnConn()
 		}
 		// The TLSNextProto interface predates contexts, so
 		// the net/http package passes down its per-connection
@@ -4886,13 +4886,13 @@ func http2ConfigureServer(s *http.Server, conf *http2Server) error {
 		if bc, ok := h.(baseContexter); ok {
 			ctx = bc.BaseContext()
 		}
-		conf.ServeConn(c, &http2ServeConnOpts{
+		conf.ServeConn(c, &ServeConnOpts{
 			Context:    ctx,
 			Handler:    h,
 			BaseConfig: hs,
 		})
 	}
-	s.TLSNextProto[http2NextProtoTLS] = protoHandler
+	s.TLSNextProto[NextProtoTLS] = protoHandler
 	return nil
 }
 
@@ -4927,18 +4927,18 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
-		NextProtos:         []string{http2NextProtoTLS},
+		NextProtos:         []string{NextProtoTLS},
 	}
 
 	var onlyServer, quiet, framerReuseFrames bool
-	h2server := new(http2Server)
+	h2server := new(Server)
 	for _, opt := range opts {
 		switch v := opt.(type) {
 		case func(*tls.Config):
 			v(tlsConfig)
 		case func(*httptest.Server):
 			v(ts)
-		case func(*http2Server):
+		case func(*Server):
 			v(h2server)
 		case serverTesterOpt:
 			switch v {
@@ -4956,14 +4956,14 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 		}
 	}
 
-	http2ConfigureServer(ts.Config, h2server)
+	ConfigureServer(ts.Config, h2server)
 
 	st := &serverTester{
 		t:  t,
 		ts: ts,
 	}
 	st.hpackEnc = hpack.NewEncoder(&st.headerBuf)
-	st.hpackDec = hpack.NewDecoder(http2initialHeaderTableSize, st.onHeaderField)
+	st.hpackDec = hpack.NewDecoder(initialHeaderTableSize, st.onHeaderField)
 
 	ts.TLS = ts.Config.TLSConfig // the httptest.Server has its own copy of this TLS config
 	if quiet {
@@ -4973,10 +4973,10 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 	}
 	ts.StartTLS()
 
-	if http2VerboseLogs {
+	if VerboseLogs {
 		t.Logf("Running test server at: %s", ts.URL)
 	}
-	http2testHookGetServerConn = func(v *http2serverConn) {
+	testHookGetServerConn = func(v *serverConn) {
 		st.scMu.Lock()
 		defer st.scMu.Unlock()
 		st.sc = v
@@ -4988,11 +4988,11 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 			t.Fatal(err)
 		}
 		st.cc = cc
-		st.fr = http2NewFramer(cc, cc)
+		st.fr = NewFramer(cc, cc)
 		if framerReuseFrames {
 			st.fr.SetReuseFrames()
 		}
-		if !http2logFrameReads && !http2logFrameWrites {
+		if !logFrameReads && !logFrameWrites {
 			st.fr.debugReadLoggerf = func(m string, v ...interface{}) {
 				m = time.Now().Format("2006-01-02 15:04:05.999999999 ") + strings.TrimPrefix(m, "http2: ") + "\n"
 				st.frameReadLogMu.Lock()
@@ -5022,16 +5022,16 @@ func (st *serverTester) addLogFilter(phrase string) {
 	st.logFilter = append(st.logFilter, phrase)
 }
 
-func (st *serverTester) stream(id uint32) *http2stream {
-	ch := make(chan *http2stream, 1)
+func (st *serverTester) stream(id uint32) *stream {
+	ch := make(chan *stream, 1)
 	st.sc.serveMsgCh <- func(int) {
 		ch <- st.sc.streams[id]
 	}
 	return <-ch
 }
 
-func (st *serverTester) http2streamState(id uint32) http2streamState {
-	ch := make(chan http2streamState, 1)
+func (st *serverTester) streamState(id uint32) streamState {
+	ch := make(chan streamState, 1)
 	st.sc.serveMsgCh <- func(int) {
 		state, _ := st.sc.state(id)
 		ch <- state
@@ -5097,10 +5097,10 @@ func (st *serverTester) Close() {
 // greet initiates the client's HTTP/2 connection into a state where
 // frames may be sent.
 func (st *serverTester) greet() {
-	st.greetAndCheckSettings(func(http2Setting) error { return nil })
+	st.greetAndCheckSettings(func(Setting) error { return nil })
 }
 
-func (st *serverTester) greetAndCheckSettings(checkSetting func(s http2Setting) error) {
+func (st *serverTester) greetAndCheckSettings(checkSetting func(s Setting) error) {
 	st.writePreface()
 	st.writeInitialSettings()
 	st.wantSettings().ForeachSetting(checkSetting)
@@ -5116,17 +5116,17 @@ func (st *serverTester) greetAndCheckSettings(checkSetting func(s http2Setting) 
 			st.t.Fatal(err)
 		}
 		switch f := f.(type) {
-		case *http2SettingsFrame:
-			if !f.Header().Flags.Has(http2FlagSettingsAck) {
+		case *SettingsFrame:
+			if !f.Header().Flags.Has(FlagSettingsAck) {
 				st.t.Fatal("Settings Frame didn't have ACK set")
 			}
 			gotSettingsAck = true
 
-		case *http2WindowUpdateFrame:
-			if f.http2FrameHeader.StreamID != 0 {
-				st.t.Fatalf("WindowUpdate StreamID = %d; want 0", f.http2FrameHeader.StreamID)
+		case *WindowUpdateFrame:
+			if f.FrameHeader.StreamID != 0 {
+				st.t.Fatalf("WindowUpdate StreamID = %d; want 0", f.FrameHeader.StreamID)
 			}
-			incr := uint32((&http2Server{}).initialConnRecvWindowSize() - http2initialWindowSize)
+			incr := uint32((&Server{}).initialConnRecvWindowSize() - initialWindowSize)
 			if f.Increment != incr {
 				st.t.Fatalf("WindowUpdate increment = %d; want %d", f.Increment, incr)
 			}
@@ -5146,12 +5146,12 @@ func (st *serverTester) greetAndCheckSettings(checkSetting func(s http2Setting) 
 }
 
 func (st *serverTester) writePreface() {
-	n, err := st.cc.Write(http2clientPreface)
+	n, err := st.cc.Write(clientPreface)
 	if err != nil {
 		st.t.Fatalf("Error writing client preface: %v", err)
 	}
-	if n != len(http2clientPreface) {
-		st.t.Fatalf("Writing client preface, wrote %d bytes; want %d", n, len(http2clientPreface))
+	if n != len(clientPreface) {
+		st.t.Fatalf("Writing client preface, wrote %d bytes; want %d", n, len(clientPreface))
 	}
 }
 
@@ -5167,13 +5167,13 @@ func (st *serverTester) writeSettingsAck() {
 	}
 }
 
-func (st *serverTester) writeHeaders(p http2HeadersFrameParam) {
+func (st *serverTester) writeHeaders(p HeadersFrameParam) {
 	if err := st.fr.WriteHeaders(p); err != nil {
 		st.t.Fatalf("Error writing HEADERS: %v", err)
 	}
 }
 
-func (st *serverTester) writePriority(id uint32, p http2PriorityParam) {
+func (st *serverTester) writePriority(id uint32, p PriorityParam) {
 	if err := st.fr.WritePriority(id, p); err != nil {
 		st.t.Fatalf("Error writing PRIORITY: %v", err)
 	}
@@ -5269,7 +5269,7 @@ func (st *serverTester) encodeHeader(headers ...string) []byte {
 
 // bodylessReq1 writes a HEADERS frames with StreamID 1 and EndStream and EndHeaders set.
 func (st *serverTester) bodylessReq1(headers ...string) {
-	st.writeHeaders(http2HeadersFrameParam{
+	st.writeHeaders(HeadersFrameParam{
 		StreamID:      1, // clients send odd numbers
 		BlockFragment: st.encodeHeader(headers...),
 		EndStream:     true,
@@ -5289,96 +5289,96 @@ func (st *serverTester) writeDataPadded(streamID uint32, endStream bool, data, p
 	}
 }
 
-func (st *serverTester) readFrame() (http2Frame, error) {
+func (st *serverTester) readFrame() (Frame, error) {
 	return st.fr.ReadFrame()
 }
 
-func (st *serverTester) wantHeaders() *http2HeadersFrame {
+func (st *serverTester) wantHeaders() *HeadersFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting a HEADERS frame: %v", err)
 	}
-	hf, ok := f.(*http2HeadersFrame)
+	hf, ok := f.(*HeadersFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2HeadersFrame", f)
+		st.t.Fatalf("got a %T; want *HeadersFrame", f)
 	}
 	return hf
 }
 
-func (st *serverTester) wantContinuation() *http2ContinuationFrame {
+func (st *serverTester) wantContinuation() *ContinuationFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting a CONTINUATION frame: %v", err)
 	}
-	cf, ok := f.(*http2ContinuationFrame)
+	cf, ok := f.(*ContinuationFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2ContinuationFrame", f)
+		st.t.Fatalf("got a %T; want *ContinuationFrame", f)
 	}
 	return cf
 }
 
-func (st *serverTester) wantData() *http2DataFrame {
+func (st *serverTester) wantData() *DataFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting a DATA frame: %v", err)
 	}
-	df, ok := f.(*http2DataFrame)
+	df, ok := f.(*DataFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2DataFrame", f)
+		st.t.Fatalf("got a %T; want *DataFrame", f)
 	}
 	return df
 }
 
-func (st *serverTester) wantSettings() *http2SettingsFrame {
+func (st *serverTester) wantSettings() *SettingsFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting a SETTINGS frame: %v", err)
 	}
-	sf, ok := f.(*http2SettingsFrame)
+	sf, ok := f.(*SettingsFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2SettingsFrame", f)
+		st.t.Fatalf("got a %T; want *SettingsFrame", f)
 	}
 	return sf
 }
 
-func (st *serverTester) wantPing() *http2PingFrame {
+func (st *serverTester) wantPing() *PingFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting a PING frame: %v", err)
 	}
-	pf, ok := f.(*http2PingFrame)
+	pf, ok := f.(*PingFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2PingFrame", f)
+		st.t.Fatalf("got a %T; want *PingFrame", f)
 	}
 	return pf
 }
 
-func (st *serverTester) wantGoAway() *http2GoAwayFrame {
+func (st *serverTester) wantGoAway() *GoAwayFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting a GOAWAY frame: %v", err)
 	}
-	gf, ok := f.(*http2GoAwayFrame)
+	gf, ok := f.(*GoAwayFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2GoAwayFrame", f)
+		st.t.Fatalf("got a %T; want *GoAwayFrame", f)
 	}
 	return gf
 }
 
-func (st *serverTester) wantRSTStream(streamID uint32, errCode http2ErrCode) {
+func (st *serverTester) wantRSTStream(streamID uint32, errCode ErrCode) {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatalf("Error while expecting an RSTStream frame: %v", err)
 	}
-	rs, ok := f.(*http2RSTStreamFrame)
+	rs, ok := f.(*RSTStreamFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2RSTStreamFrame", f)
+		st.t.Fatalf("got a %T; want *RSTStreamFrame", f)
 	}
-	if rs.http2FrameHeader.StreamID != streamID {
-		st.t.Fatalf("RSTStream StreamID = %d; want %d", rs.http2FrameHeader.StreamID, streamID)
+	if rs.FrameHeader.StreamID != streamID {
+		st.t.Fatalf("RSTStream StreamID = %d; want %d", rs.FrameHeader.StreamID, streamID)
 	}
 	if rs.ErrCode != errCode {
-		st.t.Fatalf("RSTStream http2ErrCode = %d (%s); want %d (%s)", rs.ErrCode, rs.ErrCode, errCode, errCode)
+		st.t.Fatalf("RSTStream ErrCode = %d (%s); want %d (%s)", rs.ErrCode, rs.ErrCode, errCode, errCode)
 	}
 }
 
@@ -5387,12 +5387,12 @@ func (st *serverTester) wantWindowUpdate(streamID, incr uint32) {
 	if err != nil {
 		st.t.Fatalf("Error while expecting a WINDOW_UPDATE frame: %v", err)
 	}
-	wu, ok := f.(*http2WindowUpdateFrame)
+	wu, ok := f.(*WindowUpdateFrame)
 	if !ok {
-		st.t.Fatalf("got a %T; want *http2WindowUpdateFrame", f)
+		st.t.Fatalf("got a %T; want *WindowUpdateFrame", f)
 	}
-	if wu.http2FrameHeader.StreamID != streamID {
-		st.t.Fatalf("WindowUpdate StreamID = %d; want %d", wu.http2FrameHeader.StreamID, streamID)
+	if wu.FrameHeader.StreamID != streamID {
+		st.t.Fatalf("WindowUpdate StreamID = %d; want %d", wu.FrameHeader.StreamID, streamID)
 	}
 	if wu.Increment != incr {
 		st.t.Fatalf("WindowUpdate increment = %d; want %d", wu.Increment, incr)
@@ -5404,21 +5404,21 @@ func (st *serverTester) wantSettingsAck() {
 	if err != nil {
 		st.t.Fatal(err)
 	}
-	sf, ok := f.(*http2SettingsFrame)
+	sf, ok := f.(*SettingsFrame)
 	if !ok {
 		st.t.Fatalf("Wanting a settings ACK, received a %T", f)
 	}
-	if !sf.Header().Flags.Has(http2FlagSettingsAck) {
+	if !sf.Header().Flags.Has(FlagSettingsAck) {
 		st.t.Fatal("Settings Frame didn't have ACK set")
 	}
 }
 
-func (st *serverTester) wantPushPromise() *http2PushPromiseFrame {
+func (st *serverTester) wantPushPromise() *PushPromiseFrame {
 	f, err := st.readFrame()
 	if err != nil {
 		st.t.Fatal(err)
 	}
-	ppf, ok := f.(*http2PushPromiseFrame)
+	ppf, ok := f.(*PushPromiseFrame)
 	if !ok {
 		st.t.Fatalf("Wanted PushPromise, received %T", ppf)
 	}

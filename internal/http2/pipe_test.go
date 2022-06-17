@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import (
 	"bytes"
@@ -13,7 +13,7 @@ import (
 )
 
 func TestPipeClose(t *testing.T) {
-	var p http2pipe
+	var p pipe
 	p.b = new(bytes.Buffer)
 	a := errors.New("a")
 	b := errors.New("b")
@@ -26,7 +26,7 @@ func TestPipeClose(t *testing.T) {
 }
 
 func TestPipeDoneChan(t *testing.T) {
-	var p http2pipe
+	var p pipe
 	done := p.Done()
 	select {
 	case <-done:
@@ -42,7 +42,7 @@ func TestPipeDoneChan(t *testing.T) {
 }
 
 func TestPipeDoneChan_ErrFirst(t *testing.T) {
-	var p http2pipe
+	var p pipe
 	p.CloseWithError(io.EOF)
 	done := p.Done()
 	select {
@@ -53,7 +53,7 @@ func TestPipeDoneChan_ErrFirst(t *testing.T) {
 }
 
 func TestPipeDoneChan_Break(t *testing.T) {
-	var p http2pipe
+	var p pipe
 	done := p.Done()
 	select {
 	case <-done:
@@ -69,7 +69,7 @@ func TestPipeDoneChan_Break(t *testing.T) {
 }
 
 func TestPipeDoneChan_Break_ErrFirst(t *testing.T) {
-	var p http2pipe
+	var p pipe
 	p.BreakWithError(io.EOF)
 	done := p.Done()
 	select {
@@ -80,7 +80,7 @@ func TestPipeDoneChan_Break_ErrFirst(t *testing.T) {
 }
 
 func TestPipeCloseWithError(t *testing.T) {
-	p := &http2pipe{b: new(bytes.Buffer)}
+	p := &pipe{b: new(bytes.Buffer)}
 	const body = "foo"
 	io.WriteString(p, body)
 	a := errors.New("test error")
@@ -108,7 +108,7 @@ func TestPipeCloseWithError(t *testing.T) {
 }
 
 func TestPipeBreakWithError(t *testing.T) {
-	p := &http2pipe{b: new(bytes.Buffer)}
+	p := &pipe{b: new(bytes.Buffer)}
 	io.WriteString(p, "foo")
 	a := errors.New("test err")
 	p.BreakWithError(a)

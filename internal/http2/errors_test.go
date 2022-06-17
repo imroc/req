@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package req
+package http2
 
 import "testing"
 
 func TestErrCodeString(t *testing.T) {
 	tests := []struct {
-		err  http2ErrCode
+		err  ErrCode
 		want string
 	}{
-		{http2ErrCodeProtocol, "PROTOCOL_ERROR"},
+		{ErrCodeProtocol, "PROTOCOL_ERROR"},
 		{0xd, "HTTP_1_1_REQUIRED"},
 		{0xf, "unknown error code 0xf"},
 	}
