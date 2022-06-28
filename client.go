@@ -7,8 +7,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/imroc/req/v3/internal/util"
-	"golang.org/x/net/publicsuffix"
 	"io"
 	"io/ioutil"
 	"net"
@@ -19,6 +17,9 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/imroc/req/v3/internal/util"
+	"golang.org/x/net/publicsuffix"
 )
 
 // DefaultClient returns the global default Client.
@@ -1096,6 +1097,10 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		resp.body = nil
 		resp.result = nil
 		resp.error = nil
+	}
+
+	if nil != err {
+		return
 	}
 
 	for _, f := range r.client.afterResponse {
