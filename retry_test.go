@@ -158,3 +158,15 @@ func TestRetryWithModify(t *testing.T) {
 	assertSuccess(t, resp, err)
 	assertEqual(t, 2, resp.Request.RetryAttempt)
 }
+
+func TestRetryFalse(t *testing.T) {
+
+	resp, err := tc().R().
+		SetRetryCount(1).
+		SetRetryCondition(func(resp *Response, err error) bool {
+			return false
+		}).Get("https://non-exists-host.com.cn")
+	assertNotNil(t, err)
+	assertIsNil(t, resp.Response)
+	assertEqual(t, 0, resp.Request.RetryAttempt)
+}

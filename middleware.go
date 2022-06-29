@@ -2,7 +2,6 @@ package req
 
 import (
 	"bytes"
-	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -14,6 +13,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/imroc/req/v3/internal/util"
 )
 
 type (
@@ -272,7 +273,7 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 }
 
 func parseResponseBody(c *Client, r *Response) (err error) {
-	if r.StatusCode == http.StatusNoContent {
+	if nil == r.Response || r.StatusCode == http.StatusNoContent {
 		return
 	}
 	if r.Request.Result != nil && r.IsSuccess() {
