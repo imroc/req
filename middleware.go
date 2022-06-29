@@ -273,7 +273,7 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 }
 
 func parseResponseBody(c *Client, r *Response) (err error) {
-	if nil == r.Response || r.StatusCode == http.StatusNoContent {
+	if r.Response == nil || r.StatusCode == http.StatusNoContent {
 		return
 	}
 	if r.Request.Result != nil && r.IsSuccess() {

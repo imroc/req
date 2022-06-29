@@ -1099,7 +1099,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		resp.error = nil
 	}
 
-	if nil != err {
+	if err != nil {
 		return
 	}
 

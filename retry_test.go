@@ -160,7 +160,6 @@ func TestRetryWithModify(t *testing.T) {
 }
 
 func TestRetryFalse(t *testing.T) {
-
 	resp, err := tc().R().
 		SetRetryCount(1).
 		SetRetryCondition(func(resp *Response, err error) bool {
