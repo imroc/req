@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/imroc/req/v3/internal/dump"
-	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"net"
 	"net/http"
 	"net/url"
@@ -91,8 +90,4 @@ type Interface interface {
 	// when reading from the transport.
 	// If zero, a default (currently 4KB) is used.
 	ReadBufferSize() int
-
-	TLSNextProto() map[string]func(authority string, c reqtls.Conn) http.RoundTripper
-
-	SetTLSNextProto(map[string]func(authority string, c reqtls.Conn) http.RoundTripper)
 }

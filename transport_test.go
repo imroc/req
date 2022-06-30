@@ -22,9 +22,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/http2"
-	"github.com/imroc/req/v3/internal/testcert"
 	"github.com/imroc/req/v3/internal/tests"
-	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"go/token"
 	"golang.org/x/net/http/httpproxy"
 	nethttp2 "golang.org/x/net/http2"
@@ -4214,27 +4212,6 @@ func TestTransportPrefersResponseOverWriteError(t *testing.T) {
 	}
 }
 
-func TestTransportAutomaticHTTP2(t *testing.T) {
-	tr := tc().t
-	testTransportAutoHTTP(t, tr, true)
-}
-
-func TestTransportAutomaticHTTP2_TLSNextProto(t *testing.T) {
-	tr := tc().t
-	tr.TLSNextProto = make(map[string]func(string, reqtls.Conn) http.RoundTripper)
-	testTransportAutoHTTP(t, tr, false)
-}
-
-func testTransportAutoHTTP(t *testing.T, tr *Transport, wantH2 bool) {
-	_, err := tr.RoundTrip(new(http.Request))
-	if err == nil {
-		t.Error("expected error from RoundTrip")
-	}
-	if reg := tr.TLSNextProto["h2"] != nil; reg != wantH2 {
-		t.Errorf("HTTP/2 registered = %v; want %v", reg, wantH2)
-	}
-}
-
 // Issue 13633: there was a race where we returned bodyless responses
 // to callers before recycling the persistent connection, which meant
 // a client doing two subsequent requests could end up on different
@@ -4267,89 +4244,6 @@ func TestTransportReuseConnEmptyResponseBody(t *testing.T) {
 		}
 		res.Body.Close()
 	}
-}
-
-// Issue 13839
-func TestNoCrashReturningTransportAltConn(t *testing.T) {
-	cert, err := tls.X509KeyPair(testcert.LocalhostCert, testcert.LocalhostKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ln := tests.NewLocalListener(t)
-	defer ln.Close()
-
-	var wg sync.WaitGroup
-	SetPendingDialHooks(func() { wg.Add(1) }, wg.Done)
-	defer SetPendingDialHooks(nil, nil)
-
-	testDone := make(chan struct{})
-	defer close(testDone)
-	go func() {
-		tln := tls.NewListener(ln, &tls.Config{
-			NextProtos:   []string{"foo"},
-			Certificates: []tls.Certificate{cert},
-		})
-		sc, err := tln.Accept()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		if err := sc.(*tls.Conn).Handshake(); err != nil {
-			t.Error(err)
-			return
-		}
-		<-testDone
-		sc.Close()
-	}()
-
-	addr := ln.Addr().String()
-
-	req, _ := http.NewRequest("GET", "https://fake.tld/", nil)
-	cancel := make(chan struct{})
-	req.Cancel = cancel
-
-	doReturned := make(chan bool, 1)
-	madeRoundTripper := make(chan bool, 1)
-
-	tr := &Transport{
-		DisableKeepAlives: true,
-		TLSNextProto: map[string]func(string, reqtls.Conn) http.RoundTripper{
-			"foo": func(authority string, c reqtls.Conn) http.RoundTripper {
-				madeRoundTripper <- true
-				return funcRoundTripper(func() {
-					t.Error("foo http.RoundTripper should not be called")
-				})
-			},
-		},
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			panic("shouldn't be called")
-		},
-		DialTLSContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			tc, err := tls.Dial("tcp", addr, &tls.Config{
-				InsecureSkipVerify: true,
-				NextProtos:         []string{"foo"},
-			})
-			if err != nil {
-				return nil, err
-			}
-			if err := tc.Handshake(); err != nil {
-				return nil, err
-			}
-			close(cancel)
-			<-doReturned
-			return tc, nil
-		},
-	}
-	c := &http.Client{Transport: tr}
-
-	_, err = c.Do(req)
-	if ue, ok := err.(*url.Error); !ok || ue.Err != errRequestCanceledConn {
-		t.Fatalf("Do error = %v; want url.Error with errRequestCanceledConn", err)
-	}
-
-	doReturned <- true
-	<-madeRoundTripper
-	wg.Wait()
 }
 
 func TestTransportReuseConnectionGzipChunked(t *testing.T) {
@@ -5600,14 +5494,11 @@ func TestTransportClone(t *testing.T) {
 		GetProxyConnectHeader:  func(context.Context, *url.URL, string) (http.Header, error) { return nil, nil },
 		MaxResponseHeaderBytes: 1,
 		ForceAttemptHTTP2:      true,
-		TLSNextProto: map[string]func(authority string, c reqtls.Conn) http.RoundTripper{
-			"foo": func(authority string, c reqtls.Conn) http.RoundTripper { panic("") },
-		},
-		ReadBufferSize:   1,
-		WriteBufferSize:  1,
-		ForceHttpVersion: HTTP1,
-		ResponseOptions:  &ResponseOptions{},
-		Debugf:           func(format string, v ...interface{}) {},
+		ReadBufferSize:         1,
+		WriteBufferSize:        1,
+		ForceHttpVersion:       HTTP1,
+		ResponseOptions:        &ResponseOptions{},
+		Debugf:                 func(format string, v ...interface{}) {},
 	}
 	tr2 := tr.Clone()
 	rv := reflect.ValueOf(tr2).Elem()
@@ -5622,16 +5513,9 @@ func TestTransportClone(t *testing.T) {
 		}
 	}
 
-	if _, ok := tr2.TLSNextProto["foo"]; !ok {
-		t.Errorf("cloned Transport lacked TLSNextProto 'foo' key")
-	}
-
 	// But test that a nil TLSNextProto is kept nil:
 	tr = new(Transport)
 	tr2 = tr.Clone()
-	if tr2.TLSNextProto != nil {
-		t.Errorf("Transport.TLSNextProto unexpected non-nil")
-	}
 }
 
 func TestIs408(t *testing.T) {

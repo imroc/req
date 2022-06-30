@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/imroc/req/v3/internal/dump"
-	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"net"
 	"net/http"
 	"net/url"
@@ -101,12 +100,4 @@ func (t transportImpl) WriteBufferSize() int {
 
 func (t transportImpl) ReadBufferSize() int {
 	return t.t.ReadBufferSize
-}
-
-func (t transportImpl) TLSNextProto() map[string]func(authority string, c reqtls.Conn) http.RoundTripper {
-	return t.t.TLSNextProto
-}
-
-func (t transportImpl) SetTLSNextProto(m map[string]func(authority string, c reqtls.Conn) http.RoundTripper) {
-	t.t.TLSNextProto = m
 }

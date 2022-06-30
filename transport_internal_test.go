@@ -7,15 +7,10 @@
 package req
 
 import (
-	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"github.com/imroc/req/v3/internal/http2"
-	"github.com/imroc/req/v3/internal/testcert"
 	"github.com/imroc/req/v3/internal/tests"
-	reqtls "github.com/imroc/req/v3/pkg/tls"
-	"io"
 	"net"
 	"net/http"
 	"strings"
@@ -190,76 +185,4 @@ type roundTripFunc func(r *http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
-}
-
-// Issue 25009
-func TestTransportBodyAltRewind(t *testing.T) {
-	cert, err := tls.X509KeyPair(testcert.LocalhostCert, testcert.LocalhostKey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	ln := tests.NewLocalListener(t)
-	defer ln.Close()
-
-	go func() {
-		tln := tls.NewListener(ln, &tls.Config{
-			NextProtos:   []string{"foo"},
-			Certificates: []tls.Certificate{cert},
-		})
-		for i := 0; i < 2; i++ {
-			sc, err := tln.Accept()
-			if err != nil {
-				t.Error(err)
-				return
-			}
-			if err := sc.(reqtls.Conn).Handshake(); err != nil {
-				t.Error(err)
-				return
-			}
-			sc.Close()
-		}
-	}()
-
-	addr := ln.Addr().String()
-	req, _ := http.NewRequest("POST", "https://example.org/", bytes.NewBufferString("request"))
-	roundTripped := false
-	tr := &Transport{
-		DisableKeepAlives: true,
-		TLSNextProto: map[string]func(string, reqtls.Conn) http.RoundTripper{
-			"foo": func(authority string, c reqtls.Conn) http.RoundTripper {
-				return roundTripFunc(func(r *http.Request) (*http.Response, error) {
-					n, _ := io.Copy(io.Discard, r.Body)
-					if n == 0 {
-						t.Error("body length is zero")
-					}
-					if roundTripped {
-						return &http.Response{
-							Body:       NoBody,
-							StatusCode: 200,
-						}, nil
-					}
-					roundTripped = true
-					return nil, http2.ErrNoCachedConn
-				})
-			},
-		},
-		DialTLSContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			tc, err := tls.Dial("tcp", addr, &tls.Config{
-				InsecureSkipVerify: true,
-				NextProtos:         []string{"foo"},
-			})
-			if err != nil {
-				return nil, err
-			}
-			if err := tc.Handshake(); err != nil {
-				return nil, err
-			}
-			return tc, nil
-		},
-	}
-	c := &http.Client{Transport: tr}
-	_, err = c.Do(req)
-	if err != nil {
-		t.Error(err)
-	}
 }

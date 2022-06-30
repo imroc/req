@@ -225,18 +225,6 @@ type Transport struct {
 	// This time does not include the time to send the request header.
 	ExpectContinueTimeout time.Duration
 
-	// TLSNextProto specifies how the Transport switches to an
-	// alternate protocol (such as HTTP/2) after a TLS ALPN
-	// protocol negotiation. If Transport dials an TLS connection
-	// with a non-empty protocol name and TLSNextProto contains a
-	// map entry for that key (such as "h2"), then the func is
-	// called with the request's authority (such as "example.com"
-	// or "example.com:1234") and the TLS connection. The function
-	// must return a http.RoundTripper that then handles the request.
-	// If TLSNextProto is not nil, HTTP/2 support is not enabled
-	// automatically.
-	TLSNextProto map[string]func(authority string, c reqtls.Conn) http.RoundTripper
-
 	// ProxyConnectHeader optionally specifies headers to send to
 	// proxies during CONNECT requests.
 	// To set the header dynamically, see GetProxyConnectHeader.
@@ -490,13 +478,6 @@ func (t *Transport) Clone() *Transport {
 	}
 	if t.TLSClientConfig != nil {
 		t2.TLSClientConfig = t.TLSClientConfig.Clone()
-	}
-	if t.TLSNextProto != nil {
-		npm := map[string]func(authority string, c reqtls.Conn) http.RoundTripper{}
-		for k, v := range t.TLSNextProto {
-			npm[k] = v
-		}
-		t2.TLSNextProto = npm
 	}
 	return t2
 }
