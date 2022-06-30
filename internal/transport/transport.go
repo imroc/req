@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/imroc/req/v3/internal/dump"
-	reqtls "github.com/imroc/req/v3/internal/tls"
+	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"net"
 	"net/http"
 	"net/url"

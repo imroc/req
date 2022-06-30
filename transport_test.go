@@ -24,7 +24,7 @@ import (
 	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/testcert"
 	"github.com/imroc/req/v3/internal/tests"
-	reqtls "github.com/imroc/req/v3/internal/tls"
+	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"go/token"
 	"golang.org/x/net/http/httpproxy"
 	nethttp2 "golang.org/x/net/http2"

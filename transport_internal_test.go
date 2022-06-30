@@ -14,7 +14,7 @@ import (
 	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/testcert"
 	"github.com/imroc/req/v3/internal/tests"
-	reqtls "github.com/imroc/req/v3/internal/tls"
+	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"io"
 	"net"
 	"net/http"
@@ -212,7 +212,7 @@ func TestTransportBodyAltRewind(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			if err := sc.(TLSConn).Handshake(); err != nil {
+			if err := sc.(reqtls.Conn).Handshake(); err != nil {
 				t.Error(err)
 				return
 			}
