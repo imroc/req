@@ -19,6 +19,8 @@ import (
 	urlpkg "net/url"
 	"os"
 	"reflect"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -875,9 +877,21 @@ func (c *Client) SetUnixSocket(file string) *Client {
 }
 
 func (c *Client) EnableHttp3() *Client {
-	err := c.t.enableH3()
+	v := runtime.Version()
+	ss := strings.Split(v, ".")
+	if len(ss) < 2 || ss[0] != "go1" {
+		c.log.Warnf("bad go version format: %s", v)
+		return c
+	}
+	minorVersion, err := strconv.Atoi(ss[1])
 	if err != nil {
-		c.log.Errorf("failed to enabled http3: %s", err.Error())
+		c.log.Warnf("bad go minor version: %s", v)
+		return c
+	}
+	if minorVersion >= 16 && minorVersion <= 18 {
+		c.t.enableH3()
+	} else {
+		c.log.Warnf("%s is not support http3", v)
 	}
 	return c
 }

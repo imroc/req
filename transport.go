@@ -286,7 +286,15 @@ type Transport struct {
 	Debugf func(format string, v ...interface{})
 }
 
-func (t *Transport) enableH3() error {
+type pendingAltSvc struct {
+	CurrentIndex int
+	Entries      []*altsvc.AltSvc
+	Mu           sync.Mutex
+	LastTime     time.Time
+	Transport    http.RoundTripper
+}
+
+func (t *Transport) enableH3() {
 	if t.altSvcJar == nil {
 		t.altSvcJar = altsvc.NewAltSvcJar()
 	}
@@ -297,7 +305,6 @@ func (t *Transport) enableH3() error {
 		Interface: transportImpl{t},
 	}
 	t.t3 = t3
-	return nil
 }
 
 type wrapResponseBodyKeyType int
@@ -357,7 +364,7 @@ func (t *Transport) handleAltSvc(req *http.Request, value string) {
 func (t *Transport) handlePendingAltSvc(hostname string, pas *pendingAltSvc) {
 	for i := pas.CurrentIndex; i < len(pas.Entries); i++ {
 		switch pas.Entries[i].Protocol {
-		case "h3":
+		case "h3": // only support h3 in alt-svc for now
 			err := t.t3.AddConn(hostname)
 			if err != nil {
 				if t.Debugf != nil {
@@ -368,7 +375,6 @@ func (t *Transport) handlePendingAltSvc(hostname string, pas *pendingAltSvc) {
 				pas.Transport = t.t3
 				return
 			}
-		case "h2": // TODO
 		}
 	}
 }
