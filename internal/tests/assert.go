@@ -58,7 +58,7 @@ func AssertContains(t *testing.T, s, substr string, shouldContain bool) {
 		}
 	} else {
 		if isContain {
-			t.Errorf("%q is included in %s", substr, s)
+			t.Errorf("%q is included in %q", substr, s)
 		}
 	}
 }

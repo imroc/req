@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/common"
-	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/tests"
 	"go/token"
 	"golang.org/x/net/http/httpproxy"
@@ -2799,25 +2798,6 @@ func (fooProto) RoundTrip(req *http.Request) (*http.Response, error) {
 	return res, nil
 }
 
-func TestTransportAltProto(t *testing.T) {
-	defer afterTest(t)
-	tr := &Transport{}
-	c := &http.Client{Transport: tr}
-	tr.RegisterProtocol("foo", fooProto{})
-	res, err := c.Get("foo://bar.com/path")
-	if err != nil {
-		t.Fatal(err)
-	}
-	bodyb, err := io.ReadAll(res.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := string(bodyb)
-	if e := "You wanted foo://bar.com/path"; body != e {
-		t.Errorf("got response %q, want %q", body, e)
-	}
-}
-
 func TestTransportNoHost(t *testing.T) {
 	defer afterTest(t)
 	tr := &Transport{}
@@ -3112,7 +3092,7 @@ func newClientServerTest(t *testing.T, h2 bool, h http.Handler, opts ...interfac
 		t:  t,
 		h2: h2,
 		h:  h,
-		tr: &Transport{},
+		tr: C().GetTransport(),
 	}
 	cst.c = &http.Client{Transport: cst.tr}
 	cst.ts = httptest.NewUnstartedServer(h)
@@ -3138,9 +3118,6 @@ func newClientServerTest(t *testing.T, h2 bool, h http.Handler, opts ...interfac
 
 	cst.tr.TLSClientConfig = &tls.Config{
 		InsecureSkipVerify: true,
-	}
-	if _, err := http2.ConfigureTransports(transportImpl{cst.tr}); err != nil {
-		t.Fatal(err)
 	}
 	return cst
 }
@@ -5845,60 +5822,6 @@ func TestTransportDecrementConnWhenIdleConnRemoved(t *testing.T) {
 
 	for err := range errCh {
 		t.Errorf("error occurred: %v", err)
-	}
-}
-
-// Issue 36820
-// Test that we use the older backward compatible cancellation protocol
-// when a http.RoundTripper is registered via RegisterProtocol.
-func TestAltProtoCancellation(t *testing.T) {
-	defer afterTest(t)
-	tr := &Transport{}
-	c := &http.Client{
-		Transport: tr,
-		Timeout:   time.Millisecond,
-	}
-	tr.RegisterProtocol("timeout", timeoutProto{})
-	_, err := c.Get("timeout://bar.com/path")
-	if err == nil {
-		t.Error("request unexpectedly succeeded")
-	} else if !strings.Contains(err.Error(), timeoutProtoErr.Error()) {
-		t.Errorf("got error %q, does not contain expected string %q", err, timeoutProtoErr)
-	}
-}
-
-var timeoutProtoErr = errors.New("canceled as expected")
-
-type timeoutProto struct{}
-
-func (timeoutProto) RoundTrip(req *http.Request) (*http.Response, error) {
-	select {
-	case <-req.Cancel:
-		return nil, timeoutProtoErr
-	case <-time.After(5 * time.Second):
-		return nil, errors.New("request was not canceled")
-	}
-}
-
-// Issue 32441: body is not reset after ErrSkipAltProtocol
-func TestIssue32441(t *testing.T) {
-	defer afterTest(t)
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if n, _ := io.Copy(io.Discard, r.Body); n == 0 {
-			t.Error("body length is zero")
-		}
-	}))
-	defer ts.Close()
-	c := tc().httpClient
-	c.Transport.(*Transport).RegisterProtocol("http", roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		// Draining body to trigger failure condition on actual request to server.
-		if n, _ := io.Copy(io.Discard, r.Body); n == 0 {
-			t.Error("body length is zero during round trip")
-		}
-		return nil, http.ErrSkipAltProtocol
-	}))
-	if _, err := c.Post(ts.URL, "application/octet-stream", bytes.NewBufferString("data")); err != nil {
-		t.Error(err)
 	}
 }
 

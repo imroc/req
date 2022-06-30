@@ -612,7 +612,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 	cancelKey := cancelKey{origReq}
 	req = setupRewindBody(req)
 
-	if t.ForceHttpVersion != HTTP1 {
+	if scheme == "https" && t.ForceHttpVersion != HTTP1 {
 		resp, err := t.t2.RoundTripOnlyCachedConn(req)
 		if err != http2.ErrNoCachedConn {
 			return resp, err
@@ -621,13 +621,15 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		if err != nil {
 			return nil, err
 		}
-		resp, err = t.t3.RoundTripOnlyCachedConn(req)
-		if err != http3.ErrNoCachedConn {
-			return resp, err
-		}
-		req, err = rewindBody(req)
-		if err != nil {
-			return nil, err
+		if t.t3 != nil {
+			resp, err = t.t3.RoundTripOnlyCachedConn(req)
+			if err != http3.ErrNoCachedConn {
+				return resp, err
+			}
+			req, err = rewindBody(req)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

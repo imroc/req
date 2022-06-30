@@ -76,6 +76,11 @@ func (c *Client) R() *Request {
 	}
 }
 
+// GetTransport return the underlying transport.
+func (c *Client) GetTransport() *Transport {
+	return c.t
+}
+
 // SetCommonError set the common result that response body will be unmarshalled to
 // if it is an error response ( status `code >= 400`).
 func (c *Client) SetCommonError(err interface{}) *Client {
