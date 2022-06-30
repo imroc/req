@@ -874,6 +874,14 @@ func (c *Client) SetUnixSocket(file string) *Client {
 	})
 }
 
+func (c *Client) EnableHttp3() *Client {
+	err := c.t.enableH3()
+	if err != nil {
+		c.log.Errorf("failed to enabled http3: %s", err.Error())
+	}
+	return c
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
@@ -882,7 +890,9 @@ func NewClient() *Client {
 // Clone copy and returns the Client
 func (c *Client) Clone() *Client {
 	t := c.t.Clone()
-	t2, _ := http2.ConfigureTransports(transportImpl{t})
+	t2 := &http2.Transport{
+		Interface: transportImpl{t},
+	}
 	t.t2 = t2
 
 	client := *c.httpClient
@@ -922,8 +932,11 @@ func C() *Client {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       &tls.Config{NextProtos: []string{"http/1.1", "h2"}},
 	}
-	t2, _ := http2.ConfigureTransports(transportImpl{t})
+	t2 := &http2.Transport{
+		Interface: transportImpl{t},
+	}
 	t.t2 = t2
 
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})

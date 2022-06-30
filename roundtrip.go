@@ -7,7 +7,9 @@
 
 package req
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // RoundTrip implements the RoundTripper interface.
 //
@@ -20,6 +22,11 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	resp, err = t.roundTrip(req)
 	if err != nil {
 		return
+	}
+	if t.altSvcJar != nil {
+		if v := resp.Header.Get("alt-svc"); v != "" {
+			t.handleAltSvc(req, v)
+		}
 	}
 	t.handleResponseBody(resp, req)
 	return

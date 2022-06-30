@@ -17,14 +17,18 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/internal/altsvcutil"
 	"github.com/imroc/req/v3/internal/ascii"
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/http2"
+	"github.com/imroc/req/v3/internal/http3"
+	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/socks"
 	reqtls "github.com/imroc/req/v3/internal/tls"
 	"github.com/imroc/req/v3/internal/util"
+	"github.com/imroc/req/v3/pkg/altsvc"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
 	"io"
@@ -38,7 +42,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/http/httpguts"
@@ -52,6 +55,8 @@ const (
 	HTTP1 HttpVersion = "1.1"
 	// HTTP2 represents "HTTP/2.0"
 	HTTP2 HttpVersion = "2"
+	// HTTP3 represents "HTTP/3.0"
+	HTTP3 HttpVersion = "3"
 )
 
 // defaultMaxIdleConnsPerHost is the default value of Transport's
@@ -115,12 +120,12 @@ type Transport struct {
 	reqMu       sync.Mutex
 	reqCanceler map[cancelKey]func(error)
 
-	altMu    sync.Mutex   // guards changing altProto only
-	altProto atomic.Value // of nil or map[string]http.RoundTripper, key is URI scheme
-
 	connsPerHostMu   sync.Mutex
 	connsPerHost     map[connectMethodKey]int
 	connsPerHostWait map[connectMethodKey]wantConnQueue // waiting getConns
+	altSvcJar        altsvc.Jar
+	pendingAltSvcs   map[string]*pendingAltSvc
+	pendingAltSvcsMu sync.Mutex
 
 	// Force using specific http version
 	ForceHttpVersion HttpVersion
@@ -264,6 +269,7 @@ type Transport struct {
 	ReadBufferSize int
 
 	t2 *http2.Transport // non-nil if http2 wired up
+	t3 *http3.RoundTripper
 
 	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero
 	// Dial, DialTLS, or DialContext func or TLSClientConfig is provided.
@@ -280,6 +286,20 @@ type Transport struct {
 	Debugf func(format string, v ...interface{})
 }
 
+func (t *Transport) enableH3() error {
+	if t.altSvcJar == nil {
+		t.altSvcJar = altsvc.NewAltSvcJar()
+	}
+	if t.pendingAltSvcs == nil {
+		t.pendingAltSvcs = make(map[string]*pendingAltSvc)
+	}
+	t3 := &http3.RoundTripper{
+		Interface: transportImpl{t},
+	}
+	t.t3 = t3
+	return nil
+}
+
 type wrapResponseBodyKeyType int
 
 const wrapResponseBodyKey wrapResponseBodyKeyType = iota
@@ -292,6 +312,65 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 	}
 	t.autoDecodeResponseBody(res)
 	dump.WrapResponseBodyIfNeeded(res, req, t.dump)
+}
+
+var allowedProtocols = map[string]bool{
+	"h3": true,
+	"h2": true,
+}
+
+func (t *Transport) handleAltSvc(req *http.Request, value string) {
+	addr := netutil.AuthorityKey(req.URL)
+	as := t.altSvcJar.GetAltSvc(addr)
+	if as != nil {
+		return
+	}
+
+	t.pendingAltSvcsMu.Lock()
+	defer t.pendingAltSvcsMu.Unlock()
+	_, ok := t.pendingAltSvcs[addr]
+	if ok {
+		return
+	}
+	ass, err := altsvcutil.ParseHeader(value)
+	if err != nil {
+		if t.Debugf != nil {
+			t.Debugf("failed to parse alt-svc header: %s", err.Error())
+		}
+		return
+	}
+	var entries []*altsvc.AltSvc
+	for _, a := range ass {
+		if allowedProtocols[a.Protocol] {
+			entries = append(entries, a)
+		}
+	}
+	if len(entries) > 0 {
+		pas := &pendingAltSvc{
+			Entries: entries,
+		}
+		t.pendingAltSvcs[addr] = pas
+		go t.handlePendingAltSvc(netutil.AuthorityAddr(req.URL.Scheme, req.URL.Host), pas)
+	}
+}
+
+func (t *Transport) handlePendingAltSvc(hostname string, pas *pendingAltSvc) {
+	for i := pas.CurrentIndex; i < len(pas.Entries); i++ {
+		switch pas.Entries[i].Protocol {
+		case "h3":
+			err := t.t3.AddConn(hostname)
+			if err != nil {
+				if t.Debugf != nil {
+					t.Debugf("failed to get http3 connection: %s", err.Error())
+				}
+			} else {
+				pas.CurrentIndex = i
+				pas.Transport = t.t3
+				return
+			}
+		case "h2": // TODO
+		}
+	}
 }
 
 func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFunc) {
@@ -463,32 +542,23 @@ func (tr *transportRequest) setError(err error) {
 	tr.mu.Unlock()
 }
 
-// useRegisteredProtocol reports whether an alternate protocol (as registered
-// with Transport.RegisterProtocol) should be respected for this request.
-func (t *Transport) useRegisteredProtocol(req *http.Request) bool {
-	if req.URL.Scheme == "https" && requestRequiresHTTP1(req) {
-		// If this request requires HTTP/1, don't use the
-		// "https" alternate protocol, which is used by the
-		// HTTP/2 code to take over requests if there's an
-		// existing cached HTTP/2 connection.
-		return false
+func (t *Transport) roundTripAltSvc(req *http.Request, as *altsvc.AltSvc) (resp *http.Response, err error) {
+	r := req.Clone(req.Context())
+	r.URL = altsvcutil.ConvertURL(as, req.URL)
+	switch as.Protocol {
+	case "h3":
+		resp, err = t.t3.RoundTrip(r)
+	case "h2":
+		resp, err = t.t2.RoundTrip(r)
+	default:
+		// impossible!
+		panic(fmt.Sprintf("unknown protocol %q", as.Protocol))
 	}
-	return true
-}
-
-// alternatehttp.RoundTripper returns the alternate http.RoundTripper to use
-// for this request if the Request's URL scheme requires one,
-// or nil for the normal case of using the Transport.
-func (t *Transport) alternateRoundTripper(req *http.Request) http.RoundTripper {
-	if !t.useRegisteredProtocol(req) {
-		return nil
-	}
-	altProto, _ := t.altProto.Load().(map[string]http.RoundTripper)
-	return altProto[req.URL.Scheme]
+	return
 }
 
 // roundTrip implements a http.RoundTripper over HTTP.
-func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
+func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error) {
 	ctx := req.Context()
 	trace := httptrace.ContextClientTrace(ctx)
 
@@ -496,6 +566,37 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 		closeBody(req)
 		return nil, errors.New("http: nil Request.URL")
 	}
+
+	if t.altSvcJar != nil {
+		addr := netutil.AuthorityKey(req.URL)
+		pas, ok := t.pendingAltSvcs[addr]
+		if ok {
+			if pas.Transport != nil {
+				pas.Mu.Lock()
+				if pas.Transport != nil {
+					pas.LastTime = time.Now()
+					resp, err = pas.Transport.RoundTrip(req)
+					if err != nil {
+						pas.Transport = nil
+						if pas.CurrentIndex+1 < len(pas.Entries) {
+							pas.CurrentIndex++
+							go t.handlePendingAltSvc(addr, pas)
+						}
+					} else {
+						t.altSvcJar.SetAltSvc(addr, pas.Entries[pas.CurrentIndex])
+						delete(t.pendingAltSvcs, addr)
+					}
+				}
+				pas.Mu.Unlock()
+				return
+			}
+		}
+		as := t.altSvcJar.GetAltSvc(addr)
+		if as != nil {
+			return t.roundTripAltSvc(req, as)
+		}
+	}
+
 	if req.Header == nil {
 		closeBody(req)
 		return nil, errors.New("http: nil Request.Header")
@@ -517,22 +618,33 @@ func (t *Transport) roundTrip(req *http.Request) (*http.Response, error) {
 		}
 	}
 
+	if t.ForceHttpVersion == HTTP3 {
+		return t.t3.RoundTrip(req)
+	}
+
 	origReq := req
 	cancelKey := cancelKey{origReq}
 	req = setupRewindBody(req)
 
 	if t.ForceHttpVersion != HTTP1 {
-		if altRT := t.alternateRoundTripper(req); altRT != nil {
-			if resp, err := altRT.RoundTrip(req); err != http.ErrSkipAltProtocol {
-				return resp, err
-			}
-			var err error
-			req, err = rewindBody(req)
-			if err != nil {
-				return nil, err
-			}
+		resp, err := t.t2.RoundTripOnlyCachedConn(req)
+		if err != http2.ErrNoCachedConn {
+			return resp, err
+		}
+		req, err = rewindBody(req)
+		if err != nil {
+			return nil, err
+		}
+		resp, err = t.t3.RoundTripOnlyCachedConn(req)
+		if err != http3.ErrNoCachedConn {
+			return resp, err
+		}
+		req, err = rewindBody(req)
+		if err != nil {
+			return nil, err
 		}
 	}
+
 	if !isHTTP {
 		closeBody(req)
 		return nil, badStringError("unsupported protocol scheme", scheme)
@@ -714,31 +826,6 @@ func (pc *persistConn) shouldRetryRequest(req *http.Request, err error) bool {
 		return true
 	}
 	return false // conservatively
-}
-
-// RegisterProtocol registers a new protocol with scheme.
-// The Transport will pass requests using the given scheme to rt.
-// It is rt's responsibility to simulate HTTP request semantics.
-//
-// RegisterProtocol can be used by other packages to provide
-// implementations of protocol schemes like "ftp" or "file".
-//
-// If rt.RoundTrip returns ErrSkipAltProtocol, the Transport will
-// handle the RoundTrip itself for that one request, as if the
-// protocol were not registered.
-func (t *Transport) RegisterProtocol(scheme string, rt http.RoundTripper) {
-	t.altMu.Lock()
-	defer t.altMu.Unlock()
-	oldMap, _ := t.altProto.Load().(map[string]http.RoundTripper)
-	if _, exists := oldMap[scheme]; exists {
-		panic("protocol " + scheme + " already registered")
-	}
-	newMap := make(map[string]http.RoundTripper)
-	for k, v := range oldMap {
-		newMap[k] = v
-	}
-	newMap[scheme] = rt
-	t.altProto.Store(newMap)
 }
 
 // CloseIdleConnections closes any connections which were previously
@@ -1547,7 +1634,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		if err != nil {
 			return nil, wrapErr(err)
 		}
-		if tc, ok := pconn.conn.(TLSConn); ok {
+		if tc, ok := pconn.conn.(reqtls.Conn); ok {
 			// Handshake here, in case DialTLS didn't. TLSNextProto below
 			// depends on it for knowing the connection state.
 			if trace != nil && trace.TLSHandshakeStart != nil {
@@ -1700,13 +1787,9 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 	}
 
 	if s := pconn.tlsState; t.ForceHttpVersion != HTTP1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
-		if next, ok := t.TLSNextProto[s.NegotiatedProtocol]; ok {
-			alt := next(cm.targetAddr, pconn.conn.(TLSConn))
-			if e, ok := alt.(erringRoundTripper); ok {
-				// pconn.conn was closed by next (http2configureTransports.upgradeFn).
-				return nil, e.RoundTripErr()
-			}
-			return &persistConn{t: t, cacheKey: pconn.cacheKey, alt: alt}, nil
+		if s.NegotiatedProtocol == http2.NextProtoTLS {
+			t.t2.AddConn(pconn.conn, cm.targetAddr)
+			return &persistConn{t: t, cacheKey: pconn.cacheKey, alt: t.t2}, nil
 		}
 	}
 

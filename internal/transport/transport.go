@@ -13,7 +13,6 @@ import (
 
 type Interface interface {
 	Proxy() func(*http.Request) (*url.URL, error)
-	Clone() Interface
 	Debugf() func(format string, v ...interface{})
 	SetDebugf(func(format string, v ...interface{}))
 	DisableCompression() bool
@@ -22,7 +21,6 @@ type Interface interface {
 	TLSHandshakeTimeout() time.Duration
 	DialContext() func(ctx context.Context, network, addr string) (net.Conn, error)
 	DialTLSContext() func(ctx context.Context, network, addr string) (net.Conn, error)
-	RegisterProtocol(scheme string, rt http.RoundTripper)
 	DisableKeepAlives() bool
 	Dump() *dump.Dumper
 

@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"github.com/imroc/req/v3/internal/dump"
 	reqtls "github.com/imroc/req/v3/internal/tls"
-	"github.com/imroc/req/v3/internal/transport"
 	"net"
 	"net/http"
 	"net/url"
@@ -18,10 +17,6 @@ type transportImpl struct {
 
 func (t transportImpl) Proxy() func(*http.Request) (*url.URL, error) {
 	return t.t.Proxy
-}
-
-func (t transportImpl) Clone() transport.Interface {
-	return transportImpl{t.t.Clone()}
 }
 
 func (t transportImpl) Debugf() func(format string, v ...interface{}) {
@@ -54,10 +49,6 @@ func (t transportImpl) DialContext() func(ctx context.Context, network string, a
 
 func (t transportImpl) DialTLSContext() func(ctx context.Context, network string, addr string) (net.Conn, error) {
 	return t.t.DialTLSContext
-}
-
-func (t transportImpl) RegisterProtocol(scheme string, rt http.RoundTripper) {
-	t.t.RegisterProtocol(scheme, rt)
 }
 
 func (t transportImpl) DisableKeepAlives() bool {

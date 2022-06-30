@@ -19,6 +19,7 @@ import (
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/netutil"
 	reqtls "github.com/imroc/req/v3/internal/tls"
 	"github.com/imroc/req/v3/internal/transport"
 	"io"
@@ -137,7 +138,7 @@ type Transport struct {
 	transport.Interface
 
 	connPoolOnce  sync.Once
-	connPoolOrDef ClientConnPool // non-nil version of ConnPool
+	connPoolOrDef *clientConnPool // non-nil version of ConnPool
 }
 
 func (t *Transport) maxHeaderListSize() uint32 {
@@ -161,60 +162,56 @@ func (t *Transport) pingTimeout() time.Duration {
 // ConfigureTransports configures a net/http HTTP/1 Transport to use HTTP/2.
 // It returns a new HTTP/2 Transport for further configuration.
 // It returns an error if t1 has already been HTTP/2-enabled.
-func ConfigureTransports(t1 transport.Interface) (*Transport, error) {
-	connPool := new(clientConnPool)
-	t2 := &Transport{
-		ConnPool:  noDialClientConnPool{connPool},
-		Interface: t1,
-	}
-	connPool.t = t2
-	if err := registerHTTPSProtocol(t1, noDialH2RoundTripper{t2}); err != nil {
-		return nil, err
-	}
-	if t1.TLSClientConfig() == nil {
-		t1.SetTLSClientConfig(new(tls.Config))
-	}
-	if !strSliceContains(t1.TLSClientConfig().NextProtos, "h2") {
-		t1.TLSClientConfig().NextProtos = append([]string{"h2"}, t1.TLSClientConfig().NextProtos...)
-	}
-	if !strSliceContains(t1.TLSClientConfig().NextProtos, "http/1.1") {
-		t1.TLSClientConfig().NextProtos = append(t1.TLSClientConfig().NextProtos, "http/1.1")
-	}
-	upgradeFn := func(authority string, c reqtls.Conn) http.RoundTripper {
-		addr := authorityAddr("https", authority)
-		if used, err := connPool.addConnIfNeeded(addr, t2, c); err != nil {
-			go c.Close()
-			return erringRoundTripper{err}
-		} else if !used {
-			// Turns out we don't need this c.
-			// For example, two goroutines made requests to the same host
-			// at the same time, both kicking off TCP dials. (since protocol
-			// was unknown)
-			go c.Close()
-		}
-		return t2
-	}
-	if m := t1.TLSNextProto(); len(m) == 0 {
-		t1.SetTLSNextProto(map[string]func(string, reqtls.Conn) http.RoundTripper{
-			"h2": upgradeFn,
-		})
-	} else {
-		m["h2"] = upgradeFn
-	}
-	return t2, nil
-}
+// func ConfigureTransports(t1 transport.Interface) (*Transport, error) {
+// 	connPool := new(clientConnPool)
+// 	t2 := &Transport{
+// 		ConnPool:  noDialClientConnPool{connPool},
+// 		Interface: t1,
+// 	}
+// 	connPool.t = t2
+// 	if err := registerHTTPSProtocol(t1, noDialH2RoundTripper{t2}); err != nil {
+// 		return nil, err
+// 	}
+// 	if t1.TLSClientConfig() == nil {
+// 		t1.SetTLSClientConfig(new(tls.Config))
+// 	}
+// 	if !strSliceContains(t1.TLSClientConfig().NextProtos, "h2") {
+// 		t1.TLSClientConfig().NextProtos = append([]string{"h2"}, t1.TLSClientConfig().NextProtos...)
+// 	}
+// 	if !strSliceContains(t1.TLSClientConfig().NextProtos, "http/1.1") {
+// 		t1.TLSClientConfig().NextProtos = append(t1.TLSClientConfig().NextProtos, "http/1.1")
+// 	}
+// 	upgradeFn := func(authority string, c reqtls.Conn) http.RoundTripper {
+// 		addr := authorityAddr("https", authority)
+// 		if used, err := connPool.addConnIfNeeded(addr, t2, c); err != nil {
+// 			go c.Close()
+// 			return erringRoundTripper{err}
+// 		} else if !used {
+// 			// Turns out we don't need this c.
+// 			// For example, two goroutines made requests to the same host
+// 			// at the same time, both kicking off TCP dials. (since protocol
+// 			// was unknown)
+// 			go c.Close()
+// 		}
+// 		return t2
+// 	}
+// 	if m := t1.TLSNextProto(); len(m) == 0 {
+// 		t1.SetTLSNextProto(map[string]func(string, reqtls.Conn) http.RoundTripper{
+// 			"h2": upgradeFn,
+// 		})
+// 	} else {
+// 		m["h2"] = upgradeFn
+// 	}
+// 	return t2, nil
+// }
 
-func (t *Transport) connPool() ClientConnPool {
+func (t *Transport) connPool() *clientConnPool {
 	t.connPoolOnce.Do(t.initConnPool)
 	return t.connPoolOrDef
 }
 
 func (t *Transport) initConnPool() {
-	if t.ConnPool != nil {
-		t.connPoolOrDef = t.ConnPool
-	} else {
-		t.connPoolOrDef = &clientConnPool{t: t}
-	}
+	t.connPoolOrDef = &clientConnPool{t: t}
 }
 
 // ClientConn is the state of a single HTTP/2 client connection to an
@@ -434,6 +431,10 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.RoundTripOpt(req, RoundTripOpt{})
 }
 
+func (t *Transport) RoundTripOnlyCachedConn(req *http.Request) (*http.Response, error) {
+	return t.RoundTripOpt(req, RoundTripOpt{OnlyCachedConn: true})
+}
+
 // authorityAddr returns a given authority (a host/IP, or host:port / ip:port)
 // and returns a host:port. The port 443 is added if needed.
 func authorityAddr(scheme string, authority string) (addr string) {
@@ -455,15 +456,29 @@ func authorityAddr(scheme string, authority string) (addr string) {
 	return net.JoinHostPort(host, port)
 }
 
+func (t *Transport) AddConn(conn net.Conn, addr string) error {
+	_, err := t.connPool().addConnIfNeeded(addr, t, conn)
+	return err
+}
+
 // RoundTripOpt is like RoundTrip, but takes options.
 func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Response, error) {
 	if !(req.URL.Scheme == "https" || (req.URL.Scheme == "http" && t.AllowHTTP)) {
 		return nil, errors.New("http2: unsupported scheme")
 	}
 
-	addr := authorityAddr(req.URL.Scheme, req.URL.Host)
+	addr := netutil.AuthorityAddr(req.URL.Scheme, req.URL.Host)
+	var cc *ClientConn
+	var err error
+	if opt.OnlyCachedConn {
+		cc, err = t.connPool().getClientConn(req, addr, false)
+		if err != nil {
+			return nil, err
+		}
+		return cc.RoundTrip(req)
+	}
 	for retry := 0; ; retry++ {
-		cc, err := t.connPool().GetClientConn(req, addr)
+		cc, err = t.connPool().getClientConn(req, addr, true)
 		if err != nil {
 			t.vlogf("http2: Transport failed to get client conn for %s: %v", addr, err)
 			return nil, err
@@ -501,9 +516,7 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 // connected from previous requests but are now sitting idle.
 // It does not interrupt any connections currently in use.
 func (t *Transport) CloseIdleConnections() {
-	if cp, ok := t.connPool().(clientConnPoolIdleCloser); ok {
-		cp.closeIdleConnections()
-	}
+	t.connPool().closeIdleConnections()
 }
 
 var (
@@ -2973,18 +2986,6 @@ func (gz *GzipReader) Close() error {
 // connection for a single request and then close the connection.
 func isConnectionCloseRequest(req *http.Request) bool {
 	return req.Close || httpguts.HeaderValuesContainsToken(req.Header["Connection"], "close")
-}
-
-// registerHTTPSProtocol calls Transport.RegisterProtocol but
-// converting panics into errors.
-func registerHTTPSProtocol(t transport.Interface, rt noDialH2RoundTripper) (err error) {
-	defer func() {
-		if e := recover(); e != nil {
-			err = fmt.Errorf("%v", e)
-		}
-	}()
-	t.RegisterProtocol("https", rt)
-	return nil
 }
 
 // noDialH2RoundTripper is a RoundTripper which only tries to complete the request
