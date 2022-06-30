@@ -311,7 +311,6 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 
 var allowedProtocols = map[string]bool{
 	"h3": true,
-	"h2": true,
 }
 
 func (t *Transport) handleAltSvc(req *http.Request, value string) {
