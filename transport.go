@@ -361,6 +361,9 @@ func (t *Transport) handlePendingAltSvc(hostname string, pas *pendingAltSvc) {
 			} else {
 				pas.CurrentIndex = i
 				pas.Transport = t.t3
+				if t.Debugf != nil {
+					t.Debugf("detected that the server %s supports http3, will try to use http3 protocol in subsequent requests", hostname)
+				}
 				return
 			}
 		}
