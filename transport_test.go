@@ -5470,7 +5470,6 @@ func TestTransportClone(t *testing.T) {
 		ProxyConnectHeader:     http.Header{},
 		GetProxyConnectHeader:  func(context.Context, *url.URL, string) (http.Header, error) { return nil, nil },
 		MaxResponseHeaderBytes: 1,
-		ForceAttemptHTTP2:      true,
 		ReadBufferSize:         1,
 		WriteBufferSize:        1,
 		ForceHttpVersion:       HTTP1,

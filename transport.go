@@ -26,6 +26,7 @@ import (
 	"github.com/imroc/req/v3/internal/http3"
 	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/socks"
+	"github.com/imroc/req/v3/internal/transport"
 	"github.com/imroc/req/v3/internal/util"
 	"github.com/imroc/req/v3/pkg/altsvc"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
@@ -39,6 +40,7 @@ import (
 	"net/http/httptrace"
 	"net/textproto"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -130,148 +132,124 @@ type Transport struct {
 	// Force using specific http version
 	ForceHttpVersion HttpVersion
 
-	// Proxy specifies a function to return a proxy for a given
-	// Request. If the function returns a non-nil error, the
-	// request is aborted with the provided error.
-	//
-	// The proxy type is determined by the URL scheme. "http",
-	// "https", and "socks5" are supported. If the scheme is empty,
-	// "http" is assumed.
-	//
-	// If Proxy is nil or returns a nil *URL, no proxy is used.
-	Proxy func(*http.Request) (*url.URL, error)
-
-	// DialContext specifies the dial function for creating unencrypted TCP connections.
-	// If DialContext is nil, then the transport dials using package net.
-	//
-	// DialContext runs concurrently with calls to RoundTrip.
-	// A RoundTrip call that initiates a dial may end up using
-	// a connection dialed previously when the earlier connection
-	// becomes idle before the later DialContext completes.
-	DialContext func(ctx context.Context, network, addr string) (net.Conn, error)
-
-	// DialTLSContext specifies an optional dial function for creating
-	// TLS connections for non-proxied HTTPS requests.
-	//
-	// If DialTLSContext is nil, DialContext and TLSClientConfig are used.
-	//
-	// If DialTLSContext is set, the Dial and DialContext hooks are not used for HTTPS
-	// requests and the TLSClientConfig and TLSHandshakeTimeout
-	// are ignored. The returned net.Conn is assumed to already be
-	// past the TLS handshake.
-	DialTLSContext func(ctx context.Context, network, addr string) (net.Conn, error)
-
-	// TLSClientConfig specifies the TLS configuration to use with
-	// tls.Client.
-	// If nil, the default configuration is used.
-	// If non-nil, HTTP/2 support may not be enabled by default.
-	TLSClientConfig *tls.Config
-
-	// TLSHandshakeTimeout specifies the maximum amount of time waiting to
-	// wait for a TLS handshake. Zero means no timeout.
-	TLSHandshakeTimeout time.Duration
-
-	// DisableKeepAlives, if true, disables HTTP keep-alives and
-	// will only use the connection to the server for a single
-	// HTTP request.
-	//
-	// This is unrelated to the similarly named TCP keep-alives.
-	DisableKeepAlives bool
-
-	// DisableCompression, if true, prevents the Transport from
-	// requesting compression with an "Accept-Encoding: gzip"
-	// request header when the Request contains no existing
-	// Accept-Encoding value. If the Transport requests gzip on
-	// its own and gets a gzipped response, it's transparently
-	// decoded in the Response.Body. However, if the user
-	// explicitly requested gzip it is not automatically
-	// uncompressed.
-	DisableCompression bool
-
-	// MaxIdleConns controls the maximum number of idle (keep-alive)
-	// connections across all hosts. Zero means no limit.
-	MaxIdleConns int
-
-	// MaxIdleConnsPerHost, if non-zero, controls the maximum idle
-	// (keep-alive) connections to keep per-host. If zero,
-	// defaultMaxIdleConnsPerHost is used.
-	MaxIdleConnsPerHost int
-
-	// MaxConnsPerHost optionally limits the total number of
-	// connections per host, including connections in the dialing,
-	// active, and idle states. On limit violation, dials will block.
-	//
-	// Zero means no limit.
-	MaxConnsPerHost int
-
-	// IdleConnTimeout is the maximum amount of time an idle
-	// (keep-alive) connection will remain idle before closing
-	// itself.
-	// Zero means no limit.
-	IdleConnTimeout time.Duration
-
-	// ResponseHeaderTimeout, if non-zero, specifies the amount of
-	// time to wait for a server's response headers after fully
-	// writing the request (including its body, if any). This
-	// time does not include the time to read the response body.
-	ResponseHeaderTimeout time.Duration
-
-	// ExpectContinueTimeout, if non-zero, specifies the amount of
-	// time to wait for a server's first response headers after fully
-	// writing the request headers if the request has an
-	// "Expect: 100-continue" header. Zero means no timeout and
-	// causes the body to be sent immediately, without
-	// waiting for the server to approve.
-	// This time does not include the time to send the request header.
-	ExpectContinueTimeout time.Duration
-
-	// ProxyConnectHeader optionally specifies headers to send to
-	// proxies during CONNECT requests.
-	// To set the header dynamically, see GetProxyConnectHeader.
-	ProxyConnectHeader http.Header
-
-	// GetProxyConnectHeader optionally specifies a func to return
-	// headers to send to proxyURL during a CONNECT request to the
-	// ip:port target.
-	// If it returns an error, the Transport's RoundTrip fails with
-	// that error. It can return (nil, nil) to not add headers.
-	// If GetProxyConnectHeader is non-nil, ProxyConnectHeader is
-	// ignored.
-	GetProxyConnectHeader func(ctx context.Context, proxyURL *url.URL, target string) (http.Header, error)
-
-	// MaxResponseHeaderBytes specifies a limit on how many
-	// response bytes are allowed in the server's response
-	// header.
-	//
-	// Zero means to use a default limit.
-	MaxResponseHeaderBytes int64
-
-	// WriteBufferSize specifies the size of the write buffer used
-	// when writing to the transport.
-	// If zero, a default (currently 4KB) is used.
-	WriteBufferSize int
-
-	// ReadBufferSize specifies the size of the read buffer used
-	// when reading from the transport.
-	// If zero, a default (currently 4KB) is used.
-	ReadBufferSize int
+	transport.Options
 
 	t2 *http2.Transport // non-nil if http2 wired up
 	t3 *http3.RoundTripper
 
-	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero
-	// Dial, DialTLS, or DialContext func or TLSClientConfig is provided.
-	// By default, use of any those fields conservatively disables HTTP/2.
-	// To use a custom dialer or TLS config and still attempt HTTP/2
-	// upgrades, set this to true.
-	ForceAttemptHTTP2 bool
-
 	*ResponseOptions
 
-	dump *dump.Dumper
+	// DisableAutoDecode, if true, prevents auto detect response
+	// body's charset and decode it to utf-8
+	DisableAutoDecode bool
 
-	// Debugf is the optional debug function.
-	Debugf func(format string, v ...interface{})
+	// AutoDecodeContentType specifies an optional function for determine
+	// whether the response body should been auto decode to utf-8.
+	// Only valid when DisableAutoDecode is true.
+	AutoDecodeContentType func(contentType string) bool
+}
+
+func NewTransport() *Transport {
+	return T()
+}
+
+func T() *Transport {
+	t := &Transport{
+		Options: transport.Options{
+			Proxy:                 http.ProxyFromEnvironment,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+			TLSClientConfig:       &tls.Config{NextProtos: []string{"http/1.1", "h2"}},
+		},
+	}
+	t.t2 = &http2.Transport{Options: &t.Options}
+	return t
+}
+
+func (t *Transport) GetMaxIdleConns() int {
+	return t.MaxIdleConns
+}
+
+func (t *Transport) SetMaxIdleConns(max int) *Transport {
+	t.MaxIdleConns = max
+	return t
+}
+
+func (t *Transport) SetMaxConnsPerHost(max int) *Transport {
+	t.MaxConnsPerHost = max
+	return t
+}
+
+func (t *Transport) SetIdleConnTimeout(timeout time.Duration) *Transport {
+	t.IdleConnTimeout = timeout
+	return t
+}
+
+func (t *Transport) SetResponseHeaderTimeout(timeout time.Duration) *Transport {
+	t.ResponseHeaderTimeout = timeout
+	return t
+}
+
+func (t *Transport) SetExpectContinueTimeout(timeout time.Duration) *Transport {
+	t.ExpectContinueTimeout = timeout
+	return t
+}
+
+func (t *Transport) SetGetProxyConnectHeader(fn func(ctx context.Context, proxyURL *url.URL, target string) (http.Header, error)) *Transport {
+	t.GetProxyConnectHeader = fn
+	return t
+}
+
+func (t *Transport) SetProxyConnectHeader(header http.Header) *Transport {
+	t.ProxyConnectHeader = header
+	return t
+}
+
+func (t *Transport) SetReadBufferSize(size int) *Transport {
+	t.ReadBufferSize = size
+	return t
+}
+
+func (t *Transport) SetWriteBufferSize(size int) *Transport {
+	t.WriteBufferSize = size
+	return t
+}
+
+func (t *Transport) SetMaxResponseHeaderBytes(max int64) *Transport {
+	t.MaxResponseHeaderBytes = max
+	return t
+}
+
+func (t *Transport) SetResponseOptions(opt *ResponseOptions) *Transport {
+	t.ResponseOptions = opt
+	return t
+}
+
+func (t *Transport) SetTLSClientConfig(cfg *tls.Config) *Transport {
+	t.TLSClientConfig = cfg
+	return t
+}
+
+func (t *Transport) SetDebug(debugf func(format string, v ...interface{})) *Transport {
+	t.Debugf = debugf
+	return t
+}
+
+func (t *Transport) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Transport {
+	t.Proxy = proxy
+	return t
+}
+
+func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
+	t.DialContext = fn
+	return t
+}
+
+func (t *Transport) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
+	t.DialTLSContext = fn
+	return t
 }
 
 type pendingAltSvc struct {
@@ -282,7 +260,30 @@ type pendingAltSvc struct {
 	Transport    http.RoundTripper
 }
 
-func (t *Transport) enableH3() {
+func (t *Transport) EnableHTTP3() {
+	v := runtime.Version()
+	ss := strings.Split(v, ".")
+
+	if len(ss) < 2 || ss[0] != "go1" {
+		if t.Debugf != nil {
+			t.Debugf("bad go version format: %s", v)
+		}
+		return
+	}
+	minorVersion, err := strconv.Atoi(ss[1])
+	if err != nil {
+		if t.Debugf != nil {
+			t.Debugf("bad go minor version: %s", v)
+		}
+		return
+	}
+	if !(minorVersion >= 16 && minorVersion <= 18) {
+		if t.Debugf != nil {
+			t.Debugf("%s is not support http3", v)
+		}
+		return
+	}
+
 	if t.altSvcJar == nil {
 		t.altSvcJar = altsvc.NewAltSvcJar()
 	}
@@ -290,7 +291,7 @@ func (t *Transport) enableH3() {
 		t.pendingAltSvcs = make(map[string]*pendingAltSvc)
 	}
 	t3 := &http3.RoundTripper{
-		Interface: transportImpl{t},
+		Options: &t.Options,
 	}
 	t.t3 = t3
 }
@@ -306,7 +307,7 @@ func (t *Transport) handleResponseBody(res *http.Response, req *http.Request) {
 		t.wrapResponseBody(res, wrap)
 	}
 	t.autoDecodeResponseBody(res)
-	dump.WrapResponseBodyIfNeeded(res, req, t.dump)
+	dump.WrapResponseBodyIfNeeded(res, req, t.Dump)
 }
 
 var allowedProtocols = map[string]bool{
@@ -447,33 +448,14 @@ func (t *Transport) readBufferSize() int {
 
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
-
 	t2 := &Transport{
-		Proxy:                  t.Proxy,
-		DialContext:            t.DialContext,
-		DialTLSContext:         t.DialTLSContext,
-		TLSHandshakeTimeout:    t.TLSHandshakeTimeout,
-		DisableKeepAlives:      t.DisableKeepAlives,
-		DisableCompression:     t.DisableCompression,
-		MaxIdleConns:           t.MaxIdleConns,
-		MaxIdleConnsPerHost:    t.MaxIdleConnsPerHost,
-		MaxConnsPerHost:        t.MaxConnsPerHost,
-		IdleConnTimeout:        t.IdleConnTimeout,
-		ResponseHeaderTimeout:  t.ResponseHeaderTimeout,
-		ExpectContinueTimeout:  t.ExpectContinueTimeout,
-		ProxyConnectHeader:     t.ProxyConnectHeader.Clone(),
-		GetProxyConnectHeader:  t.GetProxyConnectHeader,
-		MaxResponseHeaderBytes: t.MaxResponseHeaderBytes,
-		ForceAttemptHTTP2:      t.ForceAttemptHTTP2,
-		WriteBufferSize:        t.WriteBufferSize,
-		ReadBufferSize:         t.ReadBufferSize,
-		ResponseOptions:        t.ResponseOptions,
-		ForceHttpVersion:       t.ForceHttpVersion,
-		Debugf:                 t.Debugf,
-		dump:                   t.dump.Clone(),
+		Options:          t.Options,
+		ResponseOptions:  t.ResponseOptions,
+		ForceHttpVersion: t.ForceHttpVersion,
 	}
-	if t.dump != nil {
-		go t.dump.Start()
+	t2.Options.Dump = t.Options.Dump.Clone()
+	if t.Dump != nil {
+		go t.Dump.Start()
 	}
 	if t.TLSClientConfig != nil {
 		t2.TLSClientConfig = t.TLSClientConfig.Clone()
@@ -484,15 +466,15 @@ func (t *Transport) Clone() *Transport {
 // EnableDump enables the dump for all requests with specified dump options.
 func (t *Transport) EnableDump(opt *DumpOptions) {
 	dump := newDumper(opt)
-	t.dump = dump
+	t.Dump = dump
 	go dump.Start()
 }
 
 // DisableDump disables the dump.
 func (t *Transport) DisableDump() {
-	if t.dump != nil {
-		t.dump.Stop()
-		t.dump = nil
+	if t.Dump != nil {
+		t.Dump.Stop()
+		t.Dump = nil
 	}
 }
 
@@ -1965,7 +1947,7 @@ func fixPragmaCacheControl(header http.Header) {
 // 100-continue") from the server. It returns the final non-100 one.
 // trace is optional.
 func (pc *persistConn) _readResponse(req *http.Request) (*http.Response, error) {
-	ds := dump.GetResponseHeaderDumpers(req.Context(), pc.t.dump)
+	ds := dump.GetResponseHeaderDumpers(req.Context(), pc.t.Dump)
 	tp := newTextprotoReader(pc.br, ds)
 	resp := &http.Response{
 		Request: req,
@@ -2597,7 +2579,7 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 	}
 
 	rw := w // raw writer
-	dumps := dump.GetDumpers(r.Context(), pc.t.dump)
+	dumps := dump.GetDumpers(r.Context(), pc.t.Dump)
 	for _, dump := range dumps {
 		if dump.RequestHeader() {
 			w = dump.WrapWriter(w)

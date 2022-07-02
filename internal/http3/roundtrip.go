@@ -24,7 +24,7 @@ type roundTripCloser interface {
 
 // RoundTripper implements the http.RoundTripper interface
 type RoundTripper struct {
-	transport.Interface
+	*transport.Options
 	mutex sync.Mutex
 
 	// DisableCompression, if true, prevents the Transport from
@@ -133,7 +133,7 @@ func (r *RoundTripper) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.
 	hostname := authorityAddr("https", hostnameFromRequest(req))
 	cl, err := r.getClient(hostname, opt.OnlyCachedConn)
 	if err != ErrNoCachedConn {
-		if debugf := r.Debugf(); debugf != nil {
+		if debugf := r.Debugf; debugf != nil {
 			debugf("HTTP/3 %s %s", req.Method, req.URL.String())
 		}
 	}
@@ -189,14 +189,14 @@ func (r *RoundTripper) getClient(hostname string, onlyCached bool) (roundTripClo
 		var err error
 		client, err = newClient(
 			hostname,
-			r.TLSClientConfig(),
+			r.TLSClientConfig,
 			&roundTripperOpts{
 				EnableDatagram:     r.EnableDatagrams,
 				DisableCompression: r.DisableCompression,
 				MaxHeaderBytes:     r.MaxResponseHeaderBytes,
 				StreamHijacker:     r.StreamHijacker,
 				UniStreamHijacker:  r.UniStreamHijacker,
-				dump:               r.Interface.Dump(),
+				dump:               r.Dump,
 			},
 			r.QuicConfig,
 			r.Dial,

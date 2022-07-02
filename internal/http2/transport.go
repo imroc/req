@@ -72,6 +72,7 @@ const (
 // A Transport internally caches connections to servers. It is safe
 // for concurrent use by multiple goroutines.
 type Transport struct {
+	*transport.Options
 	// DialTLS specifies an optional dial function for creating
 	// TLS connections for requests.
 	//
@@ -131,11 +132,6 @@ type Transport struct {
 	// as an expvar or Prometheus metric.
 	// The errType consists of only ASCII word characters.
 	CountError func(errType string)
-
-	// t1, if non-nil, is the standard library Transport using
-	// this transport. Its settings are used (but not its
-	// RoundTrip method, etc).
-	transport.Interface
 
 	connPoolOnce  sync.Once
 	connPoolOrDef *clientConnPool // non-nil version of ConnPool
@@ -589,7 +585,7 @@ func (t *Transport) dialClientConn(ctx context.Context, addr string, singleUse b
 
 func (t *Transport) newTLSConfig(host string) *tls.Config {
 	cfg := new(tls.Config)
-	if c := t.TLSClientConfig(); c != nil {
+	if c := t.TLSClientConfig; c != nil {
 		*cfg = *c.Clone()
 	}
 	if !strSliceContains(cfg.NextProtos, NextProtoTLS) {
@@ -622,7 +618,7 @@ func (t *Transport) dialTLS(ctx context.Context) func(string, string, *tls.Confi
 }
 
 func (t *Transport) NewClientConn(c net.Conn) (*ClientConn, error) {
-	return t.newClientConn(c, t.DisableKeepAlives())
+	return t.newClientConn(c, t.DisableKeepAlives)
 }
 
 func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, error) {
@@ -641,7 +637,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		pings:                 make(map[[8]byte]chan struct{}),
 		reqHeaderMu:           make(chan struct{}, 1),
 	}
-	if d := t.IdleConnTimeout(); d != 0 {
+	if d := t.IdleConnTimeout; d != 0 {
 		cc.idleTimeout = d
 		cc.idleTimer = time.AfterFunc(d, cc.onIdleTimeout)
 	}
@@ -1017,7 +1013,7 @@ func commaSeparatedTrailers(req *http.Request) (string, error) {
 }
 
 func (cc *ClientConn) responseHeaderTimeout() time.Duration {
-	return cc.t.ResponseHeaderTimeout()
+	return cc.t.ResponseHeaderTimeout
 }
 
 // checkConnHeaders checks whether req has any invalid connection-level headers.
@@ -1062,8 +1058,8 @@ func (cc *ClientConn) decrStreamReservationsLocked() {
 }
 
 func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
-	if cc.t != nil && cc.t.Debugf() != nil {
-		cc.t.Debugf()("HTTP/2 %s %s", req.Method, req.URL.String())
+	if cc.t != nil && cc.t.Debugf != nil {
+		cc.t.Debugf("HTTP/2 %s %s", req.Method, req.URL.String())
 	}
 	cc.currentRequest = req
 	ctx := req.Context()
@@ -1201,7 +1197,7 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 	cc.mu.Unlock()
 
 	// TODO(bradfitz): this is a copy of the logic in net/http. Unify somewhere?
-	if !cc.t.DisableCompression() &&
+	if !cc.t.DisableCompression &&
 		req.Header.Get("Accept-Encoding") == "" &&
 		req.Header.Get("Range") == "" &&
 		!cs.isHead {
@@ -1220,7 +1216,7 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 		cs.requestedGzip = true
 	}
 
-	continueTimeout := cc.t.ExpectContinueTimeout()
+	continueTimeout := cc.t.ExpectContinueTimeout
 	if continueTimeout != 0 {
 		if !httpguts.HeaderValuesContainsToken(req.Header["Expect"], "100-continue") {
 			continueTimeout = 0
@@ -1231,7 +1227,7 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 
 	var dumps []*dump.Dumper
 	if t := cs.cc.t; t != nil {
-		dumps = dump.GetDumpers(req.Context(), t.Dump())
+		dumps = dump.GetDumpers(req.Context(), t.Dump)
 	}
 
 	// Past this point (where we send request headers), it is possible for
@@ -1997,7 +1993,7 @@ func (cc *ClientConn) forgetStreamID(id uint32) {
 	// wake up RoundTrip if there is a pending request.
 	cc.cond.Broadcast()
 
-	closeOnIdle := cc.singleUse || cc.doNotReuse || cc.t.DisableKeepAlives()
+	closeOnIdle := cc.singleUse || cc.doNotReuse || cc.t.DisableKeepAlives
 	if closeOnIdle && cc.streamsReserved == 0 && len(cc.streams) == 0 {
 		if VerboseLogs {
 			cc.vlogf("http2: Transport closing idle conn %p (forSingleUse=%v, maxStream=%v)", cc, cc.singleUse, cc.nextStreamID-2)

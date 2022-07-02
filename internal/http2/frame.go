@@ -526,7 +526,7 @@ func (h2f *Framer) ReadFrame() (Frame, error) {
 	if fh.Type == FrameHeaders && h2f.ReadMetaHeaders != nil {
 		var dumps []*dump.Dumper
 		if h2f.cc != nil {
-			dumps = dump.GetDumpers(h2f.cc.currentRequest.Context(), h2f.cc.t.Dump())
+			dumps = dump.GetDumpers(h2f.cc.currentRequest.Context(), h2f.cc.t.Dump)
 		}
 		if len(dumps) > 0 {
 			dd := []*dump.Dumper{}

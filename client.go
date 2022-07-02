@@ -19,8 +19,6 @@ import (
 	urlpkg "net/url"
 	"os"
 	"reflect"
-	"runtime"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -425,7 +423,7 @@ func (c *Client) getDumpOptions() *DumpOptions {
 // EnableDumpAll enable dump for all requests, including
 // all content for the request and response by default.
 func (c *Client) EnableDumpAll() *Client {
-	if c.t.dump != nil { // dump already started
+	if c.t.Dump != nil { // dump already started
 		return c
 	}
 	c.t.EnableDump(c.getDumpOptions())
@@ -658,8 +656,8 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 		}
 	}
 	c.dumpOptions = opt
-	if c.t.dump != nil {
-		c.t.dump.SetOptions(dumpOptions{opt})
+	if c.t.Dump != nil {
+		c.t.Dump.SetOptions(dumpOptions{opt})
 	}
 	return c
 }
@@ -881,23 +879,8 @@ func (c *Client) SetUnixSocket(file string) *Client {
 	})
 }
 
-func (c *Client) EnableHttp3() *Client {
-	v := runtime.Version()
-	ss := strings.Split(v, ".")
-	if len(ss) < 2 || ss[0] != "go1" {
-		c.log.Warnf("bad go version format: %s", v)
-		return c
-	}
-	minorVersion, err := strconv.Atoi(ss[1])
-	if err != nil {
-		c.log.Warnf("bad go minor version: %s", v)
-		return c
-	}
-	if minorVersion >= 16 && minorVersion <= 18 {
-		c.t.enableH3()
-	} else {
-		c.log.Warnf("%s is not support http3", v)
-	}
+func (c *Client) EnableHTTP3() *Client {
+	c.t.EnableHTTP3()
 	return c
 }
 
@@ -910,7 +893,7 @@ func NewClient() *Client {
 func (c *Client) Clone() *Client {
 	t := c.t.Clone()
 	t2 := &http2.Transport{
-		Interface: transportImpl{t},
+		Options: &t.Options,
 	}
 	t.t2 = t2
 
@@ -943,20 +926,7 @@ func (c *Client) Clone() *Client {
 
 // C create a new client.
 func C() *Client {
-	t := &Transport{
-		ResponseOptions:       &ResponseOptions{},
-		ForceAttemptHTTP2:     true,
-		Proxy:                 http.ProxyFromEnvironment,
-		MaxIdleConns:          100,
-		IdleConnTimeout:       90 * time.Second,
-		TLSHandshakeTimeout:   10 * time.Second,
-		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig:       &tls.Config{NextProtos: []string{"http/1.1", "h2"}},
-	}
-	t2 := &http2.Transport{
-		Interface: transportImpl{t},
-	}
-	t.t2 = t2
+	t := T()
 
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	httpClient := &http.Client{
