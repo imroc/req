@@ -298,9 +298,26 @@ func (c *client) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Respon
 	return rsp, rerr.err
 }
 
-func (c *client) sendRequestBody(str Stream, body io.ReadCloser) error {
+func (c *client) sendRequestBody(str Stream, body io.ReadCloser, dumps []*dump.Dumper) error {
 	defer body.Close()
 	b := make([]byte, bodyCopyBufferSize)
+	writeData := func(data []byte) error {
+		if _, err := str.Write(data); err != nil {
+			return err
+		}
+		return nil
+	}
+	if len(dumps) > 0 {
+		writeData = func(data []byte) error {
+			for _, dump := range dumps {
+				dump.Dump(data)
+			}
+			if _, err := str.Write(data); err != nil {
+				return err
+			}
+			return nil
+		}
+	}
 	for {
 		n, rerr := body.Read(b)
 		if n == 0 {
@@ -311,7 +328,7 @@ func (c *client) sendRequestBody(str Stream, body io.ReadCloser) error {
 				break
 			}
 		}
-		if _, err := str.Write(b[:n]); err != nil {
+		if err := writeData(b[:n]); err != nil {
 			return err
 		}
 		if rerr != nil {
@@ -330,13 +347,14 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 	if !c.opts.DisableCompression && req.Method != "HEAD" && req.Header.Get("Accept-Encoding") == "" && req.Header.Get("Range") == "" {
 		requestGzip = true
 	}
-	var dumps []*dump.Dumper
-	for _, dump := range dump.GetDumpers(req.Context(), c.opts.dump) {
+	dumps := dump.GetDumpers(req.Context(), c.opts.dump)
+	var headerDumps []*dump.Dumper
+	for _, dump := range dumps {
 		if dump.RequestHeader() {
-			dumps = append(dumps, dump)
+			headerDumps = append(headerDumps, dump)
 		}
 	}
-	if err := c.requestWriter.WriteRequestHeader(str, req, requestGzip, dumps); err != nil {
+	if err := c.requestWriter.WriteRequestHeader(str, req, requestGzip, headerDumps); err != nil {
 		return nil, newStreamError(errorInternalError, err)
 	}
 
@@ -348,7 +366,13 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 	if req.Body != nil {
 		// send the request body asynchronously
 		go func() {
-			if err := c.sendRequestBody(hstr, req.Body); err != nil {
+			var bodyDumps []*dump.Dumper
+			for _, dump := range dumps {
+				if dump.RequestBody() {
+					bodyDumps = append(bodyDumps, dump)
+				}
+			}
+			if err := c.sendRequestBody(hstr, req.Body, bodyDumps); err != nil {
 				c.logger.Errorf("Error writing request: %s", err)
 			}
 			if !opt.DontCloseRequestStream {

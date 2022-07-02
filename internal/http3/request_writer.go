@@ -211,6 +211,10 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 		// }
 	})
 
+	for _, dump := range dumps {
+		dump.Dump([]byte("\r\n"))
+	}
+
 	return nil
 }
 
