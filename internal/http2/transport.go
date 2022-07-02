@@ -406,9 +406,9 @@ func authorityAddr(scheme string, authority string) (addr string) {
 	return net.JoinHostPort(host, port)
 }
 
-func (t *Transport) AddConn(conn net.Conn, addr string) error {
-	_, err := t.connPool().addConnIfNeeded(addr, t, conn)
-	return err
+func (t *Transport) AddConn(conn net.Conn, addr string) (used bool, err error) {
+	used, err = t.connPool().addConnIfNeeded(addr, t, conn)
+	return
 }
 
 // RoundTripOpt is like RoundTrip, but takes options.

@@ -1783,7 +1783,12 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 
 	if s := pconn.tlsState; t.ForceHttpVersion != HTTP1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
 		if s.NegotiatedProtocol == http2.NextProtoTLS {
-			t.t2.AddConn(pconn.conn, cm.targetAddr)
+			if used, err := t.t2.AddConn(pconn.conn, cm.targetAddr); err != nil {
+				go pconn.conn.Close()
+				return nil, err
+			} else if !used {
+				go pconn.conn.Close()
+			}
 			return &persistConn{t: t, cacheKey: pconn.cacheKey, alt: t.t2}, nil
 		}
 	}
