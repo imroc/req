@@ -187,9 +187,6 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 	// modifying the hpack state.
 	hlSize := uint64(0)
 	enumerateHeaders(func(name, value string) {
-		for _, dump := range dumps {
-			dump.Dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
-		}
 		hf := hpack.HeaderField{Name: name, Value: value}
 		hlSize += uint64(hf.Size())
 	})
