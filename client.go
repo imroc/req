@@ -400,13 +400,6 @@ func (c *Client) SetLogger(log Logger) *Client {
 	return c
 }
 
-func (c *Client) getResponseOptions() *ResponseOptions {
-	if c.t.ResponseOptions == nil {
-		c.t.ResponseOptions = &ResponseOptions{}
-	}
-	return c.t.ResponseOptions
-}
-
 // SetTimeout set timeout for all requests.
 func (c *Client) SetTimeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
@@ -541,40 +534,35 @@ func (c *Client) EnableAutoReadResponse() *Client {
 // SetAutoDecodeContentType set the content types that will be auto-detected and decode
 // to utf-8 (e.g. "json", "xml", "html", "text").
 func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
-	opt := c.getResponseOptions()
-	opt.AutoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
+	c.t.SetAutoDecodeContentType(contentTypes...)
 	return c
 }
 
 // SetAutoDecodeContentTypeFunc set the function that determines whether the
 // specified `Content-Type` should be auto-detected and decode to utf-8.
 func (c *Client) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
-	opt := c.getResponseOptions()
-	opt.AutoDecodeContentType = fn
+	c.t.SetAutoDecodeContentTypeFunc(fn)
 	return c
 }
 
 // SetAutoDecodeAllContentType enable try auto-detect charset and decode all
 // content type to utf-8.
 func (c *Client) SetAutoDecodeAllContentType() *Client {
-	opt := c.getResponseOptions()
-	opt.AutoDecodeContentType = func(contentType string) bool {
-		return true
-	}
+	c.t.SetAutoDecodeAllContentType()
 	return c
 }
 
 // DisableAutoDecode disable auto-detect charset and decode to utf-8
 // (enabled by default).
 func (c *Client) DisableAutoDecode() *Client {
-	c.getResponseOptions().DisableAutoDecode = true
+	c.t.DisableAutoDecode()
 	return c
 }
 
 // EnableAutoDecode enable auto-detect charset and decode to utf-8
 // (enabled by default).
 func (c *Client) EnableAutoDecode() *Client {
-	c.getResponseOptions().DisableAutoDecode = false
+	c.t.EnableAutoDecode()
 	return c
 }
 

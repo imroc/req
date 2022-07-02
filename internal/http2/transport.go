@@ -155,52 +155,6 @@ func (t *Transport) pingTimeout() time.Duration {
 
 }
 
-// ConfigureTransports configures a net/http HTTP/1 Transport to use HTTP/2.
-// It returns a new HTTP/2 Transport for further configuration.
-// It returns an error if t1 has already been HTTP/2-enabled.
-// func ConfigureTransports(t1 transport.Interface) (*Transport, error) {
-// 	connPool := new(clientConnPool)
-// 	t2 := &Transport{
-// 		ConnPool:  noDialClientConnPool{connPool},
-// 		Interface: t1,
-// 	}
-// 	connPool.t = t2
-// 	if err := registerHTTPSProtocol(t1, noDialH2RoundTripper{t2}); err != nil {
-// 		return nil, err
-// 	}
-// 	if t1.TLSClientConfig() == nil {
-// 		t1.SetTLSClientConfig(new(tls.Config))
-// 	}
-// 	if !strSliceContains(t1.TLSClientConfig().NextProtos, "h2") {
-// 		t1.TLSClientConfig().NextProtos = append([]string{"h2"}, t1.TLSClientConfig().NextProtos...)
-// 	}
-// 	if !strSliceContains(t1.TLSClientConfig().NextProtos, "http/1.1") {
-// 		t1.TLSClientConfig().NextProtos = append(t1.TLSClientConfig().NextProtos, "http/1.1")
-// 	}
-// 	upgradeFn := func(authority string, c reqtls.Conn) http.RoundTripper {
-// 		addr := authorityAddr("https", authority)
-// 		if used, err := connPool.addConnIfNeeded(addr, t2, c); err != nil {
-// 			go c.Close()
-// 			return erringRoundTripper{err}
-// 		} else if !used {
-// 			// Turns out we don't need this c.
-// 			// For example, two goroutines made requests to the same host
-// 			// at the same time, both kicking off TCP dials. (since protocol
-// 			// was unknown)
-// 			go c.Close()
-// 		}
-// 		return t2
-// 	}
-// 	if m := t1.TLSNextProto(); len(m) == 0 {
-// 		t1.SetTLSNextProto(map[string]func(string, reqtls.Conn) http.RoundTripper{
-// 			"h2": upgradeFn,
-// 		})
-// 	} else {
-// 		m["h2"] = upgradeFn
-// 	}
-// 	return t2, nil
-// }
-
 func (t *Transport) connPool() *clientConnPool {
 	t.connPoolOnce.Do(t.initConnPool)
 	return t.connPoolOrDef
@@ -471,6 +425,7 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 		if err != nil {
 			return nil, err
 		}
+		traceGotConn(req, cc, true)
 		return cc.RoundTrip(req)
 	}
 	for retry := 0; ; retry++ {

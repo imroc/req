@@ -65,18 +65,6 @@ const (
 // MaxIdleConnsPerHost.
 const defaultMaxIdleConnsPerHost = 2
 
-// ResponseOptions determines that how should the response been processed.
-type ResponseOptions struct {
-	// DisableAutoDecode, if true, prevents auto detect response
-	// body's charset and decode it to utf-8
-	DisableAutoDecode bool
-
-	// AutoDecodeContentType specifies an optional function for determine
-	// whether the response body should been auto decode to utf-8.
-	// Only valid when DisableAutoDecode is true.
-	AutoDecodeContentType func(contentType string) bool
-}
-
 // Transport is an implementation of http.RoundTripper that supports HTTP,
 // HTTPS, and HTTP proxies (for either HTTP or HTTPS with CONNECT).
 //
@@ -137,22 +125,22 @@ type Transport struct {
 	t2 *http2.Transport // non-nil if http2 wired up
 	t3 *http3.RoundTripper
 
-	*ResponseOptions
-
-	// DisableAutoDecode, if true, prevents auto detect response
+	// disableAutoDecode, if true, prevents auto detect response
 	// body's charset and decode it to utf-8
-	DisableAutoDecode bool
+	disableAutoDecode bool
 
-	// AutoDecodeContentType specifies an optional function for determine
+	// autoDecodeContentType specifies an optional function for determine
 	// whether the response body should been auto decode to utf-8.
 	// Only valid when DisableAutoDecode is true.
-	AutoDecodeContentType func(contentType string) bool
+	autoDecodeContentType func(contentType string) bool
 }
 
+// NewTransport is an alias of T
 func NewTransport() *Transport {
 	return T()
 }
 
+// T create a new Transport.
 func T() *Transport {
 	t := &Transport{
 		Options: transport.Options{
@@ -166,6 +154,42 @@ func T() *Transport {
 	}
 	t.t2 = &http2.Transport{Options: &t.Options}
 	return t
+}
+
+// DisableAutoDecode disable auto-detect charset and decode to utf-8
+// (enabled by default).
+func (t *Transport) DisableAutoDecode() *Transport {
+	t.disableAutoDecode = true
+	return t
+}
+
+// EnableAutoDecode enable auto-detect charset and decode to utf-8
+// (enabled by default).
+func (t *Transport) EnableAutoDecode() *Transport {
+	t.disableAutoDecode = false
+	return t
+}
+
+// SetAutoDecodeContentTypeFunc set the function that determines whether the
+// specified `Content-Type` should be auto-detected and decode to utf-8.
+func (t *Transport) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Transport {
+	t.autoDecodeContentType = fn
+	return t
+}
+
+// SetAutoDecodeAllContentType enable try auto-detect charset and decode all
+// content type to utf-8.
+func (t *Transport) SetAutoDecodeAllContentType() *Transport {
+	t.autoDecodeContentType = func(contentType string) bool {
+		return true
+	}
+	return t
+}
+
+// SetAutoDecodeContentType set the content types that will be auto-detected and decode
+// to utf-8 (e.g. "json", "xml", "html", "text").
+func (t *Transport) SetAutoDecodeContentType(contentTypes ...string) {
+	t.autoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
 }
 
 func (t *Transport) GetMaxIdleConns() int {
@@ -184,6 +208,11 @@ func (t *Transport) SetMaxConnsPerHost(max int) *Transport {
 
 func (t *Transport) SetIdleConnTimeout(timeout time.Duration) *Transport {
 	t.IdleConnTimeout = timeout
+	return t
+}
+
+func (t *Transport) SetTLSHandshakeTimeout(timeout time.Duration) *Transport {
+	t.TLSHandshakeTimeout = timeout
 	return t
 }
 
@@ -219,11 +248,6 @@ func (t *Transport) SetWriteBufferSize(size int) *Transport {
 
 func (t *Transport) SetMaxResponseHeaderBytes(max int64) *Transport {
 	t.MaxResponseHeaderBytes = max
-	return t
-}
-
-func (t *Transport) SetResponseOptions(opt *ResponseOptions) *Transport {
-	t.ResponseOptions = opt
 	return t
 }
 
@@ -382,16 +406,13 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 }
 
 func (t *Transport) autoDecodeResponseBody(res *http.Response) {
-	if t.ResponseOptions == nil {
-		return
-	}
-	if t.ResponseOptions.DisableAutoDecode {
+	if t.disableAutoDecode {
 		return
 	}
 	contentType := res.Header.Get("Content-Type")
 	var shouldDecode func(contentType string) bool
-	if t.ResponseOptions.AutoDecodeContentType != nil {
-		shouldDecode = t.ResponseOptions.AutoDecodeContentType
+	if t.autoDecodeContentType != nil {
+		shouldDecode = t.autoDecodeContentType
 	} else {
 		shouldDecode = autoDecodeText
 	}
@@ -452,9 +473,10 @@ func (t *Transport) readBufferSize() int {
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
 	t2 := &Transport{
-		Options:          t.Options,
-		ResponseOptions:  t.ResponseOptions,
-		ForceHttpVersion: t.ForceHttpVersion,
+		Options:               t.Options,
+		ForceHttpVersion:      t.ForceHttpVersion,
+		disableAutoDecode:     t.disableAutoDecode,
+		autoDecodeContentType: t.autoDecodeContentType,
 	}
 	t2.Options.Dump = t.Options.Dump.Clone()
 	if t.Dump != nil {

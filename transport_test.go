@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/tests"
+	"github.com/imroc/req/v3/internal/transport"
 	"go/token"
 	"golang.org/x/net/http/httpproxy"
 	nethttp2 "golang.org/x/net/http2"
@@ -1421,9 +1422,8 @@ func TestTransportExpect100Continue(t *testing.T) {
 
 	c := tc().httpClient
 	for i, v := range tests {
-		tr := &Transport{
-			ExpectContinueTimeout: 2 * time.Second,
-		}
+		tr := T()
+		tr.ExpectContinueTimeout = 2 * time.Second
 		defer tr.CloseIdleConnections()
 		c.Transport = tr
 		body := bytes.NewReader(v.body)
@@ -1739,12 +1739,11 @@ func TestTransportProxyHTTPSConnectLeak(t *testing.T) {
 		return
 	}()
 
+	tr := T().SetProxy(func(*http.Request) (*url.URL, error) {
+		return url.Parse("http://" + ln.Addr().String())
+	})
 	c := &http.Client{
-		Transport: &Transport{
-			Proxy: func(*http.Request) (*url.URL, error) {
-				return url.Parse("http://" + ln.Addr().String())
-			},
-		},
+		Transport: tr,
 	}
 	req, err := http.NewRequestWithContext(ctx, "GET", "https://golang.fake.tld/", nil)
 	if err != nil {
@@ -1767,14 +1766,11 @@ func TestTransportDialPreservesNetOpProxyError(t *testing.T) {
 
 	var errDial = errors.New("some dial error")
 
-	tr := &Transport{
-		Proxy: func(*http.Request) (*url.URL, error) {
-			return url.Parse("http://proxy.fake.tld/")
-		},
-		DialContext: func(context.Context, string, string) (net.Conn, error) {
-			return nil, errDial
-		},
-	}
+	tr := T().SetProxy(func(*http.Request) (*url.URL, error) {
+		return url.Parse("http://proxy.fake.tld/")
+	}).SetDial(func(context.Context, string, string) (net.Conn, error) {
+		return nil, errDial
+	})
 	defer tr.CloseIdleConnections()
 
 	c := &http.Client{Transport: tr}
@@ -2687,13 +2683,11 @@ func TestTransportCancelBeforeResponseHeaders(t *testing.T) {
 	defer afterTest(t)
 
 	serverConnCh := make(chan net.Conn, 1)
-	tr := &Transport{
-		DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
-			cc, sc := net.Pipe()
-			serverConnCh <- sc
-			return cc, nil
-		},
-	}
+	tr := T().SetDial(func(_ context.Context, network, addr string) (net.Conn, error) {
+		cc, sc := net.Pipe()
+		serverConnCh <- sc
+		return cc, nil
+	})
 	defer tr.CloseIdleConnections()
 	errc := make(chan error, 1)
 	req, _ := http.NewRequest("GET", "http://example.com/", nil)
@@ -2800,7 +2794,7 @@ func (fooProto) RoundTrip(req *http.Request) (*http.Response, error) {
 
 func TestTransportNoHost(t *testing.T) {
 	defer afterTest(t)
-	tr := &Transport{}
+	tr := T()
 	_, err := tr.RoundTrip(&http.Request{
 		Header: make(http.Header),
 		URL: &url.URL{
@@ -2995,24 +2989,21 @@ Content-Length: %d
 
 	}
 
-	tr := &Transport{
-		DialContext: func(_ context.Context, n, addr string) (net.Conn, error) {
-			sr, sw := io.Pipe() // server read/write
-			cr, cw := io.Pipe() // client read/write
-			conn := &rwTestConn{
-				Reader: cr,
-				Writer: sw,
-				closeFunc: func() error {
-					sw.Close()
-					cw.Close()
-					return nil
-				},
-			}
-			go send100Response(cw, sr)
-			return conn, nil
-		},
-		DisableKeepAlives: false,
-	}
+	tr := T().SetDial(func(_ context.Context, n, addr string) (net.Conn, error) {
+		sr, sw := io.Pipe() // server read/write
+		cr, cw := io.Pipe() // client read/write
+		conn := &rwTestConn{
+			Reader: cr,
+			Writer: sw,
+			closeFunc: func() error {
+				sw.Close()
+				cw.Close()
+				return nil
+			},
+		}
+		go send100Response(cw, sr)
+		return conn, nil
+	})
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
 
@@ -3092,7 +3083,7 @@ func newClientServerTest(t *testing.T, h2 bool, h http.Handler, opts ...interfac
 		t:  t,
 		h2: h2,
 		h:  h,
-		tr: C().GetTransport(),
+		tr: T(),
 	}
 	cst.c = &http.Client{Transport: cst.tr}
 	cst.ts = httptest.NewUnstartedServer(h)
@@ -3116,9 +3107,7 @@ func newClientServerTest(t *testing.T, h2 bool, h http.Handler, opts ...interfac
 	cst.ts.TLS = cst.ts.Config.TLSConfig
 	cst.ts.StartTLS()
 
-	cst.tr.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true,
-	}
+	cst.tr.TLSClientConfig.InsecureSkipVerify = true
 	return cst
 }
 
@@ -3432,12 +3421,9 @@ func TestTransportTLSHandshakeTimeout(t *testing.T) {
 	getdonec := make(chan struct{})
 	go func() {
 		defer close(getdonec)
-		tr := &Transport{
-			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-				return net.Dial("tcp", ln.Addr().String())
-			},
-			TLSHandshakeTimeout: 250 * time.Millisecond,
-		}
+		tr := T().SetDial(func(_ context.Context, _, _ string) (net.Conn, error) {
+			return net.Dial("tcp", ln.Addr().String())
+		}).SetTLSHandshakeTimeout(250 * time.Millisecond)
 		cl := &http.Client{Transport: tr}
 		_, err := cl.Get("https://dummy.tld/")
 		if err == nil {
@@ -3764,7 +3750,7 @@ func TestRoundTripReturnsProxyError(t *testing.T) {
 		return nil, errors.New("errorMessage")
 	}
 
-	tr := &Transport{Proxy: badProxy}
+	tr := T().SetProxy(badProxy)
 
 	req, _ := http.NewRequest("GET", "http://example.com", nil)
 
@@ -3777,7 +3763,7 @@ func TestRoundTripReturnsProxyError(t *testing.T) {
 
 // tests that putting an idle conn after a call to CloseIdleConns does return it
 func TestTransportCloseIdleConnsThenReturn(t *testing.T) {
-	tr := &Transport{}
+	tr := T()
 	wantIdle := func(when string, n int) bool {
 		got := tr.IdleConnCountForTesting("http", "example.com") // key used by PutIdleTestConn
 		if got == n {
@@ -3817,7 +3803,7 @@ func TestTransportCloseIdleConnsThenReturn(t *testing.T) {
 // Test for issue 34282
 // Ensure that getConn doesn't call the GotConn trace hook on a HTTP/2 idle conn
 func TestTransportTraceGotConnH2IdleConns(t *testing.T) {
-	tr := &Transport{}
+	tr := T()
 	wantIdle := func(when string, n int) bool {
 		got := tr.IdleConnCountForTesting("https", "example.com:443") // key used by PutIdleTestConnH2
 		if got == n {
@@ -4055,11 +4041,9 @@ func TestTransportFlushesBodyChunks(t *testing.T) {
 		rch: resBody,
 		w:   connw,
 	}
-	tr := &Transport{
-		DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
-			return lw, nil
-		},
-	}
+	tr := T().SetDial(func(_ context.Context, network, addr string) (net.Conn, error) {
+		return lw, nil
+	})
 	bodyr, bodyw := io.Pipe() // body pipe pair
 	go func() {
 		defer bodyw.Close()
@@ -4507,12 +4491,11 @@ func TestTransportEventTraceTLSVerify(t *testing.T) {
 	certpool := x509.NewCertPool()
 	certpool.AddCert(ts.Certificate())
 
-	c := &http.Client{Transport: &Transport{
-		TLSClientConfig: &tls.Config{
-			ServerName: "dns-is-faked.golang",
-			RootCAs:    certpool,
-		},
-	}}
+	tr := T().SetTLSClientConfig(&tls.Config{
+		ServerName: "dns-is-faked.golang",
+		RootCAs:    certpool,
+	})
+	c := &http.Client{Transport: tr}
 
 	trace := &httptrace.ClientTrace{
 		TLSHandshakeStart: func() { logf("TLSHandshakeStart") },
@@ -4568,7 +4551,7 @@ func skipIfDNSHijacked(t *testing.T) {
 func TestTransportEventTraceRealDNS(t *testing.T) {
 	skipIfDNSHijacked(t)
 	defer afterTest(t)
-	tr := &Transport{}
+	tr := T()
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
 
@@ -4765,21 +4748,20 @@ func TestTransportReturnsPeekError(t *testing.T) {
 	wrote := make(chan struct{})
 	var wroteOnce sync.Once
 
-	tr := &Transport{
-		DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
-			c := funcConn{
-				read: func([]byte) (int, error) {
-					<-wrote
-					return 0, errValue
-				},
-				write: func(p []byte) (int, error) {
-					wroteOnce.Do(func() { close(wrote) })
-					return len(p), nil
-				},
-			}
-			return c, nil
-		},
-	}
+	tr := T().SetDial(func(_ context.Context, network, addr string) (net.Conn, error) {
+		c := funcConn{
+			read: func([]byte) (int, error) {
+				<-wrote
+				return 0, errValue
+			},
+			write: func(p []byte) (int, error) {
+				wroteOnce.Do(func() { close(wrote) })
+				return len(p), nil
+			},
+		}
+		return c, nil
+	})
+
 	_, err := tr.RoundTrip(httptest.NewRequest("GET", "http://fake.tld/", nil))
 	if err != errValue {
 		t.Errorf("error = %#v; want %v", err, errValue)
@@ -4989,7 +4971,7 @@ func TestMissingStatusNoPanic(t *testing.T) {
 		t.Fatalf("proxyURL: %v", err)
 	}
 
-	tr := &Transport{Proxy: http.ProxyURL(proxyURL)}
+	tr := T().SetProxy(http.ProxyURL(proxyURL))
 
 	req, _ := http.NewRequest("GET", "https://golang.org/", nil)
 	res, err, panicked := doFetchCheckPanic(tr, req)
@@ -5066,7 +5048,7 @@ func (d doneContext) Err() error { return d.err }
 
 // Issue 25852: Transport should check whether Context is done early.
 func TestTransportCheckContextDoneEarly(t *testing.T) {
-	tr := &Transport{}
+	tr := T()
 	req, _ := http.NewRequest("GET", "http://fake.example/", nil)
 	wantErr := errors.New("some error")
 	req = req.WithContext(doneContext{context.Background(), wantErr})
@@ -5454,27 +5436,28 @@ func TestTransportRequestWriteRoundTrip(t *testing.T) {
 
 func TestTransportClone(t *testing.T) {
 	tr := &Transport{
-		Proxy:                  func(*http.Request) (*url.URL, error) { panic("") },
-		DialContext:            func(ctx context.Context, network, addr string) (net.Conn, error) { panic("") },
-		DialTLSContext:         func(ctx context.Context, network, addr string) (net.Conn, error) { panic("") },
-		TLSClientConfig:        new(tls.Config),
-		TLSHandshakeTimeout:    time.Second,
-		DisableKeepAlives:      true,
-		DisableCompression:     true,
-		MaxIdleConns:           1,
-		MaxIdleConnsPerHost:    1,
-		MaxConnsPerHost:        1,
-		IdleConnTimeout:        time.Second,
-		ResponseHeaderTimeout:  time.Second,
-		ExpectContinueTimeout:  time.Second,
-		ProxyConnectHeader:     http.Header{},
-		GetProxyConnectHeader:  func(context.Context, *url.URL, string) (http.Header, error) { return nil, nil },
-		MaxResponseHeaderBytes: 1,
-		ReadBufferSize:         1,
-		WriteBufferSize:        1,
-		ForceHttpVersion:       HTTP1,
-		ResponseOptions:        &ResponseOptions{},
-		Debugf:                 func(format string, v ...interface{}) {},
+		ForceHttpVersion: HTTP1,
+		Options: transport.Options{
+			Proxy:                  func(*http.Request) (*url.URL, error) { panic("") },
+			DialContext:            func(ctx context.Context, network, addr string) (net.Conn, error) { panic("") },
+			DialTLSContext:         func(ctx context.Context, network, addr string) (net.Conn, error) { panic("") },
+			TLSClientConfig:        new(tls.Config),
+			TLSHandshakeTimeout:    time.Second,
+			DisableKeepAlives:      true,
+			DisableCompression:     true,
+			MaxIdleConns:           1,
+			MaxIdleConnsPerHost:    1,
+			MaxConnsPerHost:        1,
+			IdleConnTimeout:        time.Second,
+			ResponseHeaderTimeout:  time.Second,
+			ExpectContinueTimeout:  time.Second,
+			ProxyConnectHeader:     http.Header{},
+			GetProxyConnectHeader:  func(context.Context, *url.URL, string) (http.Header, error) { return nil, nil },
+			MaxResponseHeaderBytes: 1,
+			ReadBufferSize:         1,
+			WriteBufferSize:        1,
+			Debugf:                 func(format string, v ...interface{}) {},
+		},
 	}
 	tr2 := tr.Clone()
 	rv := reflect.ValueOf(tr2).Elem()
@@ -5880,11 +5863,9 @@ func testTransportRace(req *http.Request) {
 	defer pw.Close()
 	dr := &delegateReader{c: make(chan io.Reader)}
 
-	t := &Transport{
-		DialContext: func(_ context.Context, net, addr string) (net.Conn, error) {
-			return &dumpConn{pw, dr}, nil
-		},
-	}
+	t := T().SetDial(func(_ context.Context, net, addr string) (net.Conn, error) {
+		return &dumpConn{pw, dr}, nil
+	})
 	defer t.CloseIdleConnections()
 
 	quitReadCh := make(chan struct{})
