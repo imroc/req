@@ -325,6 +325,9 @@ func (c *client) sendRequestBody(str Stream, body io.ReadCloser, dumps []*dump.D
 				continue
 			}
 			if rerr == io.EOF {
+				for _, dump := range dumps {
+					dump.Dump([]byte("\r\n\r\n"))
+				}
 				break
 			}
 		}
@@ -333,6 +336,9 @@ func (c *client) sendRequestBody(str Stream, body io.ReadCloser, dumps []*dump.D
 		}
 		if rerr != nil {
 			if rerr == io.EOF {
+				for _, dump := range dumps {
+					dump.Dump([]byte("\r\n\r\n"))
+				}
 				break
 			}
 			str.CancelWrite(quic.StreamErrorCode(errorRequestCanceled))
@@ -396,7 +402,23 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 	if _, err := io.ReadFull(str, headerBlock); err != nil {
 		return nil, newStreamError(errorRequestIncomplete, err)
 	}
+	var respHeaderDumps []*dump.Dumper
+	for _, dump := range dumps {
+		if dump.ResponseHeader() {
+			respHeaderDumps = append(respHeaderDumps, dump)
+		}
+	}
 	hfs, err := c.decoder.DecodeFull(headerBlock)
+	if len(respHeaderDumps) > 0 {
+		for _, hf := range hfs {
+			for _, dump := range respHeaderDumps {
+				dump.Dump([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
+			}
+		}
+		for _, dump := range respHeaderDumps {
+			dump.Dump([]byte("\r\n"))
+		}
+	}
 	if err != nil {
 		// TODO: use the right error code
 		return nil, newConnError(errorGeneralProtocolError, err)
