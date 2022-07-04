@@ -3,4 +3,17 @@
 
 package qtls
 
-var _ int = "The version of quic-go you're using can't be built on Go 1.19 yet. For more details, please see https://github.com/lucas-clemente/quic-go/wiki/quic-go-and-Go-versions."
+import (
+	"crypto/tls"
+	"github.com/marten-seemann/qtls-go1-19"
+)
+
+type (
+	// ConnectionState contains information about the state of the connection.
+	ConnectionState = qtls.ConnectionStateWith0RTT
+)
+
+// ToTLSConnectionState extracts the tls.ConnectionState
+func ToTLSConnectionState(cs ConnectionState) tls.ConnectionState {
+	return cs.ConnectionState
+}
