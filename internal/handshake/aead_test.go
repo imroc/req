@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"github.com/lucas-clemente/quic-go"
 
 	"github.com/imroc/req/v3/internal/protocol"
 

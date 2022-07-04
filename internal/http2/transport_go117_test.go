@@ -11,7 +11,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/imroc/req/v3/internal/transport"
 	"net/http"
 	"net/http/httptest"
 
@@ -33,19 +33,20 @@ func TestTransportDialTLSContexth2(t *testing.T) {
 		serverTLSConfigFunc,
 	)
 	defer ts.Close()
-	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: &tls.Config{
-				GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-					// Tests that the context provided to `req` is
-					// passed into this function.
-					close(blockCh)
-					<-cri.Context().Done()
-					return nil, cri.Context().Err()
-				},
-				InsecureSkipVerify: true,
+	opt := &transport.Options{
+		TLSClientConfig: &tls.Config{
+			GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+				// Tests that the context provided to `req` is
+				// passed into this function.
+				close(blockCh)
+				<-cri.Context().Done()
+				return nil, cri.Context().Err()
 			},
+			InsecureSkipVerify: true,
 		},
+	}
+	tr := &Transport{
+		Options: opt,
 	}
 	defer tr.CloseIdleConnections()
 	req, err := http.NewRequest(http.MethodGet, ts.ts.URL, nil)
@@ -99,23 +100,24 @@ func TestDialRaceResumesDial(t *testing.T) {
 		serverTLSConfigFunc,
 	)
 	defer ts.Close()
-	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: &tls.Config{
-				GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
-					select {
-					case <-blockCh:
-						// If we already errored, return without error.
-						return &tls.Certificate{}, nil
-					default:
-					}
-					close(blockCh)
-					<-cri.Context().Done()
-					return nil, cri.Context().Err()
-				},
-				InsecureSkipVerify: true,
+	opt := &transport.Options{
+		TLSClientConfig: &tls.Config{
+			GetClientCertificate: func(cri *tls.CertificateRequestInfo) (*tls.Certificate, error) {
+				select {
+				case <-blockCh:
+					// If we already errored, return without error.
+					return &tls.Certificate{}, nil
+				default:
+				}
+				close(blockCh)
+				<-cri.Context().Done()
+				return nil, cri.Context().Err()
 			},
+			InsecureSkipVerify: true,
 		},
+	}
+	tr := &Transport{
+		Options: opt,
 	}
 	defer tr.CloseIdleConnections()
 	req, err := http.NewRequest(http.MethodGet, ts.ts.URL, nil)

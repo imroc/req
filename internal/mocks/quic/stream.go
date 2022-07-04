@@ -11,7 +11,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	qerr "github.com/imroc/req/v3/internal/qerr"
 )
 
 // MockStream is a mock of Stream interface.
@@ -38,7 +37,7 @@ func (m *MockStream) EXPECT() *MockStreamMockRecorder {
 }
 
 // CancelRead mocks base method.
-func (m *MockStream) CancelRead(arg0 qerr.StreamErrorCode) {
+func (m *MockStream) CancelRead(arg0 quic.StreamErrorCode) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "CancelRead", arg0)
 }
@@ -50,7 +49,7 @@ func (mr *MockStreamMockRecorder) CancelRead(arg0 interface{}) *gomock.Call {
 }
 
 // CancelWrite mocks base method.
-func (m *MockStream) CancelWrite(arg0 qerr.StreamErrorCode) {
+func (m *MockStream) CancelWrite(arg0 quic.StreamErrorCode) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "CancelWrite", arg0)
 }

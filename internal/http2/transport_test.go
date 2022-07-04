@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
+	"github.com/imroc/req/v3/internal/transport"
 	"io"
 	"io/ioutil"
 	"log"
@@ -60,7 +61,10 @@ func TestTransportExternal(t *testing.T) {
 		t.Skip("skipping external network test")
 	}
 	req, _ := http.NewRequest("GET", "https://"+*transportHost+"/", nil)
-	rt := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	opt := &transport.Options{
+		TLSClientConfig: tlsConfigInsecure,
+	}
+	rt := &Transport{Options: opt}
 	res, err := rt.RoundTrip(req)
 	if err != nil {
 		t.Fatalf("%v", err)
@@ -112,7 +116,7 @@ func TestTransportH2c(t *testing.T) {
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
 	tr := &Transport{
-		Interface: tests.Transport{},
+		Options:   &transport.Options{},
 		AllowHTTP: true,
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			return net.Dial(network, addr)
@@ -144,7 +148,8 @@ func TestTransport(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	opt := &transport.Options{TLSClientConfig: tlsConfigInsecure}
+	tr := &Transport{Options: opt}
 	defer tr.CloseIdleConnections()
 
 	u, err := url.Parse(st.ts.URL)
@@ -201,9 +206,7 @@ func testTransportReusesConns(t *testing.T, wantSame bool, modReq func(*http.Req
 	})
 	defer st.Close()
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 	}
 	defer tr.CloseIdleConnections()
 	get := func() string {
@@ -280,8 +283,8 @@ func testTransportGetGotConnHooks(t *testing.T) {
 	defer st.Close()
 
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
+		Options: &transport.Options{
+			TLSClientConfig: tlsConfigInsecure,
 		},
 	}
 
@@ -353,8 +356,8 @@ func TestTransportGroupsPendingDials(t *testing.T) {
 		closeCount int
 	)
 	tr := &Transport{
-		Interface: &tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
+		Options: &transport.Options{
+			TLSClientConfig: tlsConfigInsecure,
 		},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			mu.Lock()
@@ -427,7 +430,11 @@ func TestTransportAbortClosesPipes(t *testing.T) {
 	errCh := make(chan error)
 	go func() {
 		defer close(errCh)
-		tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+		tr := &Transport{
+			Options: &transport.Options{
+				TLSClientConfig: tlsConfigInsecure,
+			},
+		}
 		req, err := http.NewRequest("GET", st.ts.URL, nil)
 		if err != nil {
 			errCh <- err
@@ -470,7 +477,11 @@ func TestTransportPath(t *testing.T) {
 	)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{
+		Options: &transport.Options{
+			TLSClientConfig: tlsConfigInsecure,
+		},
+	}
 	defer tr.CloseIdleConnections()
 	const (
 		path  = "/testpath"
@@ -584,7 +595,11 @@ func TestTransportBody(t *testing.T) {
 	defer st.Close()
 
 	for i, tt := range bodyTests {
-		tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+		tr := &Transport{
+			Options: &transport.Options{
+				TLSClientConfig: tlsConfigInsecure,
+			},
+		}
 		defer tr.CloseIdleConnections()
 
 		var body io.Reader = strings.NewReader(tt.body)
@@ -641,7 +656,7 @@ func TestTransportDialTLSh2(t *testing.T) {
 	)
 	defer ts.Close()
 	tr := &Transport{
-		Interface: tests.Transport{},
+		Options: &transport.Options{},
 		DialTLS: func(netw, addr string, cfg *tls.Config) (net.Conn, error) {
 			mu.Lock()
 			didDial = true
@@ -714,8 +729,8 @@ func newClientTester(t *testing.T) *clientTester {
 		t: t,
 	}
 	ct.tr = &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
+		Options: &transport.Options{
+			TLSClientConfig: tlsConfigInsecure,
 		},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			dialOnce.Lock()
@@ -986,7 +1001,11 @@ func TestTransportFullDuplex(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{
+		Options: &transport.Options{
+			TLSClientConfig: tlsConfigInsecure,
+		},
+	}
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
 
@@ -1039,7 +1058,7 @@ func TestTransportConnectRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
 
@@ -1654,7 +1673,7 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 	)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	checkRoundTrip := func(req *http.Request, wantErr error, desc string) {
@@ -1726,7 +1745,7 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 	// Get the ClientConn associated with the request and validate
 	// peerMaxHeaderListSize.
 	addr := authorityAddr(req.URL.Scheme, req.URL.Host)
-	cc, err := tr.connPool().GetClientConn(req, addr)
+	cc, err := tr.connPool().GetClientConn(req, addr, true)
 	if err != nil {
 		t.Fatalf("GetClientConn: %v", err)
 	}
@@ -1913,7 +1932,7 @@ func TestTransportBodyReadErrorType(t *testing.T) {
 	)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
 
@@ -1954,9 +1973,7 @@ func TestTransportDoubleCloseOnWriteError(t *testing.T) {
 	defer st.Close()
 
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			tc, err := tls.Dial(network, addr, cfg)
 			if err != nil {
@@ -1987,9 +2004,9 @@ func TestTransportDisableKeepAlives(t *testing.T) {
 
 	connClosed := make(chan struct{}) // closed on tls.Conn.Close
 	tr := &Transport{
-		Interface: tests.Transport{
-			DisableKeepAlivesValue: true,
-			TLSClientConfigValue:   tlsConfigInsecure,
+		Options: &transport.Options{
+			DisableKeepAlives: true,
+			TLSClientConfig:   tlsConfigInsecure,
 		},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			tc, err := tls.Dial(network, addr, cfg)
@@ -2033,9 +2050,9 @@ func TestTransportDisableKeepAlives_Concurrency(t *testing.T) {
 	var dials int32
 	var conns sync.WaitGroup
 	tr := &Transport{
-		Interface: tests.Transport{
-			DisableKeepAlivesValue: true,
-			TLSClientConfigValue:   tlsConfigInsecure,
+		Options: &transport.Options{
+			DisableKeepAlives: true,
+			TLSClientConfig:   tlsConfigInsecure,
 		},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			tc, err := tls.Dial(network, addr, cfg)
@@ -2113,9 +2130,7 @@ func TestTransportResponseHeaderTimeout_Body(t *testing.T) {
 
 func testTransportResponseHeaderTimeout(t *testing.T, body bool) {
 	ct := newClientTester(t)
-	ct.tr.Interface = &tests.Transport{
-		ResponseHeaderTimeoutValue: 5 * time.Millisecond,
-	}
+	ct.tr.Options.ResponseHeaderTimeout = 5 * time.Millisecond
 	ct.client = func() error {
 		c := &http.Client{Transport: ct.tr}
 		var err error
@@ -2176,9 +2191,9 @@ func TestTransportDisableCompression(t *testing.T) {
 	defer st.Close()
 
 	tr := &Transport{
-		Interface: tests.Transport{
-			DisableCompressionValue: true,
-			TLSClientConfigValue:    tlsConfigInsecure,
+		Options: &transport.Options{
+			DisableCompression: true,
+			TLSClientConfig:    tlsConfigInsecure,
 		},
 	}
 	defer tr.CloseIdleConnections()
@@ -2206,7 +2221,7 @@ func TestTransportRejectsConnHeaders(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	tests := []struct {
@@ -2350,7 +2365,7 @@ func TestTransportRejectsContentLengthWithSign(t *testing.T) {
 				w.Header().Set("Content-Length", tt.cl[0])
 			}, optOnlyServer)
 			defer st.Close()
-			tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+			tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 			defer tr.CloseIdleConnections()
 
 			req, _ := http.NewRequest("HEAD", st.ts.URL, nil)
@@ -2405,7 +2420,7 @@ func TestTransportFailsOnInvalidHeaders(t *testing.T) {
 		},
 	}
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	for i, tt := range testCases {
@@ -2510,8 +2525,8 @@ func TestTransportNewTLSConfig(t *testing.T) {
 		}
 
 		tr := &Transport{
-			Interface: tests.Transport{
-				TLSClientConfigValue: tt.conf,
+			Options: &transport.Options{
+				TLSClientConfig: tt.conf,
 			},
 		}
 		got := tr.newTLSConfig(tt.host)
@@ -2660,7 +2675,7 @@ func TestTransportHandlerBodyClose(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	g0 := runtime.NumGoroutine()
@@ -2713,7 +2728,7 @@ func TestTransportFlowControl(t *testing.T) {
 		}
 	}, optOnlyServer)
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	req, err := http.NewRequest("GET", st.ts.URL, nil)
 	if err != nil {
@@ -3177,7 +3192,7 @@ func TestTransportBodyDoubleEndStream(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	for i := 0; i < 2; i++ {
@@ -3345,7 +3360,7 @@ func TestRoundTripDoesntConsumeRequestBodyEarly(t *testing.T) {
 func TestClientConnPing(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {}, optOnlyServer)
 	defer st.Close()
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	ctx := context.Background()
 	cc, err := tr.dialClientConn(ctx, st.ts.Listener.Addr().String(), false)
@@ -3384,7 +3399,7 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	c := &http.Client{Transport: tr}
@@ -3421,7 +3436,7 @@ func TestTransportNoRaceOnRequestObjectAfterRequestComplete(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	req, _ := http.NewRequest("GET", st.ts.URL, nil)
@@ -3470,9 +3485,7 @@ func TestTransportPingWriteBlocks(t *testing.T) {
 	)
 	defer st.Close()
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			s, c := net.Pipe() // unbuffered, unlike a TCP conn
 			go func() {
@@ -3624,9 +3637,7 @@ func TestTransportRetryAfterGOAWAY(t *testing.T) {
 	defer ln.Close()
 
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 	}
 	tr.DialTLS = func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 		dialer.Lock()
@@ -3883,9 +3894,7 @@ func TestTransportRequestsLowServerLimit(t *testing.T) {
 		connCount   int
 	)
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			connCountMu.Lock()
 			defer connCountMu.Unlock()
@@ -4142,7 +4151,7 @@ func TestTransportAllocationsAfterResponseBodyClose(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	c := &http.Client{Transport: tr}
 	res, err := c.Get(st.ts.URL)
@@ -4233,7 +4242,7 @@ func benchSimpleRoundTrip(b *testing.B, nReqHeaders, nResHeader int) {
 	)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	req, err := http.NewRequest("GET", st.ts.URL, nil)
@@ -4277,7 +4286,7 @@ func TestTransportResponseAndResetWithoutConsumingBodyRace(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	// The request body needs to be big enough to trigger flow control.
@@ -4395,7 +4404,7 @@ func testClientConnClose(t *testing.T, closeMode closeMode) {
 		}
 	}, optOnlyServer)
 	defer st.Close()
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	ctx := context.Background()
 	cc, err := tr.dialClientConn(ctx, st.ts.Listener.Addr().String(), false)
@@ -4797,7 +4806,7 @@ func testTransportBodyLargerThanSpecifiedContentLength(t *testing.T, body *chunk
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	req, _ := http.NewRequest("POST", st.ts.URL, body)
@@ -4863,7 +4872,7 @@ func (fce *fakeConnErr) Close() error {
 
 // issue 39337: close the connection on a failed write
 func TestTransportNewClientConnCloseOnWriteError(t *testing.T) {
-	tr := &Transport{Interface: tests.Transport{}}
+	tr := &Transport{Options: &transport.Options{}}
 	writeErr := errors.New("write error")
 	fakeConn := &fakeConnErr{writeErr: writeErr}
 	_, err := tr.NewClientConn(fakeConn)
@@ -4883,7 +4892,7 @@ func TestTransportRoundtripCloseOnWriteError(t *testing.T) {
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	ctx := context.Background()
 	cc, err := tr.dialClientConn(ctx, st.ts.Listener.Addr().String(), false)
@@ -5014,7 +5023,7 @@ func TestTransportFrameBufferReuse(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	var wg sync.WaitGroup
@@ -5106,8 +5115,8 @@ func TestTransportBlockingRequestWrite(t *testing.T) {
 			connc := make(chan *blockingWriteConn, 1)
 			connCount := 0
 			tr := &Transport{
-				Interface: tests.Transport{
-					TLSClientConfigValue: tlsConfigInsecure,
+				Options: &transport.Options{
+					TLSClientConfig: tlsConfigInsecure,
 				},
 				DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 					connCount++
@@ -5200,7 +5209,7 @@ func TestTransportCloseRequestBody(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 	ctx := context.Background()
 	cc, err := tr.dialClientConn(ctx, st.ts.Listener.Addr().String(), false)
@@ -5233,15 +5242,15 @@ func TestTransportCloseRequestBody(t *testing.T) {
 // collectClientsConnPool is a ClientConnPool that wraps lower and
 // collects what calls were made on it.
 type collectClientsConnPool struct {
-	lower ClientConnPool
+	ClientConnPool
 
 	mu      sync.Mutex
 	getErrs int
 	got     []*ClientConn
 }
 
-func (p *collectClientsConnPool) GetClientConn(req *http.Request, addr string) (*ClientConn, error) {
-	cc, err := p.lower.GetClientConn(req, addr)
+func (p *collectClientsConnPool) GetClientConn(req *http.Request, addr string, dialOnMiss bool) (*ClientConn, error) {
+	cc, err := p.ClientConnPool.GetClientConn(req, addr, dialOnMiss)
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	if err != nil {
@@ -5252,14 +5261,10 @@ func (p *collectClientsConnPool) GetClientConn(req *http.Request, addr string) (
 	return cc, nil
 }
 
-func (p *collectClientsConnPool) MarkDead(cc *ClientConn) {
-	p.lower.MarkDead(cc)
-}
-
 func TestTransportRetriesOnStreamProtocolError(t *testing.T) {
 	ct := newClientTester(t)
 	pool := &collectClientsConnPool{
-		lower: &clientConnPool{t: ct.tr},
+		ClientConnPool: &clientConnPool{t: ct.tr},
 	}
 	ct.tr.ConnPool = pool
 
@@ -5388,7 +5393,7 @@ func TestClientConnReservations(t *testing.T) {
 		streams:              make(map[uint32]*clientStream),
 		maxConcurrentStreams: initialMaxConcurrentStreams,
 		nextStreamID:         1,
-		t:                    &Transport{Interface: tests.Transport{}},
+		t:                    &Transport{Options: &transport.Options{}},
 	}
 	cc.cond = sync.NewCond(&cc.mu)
 	n := 0
@@ -5465,7 +5470,7 @@ func TestTransportContentLengthWithoutBody(t *testing.T) {
 		w.Header().Set("Content-Length", contentLength)
 	}, optOnlyServer)
 	defer st.Close()
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	for _, test := range []struct {
@@ -5520,7 +5525,7 @@ func TestTransportCloseResponseBodyWhileRequestBodyHangs(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	pr, pw := net.Pipe()
@@ -5548,7 +5553,7 @@ func TestTransport300ResponseBody(t *testing.T) {
 	}, optOnlyServer)
 	defer st.Close()
 
-	tr := &Transport{Interface: tests.Transport{TLSClientConfigValue: tlsConfigInsecure}}
+	tr := &Transport{Options: &transport.Options{TLSClientConfig: tlsConfigInsecure}}
 	defer tr.CloseIdleConnections()
 
 	pr, pw := net.Pipe()
@@ -5579,9 +5584,7 @@ func TestTransportWriteByteTimeout(t *testing.T) {
 	)
 	defer st.Close()
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			_, c := net.Pipe()
 			return c, nil
@@ -5625,9 +5628,7 @@ func TestTransportSlowWrites(t *testing.T) {
 	)
 	defer st.Close()
 	tr := &Transport{
-		Interface: tests.Transport{
-			TLSClientConfigValue: tlsConfigInsecure,
-		},
+		Options: &transport.Options{TLSClientConfig: tlsConfigInsecure},
 		DialTLS: func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 			cfg.InsecureSkipVerify = true
 			c, err := tls.Dial(network, addr, cfg)

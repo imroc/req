@@ -2,6 +2,7 @@ package qerr
 
 import (
 	"errors"
+	"github.com/lucas-clemente/quic-go"
 	"net"
 
 	"github.com/imroc/req/v3/internal/protocol"

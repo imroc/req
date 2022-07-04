@@ -3,9 +3,9 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/lucas-clemente/quic-go"
 	"testing"
 
-	"github.com/imroc/req/v3/internal/protocol"
 	"github.com/imroc/req/v3/internal/quicvarint"
 
 	. "github.com/onsi/ginkgo"

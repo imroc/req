@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/tls"
 	"fmt"
+	"github.com/lucas-clemente/quic-go"
 	"time"
 
 	"github.com/golang/mock/gomock"

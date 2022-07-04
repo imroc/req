@@ -20,21 +20,11 @@ type ClientConnPool interface {
 	// call, so the caller should not omit it. If the caller needs
 	// to, ClientConn.RoundTrip can be called with a bogus
 	// new(http.Request) to release the stream reservation.
-	GetClientConn(req *http.Request, addr string) (*ClientConn, error)
+	GetClientConn(req *http.Request, addr string, dialOnMiss bool) (*ClientConn, error)
 	MarkDead(*ClientConn)
+	CloseIdleConnections()
+	AddConnIfNeeded(key string, t *Transport, c net.Conn) (used bool, err error)
 }
-
-// clientConnPoolIdleCloser is the interface implemented by ClientConnPool
-// implementations which can close their idle connections.
-type clientConnPoolIdleCloser interface {
-	ClientConnPool
-	closeIdleConnections()
-}
-
-var (
-	_ clientConnPoolIdleCloser = (*clientConnPool)(nil)
-	_ clientConnPoolIdleCloser = noDialClientConnPool{}
-)
 
 // TODO: use singleflight for dialing and addConnCalls?
 type clientConnPool struct {
@@ -49,16 +39,7 @@ type clientConnPool struct {
 	addConnCalls map[string]*addConnCall // in-flight addConnIfNeeded calls
 }
 
-func (p *clientConnPool) GetClientConn(req *http.Request, addr string) (*ClientConn, error) {
-	return p.getClientConn(req, addr, dialOnMiss)
-}
-
-const (
-	dialOnMiss   = true
-	noDialOnMiss = false
-)
-
-func (p *clientConnPool) getClientConn(req *http.Request, addr string, dialOnMiss bool) (*ClientConn, error) {
+func (p *clientConnPool) GetClientConn(req *http.Request, addr string, dialOnMiss bool) (*ClientConn, error) {
 	// TODO(dneil): Dial a new connection when t.DisableKeepAlives is set?
 	if isConnectionCloseRequest(req) && dialOnMiss {
 		// It gets its own connection.
@@ -155,7 +136,7 @@ func (c *dialCall) dial(ctx context.Context, addr string) {
 // This code decides which ones live or die.
 // The return value used is whether c was used.
 // c is never closed.
-func (p *clientConnPool) addConnIfNeeded(key string, t *Transport, c net.Conn) (used bool, err error) {
+func (p *clientConnPool) AddConnIfNeeded(key string, t *Transport, c net.Conn) (used bool, err error) {
 	p.mu.Lock()
 	for _, cc := range p.conns[key] {
 		if cc.CanTakeNewRequest() {
@@ -242,7 +223,7 @@ func (p *clientConnPool) MarkDead(cc *ClientConn) {
 	delete(p.keys, cc)
 }
 
-func (p *clientConnPool) closeIdleConnections() {
+func (p *clientConnPool) CloseIdleConnections() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	// TODO: don't close a cc if it was just added to the pool
@@ -271,15 +252,6 @@ func filterOutClientConn(in []*ClientConn, exclude *ClientConn) []*ClientConn {
 		in[len(in)-1] = nil
 	}
 	return out
-}
-
-// noDialClientConnPool is an implementation of http2.ClientConnPool
-// which never dials. We let the HTTP/1.1 client dial and use its TLS
-// connection instead.
-type noDialClientConnPool struct{ *clientConnPool }
-
-func (p noDialClientConnPool) GetClientConn(req *http.Request, addr string) (*ClientConn, error) {
-	return p.getClientConn(req, addr, noDialOnMiss)
 }
 
 // shouldRetryDial reports whether the current request should

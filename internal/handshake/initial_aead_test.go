@@ -2,6 +2,7 @@ package handshake
 
 import (
 	"fmt"
+	"github.com/lucas-clemente/quic-go"
 	"math/rand"
 
 	"github.com/imroc/req/v3/internal/protocol"

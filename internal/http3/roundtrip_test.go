@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"github.com/imroc/req/v3/internal/transport"
 	"io"
 	"net/http"
 	"time"
@@ -66,7 +67,7 @@ var _ = Describe("RoundTripper", func() {
 	)
 
 	BeforeEach(func() {
-		rt = &RoundTripper{}
+		rt = &RoundTripper{Options: &transport.Options{}}
 		var err error
 		req1, err = http.NewRequest("GET", "https://www.example.org/file1.html", nil)
 		Expect(err).ToNot(HaveOccurred())

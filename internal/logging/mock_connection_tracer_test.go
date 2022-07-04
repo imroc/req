@@ -5,6 +5,7 @@
 package logging
 
 import (
+	"github.com/lucas-clemente/quic-go"
 	net "net"
 	reflect "reflect"
 	time "time"

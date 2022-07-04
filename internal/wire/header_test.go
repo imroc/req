@@ -3,6 +3,7 @@ package wire
 import (
 	"bytes"
 	"encoding/binary"
+	"github.com/lucas-clemente/quic-go"
 	"io"
 
 	"github.com/imroc/req/v3/internal/protocol"

@@ -134,7 +134,7 @@ type Transport struct {
 	CountError func(errType string)
 
 	connPoolOnce  sync.Once
-	connPoolOrDef *clientConnPool // non-nil version of ConnPool
+	connPoolOrDef ClientConnPool // non-nil version of ConnPool
 }
 
 func (t *Transport) maxHeaderListSize() uint32 {
@@ -155,13 +155,17 @@ func (t *Transport) pingTimeout() time.Duration {
 
 }
 
-func (t *Transport) connPool() *clientConnPool {
+func (t *Transport) connPool() ClientConnPool {
 	t.connPoolOnce.Do(t.initConnPool)
 	return t.connPoolOrDef
 }
 
 func (t *Transport) initConnPool() {
-	t.connPoolOrDef = &clientConnPool{t: t}
+	if t.ConnPool != nil {
+		t.connPoolOrDef = t.ConnPool
+	} else {
+		t.connPoolOrDef = &clientConnPool{t: t}
+	}
 }
 
 // ClientConn is the state of a single HTTP/2 client connection to an
@@ -407,7 +411,7 @@ func authorityAddr(scheme string, authority string) (addr string) {
 }
 
 func (t *Transport) AddConn(conn net.Conn, addr string) (used bool, err error) {
-	used, err = t.connPool().addConnIfNeeded(addr, t, conn)
+	used, err = t.connPool().AddConnIfNeeded(addr, t, conn)
 	return
 }
 
@@ -421,7 +425,7 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 	var cc *ClientConn
 	var err error
 	if opt.OnlyCachedConn {
-		cc, err = t.connPool().getClientConn(req, addr, false)
+		cc, err = t.connPool().GetClientConn(req, addr, false)
 		if err != nil {
 			return nil, err
 		}
@@ -429,7 +433,7 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 		return cc.RoundTrip(req)
 	}
 	for retry := 0; ; retry++ {
-		cc, err = t.connPool().getClientConn(req, addr, true)
+		cc, err = t.connPool().GetClientConn(req, addr, true)
 		if err != nil {
 			t.vlogf("http2: Transport failed to get client conn for %s: %v", addr, err)
 			return nil, err
@@ -467,7 +471,7 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 // connected from previous requests but are now sitting idle.
 // It does not interrupt any connections currently in use.
 func (t *Transport) CloseIdleConnections() {
-	t.connPool().closeIdleConnections()
+	t.connPool().CloseIdleConnections()
 }
 
 var (

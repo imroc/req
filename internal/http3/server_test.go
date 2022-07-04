@@ -15,10 +15,10 @@ import (
 
 	mockquic "github.com/imroc/req/v3/internal/mocks/quic"
 	"github.com/imroc/req/v3/internal/protocol"
+	"github.com/imroc/req/v3/internal/quicvarint"
 	"github.com/imroc/req/v3/internal/testdata"
 	"github.com/imroc/req/v3/internal/utils"
 	"github.com/lucas-clemente/quic-go"
-	"github.com/imroc/req/v3/internal/quicvarint"
 
 	"github.com/golang/mock/gomock"
 	"github.com/marten-seemann/qpack"
@@ -136,7 +136,7 @@ var _ = Describe("Server", func() {
 			str := mockquic.NewMockStream(mockCtrl)
 			str.EXPECT().Write(gomock.Any()).DoAndReturn(buf.Write).AnyTimes()
 			rw := newRequestWriter(utils.DefaultLogger)
-			Expect(rw.WriteRequestHeader(str, req, false)).To(Succeed())
+			Expect(rw.WriteRequestHeader(str, req, false, nil)).To(Succeed())
 			return buf.Bytes()
 		}
 

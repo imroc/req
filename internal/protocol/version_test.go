@@ -1,12 +1,13 @@
 package protocol
 
 import (
+	"github.com/lucas-clemente/quic-go"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Version", func() {
-	isReservedVersion := func(v VersionNumber) bool {
+	isReservedVersion := func(v quic.VersionNumber) bool {
 		return v&0x0f0f0f0f == 0x0a0a0a0a
 	}
 
@@ -31,11 +32,11 @@ var _ = Describe("Version", func() {
 		Expect(Version1.String()).To(Equal("v1"))
 		Expect(Version2.String()).To(Equal("v2"))
 		// check with unsupported version numbers from the wiki
-		Expect(VersionNumber(0x51303039).String()).To(Equal("gQUIC 9"))
-		Expect(VersionNumber(0x51303133).String()).To(Equal("gQUIC 13"))
-		Expect(VersionNumber(0x51303235).String()).To(Equal("gQUIC 25"))
-		Expect(VersionNumber(0x51303438).String()).To(Equal("gQUIC 48"))
-		Expect(VersionNumber(0x01234567).String()).To(Equal("0x1234567"))
+		Expect(quic.VersionNumber(0x51303039).String()).To(Equal("gQUIC 9"))
+		Expect(quic.VersionNumber(0x51303133).String()).To(Equal("gQUIC 13"))
+		Expect(quic.VersionNumber(0x51303235).String()).To(Equal("gQUIC 25"))
+		Expect(quic.VersionNumber(0x51303438).String()).To(Equal("gQUIC 48"))
+		Expect(quic.VersionNumber(0x01234567).String()).To(Equal("0x1234567"))
 	})
 
 	It("recognizes supported versions", func() {
@@ -46,45 +47,45 @@ var _ = Describe("Version", func() {
 
 	Context("highest supported version", func() {
 		It("finds the supported version", func() {
-			supportedVersions := []VersionNumber{1, 2, 3}
-			other := []VersionNumber{6, 5, 4, 3}
+			supportedVersions := []quic.VersionNumber{1, 2, 3}
+			other := []quic.VersionNumber{6, 5, 4, 3}
 			ver, ok := ChooseSupportedVersion(supportedVersions, other)
 			Expect(ok).To(BeTrue())
-			Expect(ver).To(Equal(VersionNumber(3)))
+			Expect(ver).To(Equal(quic.VersionNumber(3)))
 		})
 
 		It("picks the preferred version", func() {
-			supportedVersions := []VersionNumber{2, 1, 3}
-			other := []VersionNumber{3, 6, 1, 8, 2, 10}
+			supportedVersions := []quic.VersionNumber{2, 1, 3}
+			other := []quic.VersionNumber{3, 6, 1, 8, 2, 10}
 			ver, ok := ChooseSupportedVersion(supportedVersions, other)
 			Expect(ok).To(BeTrue())
-			Expect(ver).To(Equal(VersionNumber(2)))
+			Expect(ver).To(Equal(quic.VersionNumber(2)))
 		})
 
 		It("says when no matching version was found", func() {
-			_, ok := ChooseSupportedVersion([]VersionNumber{1}, []VersionNumber{2})
+			_, ok := ChooseSupportedVersion([]quic.VersionNumber{1}, []quic.VersionNumber{2})
 			Expect(ok).To(BeFalse())
 		})
 
 		It("handles empty inputs", func() {
-			_, ok := ChooseSupportedVersion([]VersionNumber{102, 101}, []VersionNumber{})
+			_, ok := ChooseSupportedVersion([]quic.VersionNumber{102, 101}, []quic.VersionNumber{})
 			Expect(ok).To(BeFalse())
-			_, ok = ChooseSupportedVersion([]VersionNumber{}, []VersionNumber{1, 2})
+			_, ok = ChooseSupportedVersion([]quic.VersionNumber{}, []quic.VersionNumber{1, 2})
 			Expect(ok).To(BeFalse())
-			_, ok = ChooseSupportedVersion([]VersionNumber{}, []VersionNumber{})
+			_, ok = ChooseSupportedVersion([]quic.VersionNumber{}, []quic.VersionNumber{})
 			Expect(ok).To(BeFalse())
 		})
 	})
 
 	Context("reserved versions", func() {
 		It("adds a greased version if passed an empty slice", func() {
-			greased := GetGreasedVersions([]VersionNumber{})
+			greased := GetGreasedVersions([]quic.VersionNumber{})
 			Expect(greased).To(HaveLen(1))
 			Expect(isReservedVersion(greased[0])).To(BeTrue())
 		})
 
 		It("creates greased lists of version numbers", func() {
-			supported := []VersionNumber{10, 18, 29}
+			supported := []quic.VersionNumber{10, 18, 29}
 			for _, v := range supported {
 				Expect(isReservedVersion(v)).To(BeFalse())
 			}
