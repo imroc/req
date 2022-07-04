@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 )
 
 // MethodGet0RTT allows a GET request to be sent using 0-RTT.
@@ -29,8 +30,8 @@ const (
 
 var defaultQuicConfig = &quic.Config{
 	MaxIncomingStreams: -1, // don't allow the server to create bidirectional streams
-	// KeepAlivePeriod:    10 * time.Second,
-	Versions: []quic.VersionNumber{protocol.VersionTLS},
+	KeepAlivePeriod:    10 * time.Second,
+	Versions:           []quic.VersionNumber{protocol.VersionTLS},
 }
 
 type dialFunc func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)
