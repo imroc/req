@@ -879,17 +879,6 @@ func NewClient() *Client {
 // Clone copy and returns the Client
 func (c *Client) Clone() *Client {
 	t := c.t.Clone()
-	opt := t.Options
-	if t.t2 != nil {
-		t2 := *t.t2
-		t2.Options = &opt
-		t.t2 = &t2
-	}
-	if t.t3 != nil {
-		t3 := *t.t3
-		t3.Options = &opt
-		t.t3 = &t3
-	}
 
 	client := *c.httpClient
 	client.Transport = t

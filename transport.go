@@ -472,20 +472,25 @@ func (t *Transport) readBufferSize() int {
 
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
-	t2 := &Transport{
-		Options:               t.Options,
-		ForceHttpVersion:      t.ForceHttpVersion,
-		disableAutoDecode:     t.disableAutoDecode,
-		autoDecodeContentType: t.autoDecodeContentType,
+	tt := *t
+	tt.Dump = t.Dump.Clone()
+	if tt.Dump != nil {
+		go tt.Dump.Start()
 	}
-	t2.Options.Dump = t.Options.Dump.Clone()
-	if t.Dump != nil {
-		go t.Dump.Start()
+	if tt.TLSClientConfig != nil {
+		tt.TLSClientConfig = tt.TLSClientConfig.Clone()
 	}
-	if t.TLSClientConfig != nil {
-		t2.TLSClientConfig = t.TLSClientConfig.Clone()
+	if t.t2 != nil {
+		t2 := *t.t2
+		t2.Options = &tt.Options
+		tt.t2 = &t2
 	}
-	return t2
+	if t.t3 != nil {
+		t3 := *t.t3
+		t3.Options = &tt.Options
+		tt.t3 = &t3
+	}
+	return &tt
 }
 
 // EnableDump enables the dump for all requests with specified dump options.
