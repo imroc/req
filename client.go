@@ -866,6 +866,13 @@ func (c *Client) SetUnixSocket(file string) *Client {
 	})
 }
 
+// DisableHTTP3 disables the http3 protocol.
+func (c *Client) DisableHTTP3() *Client {
+	c.t.DisableHTTP3()
+	return c
+}
+
+// EnableHTTP3 enables the http3 protocol.
 func (c *Client) EnableHTTP3() *Client {
 	c.t.EnableHTTP3()
 	return c

@@ -284,6 +284,11 @@ type pendingAltSvc struct {
 	Transport    http.RoundTripper
 }
 
+func (t *Transport) DisableHTTP3() {
+	t.altSvcJar = nil
+	t.pendingAltSvcs = nil
+}
+
 func (t *Transport) EnableHTTP3() {
 	v := runtime.Version()
 	ss := strings.Split(v, ".")

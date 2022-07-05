@@ -48,7 +48,6 @@ func splitHostPort(hostPort string) (host, port string) {
 	if strings.HasPrefix(host, "[") && strings.HasSuffix(host, "]") {
 		host = host[1 : len(host)-1]
 	}
-
 	return
 }
 
