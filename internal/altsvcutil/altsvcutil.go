@@ -51,6 +51,7 @@ func splitHostPort(hostPort string) (host, port string) {
 	return
 }
 
+// ParseHeader parses the AltSvc from header value.
 func ParseHeader(value string) ([]*altsvc.AltSvc, error) {
 	p := newAltSvcParser(value)
 	return p.Parse()
@@ -192,6 +193,7 @@ func (p *altAvcParser) parseOne() (as *altsvc.AltSvc, err error) {
 	return
 }
 
+// ConvertURL converts the raw request url to expected alt-svc's url.
 func ConvertURL(a *altsvc.AltSvc, u *url.URL) *url.URL {
 	host, port := netutil.AuthorityHostPort(u.Scheme, u.Host)
 	uu := *u

@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Options is transport's options.
 type Options struct {
 	// Proxy specifies a function to return a proxy for a given
 	// Request. If the function returns a non-nil error, the
