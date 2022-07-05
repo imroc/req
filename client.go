@@ -8,7 +8,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
@@ -880,10 +879,17 @@ func NewClient() *Client {
 // Clone copy and returns the Client
 func (c *Client) Clone() *Client {
 	t := c.t.Clone()
-	t2 := &http2.Transport{
-		Options: &t.Options,
+	opt := t.Options
+	if t.t2 != nil {
+		t2 := *t.t2
+		t2.Options = &opt
+		t.t2 = &t2
 	}
-	t.t2 = t2
+	if t.t3 != nil {
+		t3 := *t.t3
+		t3.Options = &opt
+		t.t3 = &t3
+	}
 
 	client := *c.httpClient
 	client.Transport = t
