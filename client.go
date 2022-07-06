@@ -878,6 +878,15 @@ func (c *Client) EnableHTTP3() *Client {
 	return c
 }
 
+// Logger return the internal logger, usually used in middleware.
+func (c *Client) Logger() Logger {
+	if c.log != nil {
+		return c.log
+	}
+	c.log = createDefaultLogger()
+	return c.log
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
