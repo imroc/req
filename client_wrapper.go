@@ -442,6 +442,18 @@ func EnableForceHTTP2() *Client {
 	return defaultClient.EnableForceHTTP2()
 }
 
+// EnableForceHTTP3 is a global wrapper methods which delegated
+// to the default client's EnableForceHTTP3.
+func EnableForceHTTP3() *Client {
+	return defaultClient.EnableForceHTTP3()
+}
+
+// EnableHTTP3 is a global wrapper methods which delegated
+// to the default client's EnableHTTP3.
+func EnableHTTP3() *Client {
+	return defaultClient.EnableHTTP3()
+}
+
 // DisableForceHttpVersion is a global wrapper methods which delegated
 // to the default client's DisableForceHttpVersion.
 func DisableForceHttpVersion() *Client {

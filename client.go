@@ -658,7 +658,7 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 
 // SetProxy set the proxy function.
 func (c *Client) SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
-	c.t.Proxy = proxy
+	c.t.SetProxy(proxy)
 	return c
 }
 
@@ -681,7 +681,8 @@ func (c *Client) SetProxyURL(proxyUrl string) *Client {
 		c.log.Errorf("failed to parse proxy url %s: %v", proxyUrl, err)
 		return c
 	}
-	c.t.Proxy = http.ProxyURL(u)
+	proxy := http.ProxyURL(u)
+	c.t.SetProxy(proxy)
 	return c
 }
 
@@ -732,22 +733,22 @@ func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Cli
 }
 
 // SetDialTLS set the customized `DialTLSContext` function to Transport.
-// Make sure the returned `conn` implements TLSConn if you want your
+// Make sure the returned `conn` implements pkg/tls.Conn if you want your
 // customized `conn` supports HTTP2.
 func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
-	c.t.DialTLSContext = fn
+	c.t.SetDialTLS(fn)
 	return c
 }
 
 // SetDial set the customized `DialContext` function to Transport.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
-	c.t.DialContext = fn
+	c.t.SetDial(fn)
 	return c
 }
 
 // SetTLSHandshakeTimeout set the TLS handshake timeout.
 func (c *Client) SetTLSHandshakeTimeout(timeout time.Duration) *Client {
-	c.t.TLSHandshakeTimeout = timeout
+	c.t.SetTLSHandshakeTimeout(timeout)
 	return c
 }
 

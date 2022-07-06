@@ -102,6 +102,8 @@ func TestGlobalWrapper(t *testing.T) {
 		SetRedirectPolicy(NoRedirectPolicy()),
 		EnableForceHTTP1(),
 		EnableForceHTTP2(),
+		EnableForceHTTP3(),
+		EnableHTTP3(),
 		DisableForceHttpVersion(),
 		SetAutoDecodeContentType("json"),
 		SetAutoDecodeContentTypeFunc(func(contentType string) bool { return true }),
