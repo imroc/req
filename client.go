@@ -387,6 +387,15 @@ func (c *Client) SetScheme(scheme string) *Client {
 	return c
 }
 
+// GetLogger return the internal logger, usually used in middleware.
+func (c *Client) GetLogger() Logger {
+	if c.log != nil {
+		return c.log
+	}
+	c.log = createDefaultLogger()
+	return c.log
+}
+
 // SetLogger set the customized logger for client, will disable log if set to nil.
 func (c *Client) SetLogger(log Logger) *Client {
 	if log == nil {
@@ -744,20 +753,28 @@ func (c *Client) SetTLSHandshakeTimeout(timeout time.Duration) *Client {
 
 // EnableForceHTTP1 enable force using HTTP1 (disabled by default).
 func (c *Client) EnableForceHTTP1() *Client {
-	c.t.ForceHttpVersion = HTTP1
+	c.t.EnableForceHTTP1()
 	return c
 }
 
 // EnableForceHTTP2 enable force using HTTP2 for https requests
 // (disabled by default).
 func (c *Client) EnableForceHTTP2() *Client {
-	c.t.ForceHttpVersion = HTTP2
+	c.t.EnableForceHTTP2()
 	return c
 }
 
-// DisableForceHttpVersion disable force using HTTP1 (disabled by default).
+// EnableForceHTTP3 enable force using HTTP3 for https requests
+// (disabled by default).
+func (c *Client) EnableForceHTTP3() *Client {
+	c.t.EnableForceHTTP3()
+	return c
+}
+
+// DisableForceHttpVersion disable force using specified http
+// version (disabled by default).
 func (c *Client) DisableForceHttpVersion() *Client {
-	c.t.ForceHttpVersion = ""
+	c.t.DisableForceHttpVersion()
 	return c
 }
 
@@ -874,15 +891,6 @@ func (c *Client) DisableHTTP3() *Client {
 func (c *Client) EnableHTTP3() *Client {
 	c.t.EnableHTTP3()
 	return c
-}
-
-// Logger return the internal logger, usually used in middleware.
-func (c *Client) Logger() Logger {
-	if c.log != nil {
-		return c.log
-	}
-	c.log = createDefaultLogger()
-	return c.log
 }
 
 // NewClient is the alias of C

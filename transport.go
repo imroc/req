@@ -192,85 +192,102 @@ func (t *Transport) SetAutoDecodeContentType(contentTypes ...string) {
 	t.autoDecodeContentType = autoDecodeContentTypeFunc(contentTypes...)
 }
 
+// GetMaxIdleConns returns MaxIdleConns.
 func (t *Transport) GetMaxIdleConns() int {
 	return t.MaxIdleConns
 }
 
+// SetMaxIdleConns set the MaxIdleConns.
 func (t *Transport) SetMaxIdleConns(max int) *Transport {
 	t.MaxIdleConns = max
 	return t
 }
 
+// SetMaxConnsPerHost set the MaxConnsPerHost.
 func (t *Transport) SetMaxConnsPerHost(max int) *Transport {
 	t.MaxConnsPerHost = max
 	return t
 }
 
+// SetIdleConnTimeout set the IdleConnTimeout.
 func (t *Transport) SetIdleConnTimeout(timeout time.Duration) *Transport {
 	t.IdleConnTimeout = timeout
 	return t
 }
 
+// SetTLSHandshakeTimeout set the TLSHandshakeTimeout.
 func (t *Transport) SetTLSHandshakeTimeout(timeout time.Duration) *Transport {
 	t.TLSHandshakeTimeout = timeout
 	return t
 }
 
+// SetResponseHeaderTimeout set the ResponseHeaderTimeout.
 func (t *Transport) SetResponseHeaderTimeout(timeout time.Duration) *Transport {
 	t.ResponseHeaderTimeout = timeout
 	return t
 }
 
+// SetExpectContinueTimeout set the ExpectContinueTimeout.
 func (t *Transport) SetExpectContinueTimeout(timeout time.Duration) *Transport {
 	t.ExpectContinueTimeout = timeout
 	return t
 }
 
+// SetGetProxyConnectHeader set the GetProxyConnectHeader function.
 func (t *Transport) SetGetProxyConnectHeader(fn func(ctx context.Context, proxyURL *url.URL, target string) (http.Header, error)) *Transport {
 	t.GetProxyConnectHeader = fn
 	return t
 }
 
+// SetProxyConnectHeader set the ProxyConnectHeader.
 func (t *Transport) SetProxyConnectHeader(header http.Header) *Transport {
 	t.ProxyConnectHeader = header
 	return t
 }
 
+// SetReadBufferSize set the ReadBufferSize.
 func (t *Transport) SetReadBufferSize(size int) *Transport {
 	t.ReadBufferSize = size
 	return t
 }
 
+// SetWriteBufferSize set the WriteBufferSize.
 func (t *Transport) SetWriteBufferSize(size int) *Transport {
 	t.WriteBufferSize = size
 	return t
 }
 
+// SetMaxResponseHeaderBytes set the MaxResponseHeaderBytes.
 func (t *Transport) SetMaxResponseHeaderBytes(max int64) *Transport {
 	t.MaxResponseHeaderBytes = max
 	return t
 }
 
+// SetTLSClientConfig set the custom tle client config.
 func (t *Transport) SetTLSClientConfig(cfg *tls.Config) *Transport {
 	t.TLSClientConfig = cfg
 	return t
 }
 
+// SetDebug set the debug function.
 func (t *Transport) SetDebug(debugf func(format string, v ...interface{})) *Transport {
 	t.Debugf = debugf
 	return t
 }
 
+// SetProxy set the http proxy, only valid for HTTP1 and HTTP2.
 func (t *Transport) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Transport {
 	t.Proxy = proxy
 	return t
 }
 
+// SetDial set the custom DialContext function, only valid for HTTP1 and HTTP2.
 func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
 	t.DialContext = fn
 	return t
 }
 
+// SetDialTLS set the custom DialTLSContext function, only valid for HTTP1 and HTTP2.
 func (t *Transport) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
 	t.DialTLSContext = fn
 	return t
@@ -284,12 +301,44 @@ type pendingAltSvc struct {
 	Transport    http.RoundTripper
 }
 
+// EnableForceHTTP1 enable force using HTTP1 (disabled by default).
+func (t *Transport) EnableForceHTTP1() *Transport {
+	t.ForceHttpVersion = HTTP1
+	return t
+}
+
+// EnableForceHTTP2 enable force using HTTP2 for https requests
+// (disabled by default).
+func (t *Transport) EnableForceHTTP2() *Transport {
+	t.ForceHttpVersion = HTTP2
+	return t
+}
+
+// EnableForceHTTP3 enable force using HTTP3 for https requests
+// (disabled by default).
+func (t *Transport) EnableForceHTTP3() *Transport {
+	t.ForceHttpVersion = HTTP3
+	return t
+}
+
+// DisableForceHttpVersion disable force using specified http
+// version (disabled by default).
+func (t *Transport) DisableForceHttpVersion() *Transport {
+	t.ForceHttpVersion = ""
+	return t
+}
+
 func (t *Transport) DisableHTTP3() {
 	t.altSvcJar = nil
 	t.pendingAltSvcs = nil
+	t.t3 = nil
 }
 
 func (t *Transport) EnableHTTP3() {
+	if t.t3 != nil {
+		return
+	}
+
 	v := runtime.Version()
 	ss := strings.Split(v, ".")
 
