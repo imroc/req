@@ -133,10 +133,12 @@ func (r *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	return r.RoundTripOpt(req, RoundTripOpt{})
 }
 
+// RoundTripOnlyCachedConn round trip only cached conn.
 func (r *RoundTripper) RoundTripOnlyCachedConn(req *http.Request) (*http.Response, error) {
 	return r.RoundTripOpt(req, RoundTripOpt{OnlyCachedConn: true})
 }
 
+// AddConn add a http3 connection, dial new conn if not exists.
 func (r *RoundTripper) AddConn(addr string) error {
 	c, err := r.getClient(addr, false)
 	if err != nil {
