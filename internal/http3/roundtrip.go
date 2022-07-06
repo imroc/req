@@ -137,11 +137,6 @@ func (r *RoundTripper) RoundTripOnlyCachedConn(req *http.Request) (*http.Respons
 	return r.RoundTripOpt(req, RoundTripOpt{OnlyCachedConn: true})
 }
 
-func (r *RoundTripper) HaveCachedConn(addr string) bool {
-	_, ok := r.clients[addr]
-	return ok
-}
-
 func (r *RoundTripper) AddConn(addr string) error {
 	c, err := r.getClient(addr, false)
 	if err != nil {
