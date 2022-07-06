@@ -27,16 +27,6 @@ type RoundTripper struct {
 	*transport.Options
 	mutex sync.Mutex
 
-	// DisableCompression, if true, prevents the Transport from
-	// requesting compression with an "Accept-Encoding: gzip"
-	// request header when the Request contains no existing
-	// Accept-Encoding value. If the Transport requests gzip on
-	// its own and gets a gzipped response, it's transparently
-	// decoded in the Response.Body. However, if the user
-	// explicitly requested gzip it is not automatically
-	// uncompressed.
-	DisableCompression bool
-
 	// QuicConfig is the quic.Config used for dialing new connections.
 	// If nil, reasonable default values will be used.
 	QuicConfig *quic.Config
@@ -68,11 +58,6 @@ type RoundTripper struct {
 	// connections for requests.
 	// If Dial is nil, quic.DialAddrEarlyContext will be used.
 	Dial func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)
-
-	// MaxResponseHeaderBytes specifies a limit on how many response bytes are
-	// allowed in the server's response header.
-	// Zero means to use a default limit.
-	MaxResponseHeaderBytes int64
 
 	clients map[string]roundTripCloser
 }
