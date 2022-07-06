@@ -372,7 +372,6 @@ func (c *Client) EnableDebugLog() *Client {
 // 1. Dump content of all requests and responses to see details.
 // 2. Output debug level log for deeper insights.
 // 3. Trace all requests, so you can get trace info to analyze performance.
-// 4. Set User-Agent to pretend to be a web browser, avoid returning abnormal data from some sites.
 func (c *Client) DevMode() *Client {
 	return c.EnableDumpAll().
 		EnableDebugLog().
