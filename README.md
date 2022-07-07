@@ -2,7 +2,7 @@
 
 <p align="center">
     <p align="center"><img src="req.png" style="height: 200px"></p>
-    <p align="center" style="font-weight: bold">Simple Go HTTP client with Black Magic</p>
+    <p align="center"><strong>Simple Go HTTP client with Black Magic</strong></p>
     <p align="center">
         <a href="https://github.com/imroc/req/actions/workflows/ci.yml?query=branch%3Amaster"><img src="https://github.com/imroc/req/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
         <a href="https://codecov.io/gh/imroc/req/branch/master"><img src="https://codecov.io/gh/imroc/req/branch/master/graph/badge.svg" alt="Code Coverage"></a>
