@@ -16,31 +16,18 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Build
+  test:
     strategy:
       matrix:
         go: [ '1.18.x', '1.17.x' ]
         os: [ ubuntu-latest ]
-
     runs-on: ${{ matrix.os }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
-
       - name: Test
         run: go test -p=1 ./... -coverprofile=coverage.txt
-
-      - name: Coverage
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        run: |
-          curl -Os https://uploader.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          ./codecov -t ${CODECOV_TOKEN}
