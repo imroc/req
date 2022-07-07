@@ -454,6 +454,8 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 		b.body.body = wrap(b.body.body)
 	case *http2.GzipReader:
 		b.Body = wrap(b.Body)
+	case *http3.GzipReader:
+		b.Body = wrap(b.Body)
 	default:
 		res.Body = wrap(res.Body)
 	}
