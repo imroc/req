@@ -1,4 +1,4 @@
-# Req
+# req
 
 <p align="center">
     <p align="center"><img src="req.png" style="height: 200px"></p>
@@ -16,7 +16,7 @@
 
 ## Documentation
 
-Full documentation is available on the [Req Official Website](https://req.cool/).
+Full documentation is available on the official website: https://req.cool.
 
 ## <a name="Features">Features</a>
 
