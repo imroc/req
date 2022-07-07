@@ -5436,7 +5436,7 @@ func TestTransportRequestWriteRoundTrip(t *testing.T) {
 
 func TestTransportClone(t *testing.T) {
 	tr := &Transport{
-		ForceHttpVersion: HTTP1,
+		forceHttpVersion: h1,
 		Options: transport.Options{
 			Proxy:                  func(*http.Request) (*url.URL, error) { panic("") },
 			DialContext:            func(ctx context.Context, network, addr string) (net.Conn, error) { panic("") },

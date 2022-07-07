@@ -49,16 +49,16 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-// HttpVersion represents http version.
-type HttpVersion string
+// httpVersion represents http version.
+type httpVersion string
 
 const (
-	// HTTP1 represents "HTTP/1.1"
-	HTTP1 HttpVersion = "1.1"
-	// HTTP2 represents "HTTP/2.0"
-	HTTP2 HttpVersion = "2"
-	// HTTP3 represents "HTTP/3.0"
-	HTTP3 HttpVersion = "3"
+	// h1 represents "HTTP/1.1"
+	h1 httpVersion = "1.1"
+	// h2 represents "HTTP/2.0"
+	h2 httpVersion = "2"
+	// h3 represents "HTTP/3.0"
+	h3 httpVersion = "3"
 )
 
 // defaultMaxIdleConnsPerHost is the default value of Transport's
@@ -118,7 +118,7 @@ type Transport struct {
 	pendingAltSvcsMu sync.Mutex
 
 	// Force using specific http version
-	ForceHttpVersion HttpVersion
+	forceHttpVersion httpVersion
 
 	transport.Options
 
@@ -303,28 +303,28 @@ type pendingAltSvc struct {
 
 // EnableForceHTTP1 enable force using HTTP1 (disabled by default).
 func (t *Transport) EnableForceHTTP1() *Transport {
-	t.ForceHttpVersion = HTTP1
+	t.forceHttpVersion = h1
 	return t
 }
 
 // EnableForceHTTP2 enable force using HTTP2 for https requests
 // (disabled by default).
 func (t *Transport) EnableForceHTTP2() *Transport {
-	t.ForceHttpVersion = HTTP2
+	t.forceHttpVersion = h2
 	return t
 }
 
 // EnableForceHTTP3 enable force using HTTP3 for https requests
 // (disabled by default).
 func (t *Transport) EnableForceHTTP3() *Transport {
-	t.ForceHttpVersion = HTTP3
+	t.forceHttpVersion = h3
 	return t
 }
 
 // DisableForceHttpVersion disable force using specified http
 // version (disabled by default).
 func (t *Transport) DisableForceHttpVersion() *Transport {
-	t.ForceHttpVersion = ""
+	t.forceHttpVersion = ""
 	return t
 }
 
@@ -672,7 +672,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		}
 	}
 
-	if t.ForceHttpVersion == HTTP3 {
+	if t.forceHttpVersion == h3 {
 		return t.t3.RoundTrip(req)
 	}
 
@@ -680,7 +680,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 	cancelKey := cancelKey{origReq}
 	req = setupRewindBody(req)
 
-	if scheme == "https" && t.ForceHttpVersion != HTTP1 {
+	if scheme == "https" && t.forceHttpVersion != h1 {
 		resp, err := t.t2.RoundTripOnlyCachedConn(req)
 		if err != http2.ErrNoCachedConn {
 			return resp, err
@@ -742,7 +742,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		}
 
 		var resp *http.Response
-		if t.ForceHttpVersion != HTTP1 && pconn.alt != nil {
+		if t.forceHttpVersion != h1 && pconn.alt != nil {
 			// HTTP/2 path.
 			t.setReqCanceler(cancelKey, nil) // not cancelable with CancelRequest
 			resp, err = pconn.alt.RoundTrip(req)
@@ -941,7 +941,7 @@ func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectM
 	if t.Proxy != nil {
 		cm.proxyURL, err = t.Proxy(treq.Request)
 	}
-	cm.onlyH1 = t.ForceHttpVersion == HTTP1 || requestRequiresHTTP1(treq.Request)
+	cm.onlyH1 = t.forceHttpVersion == h1 || requestRequiresHTTP1(treq.Request)
 	return cm, err
 }
 
@@ -1648,7 +1648,7 @@ func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace
 	}
 	pc.tlsState = &cs
 	pc.conn = tlsConn
-	if !forProxy && pc.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
+	if !forProxy && pc.t.forceHttpVersion == h2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
 		return newHttp2NotSupportedError(cs.NegotiatedProtocol)
 	}
 	return nil
@@ -1708,7 +1708,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 				trace.TLSHandshakeDone(cs, nil)
 			}
 			pconn.tlsState = &cs
-			if cm.proxyURL == nil && pconn.t.ForceHttpVersion == HTTP2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
+			if cm.proxyURL == nil && pconn.t.forceHttpVersion == h2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
 				return nil, newHttp2NotSupportedError(cs.NegotiatedProtocol)
 			}
 		}
@@ -1842,7 +1842,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		}
 	}
 
-	if s := pconn.tlsState; t.ForceHttpVersion != HTTP1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
+	if s := pconn.tlsState; t.forceHttpVersion != h1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
 		if s.NegotiatedProtocol == http2.NextProtoTLS {
 			if used, err := t.t2.AddConn(pconn.conn, cm.targetAddr); err != nil {
 				go pconn.conn.Close()
