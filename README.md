@@ -1,7 +1,7 @@
 # req
 
 <p align="center">
-    <p align="center"><img src="req.png"></p>
+    <p align="center"><img src="https://req.cool/images/req.png"></p>
     <p align="center"><strong>Simple Go HTTP client with Black Magic</strong></p>
     <p align="center">
         <a href="https://github.com/imroc/req/actions/workflows/ci.yml?query=branch%3Amaster"><img src="https://github.com/imroc/req/actions/workflows/ci.yml/badge.svg" alt="Build Status"></a>
