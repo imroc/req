@@ -317,6 +317,7 @@ func (t *Transport) EnableForceHTTP2() *Transport {
 // EnableForceHTTP3 enable force using HTTP3 for https requests
 // (disabled by default).
 func (t *Transport) EnableForceHTTP3() *Transport {
+	t.EnableHTTP3()
 	t.forceHttpVersion = h3
 	return t
 }
