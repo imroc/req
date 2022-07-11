@@ -692,7 +692,7 @@ func (c *Client) DisableTraceAll() *Client {
 	return c
 }
 
-// EnableTraceAll enable trace for all requests.
+// EnableTraceAll enable trace for all requests (http3 currently does not support trace).
 func (c *Client) EnableTraceAll() *Client {
 	c.trace = true
 	return c

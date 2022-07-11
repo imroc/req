@@ -686,7 +686,7 @@ func (r *Request) DisableTrace() *Request {
 	return r
 }
 
-// EnableTrace enables trace.
+// EnableTrace enables trace (http3 currently does not support trace).
 func (r *Request) EnableTrace() *Request {
 	if r.trace == nil {
 		r.trace = &clientTrace{}
