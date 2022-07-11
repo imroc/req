@@ -266,7 +266,7 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 	} else if util.IsXMLType(ct) {
 		return c.xmlUnmarshal(body, v)
 	} else {
-		c.log.Warnf("cannot determine the unmarshal function with %q Content-Type, default to json", ct)
+		c.log.Debugf("cannot determine the unmarshal function with %q Content-Type, default to json", ct)
 		return c.jsonUnmarshal(body, v)
 	}
 	return
