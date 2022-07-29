@@ -1,6 +1,7 @@
 package req
 
 import (
+	"fmt"
 	"github.com/imroc/req/v3/internal/header"
 	"io/ioutil"
 	"net/http"
@@ -185,4 +186,16 @@ func (r *Response) GetHeaderValues(key string) []string {
 		return nil
 	}
 	return r.Header.Values(key)
+}
+
+func (r *Response) GetHeaderAll() string {
+	headers := make(map[string]string)
+	for name, values := range r.Header {
+		headers[name] = strings.Join(values, " ") + "\n"
+	}
+	headerStr := fmt.Sprint(headers)
+	headerStr = strings.TrimPrefix(headerStr, "map[")
+	headerStr = " " + r.Proto + " " + r.Status + "\n " + headerStr
+	headerStr = strings.TrimSuffix(headerStr, "]")
+	return headerStr
 }
