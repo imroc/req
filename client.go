@@ -676,6 +676,10 @@ func (c *Client) OnAfterResponse(m ResponseMiddleware) *Client {
 
 // SetProxyURL set proxy from the proxy URL.
 func (c *Client) SetProxyURL(proxyUrl string) *Client {
+	if proxyUrl == "" {
+		c.log.Warnf("ignore empty proxy url in SetProxyURL")
+		return c
+	}
 	u, err := urlpkg.Parse(proxyUrl)
 	if err != nil {
 		c.log.Errorf("failed to parse proxy url %s: %v", proxyUrl, err)
