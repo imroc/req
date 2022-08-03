@@ -30,4 +30,4 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
       - name: Test
-        run: go test -p=1 ./... -coverprofile=coverage.txt
+        run: go test ./... -coverprofile=coverage.txt
