@@ -14,9 +14,9 @@ import (
 
 	mockquic "github.com/imroc/req/v3/internal/mocks/quic"
 	"github.com/imroc/req/v3/internal/protocol"
+	"github.com/imroc/req/v3/internal/quicvarint"
 	"github.com/imroc/req/v3/internal/utils"
 	"github.com/lucas-clemente/quic-go"
-	"github.com/imroc/req/v3/internal/quicvarint"
 
 	"github.com/golang/mock/gomock"
 	"github.com/marten-seemann/qpack"
@@ -912,6 +912,26 @@ var _ = Describe("Client", func() {
 				Expect(err).ToNot(HaveOccurred())
 				cancel()
 				Eventually(done).Should(BeClosed())
+			})
+
+			It("doesn't cancel a request if DontCloseRequestStream is set", func() {
+				rspBuf := bytes.NewBuffer(getResponse(404))
+
+				ctx, cancel := context.WithCancel(context.Background())
+				req := req.WithContext(ctx)
+				conn.EXPECT().HandshakeComplete().Return(handshakeCtx)
+				conn.EXPECT().OpenStreamSync(ctx).Return(str, nil)
+				conn.EXPECT().ConnectionState().Return(quic.ConnectionState{})
+				buf := &bytes.Buffer{}
+				str.EXPECT().Close().MaxTimes(1)
+
+				str.EXPECT().Write(gomock.Any()).DoAndReturn(buf.Write)
+				str.EXPECT().Read(gomock.Any()).DoAndReturn(rspBuf.Read).AnyTimes()
+				rsp, err := client.RoundTripOpt(req, RoundTripOpt{DontCloseRequestStream: true})
+				Expect(err).ToNot(HaveOccurred())
+				cancel()
+				_, err = io.ReadAll(rsp.Body)
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 
