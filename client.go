@@ -820,10 +820,11 @@ func (c *Client) SetCommonRetryCount(count int) *Client {
 // SetCommonRetryInterval sets the custom GetRetryIntervalFunc for all requests,
 // you can use this to implement your own backoff retry algorithm.
 // For example:
-// 	 req.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duration {
-//      sleep := 0.01 * math.Exp2(float64(attempt))
-//      return time.Duration(math.Min(2, sleep)) * time.Second
-// 	 })
+//
+//		 req.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duration {
+//	     sleep := 0.01 * math.Exp2(float64(attempt))
+//	     return time.Duration(math.Min(2, sleep)) * time.Second
+//		 })
 func (c *Client) SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Client {
 	c.getRetryOption().GetRetryInterval = getRetryIntervalFunc
 	return c
@@ -878,7 +879,8 @@ func (c *Client) AddCommonRetryCondition(condition RetryConditionFunc) *Client {
 
 // SetUnixSocket set client to dial connection use unix socket.
 // For example:
-//   client.SetUnixSocket("/var/run/custom.sock")
+//
+//	client.SetUnixSocket("/var/run/custom.sock")
 func (c *Client) SetUnixSocket(file string) *Client {
 	return c.SetDial(func(ctx context.Context, network, addr string) (net.Conn, error) {
 		var d net.Dialer
@@ -1113,13 +1115,11 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		resp.error = nil
 	}
 
-	if err != nil {
-		return
-	}
+	resp.Err = err
 
 	for _, f := range r.client.afterResponse {
-		if err = f(r.client, resp); err != nil {
-			return
+		if err := f(r.client, resp); err != nil {
+			return resp, err
 		}
 	}
 	return

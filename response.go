@@ -10,7 +10,13 @@ import (
 
 // Response is the http response.
 type Response struct {
+	// The underlying http.Response is embed into Response.
 	*http.Response
+	// Err is the underlying error, not nil if some error occurs.
+	// Usually used in the ResponseMiddleware, you can skip logic in
+	// ResponseMiddleware that doesn't need to be executed when err occurs.
+	Err error
+	// Request is the Response's related Request.
 	Request    *Request
 	body       []byte
 	receivedAt time.Time
@@ -109,8 +115,8 @@ func (r *Response) Unmarshal(v interface{}) error {
 
 // Bytes return the response body as []bytes that hava already been read, could be
 // nil if not read, the following cases are already read:
-// 1. `Request.SetResult` or `Request.SetError` is called.
-// 2. `Client.DisableAutoReadResponse(false)` is not called,
+//  1. `Request.SetResult` or `Request.SetError` is called.
+//  2. `Client.DisableAutoReadResponse(false)` is not called,
 //     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
 func (r *Response) Bytes() []byte {
 	return r.body
@@ -118,8 +124,8 @@ func (r *Response) Bytes() []byte {
 
 // String returns the response body as string that hava already been read, could be
 // nil if not read, the following cases are already read:
-// 1. `Request.SetResult` or `Request.SetError` is called.
-// 2. `Client.DisableAutoReadResponse(false)` is not called,
+//  1. `Request.SetResult` or `Request.SetError` is called.
+//  2. `Client.DisableAutoReadResponse(false)` is not called,
 //     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
 func (r *Response) String() string {
 	return string(r.body)
