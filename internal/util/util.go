@@ -20,11 +20,29 @@ func IsXMLType(ct string) bool {
 
 // GetPointer return the pointer of the interface.
 func GetPointer(v interface{}) interface{} {
-	vv := reflect.ValueOf(v)
-	if vv.Kind() == reflect.Ptr {
-		return v
+	t := reflect.TypeOf(v)
+	if t.Kind() == reflect.Ptr {
+		if tt := t.Elem(); tt.Kind() == reflect.Ptr { // pointer of pointer
+			if tt.Elem().Kind() == reflect.Ptr {
+				panic("pointer of pointer of pointer is not supported")
+			}
+			el := reflect.ValueOf(v).Elem()
+			if el.IsZero() {
+				vv := reflect.New(tt.Elem())
+				el.Set(vv)
+				return vv.Interface()
+			} else {
+				return el.Interface()
+			}
+		} else {
+			if reflect.ValueOf(v).IsZero() {
+				vv := reflect.New(t.Elem())
+				return vv.Interface()
+			}
+			return v
+		}
 	}
-	return reflect.New(vv.Type()).Interface()
+	return reflect.New(t).Interface()
 }
 
 // GetType return the underlying type.

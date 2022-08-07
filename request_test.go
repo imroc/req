@@ -359,6 +359,26 @@ func TestSetBodyMarshal(t *testing.T) {
 	}
 }
 
+func TestSetResult(t *testing.T) {
+	c := tc()
+	var user *UserInfo
+	url := "/search?username=imroc&type=json"
+
+	resp, err := c.R().SetResult(&user).Get(url)
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "imroc", user.Username)
+
+	user = &UserInfo{}
+	resp, err = c.R().SetResult(user).Get(url)
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "imroc", user.Username)
+
+	user = nil
+	resp, err = c.R().SetResult(user).Get(url)
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "imroc", resp.Result().(*UserInfo).Username)
+}
+
 func TestSetBody(t *testing.T) {
 	body := "hello"
 	fn := func() (io.ReadCloser, error) {
