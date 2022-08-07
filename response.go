@@ -2,6 +2,7 @@ package req
 
 import (
 	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/util"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -113,6 +114,7 @@ func (r *Response) Unmarshal(v interface{}) error {
 	if r.Err != nil {
 		return r.Err
 	}
+	v = util.GetPointer(v)
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "json") {
 		return r.UnmarshalJson(v)
