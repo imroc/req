@@ -85,6 +85,9 @@ func (r *Response) setReceivedAt() {
 
 // UnmarshalJson unmarshals JSON response body into the specified object.
 func (r *Response) UnmarshalJson(v interface{}) error {
+	if r.Err != nil {
+		return r.Err
+	}
 	b, err := r.ToBytes()
 	if err != nil {
 		return err
@@ -94,6 +97,9 @@ func (r *Response) UnmarshalJson(v interface{}) error {
 
 // UnmarshalXml unmarshals XML response body into the specified object.
 func (r *Response) UnmarshalXml(v interface{}) error {
+	if r.Err != nil {
+		return r.Err
+	}
 	b, err := r.ToBytes()
 	if err != nil {
 		return err
@@ -104,6 +110,9 @@ func (r *Response) UnmarshalXml(v interface{}) error {
 // Unmarshal unmarshals response body into the specified object according
 // to response `Content-Type`.
 func (r *Response) Unmarshal(v interface{}) error {
+	if r.Err != nil {
+		return r.Err
+	}
 	contentType := r.Header.Get("Content-Type")
 	if strings.Contains(contentType, "json") {
 		return r.UnmarshalJson(v)
@@ -111,6 +120,12 @@ func (r *Response) Unmarshal(v interface{}) error {
 		return r.UnmarshalXml(v)
 	}
 	return r.UnmarshalJson(v)
+}
+
+// Into unmarshals response body into the specified object according
+// to response `Content-Type`.
+func (r *Response) Into(v interface{}) error {
+	return r.Unmarshal(v)
 }
 
 // Bytes return the response body as []bytes that hava already been read, could be
@@ -139,6 +154,9 @@ func (r *Response) ToString() (string, error) {
 
 // ToBytes returns the response body as []byte, read body if not have been read.
 func (r *Response) ToBytes() ([]byte, error) {
+	if r.Err != nil {
+		return nil, r.Err
+	}
 	if r.body != nil {
 		return r.body, nil
 	}

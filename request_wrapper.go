@@ -8,6 +8,12 @@ import (
 	"time"
 )
 
+// SetURL is a global wrapper methods which delegated
+// to the default client, create a request and SetURL for request.
+func SetURL(url string) *Request {
+	return defaultClient.R().SetURL(url)
+}
+
 // SetFormDataFromValues is a global wrapper methods which delegated
 // to the default client, create a request and SetFormDataFromValues for request.
 func SetFormDataFromValues(data url.Values) *Request {

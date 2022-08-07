@@ -73,6 +73,55 @@ func (c *Client) R() *Request {
 	}
 }
 
+// Get create a new GET request.
+func (c *Client) Get() *Request {
+	r := c.R()
+	r.Method = http.MethodGet
+	return r
+}
+
+// Post create a new POST request.
+func (c *Client) Post() *Request {
+	r := c.R()
+	r.Method = http.MethodPost
+	return r
+}
+
+// Patch create a new PATCH request.
+func (c *Client) Patch() *Request {
+	r := c.R()
+	r.Method = http.MethodPatch
+	return r
+}
+
+// Delete create a new DELETE request.
+func (c *Client) Delete() *Request {
+	r := c.R()
+	r.Method = http.MethodDelete
+	return r
+}
+
+// Put create a new PUT request.
+func (c *Client) Put() *Request {
+	r := c.R()
+	r.Method = http.MethodPut
+	return r
+}
+
+// Head create a new HEAD request.
+func (c *Client) Head() *Request {
+	r := c.R()
+	r.Method = http.MethodHead
+	return r
+}
+
+// Options create a new OPTIONS request.
+func (c *Client) Options() *Request {
+	r := c.R()
+	r.Method = http.MethodOptions
+	return r
+}
+
 // GetTransport return the underlying transport.
 func (c *Client) GetTransport() *Transport {
 	return c.t

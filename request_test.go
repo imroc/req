@@ -359,6 +359,16 @@ func TestSetBodyMarshal(t *testing.T) {
 	}
 }
 
+func TestDoAPIStyle(t *testing.T) {
+	c := tc()
+	user := &UserInfo{}
+	url := "/search?username=imroc&type=json"
+
+	err := c.Get().SetURL(url).Do().Into(user)
+	tests.AssertEqual(t, true, err == nil)
+	tests.AssertEqual(t, "imroc", user.Username)
+}
+
 func TestSetResult(t *testing.T) {
 	c := tc()
 	var user *UserInfo

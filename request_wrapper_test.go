@@ -40,6 +40,7 @@ func TestGlobalWrapperForRequestSettings(t *testing.T) {
 		SetPathParam("test", "test"),
 		SetPathParams(map[string]string{"test": "test"}),
 		SetFormData(map[string]string{"test": "test"}),
+		SetURL(""),
 		SetFormDataFromValues(nil),
 		SetContentType(header.JsonContentType),
 		AddRetryCondition(func(rep *Response, err error) bool {

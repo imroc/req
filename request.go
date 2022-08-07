@@ -141,6 +141,12 @@ func (r *Request) TraceInfo() TraceInfo {
 	return ti
 }
 
+// SetURL set the url for request.
+func (r *Request) SetURL(url string) *Request {
+	r.RawURL = url
+	return r
+}
+
 // SetFormDataFromValues set the form data from url.Values, will not
 // been used if request method does not allow payload.
 func (r *Request) SetFormDataFromValues(data urlpkg.Values) *Request {
@@ -443,21 +449,36 @@ func (r *Request) appendError(err error) {
 
 var errRetryableWithUnReplayableBody = errors.New("retryable request should not have unreplayable body (io.Reader)")
 
-// Send fires http request and return the *Response which is always
-// not nil, and the error is not nil if some error happens.
-func (r *Request) Send(method, url string) (*Response, error) {
+// Do fires http request and return the *Response which is always
+// not nil, and the error is not nil if error occurs.
+func (r *Request) Do() *Response {
 	defer func() {
 		r.responseReturnTime = time.Now()
 	}()
 	if r.error != nil {
-		return &Response{Request: r}, r.error
+		resp := &Response{Request: r}
+		resp.Err = r.error
+		return resp
 	}
 	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable body
-		return &Response{Request: r}, errRetryableWithUnReplayableBody
+		resp := &Response{Request: r}
+		resp.Err = errRetryableWithUnReplayableBody
+		return resp
 	}
+	resp, err := r.client.do(r)
+	if err != nil {
+		resp.Err = err
+	}
+	return resp
+}
+
+// Send fires http request with specified method and url, returns the
+// *Response which is always not nil, and the error is not nil if error occurs.
+func (r *Request) Send(method, url string) (*Response, error) {
 	r.Method = method
 	r.RawURL = url
-	return r.client.do(r)
+	resp := r.Do()
+	return resp, resp.Err
 }
 
 // MustGet like Get, panic if error happens, should only be used to
@@ -812,10 +833,11 @@ func (r *Request) SetRetryCount(count int) *Request {
 // SetRetryInterval sets the custom GetRetryIntervalFunc, you can use this to
 // implement your own backoff retry algorithm.
 // For example:
-// 	 req.SetRetryInterval(func(resp *req.Response, attempt int) time.Duration {
-//      sleep := 0.01 * math.Exp2(float64(attempt))
-//      return time.Duration(math.Min(2, sleep)) * time.Second
-// 	 })
+//
+//		 req.SetRetryInterval(func(resp *req.Response, attempt int) time.Duration {
+//	     sleep := 0.01 * math.Exp2(float64(attempt))
+//	     return time.Duration(math.Min(2, sleep)) * time.Second
+//		 })
 func (r *Request) SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Request {
 	r.getRetryOption().GetRetryInterval = getRetryIntervalFunc
 	return r
