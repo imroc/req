@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"github.com/hashicorp/go-multierror"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
@@ -14,6 +15,7 @@ import (
 	urlpkg "net/url"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
 )
@@ -611,7 +613,13 @@ func (r *Request) SetBody(body interface{}) *Request {
 	case GetContentFunc:
 		r.getBody = b
 	default:
-		r.marshalBody = body
+		t := reflect.TypeOf(body)
+		switch t.Kind() {
+		case reflect.Ptr, reflect.Struct, reflect.Map:
+			r.marshalBody = body
+		default:
+			r.SetBodyString(fmt.Sprint(body))
+		}
 	}
 	return r
 }
