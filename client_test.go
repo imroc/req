@@ -17,6 +17,22 @@ import (
 	"time"
 )
 
+func TestWrapRoundTrip(t *testing.T) {
+	i, j := 0, 0
+	c := tc().WrapRoundTripFunc(func(rt http.RoundTripper) RoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			i = 1
+			resp, err = rt.RoundTrip(req)
+			j = 1
+			return
+		}
+	})
+	resp, err := c.R().Get("/")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, 1, i)
+	tests.AssertEqual(t, 1, j)
+}
+
 func TestAllowGetMethodPayload(t *testing.T) {
 	c := tc()
 	resp, err := c.R().SetBody("test").Get("/payload")

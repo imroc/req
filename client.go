@@ -949,6 +949,20 @@ func (c *Client) EnableHTTP3() *Client {
 	return c
 }
 
+// WrapRoundTrip adds a transport middleware function that will give the caller
+// an opportunity to wrap the underlying http.RoundTripper.
+func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
+	c.t.WrapRoundTrip(wrappers...)
+	return c
+}
+
+// WrapRoundTripFunc adds a transport middleware function that will give the caller
+// an opportunity to wrap the underlying http.RoundTripper.
+func (c *Client) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Client {
+	c.t.WrapRoundTripFunc(funcs...)
+	return c
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()

@@ -133,6 +133,7 @@ type Transport struct {
 	// whether the response body should been auto decode to utf-8.
 	// Only valid when DisableAutoDecode is true.
 	autoDecodeContentType func(contentType string) bool
+	wrappedRoundTrip      http.RoundTripper
 }
 
 // NewTransport is an alias of T
@@ -153,6 +154,54 @@ func T() *Transport {
 		},
 	}
 	t.t2 = &http2.Transport{Options: &t.Options}
+	return t
+}
+
+// RoundTripFunc is a http.RoundTripper implementation, which is a simple function.
+type RoundTripFunc func(req *http.Request) (resp *http.Response, err error)
+
+// RoundTrip implements http.RoundTripper.
+func (fn RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return fn(req)
+}
+
+// RoundTripWrapper is transport middleware function.
+type RoundTripWrapper func(rt http.RoundTripper) http.RoundTripper
+
+// RoundTripWrapperFunc is transport middleware function, more convenient than RoundTripWrapper.
+type RoundTripWrapperFunc func(rt http.RoundTripper) RoundTripFunc
+
+func (f RoundTripWrapperFunc) wrapper() RoundTripWrapper {
+	return func(rt http.RoundTripper) http.RoundTripper {
+		return f(rt)
+	}
+}
+
+// WrapRoundTripFunc adds a transport middleware function that will give the caller
+// an opportunity to wrap the underlying http.RoundTripper.
+func (t *Transport) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Transport {
+	var wrappers []RoundTripWrapper
+	for _, fn := range funcs {
+		wrappers = append(wrappers, fn.wrapper())
+	}
+	return t.WrapRoundTrip(wrappers...)
+}
+
+// WrapRoundTrip adds a transport middleware function that will give the caller
+// an opportunity to wrap the underlying http.RoundTripper.
+func (t *Transport) WrapRoundTrip(wrappers ...RoundTripWrapper) *Transport {
+	if len(wrappers) == 0 {
+		return t
+	}
+	if t.wrappedRoundTrip == nil {
+		fn := func(req *http.Request) (*http.Response, error) {
+			return t.roundTrip(req)
+		}
+		t.wrappedRoundTrip = RoundTripFunc(fn)
+	}
+	for _, w := range wrappers {
+		t.wrappedRoundTrip = w(t.wrappedRoundTrip)
+	}
 	return t
 }
 
@@ -1906,7 +1955,6 @@ var _ io.ReaderFrom = (*persistConnWriter)(nil)
 //	socks5://proxy.com|https|foo.com  socks5 to proxy, then https to foo.com
 //	https://proxy.com|https|foo.com   https to proxy, then CONNECT to foo.com
 //	https://proxy.com|http            https to proxy, http to anywhere after that
-//
 type connectMethod struct {
 	_            incomparable
 	proxyURL     *url.URL // nil for no proxy, else full proxy URL
@@ -2024,8 +2072,11 @@ type persistConn struct {
 }
 
 // RFC 7234, section 5.4: Should treat
+//
 //	Pragma: no-cache
+//
 // like
+//
 //	Cache-Control: no-cache
 func fixPragmaCacheControl(header http.Header) {
 	if hp, ok := header["Pragma"]; ok && len(hp) > 0 && hp[0] == "no-cache" {

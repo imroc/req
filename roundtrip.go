@@ -19,7 +19,11 @@ import (
 // Like the RoundTripper interface, the error types returned
 // by RoundTrip are unspecified.
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	resp, err = t.roundTrip(req)
+	if t.wrappedRoundTrip != nil {
+		resp, err = t.wrappedRoundTrip.RoundTrip(req)
+	} else {
+		resp, err = t.roundTrip(req)
+	}
 	if err != nil {
 		return
 	}
