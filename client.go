@@ -75,51 +75,72 @@ func (c *Client) R() *Request {
 	}
 }
 
-// Get create a new GET request.
-func (c *Client) Get() *Request {
+// Get create a new GET request, accepts 0 or 1 url.
+func (c *Client) Get(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodGet
 	return r
 }
 
 // Post create a new POST request.
-func (c *Client) Post() *Request {
+func (c *Client) Post(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodPost
 	return r
 }
 
 // Patch create a new PATCH request.
-func (c *Client) Patch() *Request {
+func (c *Client) Patch(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodPatch
 	return r
 }
 
 // Delete create a new DELETE request.
-func (c *Client) Delete() *Request {
+func (c *Client) Delete(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodDelete
 	return r
 }
 
 // Put create a new PUT request.
-func (c *Client) Put() *Request {
+func (c *Client) Put(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodPut
 	return r
 }
 
 // Head create a new HEAD request.
-func (c *Client) Head() *Request {
+func (c *Client) Head(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodHead
 	return r
 }
 
 // Options create a new OPTIONS request.
-func (c *Client) Options() *Request {
+func (c *Client) Options(url ...string) *Request {
 	r := c.R()
+	if len(url) > 0 {
+		r.RawURL = url[0]
+	}
 	r.Method = http.MethodOptions
 	return r
 }
