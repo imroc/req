@@ -128,6 +128,12 @@ func SetQueryParams(params map[string]string) *Request {
 	return defaultClient.R().SetQueryParams(params)
 }
 
+// SetQueryParamsAnyType is a global wrapper methods which delegated
+// to the default client, create a request and SetQueryParamsAnyType for request.
+func SetQueryParamsAnyType(params map[string]interface{}) *Request {
+	return defaultClient.R().SetQueryParamsAnyType(params)
+}
+
 // SetQueryParam is a global wrapper methods which delegated
 // to the default client, create a request and SetQueryParam for request.
 func SetQueryParam(key, value string) *Request {

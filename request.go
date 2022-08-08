@@ -423,6 +423,15 @@ func (r *Request) SetQueryParams(params map[string]string) *Request {
 	return r
 }
 
+// SetQueryParamsAnyType set URL query parameters from a map for the request.
+// The value of map is any type, will be convert to string automatically.
+func (r *Request) SetQueryParamsAnyType(params map[string]interface{}) *Request {
+	for k, v := range params {
+		r.SetQueryParam(k, fmt.Sprint(v))
+	}
+	return r
+}
+
 // SetQueryParam set an URL query parameter for the request.
 func (r *Request) SetQueryParam(key, value string) *Request {
 	if r.QueryParams == nil {
