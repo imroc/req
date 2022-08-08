@@ -1080,14 +1080,92 @@ func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
 // RoundTrip implements RoundTripper
 func (c *Client) RoundTrip(r *Request) (resp *Response, err error) {
 	resp = &Response{Request: r}
+
+	// setup trace
+	if r.trace == nil && r.client.trace {
+		r.trace = &clientTrace{}
+	}
+	if r.trace != nil {
+		r.ctx = r.trace.createContext(r.Context())
+	}
+
+	// setup url and host
+	var host string
+	if h := r.getHeader("Host"); h != "" {
+		host = h // Host header override
+	} else {
+		host = r.URL.Host
+	}
+
+	// setup header
+	contentLength := int64(len(r.body))
+
+	var reqBody io.ReadCloser
+	if r.getBody != nil {
+		reqBody, err = r.getBody()
+		if err != nil {
+			return
+		}
+	}
+	req := &http.Request{
+		Method:        r.Method,
+		Header:        r.Headers,
+		URL:           r.URL,
+		Host:          host,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		ContentLength: contentLength,
+		Body:          reqBody,
+		GetBody:       r.getBody,
+	}
+	for _, cookie := range r.Cookies {
+		req.AddCookie(cookie)
+	}
+	ctx := r.ctx
+	if r.isSaveResponse && r.downloadCallback != nil {
+		var wrap wrapResponseBodyFunc = func(rc io.ReadCloser) io.ReadCloser {
+			return &callbackReader{
+				ReadCloser: rc,
+				callback: func(read int64) {
+					r.downloadCallback(DownloadInfo{
+						Response:       resp,
+						DownloadedSize: read,
+					})
+				},
+				lastTime: time.Now(),
+				interval: r.downloadCallbackInterval,
+			}
+		}
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		ctx = context.WithValue(ctx, wrapResponseBodyKey, wrap)
+	}
+	if ctx != nil {
+		req = req.WithContext(ctx)
+	}
+	r.RawRequest = req
+	r.StartTime = time.Now()
+
 	var httpResponse *http.Response
 	httpResponse, err = c.httpClient.Do(r.RawRequest)
 	resp.Response = httpResponse
 
+	if err != nil {
+		return
+	}
 	// auto-read response body if possible
-	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse {
+	if !c.disableAutoReadResponse && !r.isSaveResponse {
 		_, err = resp.ToBytes()
 		if err != nil {
+			return
+		}
+	}
+
+	for _, f := range r.client.afterResponse {
+		if err = f(r.client, resp); err != nil {
+			resp.Err = err
 			return
 		}
 	}
@@ -1116,78 +1194,9 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			}
 		}
 
-		// setup trace
-		if r.trace == nil && r.client.trace {
-			r.trace = &clientTrace{}
-		}
-		if r.trace != nil {
-			r.ctx = r.trace.createContext(r.Context())
-		}
-
-		// setup url and host
-		var host string
-		if h := r.getHeader("Host"); h != "" {
-			host = h // Host header override
-		} else {
-			host = r.URL.Host
-		}
-
-		// setup header
-		var header http.Header
 		if r.Headers == nil {
-			header = make(http.Header)
-		} else {
-			header = r.Headers
+			r.Headers = make(http.Header)
 		}
-		contentLength := int64(len(r.body))
-
-		var reqBody io.ReadCloser
-		if r.getBody != nil {
-			reqBody, err = r.getBody()
-			if err != nil {
-				return
-			}
-		}
-		req := &http.Request{
-			Method:        r.Method,
-			Header:        header,
-			URL:           r.URL,
-			Host:          host,
-			Proto:         "HTTP/1.1",
-			ProtoMajor:    1,
-			ProtoMinor:    1,
-			ContentLength: contentLength,
-			Body:          reqBody,
-			GetBody:       r.getBody,
-		}
-		for _, cookie := range r.Cookies {
-			req.AddCookie(cookie)
-		}
-		ctx := r.ctx
-		if r.isSaveResponse && r.downloadCallback != nil {
-			var wrap wrapResponseBodyFunc = func(rc io.ReadCloser) io.ReadCloser {
-				return &callbackReader{
-					ReadCloser: rc,
-					callback: func(read int64) {
-						r.downloadCallback(DownloadInfo{
-							Response:       resp,
-							DownloadedSize: read,
-						})
-					},
-					lastTime: time.Now(),
-					interval: r.downloadCallbackInterval,
-				}
-			}
-			if ctx == nil {
-				ctx = context.Background()
-			}
-			ctx = context.WithValue(ctx, wrapResponseBodyKey, wrap)
-		}
-		if ctx != nil {
-			req = req.WithContext(ctx)
-		}
-		r.RawRequest = req
-		r.StartTime = time.Now()
 
 		if c.wrappedRoundTrip != nil {
 			resp, err = c.wrappedRoundTrip.RoundTrip(r)
@@ -1232,10 +1241,5 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		resp.error = nil
 	}
 
-	for _, f := range r.client.afterResponse {
-		if err := f(r.client, resp); err != nil {
-			return resp, err
-		}
-	}
 	return
 }
