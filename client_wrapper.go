@@ -10,6 +10,18 @@ import (
 	"time"
 )
 
+// WrapRoundTrip is a global wrapper methods which delegated
+// to the default client's WrapRoundTrip.
+func WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
+	return defaultClient.WrapRoundTrip(wrappers...)
+}
+
+// WrapRoundTripFunc is a global wrapper methods which delegated
+// to the default client's WrapRoundTripFunc.
+func WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Client {
+	return defaultClient.WrapRoundTripFunc(funcs...)
+}
+
 // SetCommonError is a global wrapper methods which delegated
 // to the default client's SetCommonError.
 func SetCommonError(err interface{}) *Client {
