@@ -38,11 +38,12 @@ type Request struct {
 	RetryAttempt int
 	RawURL       string // read only
 	Method       string
+	Body         []byte
+	URL          *urlpkg.URL
+	GetBody      GetContentFunc
 
 	isMultiPart              bool
 	isSaveResponse           bool
-	URL                      *urlpkg.URL
-	getBody                  GetContentFunc
 	uploadCallback           UploadCallback
 	uploadCallbackInterval   time.Duration
 	downloadCallback         DownloadCallback
@@ -50,7 +51,6 @@ type Request struct {
 	unReplayableBody         io.ReadCloser
 	retryOption              *retryOption
 	bodyReadCloser           io.ReadCloser
-	body                     []byte
 	dumpOptions              *DumpOptions
 	marshalBody              interface{}
 	ctx                      context.Context
@@ -323,14 +323,14 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 	return r
 }
 
-// SetResult set the result that response body will be unmarshalled to if
+// SetResult set the result that response Body will be unmarshalled to if
 // request is success (status `code >= 200 and <= 299`).
 func (r *Request) SetResult(result interface{}) *Request {
 	r.Result = util.GetPointer(result)
 	return r
 }
 
-// SetError set the result that response body will be unmarshalled to if
+// SetError set the result that response Body will be unmarshalled to if
 // request is error ( status `code >= 400`).
 func (r *Request) SetError(error interface{}) *Request {
 	r.Error = util.GetPointer(error)
@@ -384,14 +384,14 @@ func (r *Request) SetHeaderNonCanonical(key, value string) *Request {
 	return r
 }
 
-// SetOutputFile set the file that response body will be downloaded to.
+// SetOutputFile set the file that response Body will be downloaded to.
 func (r *Request) SetOutputFile(file string) *Request {
 	r.isSaveResponse = true
 	r.outputFile = file
 	return r
 }
 
-// SetOutput set the io.Writer that response body will be downloaded to.
+// SetOutput set the io.Writer that response Body will be downloaded to.
 func (r *Request) SetOutput(output io.Writer) *Request {
 	if output == nil {
 		r.client.log.Warnf("nil io.Writer is not allowed in SetOutput")
@@ -449,7 +449,7 @@ func (r *Request) appendError(err error) {
 	r.error = multierror.Append(r.error, err)
 }
 
-var errRetryableWithUnReplayableBody = errors.New("retryable request should not have unreplayable body (io.Reader)")
+var errRetryableWithUnReplayableBody = errors.New("retryable request should not have unreplayable Body (io.Reader)")
 
 // Do fires http request and return the *Response which is always
 // not nil, and the error is not nil if error occurs.
@@ -462,7 +462,7 @@ func (r *Request) Do() *Response {
 		resp.Err = r.error
 		return resp
 	}
-	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable body
+	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable Body
 		resp := &Response{Request: r}
 		resp.Err = errRetryableWithUnReplayableBody
 		return resp
@@ -585,7 +585,7 @@ func (r *Request) Head(url string) (*Response, error) {
 	return r.Send(http.MethodHead, url)
 }
 
-// SetBody set the request body, accepts string, []byte, io.Reader, map and struct.
+// SetBody set the request Body, accepts string, []byte, io.Reader, map and struct.
 func (r *Request) SetBody(body interface{}) *Request {
 	if body == nil {
 		return r
@@ -593,12 +593,12 @@ func (r *Request) SetBody(body interface{}) *Request {
 	switch b := body.(type) {
 	case io.ReadCloser:
 		r.unReplayableBody = b
-		r.getBody = func() (io.ReadCloser, error) {
+		r.GetBody = func() (io.ReadCloser, error) {
 			return r.unReplayableBody, nil
 		}
 	case io.Reader:
 		r.unReplayableBody = ioutil.NopCloser(b)
-		r.getBody = func() (io.ReadCloser, error) {
+		r.GetBody = func() (io.ReadCloser, error) {
 			return r.unReplayableBody, nil
 		}
 	case []byte:
@@ -606,9 +606,9 @@ func (r *Request) SetBody(body interface{}) *Request {
 	case string:
 		r.SetBodyString(b)
 	case func() (io.ReadCloser, error):
-		r.getBody = b
+		r.GetBody = b
 	case GetContentFunc:
-		r.getBody = b
+		r.GetBody = b
 	default:
 		t := reflect.TypeOf(body)
 		switch t.Kind() {
@@ -621,34 +621,34 @@ func (r *Request) SetBody(body interface{}) *Request {
 	return r
 }
 
-// SetBodyBytes set the request body as []byte.
+// SetBodyBytes set the request Body as []byte.
 func (r *Request) SetBodyBytes(body []byte) *Request {
-	r.body = body
-	r.getBody = func() (io.ReadCloser, error) {
+	r.Body = body
+	r.GetBody = func() (io.ReadCloser, error) {
 		return ioutil.NopCloser(bytes.NewReader(body)), nil
 	}
 	return r
 }
 
-// SetBodyString set the request body as string.
+// SetBodyString set the request Body as string.
 func (r *Request) SetBodyString(body string) *Request {
 	return r.SetBodyBytes([]byte(body))
 }
 
-// SetBodyJsonString set the request body as string and set Content-Type header
+// SetBodyJsonString set the request Body as string and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonString(body string) *Request {
 	return r.SetBodyJsonBytes([]byte(body))
 }
 
-// SetBodyJsonBytes set the request body as []byte and set Content-Type header
+// SetBodyJsonBytes set the request Body as []byte and set Content-Type header
 // as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonBytes(body []byte) *Request {
 	r.SetContentType(header.JsonContentType)
 	return r.SetBodyBytes(body)
 }
 
-// SetBodyJsonMarshal set the request body that marshaled from object, and
+// SetBodyJsonMarshal set the request Body that marshaled from object, and
 // set Content-Type header as "application/json; charset=utf-8"
 func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 	b, err := r.client.jsonMarshal(v)
@@ -659,20 +659,20 @@ func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
 	return r.SetBodyJsonBytes(b)
 }
 
-// SetBodyXmlString set the request body as string and set Content-Type header
+// SetBodyXmlString set the request Body as string and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlString(body string) *Request {
 	return r.SetBodyXmlBytes([]byte(body))
 }
 
-// SetBodyXmlBytes set the request body as []byte and set Content-Type header
+// SetBodyXmlBytes set the request Body as []byte and set Content-Type header
 // as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlBytes(body []byte) *Request {
 	r.SetContentType(header.XmlContentType)
 	return r.SetBodyBytes(body)
 }
 
-// SetBodyXmlMarshal set the request body that marshaled from object, and
+// SetBodyXmlMarshal set the request Body that marshaled from object, and
 // set Content-Type header as "text/xml; charset=utf-8"
 func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
 	b, err := r.client.xmlMarshal(v)
@@ -782,7 +782,7 @@ func (r *Request) EnableDumpWithoutBody() *Request {
 	return r.EnableDump()
 }
 
-// EnableDumpWithoutHeader enables dump only body for the request and response.
+// EnableDumpWithoutHeader enables dump only Body for the request and response.
 func (r *Request) EnableDumpWithoutHeader() *Request {
 	o := r.getDumpOptions()
 	o.RequestHeader = false
@@ -806,7 +806,7 @@ func (r *Request) EnableDumpWithoutRequest() *Request {
 	return r.EnableDump()
 }
 
-// EnableDumpWithoutRequestBody enables dump with request body excluded,
+// EnableDumpWithoutRequestBody enables dump with request Body excluded,
 // can be used in upload request to avoid dump the unreadable binary content.
 func (r *Request) EnableDumpWithoutRequestBody() *Request {
 	o := r.getDumpOptions()
@@ -814,7 +814,7 @@ func (r *Request) EnableDumpWithoutRequestBody() *Request {
 	return r.EnableDump()
 }
 
-// EnableDumpWithoutResponseBody enables dump with response body excluded,
+// EnableDumpWithoutResponseBody enables dump with response Body excluded,
 // can be used in download request to avoid dump the unreadable binary content.
 func (r *Request) EnableDumpWithoutResponseBody() *Request {
 	o := r.getDumpOptions()

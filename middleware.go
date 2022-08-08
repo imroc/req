@@ -175,7 +175,7 @@ func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
 
 func handleMultiPart(c *Client, r *Request) (err error) {
 	pr, pw := io.Pipe()
-	r.getBody = func() (io.ReadCloser, error) {
+	r.GetBody = func() (io.ReadCloser, error) {
 		return pr, nil
 	}
 	w := multipart.NewWriter(pw)
@@ -223,7 +223,7 @@ func handleMarshalBody(c *Client, r *Request) error {
 
 func parseRequestBody(c *Client, r *Request) (err error) {
 	if c.isPayloadForbid(r.Method) {
-		r.getBody = nil
+		r.GetBody = nil
 		return
 	}
 	// handle multipart
@@ -245,12 +245,12 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 		handleMarshalBody(c, r)
 	}
 
-	if r.body == nil {
+	if r.Body == nil {
 		return
 	}
 	// body is in-memory []byte, so we can guess content type
 	if r.getHeader(header.ContentType) == "" {
-		r.SetContentType(http.DetectContentType(r.body))
+		r.SetContentType(http.DetectContentType(r.Body))
 	}
 	return
 }

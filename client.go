@@ -1098,11 +1098,11 @@ func (c *Client) RoundTrip(r *Request) (resp *Response, err error) {
 	}
 
 	// setup header
-	contentLength := int64(len(r.body))
+	contentLength := int64(len(r.Body))
 
 	var reqBody io.ReadCloser
-	if r.getBody != nil {
-		reqBody, err = r.getBody()
+	if r.GetBody != nil {
+		reqBody, err = r.GetBody()
 		if err != nil {
 			return
 		}
@@ -1117,7 +1117,7 @@ func (c *Client) RoundTrip(r *Request) (resp *Response, err error) {
 		ProtoMinor:    1,
 		ContentLength: contentLength,
 		Body:          reqBody,
-		GetBody:       r.getBody,
+		GetBody:       r.GetBody,
 	}
 	for _, cookie := range r.Cookies {
 		req.AddCookie(cookie)
