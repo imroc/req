@@ -175,6 +175,19 @@ func (r *Request) SetFormData(data map[string]string) *Request {
 	return r
 }
 
+// SetFormDataAnyType set the form data from a map, which value could be any type,
+// will convert to string automatically.
+// It will not been used if request method does not allow payload.
+func (r *Request) SetFormDataAnyType(data map[string]interface{}) *Request {
+	if r.FormData == nil {
+		r.FormData = urlpkg.Values{}
+	}
+	for k, v := range data {
+		r.FormData.Set(k, fmt.Sprint(v))
+	}
+	return r
+}
+
 // SetCookies set http cookies for the request.
 func (r *Request) SetCookies(cookies ...*http.Cookie) *Request {
 	r.Cookies = append(r.Cookies, cookies...)

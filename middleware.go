@@ -108,56 +108,6 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload, r *Request) e
 
 	_, err = io.Copy(pw, content)
 	return err
-	// uploadedBytes := int64(size)
-	// progressCallback := func() {
-	// 	r.uploadCallback(UploadInfo{
-	// 		ParamName:    file.ParamName,
-	// 		FileName:     file.FileName,
-	// 		FileSize:     file.FileSize,
-	// 		UploadedSize: uploadedBytes,
-	// 	})
-	// }
-	// if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
-	// 	lastTime = now
-	// 	progressCallback()
-	// }
-	// buf := make([]byte, 1024)
-	// for {
-	// 	callback := false
-	// 	nr, er := content.Read(buf)
-	// 	if nr > 0 {
-	// 		nw, ew := pw.Write(buf[:nr])
-	// 		if nw < 0 || nr < nw {
-	// 			nw = 0
-	// 			if ew == nil {
-	// 				ew = errors.New("invalid write result")
-	// 			}
-	// 		}
-	// 		uploadedBytes += int64(nw)
-	// 		if ew != nil {
-	// 			return ew
-	// 		}
-	// 		if nr != nw {
-	// 			return io.ErrShortWrite
-	// 		}
-	// 		if now := time.Now(); now.Sub(lastTime) >= r.uploadCallbackInterval {
-	// 			lastTime = now
-	// 			progressCallback()
-	// 			callback = true
-	// 		}
-	// 	}
-	// 	if er != nil {
-	// 		if er == io.EOF {
-	// 			if !callback {
-	// 				progressCallback()
-	// 			}
-	// 			break
-	// 		} else {
-	// 			return er
-	// 		}
-	// 	}
-	// }
-	return nil
 }
 
 func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {

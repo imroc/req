@@ -26,6 +26,12 @@ func SetFormData(data map[string]string) *Request {
 	return defaultClient.R().SetFormData(data)
 }
 
+// SetFormDataAnyType is a global wrapper methods which delegated
+// to the default client, create a request and SetFormDataAnyType for request.
+func SetFormDataAnyType(data map[string]interface{}) *Request {
+	return defaultClient.R().SetFormDataAnyType(data)
+}
+
 // SetCookies is a global wrapper methods which delegated
 // to the default client, create a request and SetCookies for request.
 func SetCookies(cookies ...*http.Cookie) *Request {
