@@ -63,6 +63,7 @@ type Client struct {
 	beforeRequest           []RequestMiddleware
 	udBeforeRequest         []RequestMiddleware
 	afterResponse           []ResponseMiddleware
+	wrappedRoundTrip        RoundTripper
 }
 
 // R create a new request.
@@ -949,20 +950,6 @@ func (c *Client) EnableHTTP3() *Client {
 	return c
 }
 
-// WrapRoundTrip adds a transport middleware function that will give the caller
-// an opportunity to wrap the underlying http.RoundTripper.
-func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
-	c.t.WrapRoundTrip(wrappers...)
-	return c
-}
-
-// WrapRoundTripFunc adds a transport middleware function that will give the caller
-// an opportunity to wrap the underlying http.RoundTripper.
-func (c *Client) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Client {
-	c.t.WrapRoundTripFunc(funcs...)
-	return c
-}
-
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
@@ -1040,10 +1027,82 @@ func C() *Client {
 	return c
 }
 
-func (c *Client) do(r *Request) (resp *Response, err error) {
-	resp = &Response{
-		Request: r,
+// RoundTripper is the interface of req's Client.
+type RoundTripper interface {
+	RoundTrip(*Request) (*Response, error)
+}
+
+// RoundTripFunc is a RoundTripper implementation, which is a simple function.
+type RoundTripFunc func(req *Request) (resp *Response, err error)
+
+// RoundTrip implements RoundTripper.
+func (fn RoundTripFunc) RoundTrip(req *Request) (*Response, error) {
+	return fn(req)
+}
+
+// RoundTripWrapper is client middleware function.
+type RoundTripWrapper func(rt RoundTripper) RoundTripper
+
+// RoundTripWrapperFunc is client middleware function, more convenient than RoundTripWrapper.
+type RoundTripWrapperFunc func(rt RoundTripper) RoundTripFunc
+
+func (f RoundTripWrapperFunc) wrapper() RoundTripWrapper {
+	return func(rt RoundTripper) RoundTripper {
+		return f(rt)
 	}
+}
+
+// WrapRoundTripFunc adds a client middleware function that will give the caller
+// an opportunity to wrap the underlying http.RoundTripper.
+func (c *Client) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Client {
+	var wrappers []RoundTripWrapper
+	for _, fn := range funcs {
+		wrappers = append(wrappers, fn.wrapper())
+	}
+	return c.WrapRoundTrip(wrappers...)
+}
+
+// WrapRoundTrip adds a client middleware function that will give the caller
+// an opportunity to wrap the underlying http.RoundTripper.
+func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
+	if len(wrappers) == 0 {
+		return c
+	}
+	if c.wrappedRoundTrip == nil {
+		c.wrappedRoundTrip = c
+	}
+	for _, w := range wrappers {
+		c.wrappedRoundTrip = w(c.wrappedRoundTrip)
+	}
+	return c
+}
+
+// RoundTrip implements RoundTripper
+func (c *Client) RoundTrip(r *Request) (resp *Response, err error) {
+	resp = &Response{Request: r}
+	var httpResponse *http.Response
+	httpResponse, err = c.httpClient.Do(r.RawRequest)
+	resp.Response = httpResponse
+
+	// auto-read response body if possible
+	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse {
+		_, err = resp.ToBytes()
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (c *Client) do(r *Request) (resp *Response, err error) {
+	defer func() {
+		if resp == nil {
+			resp = &Response{Request: r}
+		}
+		if err != nil {
+			resp.Err = err
+		}
+	}()
 
 	for {
 		for _, f := range r.client.beforeRequest {
@@ -1129,16 +1188,11 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		}
 		r.RawRequest = req
 		r.StartTime = time.Now()
-		var httpResponse *http.Response
-		httpResponse, err = c.httpClient.Do(req)
-		resp.Response = httpResponse
 
-		// auto-read response body if possible
-		if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse {
-			_, err = resp.ToBytes()
-			if err != nil {
-				return
-			}
+		if c.wrappedRoundTrip != nil {
+			resp, err = c.wrappedRoundTrip.RoundTrip(r)
+		} else {
+			resp, err = c.RoundTrip(r)
 		}
 
 		if r.retryOption == nil || r.RetryAttempt >= r.retryOption.MaxRetries { // absolutely cannot retry.
@@ -1177,8 +1231,6 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		resp.result = nil
 		resp.error = nil
 	}
-
-	resp.Err = err
 
 	for _, f := range r.client.afterResponse {
 		if err := f(r.client, resp); err != nil {

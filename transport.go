@@ -141,7 +141,7 @@ func NewTransport() *Transport {
 	return T()
 }
 
-// T create a new Transport.
+// T create a Transport.
 func T() *Transport {
 	t := &Transport{
 		Options: transport.Options{
@@ -157,21 +157,21 @@ func T() *Transport {
 	return t
 }
 
-// RoundTripFunc is a http.RoundTripper implementation, which is a simple function.
-type RoundTripFunc func(req *http.Request) (resp *http.Response, err error)
+// HttpRoundTripFunc is a http.RoundTripper implementation, which is a simple function.
+type HttpRoundTripFunc func(req *http.Request) (resp *http.Response, err error)
 
 // RoundTrip implements http.RoundTripper.
-func (fn RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+func (fn HttpRoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return fn(req)
 }
 
-// RoundTripWrapper is transport middleware function.
-type RoundTripWrapper func(rt http.RoundTripper) http.RoundTripper
+// HttpRoundTripWrapper is transport middleware function.
+type HttpRoundTripWrapper func(rt http.RoundTripper) http.RoundTripper
 
-// RoundTripWrapperFunc is transport middleware function, more convenient than RoundTripWrapper.
-type RoundTripWrapperFunc func(rt http.RoundTripper) RoundTripFunc
+// HttpRoundTripWrapperFunc is transport middleware function, more convenient than HttpRoundTripWrapper.
+type HttpRoundTripWrapperFunc func(rt http.RoundTripper) HttpRoundTripFunc
 
-func (f RoundTripWrapperFunc) wrapper() RoundTripWrapper {
+func (f HttpRoundTripWrapperFunc) wrapper() HttpRoundTripWrapper {
 	return func(rt http.RoundTripper) http.RoundTripper {
 		return f(rt)
 	}
@@ -179,8 +179,8 @@ func (f RoundTripWrapperFunc) wrapper() RoundTripWrapper {
 
 // WrapRoundTripFunc adds a transport middleware function that will give the caller
 // an opportunity to wrap the underlying http.RoundTripper.
-func (t *Transport) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Transport {
-	var wrappers []RoundTripWrapper
+func (t *Transport) WrapRoundTripFunc(funcs ...HttpRoundTripWrapperFunc) *Transport {
+	var wrappers []HttpRoundTripWrapper
 	for _, fn := range funcs {
 		wrappers = append(wrappers, fn.wrapper())
 	}
@@ -189,7 +189,7 @@ func (t *Transport) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Transport 
 
 // WrapRoundTrip adds a transport middleware function that will give the caller
 // an opportunity to wrap the underlying http.RoundTripper.
-func (t *Transport) WrapRoundTrip(wrappers ...RoundTripWrapper) *Transport {
+func (t *Transport) WrapRoundTrip(wrappers ...HttpRoundTripWrapper) *Transport {
 	if len(wrappers) == 0 {
 		return t
 	}
@@ -197,7 +197,7 @@ func (t *Transport) WrapRoundTrip(wrappers ...RoundTripWrapper) *Transport {
 		fn := func(req *http.Request) (*http.Response, error) {
 			return t.roundTrip(req)
 		}
-		t.wrappedRoundTrip = RoundTripFunc(fn)
+		t.wrappedRoundTrip = HttpRoundTripFunc(fn)
 	}
 	for _, w := range wrappers {
 		t.wrappedRoundTrip = w(t.wrappedRoundTrip)

@@ -467,10 +467,7 @@ func (r *Request) Do() *Response {
 		resp.Err = errRetryableWithUnReplayableBody
 		return resp
 	}
-	resp, err := r.client.do(r)
-	if err != nil {
-		resp.Err = err
-	}
+	resp, _ := r.client.do(r)
 	return resp
 }
 

@@ -18,8 +18,16 @@ import (
 )
 
 func TestWrapRoundTrip(t *testing.T) {
-	i, j := 0, 0
-	c := tc().WrapRoundTripFunc(func(rt http.RoundTripper) RoundTripFunc {
+	i, j, a, b := 0, 0, 0, 0
+	c := tc().WrapRoundTripFunc(func(rt RoundTripper) RoundTripFunc {
+		return func(req *Request) (resp *Response, err error) {
+			a = 1
+			resp, err = rt.RoundTrip(req)
+			b = 1
+			return
+		}
+	})
+	c.GetTransport().WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
 		return func(req *http.Request) (resp *http.Response, err error) {
 			i = 1
 			resp, err = rt.RoundTrip(req)
@@ -31,6 +39,8 @@ func TestWrapRoundTrip(t *testing.T) {
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, 1, i)
 	tests.AssertEqual(t, 1, j)
+	tests.AssertEqual(t, 1, a)
+	tests.AssertEqual(t, 1, b)
 }
 
 func TestAllowGetMethodPayload(t *testing.T) {
