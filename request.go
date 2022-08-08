@@ -464,21 +464,30 @@ func (r *Request) appendError(err error) {
 
 var errRetryableWithUnReplayableBody = errors.New("retryable request should not have unreplayable Body (io.Reader)")
 
-// Do fires http request and return the *Response which is always
-// not nil, and the error is not nil if error occurs.
-func (r *Request) Do() *Response {
+func (r *Request) newErrorResponse(err error) *Response {
+	resp := &Response{Request: r}
+	resp.Err = err
+	return resp
+}
+
+// Do fires http request, 0 or 1 context ia allowed, and returns the *Response which
+// is always not nil, and Response.Err is not nil if error occurs.
+func (r *Request) Do(ctx ...context.Context) *Response {
+	if len(ctx) > 0 {
+		if len(ctx) > 1 {
+			return r.newErrorResponse(fmt.Errorf("only 0 or 1 context is allowed in Do, and %d are received", len(ctx)))
+		}
+		r.ctx = ctx[0]
+	}
+
 	defer func() {
 		r.responseReturnTime = time.Now()
 	}()
 	if r.error != nil {
-		resp := &Response{Request: r}
-		resp.Err = r.error
-		return resp
+		return r.newErrorResponse(r.error)
 	}
 	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable Body
-		resp := &Response{Request: r}
-		resp.Err = errRetryableWithUnReplayableBody
-		return resp
+		return r.newErrorResponse(errRetryableWithUnReplayableBody)
 	}
 	resp, _ := r.client.do(r)
 	return resp
