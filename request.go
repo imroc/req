@@ -31,8 +31,6 @@ type Request struct {
 	Cookies      []*http.Cookie
 	Result       interface{}
 	Error        interface{}
-	error        error
-	client       *Client
 	RawRequest   *http.Request
 	StartTime    time.Time
 	RetryAttempt int
@@ -44,6 +42,8 @@ type Request struct {
 
 	isMultiPart              bool
 	isSaveResponse           bool
+	error                    error
+	client                   *Client
 	uploadCallback           UploadCallback
 	uploadCallbackInterval   time.Duration
 	downloadCallback         DownloadCallback

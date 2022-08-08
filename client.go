@@ -38,14 +38,15 @@ var defaultClient = C()
 
 // Client is the req's http client.
 type Client struct {
-	BaseURL                 string
-	PathParams              map[string]string
-	QueryParams             urlpkg.Values
-	Headers                 http.Header
-	Cookies                 []*http.Cookie
-	FormData                urlpkg.Values
-	DebugLog                bool
-	AllowGetMethodPayload   bool
+	BaseURL               string
+	PathParams            map[string]string
+	QueryParams           urlpkg.Values
+	Headers               http.Header
+	Cookies               []*http.Cookie
+	FormData              urlpkg.Values
+	DebugLog              bool
+	AllowGetMethodPayload bool
+
 	trace                   bool
 	disableAutoReadResponse bool
 	commonErrorType         reflect.Type
