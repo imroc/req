@@ -212,3 +212,11 @@ func (r *Response) GetHeaderValues(key string) []string {
 	}
 	return r.Header.Values(key)
 }
+
+// HeaderToString get all header as string.
+func (r *Response) HeaderToString() string {
+	if r.Response == nil {
+		return ""
+	}
+	return convertHeaderToString(r.Header)
+}

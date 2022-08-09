@@ -143,6 +143,11 @@ func (r *Request) TraceInfo() TraceInfo {
 	return ti
 }
 
+// HeaderToString get all header as string.
+func (r *Request) HeaderToString() string {
+	return convertHeaderToString(r.Headers)
+}
+
 // SetURL set the url for request.
 func (r *Request) SetURL(url string) *Request {
 	r.RawURL = url

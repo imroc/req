@@ -1,6 +1,7 @@
 package req
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -144,4 +145,14 @@ func cloneMap(h map[string]string) map[string]string {
 		m[k] = v
 	}
 	return m
+}
+
+// convertHeaderToString converts http header to a string.
+func convertHeaderToString(h http.Header) string {
+	if h == nil {
+		return ""
+	}
+	buf := new(bytes.Buffer)
+	h.Write(buf)
+	return buf.String()
 }
