@@ -55,7 +55,7 @@ func NewClient() *Client {
 		// memory (not print to stdout), we can record dump content only when unexpected
 		// exception occurs, it is helpful to troubleshoot problems in production.
 		OnBeforeRequest(func(c *req.Client, r *req.Request) error {
-			if r.RetryAttempt > 0 { // Ignore on retry.
+			if r.RetryAttempt > 0 { // Ignore on retry, no need to repeat EnableDump.
 				return nil
 			}
 			r.EnableDump()
@@ -65,9 +65,9 @@ func NewClient() *Client {
 		SetCommonError(&APIError{}).
 		// Handle common exceptions in response middleware.
 		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
-			if resp.Err != nil {
+			if resp.Err != nil { // There is an underlying error, e.g. network error or unmarshal error(SetResult or SetError was invoked before).
 				if dump := resp.Dump(); dump != "" { // Append dump content to original underlying error to help troubleshoot.
-					resp.Err = fmt.Errorf("%s\nraw dump:\n%s", resp.Err.Error(), resp.Dump())
+					resp.Err = fmt.Errorf("%s\nraw content:\n%s", resp.Err.Error(), resp.Dump())
 				}
 				return nil // Skip the following logic if there is an underlying error.
 			}
@@ -76,10 +76,10 @@ func NewClient() *Client {
 				resp.Err = err
 				return nil
 			}
-			// Corner case: neither an error response nor a success response,
-			// dump content to help troubleshoot.
+			// Corner case: neither an error response nor a success response, e.g. status code < 200
+			// Just dump the raw content into error to help troubleshoot.
 			if !resp.IsSuccess() {
-				resp.Err = fmt.Errorf("bad response, raw dump:\n%s", resp.Dump())
+				resp.Err = fmt.Errorf("bad response, raw content:\n%s", resp.Dump())
 			}
 			return nil
 		})
@@ -96,22 +96,25 @@ const apiNameKey apiNameType = iota
 // SetTracer set the tracer of opentelemetry.
 func (c *Client) SetTracer(tracer trace.Tracer) {
 	c.WrapRoundTripFunc(func(rt req.RoundTripper) req.RoundTripFunc {
-		return func(r *req.Request) (resp *req.Response, err error) {
-			ctx := r.Context()
-			spanName := ctx.Value(apiNameKey).(string)
-			_, span := tracer.Start(r.Context(), spanName)
+		return func(req *req.Request) (resp *req.Response, err error) {
+			ctx := req.Context()
+			apiName, ok := ctx.Value(apiNameKey).(string)
+			if !ok {
+				apiName = req.URL.Path
+			}
+			_, span := tracer.Start(req.Context(), apiName)
 			defer span.End()
 			span.SetAttributes(
-				attribute.String("http.url", r.URL.String()),
-				attribute.String("http.method", r.Method),
-				attribute.String("http.req.header", r.HeaderToString()),
+				attribute.String("http.url", req.URL.String()),
+				attribute.String("http.method", req.Method),
+				attribute.String("http.req.header", req.HeaderToString()),
 			)
-			if len(r.Body) > 0 {
+			if len(req.Body) > 0 {
 				span.SetAttributes(
-					attribute.String("http.req.body", string(r.Body)),
+					attribute.String("http.req.body", string(req.Body)),
 				)
 			}
-			resp, err = rt.RoundTrip(r)
+			resp, err = rt.RoundTrip(req)
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())
@@ -144,8 +147,8 @@ type UserProfile struct {
 func (c *Client) GetUserProfile(ctx context.Context, username string) (user *UserProfile, err error) {
 	err = c.Get("/users/{username}").
 		SetPathParam("username", username).
-		Do(withAPIName(ctx, "GetUserProfile")).
-		Into(&user)
+		SetResult(&user).
+		Do(withAPIName(ctx, "GetUserProfile")).Err
 	return
 }
 
@@ -158,6 +161,7 @@ type Repo struct {
 // Github API doc: https://docs.github.com/en/rest/repos/repos#list-repositories-for-a-user
 func (c *Client) ListUserRepo(ctx context.Context, username string, page int) (repos []*Repo, err error) {
 	err = c.Get("/users/{username}/repos").
+		SetPathParam("username", username).
 		SetQueryParamsAnyType(map[string]any{
 			"type":      "owner",
 			"page":      strconv.Itoa(page),
@@ -165,9 +169,8 @@ func (c *Client) ListUserRepo(ctx context.Context, username string, page int) (r
 			"sort":      "updated",
 			"direction": "desc",
 		}).
-		SetPathParam("username", username).
-		Do(withAPIName(ctx, "ListUserRepo")).
-		Into(&repos)
+		SetResult(&repos).
+		Do(withAPIName(ctx, "ListUserRepo")).Err
 	return
 }
 
