@@ -123,7 +123,7 @@ func (c *Client) SetTracer(tracer trace.Tracer) {
 			span.SetAttributes(
 				attribute.Int("http.status_code", resp.StatusCode),
 				attribute.String("http.resp.header", resp.HeaderToString()),
-				attribute.String("resp.resp.body", resp.String()),
+				attribute.String("http.resp.body", resp.String()),
 			)
 			return
 		}
