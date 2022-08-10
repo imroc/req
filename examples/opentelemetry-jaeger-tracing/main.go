@@ -92,8 +92,9 @@ func findMostPopularRepo(ctx context.Context, username string) (repo *github.Rep
 	defer span.End()
 
 	for page := 1; ; page++ {
-		repos, e := githubClient.ListUserRepo(ctx, username, page)
-		if e != nil {
+		var repos []*github.Repo
+		repos, err = githubClient.ListUserRepo(ctx, username, page)
+		if err != nil {
 			return
 		}
 		if len(repos) == 0 {
