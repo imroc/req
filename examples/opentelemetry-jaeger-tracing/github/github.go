@@ -118,13 +118,14 @@ func (c *Client) SetTracer(tracer trace.Tracer) {
 			if err != nil {
 				span.RecordError(err)
 				span.SetStatus(codes.Error, err.Error())
-				return
 			}
-			span.SetAttributes(
-				attribute.Int("http.status_code", resp.StatusCode),
-				attribute.String("http.resp.header", resp.HeaderToString()),
-				attribute.String("http.resp.body", resp.String()),
-			)
+			if resp.Response != nil {
+				span.SetAttributes(
+					attribute.Int("http.status_code", resp.StatusCode),
+					attribute.String("http.resp.header", resp.HeaderToString()),
+					attribute.String("http.resp.body", resp.String()),
+				)
+			}
 			return
 		}
 	})
