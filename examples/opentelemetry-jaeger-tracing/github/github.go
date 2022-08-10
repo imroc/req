@@ -16,55 +16,6 @@ type Client struct {
 	*req.Client
 }
 
-// NewClient create a GitHub client.
-func NewClient() *Client {
-	c := req.C().
-		// All GitHub API requests need this header.
-		SetCommonHeader("Accept", "application/vnd.github.v3+json").
-		// All GitHub API requests use the same base URL.
-		SetBaseURL("https://api.github.com").
-		// EnableDump at the request level in request middleware which dump content into
-		// memory (not print to stdout), we can record dump content only when unexpected
-		// exception occurs, it is helpful to troubleshoot problems in production.
-		OnBeforeRequest(func(c *req.Client, r *req.Request) error {
-			if r.RetryAttempt > 0 { // Ignore on retry.
-				return nil
-			}
-			r.EnableDump()
-			return nil
-		}).
-		// Unmarshal response body into an APIError struct when status >= 400.
-		SetCommonError(&APIError{}).
-		// Handle common exceptions in response middleware.
-		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
-			if resp.Err != nil { // Ignore if there is an underlying error.
-				return nil
-			}
-			if err, ok := resp.Error().(*APIError); ok { // Server returns an error message.
-				// Convert it to human-readable go error.
-				resp.Err = err
-				return nil
-			}
-			// Corner case: neither an error response nor a success response,
-			// dump content to help troubleshoot.
-			if !resp.IsSuccess() {
-				return fmt.Errorf("bad response, raw dump:\n%s", resp.Dump())
-			}
-			return nil
-		})
-
-	return &Client{
-		Client: c,
-	}
-}
-
-// LoginWithToken login with GitHub personal access token.
-// GitHub API doc: https://docs.github.com/en/rest/overview/other-authentication-methods#authenticating-for-saml-sso
-func (c *Client) LoginWithToken(token string) *Client {
-	c.SetCommonHeader("Authorization", "token "+token)
-	return c
-}
-
 // APIError represents the error message that GitHub API returns.
 // GitHub API doc: https://docs.github.com/en/rest/overview/resources-in-the-rest-api#client-errors
 type APIError struct {
@@ -93,16 +44,49 @@ func (e *APIError) Error() string {
 	return fmt.Sprintf("%s (%s)", msg, strings.Join(errs, " | "))
 }
 
-// SetDebug enable debug if set to true, disable debug if set to false.
-func (c *Client) SetDebug(enable bool) *Client {
-	if enable {
-		c.EnableDebugLog()
-		c.EnableDumpAll()
-	} else {
-		c.DisableDebugLog()
-		c.DisableDumpAll()
+// NewClient create a GitHub client.
+func NewClient() *Client {
+	c := req.C().
+		// All GitHub API requests need this header.
+		SetCommonHeader("Accept", "application/vnd.github.v3+json").
+		// All GitHub API requests use the same base URL.
+		SetBaseURL("https://api.github.com").
+		// EnableDump at the request level in request middleware which dump content into
+		// memory (not print to stdout), we can record dump content only when unexpected
+		// exception occurs, it is helpful to troubleshoot problems in production.
+		OnBeforeRequest(func(c *req.Client, r *req.Request) error {
+			if r.RetryAttempt > 0 { // Ignore on retry.
+				return nil
+			}
+			r.EnableDump()
+			return nil
+		}).
+		// Unmarshal response body into an APIError struct when status >= 400.
+		SetCommonError(&APIError{}).
+		// Handle common exceptions in response middleware.
+		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
+			if resp.Err != nil {
+				if dump := resp.Dump(); dump != "" { // Append dump content to original underlying error to help troubleshoot.
+					resp.Err = fmt.Errorf("%s\nraw dump:\n%s", resp.Err.Error(), resp.Dump())
+				}
+				return nil // Skip the following logic if there is an underlying error.
+			}
+			if err, ok := resp.Error().(*APIError); ok { // Server returns an error message.
+				// Convert it to human-readable go error.
+				resp.Err = err
+				return nil
+			}
+			// Corner case: neither an error response nor a success response,
+			// dump content to help troubleshoot.
+			if !resp.IsSuccess() {
+				resp.Err = fmt.Errorf("bad response, raw dump:\n%s", resp.Dump())
+			}
+			return nil
+		})
+
+	return &Client{
+		Client: c,
 	}
-	return c
 }
 
 type apiNameType int
@@ -185,4 +169,23 @@ func (c *Client) ListUserRepo(ctx context.Context, username string, page int) (r
 		Do(withAPIName(ctx, "ListUserRepo")).
 		Into(&repos)
 	return
+}
+
+// LoginWithToken login with GitHub personal access token.
+// GitHub API doc: https://docs.github.com/en/rest/overview/other-authentication-methods#authenticating-for-saml-sso
+func (c *Client) LoginWithToken(token string) *Client {
+	c.SetCommonHeader("Authorization", "token "+token)
+	return c
+}
+
+// SetDebug enable debug if set to true, disable debug if set to false.
+func (c *Client) SetDebug(enable bool) *Client {
+	if enable {
+		c.EnableDebugLog()
+		c.EnableDumpAll()
+	} else {
+		c.DisableDebugLog()
+		c.DisableDumpAll()
+	}
+	return c
 }
