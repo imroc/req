@@ -346,8 +346,7 @@ func TestKeepAlives(t *testing.T) {
 
 func TestRedirect(t *testing.T) {
 	_, err := tc().SetRedirectPolicy(NoRedirectPolicy()).R().Get("/unlimited-redirect")
-	tests.AssertNotNil(t, err)
-	tests.AssertContains(t, err.Error(), "redirect is disabled", true)
+	tests.AssertIsNil(t, err)
 
 	_, err = tc().SetRedirectPolicy(MaxRedirectPolicy(3)).R().Get("/unlimited-redirect")
 	tests.AssertNotNil(t, err)

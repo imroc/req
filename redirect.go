@@ -24,7 +24,7 @@ func MaxRedirectPolicy(noOfRedirect int) RedirectPolicy {
 // NoRedirectPolicy disable redirect behaviour
 func NoRedirectPolicy() RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
-		return errors.New("redirect is disabled")
+		return http.ErrUseLastResponse
 	}
 }
 
@@ -111,7 +111,8 @@ func getDomain(host string) string {
 // sensitive ones to the same origin, or subdomains thereof (https://go-review.googlesource.com/c/go/+/28930/)
 // Check discussion: https://github.com/golang/go/issues/4800
 // For example:
-// 	 client.SetRedirectPolicy(req.AlwaysCopyHeaderRedirectPolicy("Authorization"))
+//
+//	client.SetRedirectPolicy(req.AlwaysCopyHeaderRedirectPolicy("Authorization"))
 func AlwaysCopyHeaderRedirectPolicy(headers ...string) RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
 		for _, header := range headers {
