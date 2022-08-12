@@ -1084,6 +1084,14 @@ func (c *Client) WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Client {
 	return c.WrapRoundTrip(wrappers...)
 }
 
+type roundTripImpl struct {
+	*Client
+}
+
+func (r roundTripImpl) RoundTrip(req *Request) (resp *Response, err error) {
+	return r.roundTrip(req)
+}
+
 // WrapRoundTrip adds a client middleware function that will give the caller
 // an opportunity to wrap the underlying http.RoundTripper.
 func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
@@ -1091,7 +1099,7 @@ func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
 		return c
 	}
 	if c.wrappedRoundTrip == nil {
-		c.wrappedRoundTrip = c
+		c.wrappedRoundTrip = roundTripImpl{c}
 	}
 	for _, w := range wrappers {
 		c.wrappedRoundTrip = w(c.wrappedRoundTrip)
@@ -1100,7 +1108,7 @@ func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
 }
 
 // RoundTrip implements RoundTripper
-func (c *Client) RoundTrip(r *Request) (resp *Response, err error) {
+func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	resp = &Response{Request: r}
 
 	// setup trace
@@ -1226,7 +1234,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		if c.wrappedRoundTrip != nil {
 			resp, err = c.wrappedRoundTrip.RoundTrip(r)
 		} else {
-			resp, err = c.RoundTrip(r)
+			resp, err = c.roundTrip(r)
 		}
 
 		if r.retryOption == nil || r.RetryAttempt >= r.retryOption.MaxRetries { // absolutely cannot retry.
