@@ -1010,3 +1010,14 @@ func TestDownloadCallback(t *testing.T) {
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, true, n > 0)
 }
+
+func TestRestoreResponseBody(t *testing.T) {
+	c := tc()
+	resp, err := c.R().Get("/")
+	assertSuccess(t, resp, err)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, true, len(resp.Bytes()) > 0)
+	body, err := ioutil.ReadAll(resp.Body)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, true, len(body) > 0)
+}

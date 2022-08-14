@@ -1,6 +1,7 @@
 package req
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -1191,6 +1192,8 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		if err != nil {
 			return
 		}
+		// restore body for re-reads
+		resp.Body = ioutil.NopCloser(bytes.NewReader(resp.body))
 	}
 
 	for _, f := range r.client.afterResponse {
