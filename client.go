@@ -775,7 +775,8 @@ func (c *Client) EnableTraceAll() *Client {
 	return c
 }
 
-// SetCookieJar set the `CookeJar` to the underlying `http.Client`.
+// SetCookieJar set the `CookeJar` to the underlying `http.Client`, set to nil if you
+// want to disable cookie.
 func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	c.httpClient.Jar = jar
 	return c
