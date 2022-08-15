@@ -1031,15 +1031,16 @@ func C() *Client {
 		handleDownload,
 	}
 	c := &Client{
-		beforeRequest: beforeRequest,
-		afterResponse: afterResponse,
-		log:           createDefaultLogger(),
-		httpClient:    httpClient,
-		t:             t,
-		jsonMarshal:   json.Marshal,
-		jsonUnmarshal: json.Unmarshal,
-		xmlMarshal:    xml.Marshal,
-		xmlUnmarshal:  xml.Unmarshal,
+		AllowGetMethodPayload: true,
+		beforeRequest:         beforeRequest,
+		afterResponse:         afterResponse,
+		log:                   createDefaultLogger(),
+		httpClient:            httpClient,
+		t:                     t,
+		jsonMarshal:           json.Marshal,
+		jsonUnmarshal:         json.Unmarshal,
+		xmlMarshal:            xml.Marshal,
+		xmlUnmarshal:          xml.Unmarshal,
 	}
 	httpClient.CheckRedirect = c.defaultCheckRedirect
 

@@ -47,17 +47,17 @@ func TestAllowGetMethodPayload(t *testing.T) {
 	c := tc()
 	resp, err := c.R().SetBody("test").Get("/payload")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "", resp.String())
-
-	c.EnableAllowGetMethodPayload()
-	resp, err = c.R().SetBody("test").Get("/payload")
-	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "test", resp.String())
 
 	c.DisableAllowGetMethodPayload()
 	resp, err = c.R().SetBody("test").Get("/payload")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "", resp.String())
+
+	c.EnableAllowGetMethodPayload()
+	resp, err = c.R().SetBody("test").Get("/payload")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "test", resp.String())
 }
 
 func TestSetTLSHandshakeTimeout(t *testing.T) {

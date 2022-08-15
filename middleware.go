@@ -173,6 +173,8 @@ func handleMarshalBody(c *Client, r *Request) error {
 
 func parseRequestBody(c *Client, r *Request) (err error) {
 	if c.isPayloadForbid(r.Method) {
+		r.marshalBody = nil
+		r.Body = nil
 		r.GetBody = nil
 		return
 	}
