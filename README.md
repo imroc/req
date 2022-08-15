@@ -27,7 +27,7 @@ Full documentation is available on the official website: https://req.cool.
 * **Support Retry**: Support automatic request retry and is fully customizable (See [Retry](https://req.cool/docs/tutorial/retry/)).
 * **Easy Download and Upload**: You can download and upload files with simple request settings, and even set a callback to show real-time progress (See [Download](https://req.cool/docs/tutorial/download/) and [Upload](https://req.cool/docs/tutorial/upload/)).
 * **Exportable**: `Transport` is exportable, which support dump requests, it's easy to integrate with existing http.Client, so you can debug APIs with minimal code change.
-* **Extensible**: Support Middleware for Request and Response (See [Request and Response Middleware](https://req.cool/docs/tutorial/middleware/)).
+* **Extensible**: Support Middleware for Request and Response (See [Request and Response Middleware](https://req.cool/docs/tutorial/middleware-for-request-and-response/)), and also support Middleware for Client and Transport (See [Client and Transport Middleware](https://req.cool/docs/tutorial/middleware-for-client-and-transport/)).
 
 ## <a name="Get-Started">Get Started</a>
 
@@ -83,6 +83,24 @@ if resp.IsError() {
 }
 // Handle unexpected response (corner case).
 err = fmt.Errorf("got unexpected response, raw dump:\n%s", resp.Dump())
+// ...
+```
+
+You can also use another style if you want:
+
+```go
+resp := client.Get("https://api.github.com/users/{username}/repos"). // Create a GET request with specified URL.
+    SetHeader("Accept", "application/vnd.github.v3+json").
+    SetPathParam("username", "imroc").
+    SetQueryParam("page", "1").
+    SetResult(&result).
+    SetError(&errMsg).
+    EnableDump().
+    Do() // Send request with Do.
+
+if resp.Err != nil {
+    // ...
+}
 // ...
 ```
 
