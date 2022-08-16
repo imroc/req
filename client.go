@@ -1204,9 +1204,6 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 			return
 		}
 	}
-	if resp.Err != nil { // in case that set error in middleware and not return error.
-		err = resp.Err
-	}
 	return
 }
 
