@@ -268,6 +268,48 @@ func EnableDumpAllWithoutBody() *Client {
 	return defaultClient.EnableDumpAllWithoutBody()
 }
 
+// EnableDumpEachRequest is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequest.
+func EnableDumpEachRequest() *Client {
+	return defaultClient.EnableDumpEachRequest()
+}
+
+// EnableDumpEachRequestWithoutBody is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequestWithoutBody.
+func EnableDumpEachRequestWithoutBody() *Client {
+	return defaultClient.EnableDumpEachRequestWithoutBody()
+}
+
+// EnableDumpEachRequestWithoutHeader is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequestWithoutHeader.
+func EnableDumpEachRequestWithoutHeader() *Client {
+	return defaultClient.EnableDumpEachRequestWithoutHeader()
+}
+
+// EnableDumpEachRequestWithoutResponse is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequestWithoutResponse.
+func EnableDumpEachRequestWithoutResponse() *Client {
+	return defaultClient.EnableDumpEachRequestWithoutResponse()
+}
+
+// EnableDumpEachRequestWithoutRequest is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequestWithoutRequest.
+func EnableDumpEachRequestWithoutRequest() *Client {
+	return defaultClient.EnableDumpEachRequestWithoutRequest()
+}
+
+// EnableDumpEachRequestWithoutResponseBody is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequestWithoutResponseBody.
+func EnableDumpEachRequestWithoutResponseBody() *Client {
+	return defaultClient.EnableDumpEachRequestWithoutResponseBody()
+}
+
+// EnableDumpEachRequestWithoutRequestBody is a global wrapper methods which delegated
+// to the default client's EnableDumpEachRequestWithoutRequestBody.
+func EnableDumpEachRequestWithoutRequestBody() *Client {
+	return defaultClient.EnableDumpEachRequestWithoutRequestBody()
+}
+
 // DisableAutoReadResponse is a global wrapper methods which delegated
 // to the default client's DisableAutoReadResponse.
 func DisableAutoReadResponse() *Client {

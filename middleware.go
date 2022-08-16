@@ -19,10 +19,10 @@ import (
 
 type (
 	// RequestMiddleware type is for request middleware, called before a request is sent
-	RequestMiddleware func(*Client, *Request) error
+	RequestMiddleware func(client *Client, req *Request) error
 
 	// ResponseMiddleware type is for response middleware, called after a response has been received
-	ResponseMiddleware func(*Client, *Response) error
+	ResponseMiddleware func(client *Client, resp *Response) error
 )
 
 func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEHeader {

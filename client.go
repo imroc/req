@@ -593,6 +593,90 @@ func (c *Client) EnableDumpAllWithoutBody() *Client {
 	return c
 }
 
+// EnableDumpEachRequest enable dump at the request-level for each request, and only
+// temporarily stores the dump content in memory, call Response.Dump() to get the
+// dump content when needed.
+func (c *Client) EnableDumpEachRequest() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDump()
+		}
+		return nil
+	})
+}
+
+// EnableDumpEachRequestWithoutBody enable dump without body at the request-level for
+// each request, and only temporarily stores the dump content in memory, call
+// Response.Dump() to get the dump content when needed.
+func (c *Client) EnableDumpEachRequestWithoutBody() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDumpWithoutBody()
+		}
+		return nil
+	})
+}
+
+// EnableDumpEachRequestWithoutHeader enable dump without header at the request-level for
+// each request, and only temporarily stores the dump content in memory, call
+// Response.Dump() to get the dump content when needed.
+func (c *Client) EnableDumpEachRequestWithoutHeader() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDumpWithoutHeader()
+		}
+		return nil
+	})
+}
+
+// EnableDumpEachRequestWithoutRequest enable dump without request at the request-level for
+// each request, and only temporarily stores the dump content in memory, call
+// Response.Dump() to get the dump content when needed.
+func (c *Client) EnableDumpEachRequestWithoutRequest() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDumpWithoutRequest()
+		}
+		return nil
+	})
+}
+
+// EnableDumpEachRequestWithoutResponse enable dump without response at the request-level for
+// each request, and only temporarily stores the dump content in memory, call
+// Response.Dump() to get the dump content when needed.
+func (c *Client) EnableDumpEachRequestWithoutResponse() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDumpWithoutResponse()
+		}
+		return nil
+	})
+}
+
+// EnableDumpEachRequestWithoutResponseBody enable dump without response body at the
+// request-level for each request, and only temporarily stores the dump content in memory,
+// call Response.Dump() to get the dump content when needed.
+func (c *Client) EnableDumpEachRequestWithoutResponseBody() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDumpWithoutResponseBody()
+		}
+		return nil
+	})
+}
+
+// EnableDumpEachRequestWithoutRequestBody enable dump without request body at the
+// request-level for each request, and only temporarily stores the dump content in memory,
+// call Response.Dump() to get the dump content when needed.
+func (c *Client) EnableDumpEachRequestWithoutRequestBody() *Client {
+	return c.OnBeforeRequest(func(client *Client, req *Request) error {
+		if req.RetryAttempt == 0 { // Ignore on retry, no need to repeat enable dump.
+			req.EnableDumpWithoutRequestBody()
+		}
+		return nil
+	})
+}
+
 // NewRequest is the alias of R()
 func (c *Client) NewRequest() *Request {
 	return c.R()
