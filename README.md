@@ -113,6 +113,18 @@ if resp.Err != nil {
 
 Check more introduction, tutorials, examples, best practices and API references on the [official website](https://req.cool/).
 
+## Contributing
+
+If you have a bug report or feature request, you can [open an issue](https://github.com/imroc/req/issues/new), and [pull requests](https://github.com/imroc/req/pulls) are also welcome.
+
+## Contact
+
+If you have questions, feel free to reach out to us in the following ways:
+
+* [Github Discussion](https://github.com/imroc/req/discussions)
+* [Slack](https://imroc-req.slack.com/archives/C03UFPGSNC8) (International) | [Join](https://slack.req.cool/)
+* QQ Group (Chinese): 621411351 - <a href="https://qm.qq.com/cgi-bin/qm/qr?k=P8vOMuNytG-hhtPlgijwW6orJV765OAO&jump_from=webapi"><img src="https://pub.idqqimg.com/wpa/images/group.png"></a>
+
 ## <a name="License">License</a>
 
 `Req` released under MIT license, refer [LICENSE](LICENSE) file.
