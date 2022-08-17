@@ -51,16 +51,13 @@ func NewClient() *Client {
 		SetCommonHeader("Accept", "application/vnd.github.v3+json").
 		// All GitHub API requests use the same base URL.
 		SetBaseURL("https://api.github.com").
-		// EnableDump at the request level in request middleware which dump content into
-		// memory (not print to stdout), we can record dump content only when unexpected
-		// exception occurs, it is helpful to troubleshoot problems in production.
-		OnBeforeRequest(func(c *req.Client, r *req.Request) error {
-			if r.RetryAttempt > 0 { // Ignore on retry, no need to repeat EnableDump.
-				return nil
-			}
-			r.EnableDump()
-			return nil
-		}).
+		// Enable dump at the request-level for each request, and only
+		// temporarily stores the dump content in memory, so we can call
+		// resp.Dump() to get the dump content when needed in response
+		// middleware.
+		// This is actually a syntax sugar, implemented internally using
+		// request middleware
+		EnableDumpEachRequest().
 		// Unmarshal response body into an APIError struct when status >= 400.
 		SetCommonError(&APIError{}).
 		// Handle common exceptions in response middleware.
