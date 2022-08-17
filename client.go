@@ -866,6 +866,15 @@ func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	return c
 }
 
+// ClearCookies clears all cookies if cookie is enabled.
+func (c *Client) ClearCookies() *Client {
+	if c.httpClient.Jar != nil {
+		jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+		c.httpClient.Jar = jar
+	}
+	return c
+}
+
 // SetJsonMarshal set the JSON marshal function which will be used
 // to marshal request body.
 func (c *Client) SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {

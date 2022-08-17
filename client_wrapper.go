@@ -442,6 +442,12 @@ func SetCookieJar(jar http.CookieJar) *Client {
 	return defaultClient.SetCookieJar(jar)
 }
 
+// ClearCookies is a global wrapper methods which delegated
+// to the default client's ClearCookies.
+func ClearCookies() *Client {
+	return defaultClient.ClearCookies()
+}
+
 // SetJsonMarshal is a global wrapper methods which delegated
 // to the default client's SetJsonMarshal.
 func SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
