@@ -405,7 +405,7 @@ func (t *Transport) EnableHTTP3() {
 		}
 		return
 	}
-	if !(minorVersion >= 16 && minorVersion <= 18) {
+	if !(minorVersion >= 16 && minorVersion <= 19) {
 		if t.Debugf != nil {
 			t.Debugf("%s is not support http3", v)
 		}
