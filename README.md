@@ -106,8 +106,10 @@ if resp.Err != nil {
 
 **Videos**
 
-* [Get Started With Req](https://www.youtube.com/watch?v=k47i0CKBVrA) (English, Youtube)
-* [快速上手 req](https://www.bilibili.com/video/BV1Xq4y1b7UR) (Chinese, BiliBili)
+The following is a series of video tutorials for req:
+
+* [Youtube Play List](https://www.youtube.com/watch?v=Dy8iph8JWw0&list=PLnW6i9cc0XqlhUgOJJp5Yf1FHXlANYMhF&index=2)
+* [BiliBili 播放列表](https://www.bilibili.com/video/BV14t4y1J7cm)
 
 **More**
 
