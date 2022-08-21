@@ -44,7 +44,7 @@ type autoDecodeReadCloser struct {
 
 func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 	n, err = a.ReadCloser.Read(p)
-	if n == 0 || err != nil {
+	if n == 0 || (err != nil && err != io.EOF) {
 		return
 	}
 	a.detected = true

@@ -379,7 +379,6 @@ func (r *Request) SetHeader(key, value string) *Request {
 		r.Headers = make(http.Header)
 	}
 	r.Headers.Set(key, value)
-
 	return r
 }
 
