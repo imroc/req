@@ -1074,15 +1074,18 @@ func NewClient() *Client {
 
 // Clone copy and returns the Client
 func (c *Client) Clone() *Client {
-	t := c.t.Clone()
-
-	client := *c.httpClient
-	client.Transport = t
-
 	cc := *c
-	cc.httpClient = &client
-	cc.t = t
 
+	// clone Transport
+	cc.t = c.t.Clone()
+	cc.initTransport()
+
+	// clone http.Client
+	client := *c.httpClient
+	client.Transport = cc.t
+	cc.httpClient = &client
+
+	// clone other fields that may need to be cloned
 	cc.Headers = cloneHeaders(c.Headers)
 	cc.Cookies = cloneCookies(c.Cookies)
 	cc.PathParams = cloneMap(c.PathParams)
@@ -1093,13 +1096,6 @@ func (c *Client) Clone() *Client {
 	cc.afterResponse = cloneResponseMiddleware(c.afterResponse)
 	cc.dumpOptions = c.dumpOptions.Clone()
 	cc.retryOption = c.retryOption.Clone()
-
-	cc.log = c.log
-	cc.jsonUnmarshal = c.jsonUnmarshal
-	cc.jsonMarshal = c.jsonMarshal
-	cc.xmlMarshal = c.xmlMarshal
-	cc.xmlUnmarshal = c.xmlUnmarshal
-
 	return &cc
 }
 
@@ -1137,12 +1133,16 @@ func C() *Client {
 	}
 	httpClient.CheckRedirect = c.defaultCheckRedirect
 
-	t.Debugf = func(format string, v ...interface{}) {
+	c.initTransport()
+	return c
+}
+
+func (c *Client) initTransport() {
+	c.t.Debugf = func(format string, v ...interface{}) {
 		if c.DebugLog {
 			c.log.Debugf(format, v...)
 		}
 	}
-	return c
 }
 
 // RoundTripper is the interface of req's Client.
