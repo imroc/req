@@ -33,11 +33,15 @@ Full documentation is available on the official website: https://req.cool.
 
 **Install**
 
+You first need [Go](https://go.dev/) installed (version 1.16+ is required), then you can use the below Go command to install req.
+
 ``` sh
 go get github.com/imroc/req/v3
 ```
 
 **Import**
+
+Import req to your code:
 
 ```go
 import "github.com/imroc/req/v3"
@@ -109,7 +113,7 @@ if resp.Err != nil {
 The following is a series of video tutorials for req:
 
 * [Youtube Play List](https://www.youtube.com/watch?v=Dy8iph8JWw0&list=PLnW6i9cc0XqlhUgOJJp5Yf1FHXlANYMhF&index=2)
-* [BiliBili 播放列表](https://www.bilibili.com/video/BV14t4y1J7cm)
+* [BiliBili 播放列表](https://www.bilibili.com/video/BV14t4y1J7cm) (Chinese)
 
 **More**
 
@@ -124,7 +128,7 @@ If you have a bug report or feature request, you can [open an issue](https://git
 If you have questions, feel free to reach out to us in the following ways:
 
 * [Github Discussion](https://github.com/imroc/req/discussions)
-* [Slack](https://imroc-req.slack.com/archives/C03UFPGSNC8) (International) | [Join](https://slack.req.cool/)
+* [Slack](https://imroc-req.slack.com/archives/C03UFPGSNC8) | [Join](https://slack.req.cool/)
 * QQ Group (Chinese): 621411351 - <a href="https://qm.qq.com/cgi-bin/qm/qr?k=P8vOMuNytG-hhtPlgijwW6orJV765OAO&jump_from=webapi"><img src="https://pub.idqqimg.com/wpa/images/group.png"></a>
 
 ## <a name="License">License</a>
