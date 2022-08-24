@@ -950,6 +950,18 @@ func (c *Client) DisableForceHttpVersion() *Client {
 	return c
 }
 
+// EnableH2C enables HTTP/2 over TCP without TLS.
+func (c *Client) EnableH2C() *Client {
+	c.t.EnableH2C()
+	return c
+}
+
+// DisableH2C disables HTTP/2 over TCP without TLS.
+func (c *Client) DisableH2C() *Client {
+	c.t.DisableH2C()
+	return c
+}
+
 // DisableAllowGetMethodPayload disable sending GET method requests with body.
 func (c *Client) DisableAllowGetMethodPayload() *Client {
 	c.AllowGetMethodPayload = false

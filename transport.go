@@ -363,6 +363,24 @@ func (t *Transport) EnableForceHTTP2() *Transport {
 	return t
 }
 
+// EnableH2C enables HTTP2 over TCP without TLS.
+func (t *Transport) EnableH2C() *Transport {
+	t.Options.EnableH2C = true
+	t.t2.AllowHTTP = true
+	t.t2.DialTLS = func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+		return net.Dial(network, addr)
+	}
+	return t
+}
+
+// DisableH2C disables HTTP2 over TCP without TLS.
+func (t *Transport) DisableH2C() *Transport {
+	t.Options.EnableH2C = false
+	t.t2.AllowHTTP = false
+	t.t2.DialTLS = nil
+	return t
+}
+
 // EnableForceHTTP3 enable force using HTTP3 for https requests
 // (disabled by default).
 func (t *Transport) EnableForceHTTP3() *Transport {
@@ -717,8 +735,13 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		}
 	}
 
-	if t.forceHttpVersion == h3 {
-		return t.t3.RoundTrip(req)
+	if t.forceHttpVersion != "" {
+		switch t.forceHttpVersion {
+		case h3:
+			return t.t3.RoundTrip(req)
+		case h2:
+			return t.t2.RoundTrip(req)
+		}
 	}
 
 	origReq := req

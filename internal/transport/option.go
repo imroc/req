@@ -70,6 +70,9 @@ type Options struct {
 	// uncompressed.
 	DisableCompression bool
 
+	// EnableH2C, if true, enables http2 over plain http without tls.
+	EnableH2C bool
+
 	// MaxIdleConns controls the maximum number of idle (keep-alive)
 	// connections across all hosts. Zero means no limit.
 	MaxIdleConns int

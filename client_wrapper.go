@@ -520,6 +520,18 @@ func DisableForceHttpVersion() *Client {
 	return defaultClient.DisableForceHttpVersion()
 }
 
+// EnableH2C is a global wrapper methods which delegated
+// to the default client's EnableH2C.
+func EnableH2C() *Client {
+	return defaultClient.EnableH2C()
+}
+
+// DisableH2C is a global wrapper methods which delegated
+// to the default client's DisableH2C.
+func DisableH2C() *Client {
+	return defaultClient.DisableH2C()
+}
+
 // DisableAllowGetMethodPayload is a global wrapper methods which delegated
 // to the default client's DisableAllowGetMethodPayload.
 func DisableAllowGetMethodPayload() *Client {
