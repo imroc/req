@@ -394,6 +394,13 @@ func parseRequestURL(c *Client, r *Request) error {
 		return err
 	}
 
+	if reqURL.Scheme == "" && len(c.scheme) > 0 { // set scheme if missing
+		reqURL, err = url.Parse(c.scheme + "://" + tempURL)
+		if err != nil {
+			return err
+		}
+	}
+
 	// If RawURL is relative path then added c.BaseURL into
 	// the request URL otherwise Request.URL will be used as-is
 	if !reqURL.IsAbs() {
@@ -403,14 +410,6 @@ func parseRequestURL(c *Client, r *Request) error {
 		}
 
 		reqURL, err = url.Parse(c.BaseURL + tempURL)
-		if err != nil {
-			return err
-		}
-	}
-
-	if reqURL.Scheme == "" && len(c.scheme) > 0 {
-		reqURL.Scheme = c.scheme
-		reqURL, err = url.Parse(reqURL.String()) // prevent empty URL.Host
 		if err != nil {
 			return err
 		}
