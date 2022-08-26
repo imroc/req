@@ -1345,10 +1345,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 		}
 
 		if r.retryOption == nil || r.RetryAttempt >= r.retryOption.MaxRetries { // absolutely cannot retry.
-			if err != nil { // return immediately if error occurs.
-				return
-			}
-			break // jump out to execute the ResponseMiddlewares if possible.
+			return
 		}
 
 		// check retry whether is needed.
@@ -1360,7 +1357,7 @@ func (c *Client) do(r *Request) (resp *Response, err error) {
 			}
 		}
 		if !needRetry { // no retry is needed.
-			break // jump out to execute the ResponseMiddlewares.
+			return
 		}
 
 		// need retry, attempt to retry
