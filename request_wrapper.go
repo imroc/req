@@ -320,6 +320,18 @@ func EnableTrace() *Request {
 	return defaultClient.R().EnableTrace()
 }
 
+// EnableForceChunkedEncoding is a global wrapper methods which delegated
+// to the default client, create a request and EnableForceChunkedEncoding for request.
+func EnableForceChunkedEncoding() *Request {
+	return defaultClient.R().EnableForceChunkedEncoding()
+}
+
+// DisableForceChunkedEncoding is a global wrapper methods which delegated
+// to the default client, create a request and DisableForceChunkedEncoding for request.
+func DisableForceChunkedEncoding() *Request {
+	return defaultClient.R().DisableForceChunkedEncoding()
+}
+
 // EnableDumpTo is a global wrapper methods which delegated
 // to the default client, create a request and EnableDumpTo for request.
 func EnableDumpTo(output io.Writer) *Request {

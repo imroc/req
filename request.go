@@ -859,11 +859,13 @@ func (r *Request) EnableDumpWithoutResponseBody() *Request {
 	return r.EnableDump()
 }
 
+// EnableForceChunkedEncoding enables force using chunked encoding when uploading.
 func (r *Request) EnableForceChunkedEncoding() *Request {
 	r.forceChunkedEncoding = true
 	return r
 }
 
+// DisableForceChunkedEncoding disables force using chunked encoding when uploading.
 func (r *Request) DisableForceChunkedEncoding() *Request {
 	r.forceChunkedEncoding = true
 	return r
