@@ -82,7 +82,7 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload, r *Request) e
 		return err
 	}
 
-	if r.uploadCallback != nil {
+	if r.forceChunkedEncoding && r.uploadCallback != nil {
 		pw = &callbackWriter{
 			Writer:    pw,
 			lastTime:  lastTime,
@@ -110,7 +110,8 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload, r *Request) e
 	return err
 }
 
-func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
+func writeMultiPart(r *Request, w *multipart.Writer) {
+	defer w.Close() // close multipart to write tailer boundary
 	for k, vs := range r.FormData {
 		for _, v := range vs {
 			w.WriteField(k, v)
@@ -119,18 +120,30 @@ func writeMultiPart(r *Request, w *multipart.Writer, pw *io.PipeWriter) {
 	for _, file := range r.uploadFiles {
 		writeMultipartFormFile(w, file, r)
 	}
-	w.Close()  // close multipart to write tailer boundary
-	pw.Close() // close pipe writer so that pipe reader could get EOF, and stop upload
 }
 
 func handleMultiPart(c *Client, r *Request) (err error) {
-	pr, pw := io.Pipe()
-	r.GetBody = func() (io.ReadCloser, error) {
-		return pr, nil
+	if r.forceChunkedEncoding {
+		pr, pw := io.Pipe()
+		r.GetBody = func() (io.ReadCloser, error) {
+			return pr, nil
+		}
+		w := multipart.NewWriter(pw)
+		r.SetContentType(w.FormDataContentType())
+		go func() {
+			writeMultiPart(r, w)
+			pw.Close() // close pipe writer so that pipe reader could get EOF, and stop upload
+		}()
+	} else {
+		buf := new(bytes.Buffer)
+		w := multipart.NewWriter(buf)
+		writeMultiPart(r, w)
+		r.GetBody = func() (io.ReadCloser, error) {
+			return ioutil.NopCloser(bytes.NewReader(buf.Bytes())), nil
+		}
+		r.Body = buf.Bytes()
+		r.SetContentType(w.FormDataContentType())
 	}
-	w := multipart.NewWriter(pw)
-	r.SetContentType(w.FormDataContentType())
-	go writeMultiPart(r, w, pw)
 	return
 }
 

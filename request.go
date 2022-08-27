@@ -41,6 +41,7 @@ type Request struct {
 	GetBody      GetContentFunc
 
 	isMultiPart              bool
+	forceChunkedEncoding     bool
 	isSaveResponse           bool
 	error                    error
 	client                   *Client
@@ -319,6 +320,7 @@ func (r *Request) SetUploadCallbackWithInterval(callback UploadCallback, minInte
 	if callback == nil {
 		return r
 	}
+	r.forceChunkedEncoding = true
 	r.uploadCallback = callback
 	r.uploadCallbackInterval = minInterval
 	return r
@@ -855,6 +857,16 @@ func (r *Request) EnableDumpWithoutResponseBody() *Request {
 	o := r.getDumpOptions()
 	o.ResponseBody = false
 	return r.EnableDump()
+}
+
+func (r *Request) EnableForceChunkedEncoding() *Request {
+	r.forceChunkedEncoding = true
+	return r
+}
+
+func (r *Request) DisableForceChunkedEncoding() *Request {
+	r.forceChunkedEncoding = true
+	return r
 }
 
 func (r *Request) getRetryOption() *retryOption {
