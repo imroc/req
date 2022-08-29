@@ -332,6 +332,18 @@ func DisableForceChunkedEncoding() *Request {
 	return defaultClient.R().DisableForceChunkedEncoding()
 }
 
+// EnableForceMultipart is a global wrapper methods which delegated
+// to the default client, create a request and EnableForceMultipart for request.
+func EnableForceMultipart() *Request {
+	return defaultClient.R().EnableForceMultipart()
+}
+
+// DisableForceMultipart is a global wrapper methods which delegated
+// to the default client, create a request and DisableForceMultipart for request.
+func DisableForceMultipart() *Request {
+	return defaultClient.R().DisableForceMultipart()
+}
+
 // EnableDumpTo is a global wrapper methods which delegated
 // to the default client, create a request and EnableDumpTo for request.
 func EnableDumpTo(output io.Writer) *Request {

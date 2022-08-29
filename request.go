@@ -867,7 +867,19 @@ func (r *Request) EnableForceChunkedEncoding() *Request {
 
 // DisableForceChunkedEncoding disables force using chunked encoding when uploading.
 func (r *Request) DisableForceChunkedEncoding() *Request {
-	r.forceChunkedEncoding = true
+	r.forceChunkedEncoding = false
+	return r
+}
+
+// EnableForceMultipart enables force using multipart to upload form data.
+func (r *Request) EnableForceMultipart() *Request {
+	r.isMultiPart = true
+	return r
+}
+
+// DisableForceMultipart disables force using multipart to upload form data.
+func (r *Request) DisableForceMultipart() *Request {
+	r.isMultiPart = true
 	return r
 }
 
