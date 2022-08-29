@@ -504,8 +504,78 @@ func (r *Request) Do(ctx ...context.Context) *Response {
 	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable Body
 		return r.newErrorResponse(errRetryableWithUnReplayableBody)
 	}
-	resp, _ := r.client.do(r)
+	resp, _ := r.do()
 	return resp
+}
+
+func (r *Request) do() (resp *Response, err error) {
+	defer func() {
+		if resp == nil {
+			resp = &Response{Request: r}
+		}
+		if err != nil {
+			resp.Err = err
+		}
+	}()
+
+	for {
+		for _, f := range r.client.beforeRequest {
+			if err = f(r.client, r); err != nil {
+				return
+			}
+		}
+		for _, f := range r.client.udBeforeRequest {
+			if err = f(r.client, r); err != nil {
+				return
+			}
+		}
+
+		if r.Headers == nil {
+			r.Headers = make(http.Header)
+		}
+
+		if r.client.wrappedRoundTrip != nil {
+			resp, err = r.client.wrappedRoundTrip.RoundTrip(r)
+		} else {
+			resp, err = r.client.roundTrip(r)
+		}
+
+		if r.retryOption == nil || r.RetryAttempt >= r.retryOption.MaxRetries { // absolutely cannot retry.
+			return
+		}
+
+		// check retry whether is needed.
+		needRetry := err != nil                                   // default behaviour: retry if error occurs
+		for _, condition := range r.retryOption.RetryConditions { // override default behaviour if custom RetryConditions has been set.
+			needRetry = condition(resp, err)
+			if needRetry {
+				break
+			}
+		}
+		if !needRetry { // no retry is needed.
+			return
+		}
+
+		// need retry, attempt to retry
+		r.RetryAttempt++
+		for _, hook := range r.retryOption.RetryHooks { // run retry hooks
+			hook(resp, err)
+		}
+		time.Sleep(r.retryOption.GetRetryInterval(resp, r.RetryAttempt))
+
+		// clean up before retry
+		if r.dumpBuffer != nil {
+			r.dumpBuffer.Reset()
+		}
+		if r.trace != nil {
+			r.trace = &clientTrace{}
+		}
+		resp.body = nil
+		resp.result = nil
+		resp.error = nil
+	}
+
+	return
 }
 
 // Send fires http request with specified method and url, returns the
@@ -954,4 +1024,17 @@ func (r *Request) AddRetryCondition(condition RetryConditionFunc) *Request {
 	ro := r.getRetryOption()
 	ro.RetryConditions = append(ro.RetryConditions, condition)
 	return r
+}
+
+// SetClient change the client of request dynamically.
+func (r *Request) SetClient(client *Client) *Request {
+	if client != nil {
+		r.client = client
+	}
+	return r
+}
+
+// GetClient returns the current client used by request.
+func (r *Request) GetClient() *Client {
+	return r.client
 }
