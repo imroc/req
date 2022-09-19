@@ -442,6 +442,7 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 		ProtoMajor: 3,
 		Header:     http.Header{},
 		TLS:        &connState,
+		Request:    req,
 	}
 	for _, hf := range hfs {
 		switch hf.Name {
