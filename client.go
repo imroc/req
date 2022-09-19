@@ -372,6 +372,17 @@ func (c *Client) AddCommonQueryParam(key, value string) *Client {
 	return c
 }
 
+// AddCommonQueryParams add one or more values of specified URL query parameter for all requests.
+func (c *Client) AddCommonQueryParams(key string, values ...string) *Client {
+	if c.QueryParams == nil {
+		c.QueryParams = make(urlpkg.Values)
+	}
+	vs := c.QueryParams[key]
+	vs = append(vs, values...)
+	c.QueryParams[key] = vs
+	return c
+}
+
 func (c *Client) pathParams() map[string]string {
 	if c.PathParams == nil {
 		c.PathParams = make(map[string]string)

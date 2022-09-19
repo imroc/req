@@ -456,6 +456,17 @@ func (r *Request) AddQueryParam(key, value string) *Request {
 	return r
 }
 
+// AddQueryParams add one or more values of specified URL query parameter for the request.
+func (r *Request) AddQueryParams(key string, values ...string) *Request {
+	if r.QueryParams == nil {
+		r.QueryParams = make(urlpkg.Values)
+	}
+	vs := r.QueryParams[key]
+	vs = append(vs, values...)
+	r.QueryParams[key] = vs
+	return r
+}
+
 // SetPathParams set URL path parameters from a map for the request.
 func (r *Request) SetPathParams(params map[string]string) *Request {
 	for key, value := range params {

@@ -621,21 +621,6 @@ func testQueryParam(t *testing.T, c *Client) {
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=value4&key5=value5", resp.String())
 
-	// Set same param to override
-	resp, err = c.R().
-		SetQueryParam("key1", "value1").
-		SetQueryParams(map[string]string{
-			"key2": "value2",
-			"key3": "value3",
-		}).
-		SetQueryString("key4=value4&key5=value5").
-		SetQueryParam("key1", "value11").
-		SetQueryParam("key2", "value22").
-		SetQueryParam("key4", "value44").
-		Get("/query-parameter")
-	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value11&key2=value22&key3=value3&key4=value44&key5=value5", resp.String())
-
 	// Add same param without override
 	resp, err = c.R().
 		SetQueryParam("key1", "value1").
@@ -647,9 +632,11 @@ func testQueryParam(t *testing.T, c *Client) {
 		AddQueryParam("key1", "value11").
 		AddQueryParam("key2", "value22").
 		AddQueryParam("key4", "value44").
+		AddQueryParams("key6", "value6", "value66").
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5", resp.String())
+	tests.AssertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5&key6=value6&key6=value66", resp.String())
+
 }
 
 func TestPathParam(t *testing.T) {

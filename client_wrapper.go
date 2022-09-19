@@ -142,6 +142,12 @@ func AddCommonQueryParam(key, value string) *Client {
 	return defaultClient.AddCommonQueryParam(key, value)
 }
 
+// AddCommonQueryParams is a global wrapper methods which delegated
+// to the default client's AddCommonQueryParams.
+func AddCommonQueryParams(key string, values ...string) *Client {
+	return defaultClient.AddCommonQueryParams(key, values...)
+}
+
 // SetCommonPathParam is a global wrapper methods which delegated
 // to the default client's SetCommonPathParam.
 func SetCommonPathParam(key, value string) *Client {

@@ -146,6 +146,12 @@ func AddQueryParam(key, value string) *Request {
 	return defaultClient.R().AddQueryParam(key, value)
 }
 
+// AddQueryParams is a global wrapper methods which delegated
+// to the default client, create a request and AddQueryParams for request.
+func AddQueryParams(key string, values ...string) *Request {
+	return defaultClient.R().AddQueryParams(key, values...)
+}
+
 // SetPathParams is a global wrapper methods which delegated
 // to the default client, create a request and SetPathParams for request.
 func SetPathParams(params map[string]string) *Request {
