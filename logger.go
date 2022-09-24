@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 )
 
 // Logger is the abstract logging interface, gives control to
@@ -32,7 +33,8 @@ func (l *disableLogger) Warnf(format string, v ...interface{})  {}
 func (l *disableLogger) Debugf(format string, v ...interface{}) {}
 
 type logger struct {
-	l *log.Logger
+	mu sync.Mutex
+	l  *log.Logger
 }
 
 func (l *logger) Errorf(format string, v ...interface{}) {
@@ -48,6 +50,8 @@ func (l *logger) Debugf(format string, v ...interface{}) {
 }
 
 func (l *logger) output(level, format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	format = level + " [req] " + format
 	if len(v) == 0 {
 		l.l.Print(format)

@@ -693,6 +693,13 @@ func (c *Client) NewRequest() *Request {
 	return c.R()
 }
 
+func (c *Client) NewParallelDownload(url string) *ParallelDownload {
+	return &ParallelDownload{
+		url:    url,
+		client: c,
+	}
+}
+
 // DisableAutoReadResponse disable read response body automatically (enabled by default).
 func (c *Client) DisableAutoReadResponse() *Client {
 	c.disableAutoReadResponse = true
