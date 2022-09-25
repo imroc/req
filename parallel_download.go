@@ -38,7 +38,12 @@ func (pd *ParallelDownload) completeTask(task *downloadTask) {
 	pd.mu.Lock()
 	pd.taskMap[task.index] = task
 	pd.mu.Unlock()
-	pd.taskNotifyCh <- task
+	go func() {
+		select {
+		case pd.taskNotifyCh <- task:
+		case <-pd.doneCh:
+		}
+	}()
 }
 
 func (pd *ParallelDownload) popTask(index int) *downloadTask {
@@ -78,11 +83,11 @@ func (pd *ParallelDownload) ensure() error {
 	if pd.cacheRootDir == "" {
 		pd.cacheRootDir = os.TempDir()
 	}
+	pd.cacheDir = filepath.Join(pd.cacheRootDir, md5Sum(pd.url))
 	if pd.client.DebugLog {
-		pd.client.log.Debugf("use cache root directory %s", pd.cacheRootDir)
+		pd.client.log.Debugf("use cache directory %s", pd.cacheDir)
 		pd.client.log.Debugf("download with %d concurrency and %d bytes segment size", pd.concurrency, pd.segmentSize)
 	}
-	pd.cacheDir = filepath.Join(pd.cacheRootDir, md5Sum(pd.url))
 	err := os.MkdirAll(pd.cacheDir, os.ModePerm)
 	if err != nil {
 		return err
@@ -200,12 +205,12 @@ func (pd *ParallelDownload) mergeFile() {
 		}
 		break
 	}
+	if pd.client.DebugLog {
+		pd.client.log.Debugf("removing cache directory %s", pd.cacheDir)
+	}
 	err = os.RemoveAll(pd.cacheDir)
 	if err != nil {
 		pd.errCh <- err
-	}
-	if pd.client.DebugLog {
-		pd.client.log.Debugf("removed cache directory %s", pd.cacheDir)
 	}
 }
 
