@@ -86,7 +86,7 @@ func (pd *ParallelDownload) ensure() error {
 	}
 	pd.tempDir = filepath.Join(pd.tempRootDir, md5Sum(pd.url))
 	if pd.client.DebugLog {
-		pd.client.log.Debugf("use cache directory %s", pd.tempDir)
+		pd.client.log.Debugf("use temporary directory %s", pd.tempDir)
 		pd.client.log.Debugf("download with %d concurrency and %d bytes segment size", pd.concurrency, pd.segmentSize)
 	}
 	err := os.MkdirAll(pd.tempDir, os.ModePerm)
@@ -208,7 +208,7 @@ func (pd *ParallelDownload) mergeFile() {
 		break
 	}
 	if pd.client.DebugLog {
-		pd.client.log.Debugf("removing cache directory %s", pd.tempDir)
+		pd.client.log.Debugf("removing temporary directory %s", pd.tempDir)
 	}
 	err = os.RemoveAll(pd.tempDir)
 	if err != nil {
