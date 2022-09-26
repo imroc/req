@@ -22,8 +22,8 @@ type ParallelDownload struct {
 	filename     string
 	segmentSize  int64
 	perm         os.FileMode
-	cacheRootDir string
-	cacheDir     string
+	tempRootDir  string
+	tempDir      string
 	taskCh       chan *downloadTask
 	doneCh       chan struct{}
 	wgDoneCh     chan struct{}
@@ -81,15 +81,15 @@ func (pd *ParallelDownload) ensure() error {
 	if pd.perm == 0 {
 		pd.perm = 0777
 	}
-	if pd.cacheRootDir == "" {
-		pd.cacheRootDir = os.TempDir()
+	if pd.tempRootDir == "" {
+		pd.tempRootDir = os.TempDir()
 	}
-	pd.cacheDir = filepath.Join(pd.cacheRootDir, md5Sum(pd.url))
+	pd.tempDir = filepath.Join(pd.tempRootDir, md5Sum(pd.url))
 	if pd.client.DebugLog {
-		pd.client.log.Debugf("use cache directory %s", pd.cacheDir)
+		pd.client.log.Debugf("use cache directory %s", pd.tempDir)
 		pd.client.log.Debugf("download with %d concurrency and %d bytes segment size", pd.concurrency, pd.segmentSize)
 	}
-	err := os.MkdirAll(pd.cacheDir, os.ModePerm)
+	err := os.MkdirAll(pd.tempDir, os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -108,8 +108,8 @@ func (pd *ParallelDownload) SetSegmentSize(segmentSize int64) *ParallelDownload 
 	return pd
 }
 
-func (pd *ParallelDownload) SetCacheRootDir(cacheRootDir string) *ParallelDownload {
-	pd.cacheRootDir = cacheRootDir
+func (pd *ParallelDownload) SetTempRootDir(tempRootDir string) *ParallelDownload {
+	pd.tempRootDir = tempRootDir
 	return pd
 }
 
@@ -149,7 +149,7 @@ type downloadTask struct {
 func (pd *ParallelDownload) handleTask(t *downloadTask, ctx ...context.Context) {
 	pd.wg.Add(1)
 	defer pd.wg.Done()
-	t.tempFilename = getRangeTempFile(t.rangeStart, t.rangeEnd, pd.cacheDir)
+	t.tempFilename = getRangeTempFile(t.rangeStart, t.rangeEnd, pd.tempDir)
 	if pd.client.DebugLog {
 		pd.client.log.Debugf("downloading segment %d-%d", t.rangeStart, t.rangeEnd)
 	}
@@ -208,9 +208,9 @@ func (pd *ParallelDownload) mergeFile() {
 		break
 	}
 	if pd.client.DebugLog {
-		pd.client.log.Debugf("removing cache directory %s", pd.cacheDir)
+		pd.client.log.Debugf("removing cache directory %s", pd.tempDir)
 	}
-	err = os.RemoveAll(pd.cacheDir)
+	err = os.RemoveAll(pd.tempDir)
 	if err != nil {
 		pd.errCh <- err
 	}
