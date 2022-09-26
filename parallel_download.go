@@ -1,6 +1,7 @@
 package req
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -145,22 +146,23 @@ type downloadTask struct {
 	tempFile             *os.File
 }
 
-func (pd *ParallelDownload) handleTask(t *downloadTask) {
+func (pd *ParallelDownload) handleTask(t *downloadTask, ctx ...context.Context) {
 	pd.wg.Add(1)
 	defer pd.wg.Done()
 	t.tempFilename = getRangeTempFile(t.rangeStart, t.rangeEnd, pd.cacheDir)
 	if pd.client.DebugLog {
 		pd.client.log.Debugf("downloading segment %d-%d", t.rangeStart, t.rangeEnd)
 	}
-	file, err := os.OpenFile(t.tempFilename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(t.tempFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		pd.errCh <- err
 		return
 	}
-	_, err = pd.client.R().
+	err = pd.client.Get(pd.url).
 		SetHeader("Range", fmt.Sprintf("bytes=%d-%d", t.rangeStart, t.rangeEnd)).
 		SetOutput(file).
-		Get(pd.url)
+		Do(ctx...).Err
+
 	if err != nil {
 		pd.errCh <- err
 		return
@@ -169,11 +171,11 @@ func (pd *ParallelDownload) handleTask(t *downloadTask) {
 	pd.completeTask(t)
 }
 
-func (pd *ParallelDownload) startWorker() {
+func (pd *ParallelDownload) startWorker(ctx ...context.Context) {
 	for {
 		select {
 		case t := <-pd.taskCh:
-			pd.handleTask(t)
+			pd.handleTask(t, ctx...)
 		case <-pd.doneCh:
 			return
 		}
@@ -214,17 +216,17 @@ func (pd *ParallelDownload) mergeFile() {
 	}
 }
 
-func (pd *ParallelDownload) Do() error {
+func (pd *ParallelDownload) Do(ctx ...context.Context) error {
 	err := pd.ensure()
 	if err != nil {
 		return err
 	}
 	for i := 0; i < pd.concurrency; i++ {
-		go pd.startWorker()
+		go pd.startWorker(ctx...)
 	}
-	resp, err := pd.client.R().Head(pd.url)
-	if err != nil {
-		return err
+	resp := pd.client.Head(pd.url).Do(ctx...)
+	if resp.Err != nil {
+		return resp.Err
 	}
 	if resp.ContentLength <= 0 {
 		return fmt.Errorf("bad content length: %d", resp.ContentLength)
@@ -295,5 +297,5 @@ func (pd *ParallelDownload) getOutputFile() (io.Writer, error) {
 	if pd.client.outputDirectory != "" && !filepath.IsAbs(pd.filename) {
 		pd.filename = filepath.Join(pd.client.outputDirectory, pd.filename)
 	}
-	return os.OpenFile(pd.filename, os.O_RDWR|os.O_CREATE, pd.perm)
+	return os.OpenFile(pd.filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, pd.perm)
 }

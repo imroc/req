@@ -496,13 +496,10 @@ func (r *Request) newErrorResponse(err error) *Response {
 	return resp
 }
 
-// Do fires http request, 0 or 1 context ia allowed, and returns the *Response which
+// Do fires http request, 0 or 1 context is allowed, and returns the *Response which
 // is always not nil, and Response.Err is not nil if error occurs.
 func (r *Request) Do(ctx ...context.Context) *Response {
-	if len(ctx) > 0 {
-		if len(ctx) > 1 {
-			return r.newErrorResponse(fmt.Errorf("only 0 or 1 context is allowed in Do, and %d are received", len(ctx)))
-		}
+	if len(ctx) > 0 && ctx[0] != nil {
 		r.ctx = ctx[0]
 	}
 
@@ -820,7 +817,9 @@ func (r *Request) Context() context.Context {
 // See https://blog.golang.org/context article and the "context" package
 // documentation.
 func (r *Request) SetContext(ctx context.Context) *Request {
-	r.ctx = ctx
+	if ctx != nil {
+		r.ctx = ctx
+	}
 	return r
 }
 
