@@ -167,12 +167,9 @@ func (r *Response) ToBytes() ([]byte, error) {
 	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
-	r.setReceivedAt()
-	if err != nil {
-		return nil, err
-	}
 	r.body = body
-	return body, nil
+	r.setReceivedAt()
+	return body, err
 }
 
 // Dump return the string content that have been dumped for the request.
