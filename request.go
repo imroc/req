@@ -882,7 +882,11 @@ func (r *Request) SetDumpOptions(opt *DumpOptions) *Request {
 	if opt.Output == nil {
 		opt.Output = r.getDumpBuffer()
 	}
-	r.dumpOptions = opt
+	if r.dumpOptions != nil {
+		*r.dumpOptions = *opt
+	} else {
+		r.dumpOptions = opt
+	}
 	return r
 }
 

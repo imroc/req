@@ -47,7 +47,7 @@ func newTextprotoReader(r *bufio.Reader, ds dump.Dumpers) *textprotoReader {
 				return
 			}
 			err = nil
-			ds.Dump(line)
+			ds.DumpResponseHeader(line)
 			if line[len(line)-1] == '\n' {
 				drop := 1
 				if len(line) > 1 && line[len(line)-2] == '\r' {
@@ -202,7 +202,6 @@ var colon = []byte(":")
 //		"My-Key": {"Value 1", "Value 2"},
 //		"Long-Key": {"Even Longer Value"},
 //	}
-//
 func (r *textprotoReader) ReadMIMEHeader() (textproto.MIMEHeader, error) {
 	// Avoid lots of small slice allocations later by allocating one
 	// large one ahead of time which we'll cut up into smaller
@@ -295,11 +294,12 @@ const toLower = 'a' - 'A'
 
 // validHeaderFieldByte reports whether b is a valid byte in a header
 // field name. RFC 7230 says:
-//   header-field   = field-name ":" OWS field-value OWS
-//   field-name     = token
-//   tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
-//           "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
-//   token = 1*tchar
+//
+//	header-field   = field-name ":" OWS field-value OWS
+//	field-name     = token
+//	tchar = "!" / "#" / "$" / "%" / "&" / "'" / "*" / "+" / "-" / "." /
+//	        "^" / "_" / "`" / "|" / "~" / DIGIT / ALPHA
+//	token = 1*tchar
 func validHeaderFieldByte(b byte) bool {
 	return int(b) < len(isTokenTable) && isTokenTable[b]
 }

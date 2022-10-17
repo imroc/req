@@ -322,7 +322,7 @@ func (c *client) sendRequestBody(str Stream, body io.ReadCloser, dumps []*dump.D
 	if len(dumps) > 0 {
 		writeData = func(data []byte) error {
 			for _, dump := range dumps {
-				dump.Dump(data)
+				dump.DumpRequestBody(data)
 			}
 			if _, err := str.Write(data); err != nil {
 				return err
@@ -338,7 +338,7 @@ func (c *client) sendRequestBody(str Stream, body io.ReadCloser, dumps []*dump.D
 			}
 			if rerr == io.EOF {
 				for _, dump := range dumps {
-					dump.Dump([]byte("\r\n\r\n"))
+					dump.DumpDefault([]byte("\r\n\r\n"))
 				}
 				break
 			}
@@ -349,7 +349,7 @@ func (c *client) sendRequestBody(str Stream, body io.ReadCloser, dumps []*dump.D
 		if rerr != nil {
 			if rerr == io.EOF {
 				for _, dump := range dumps {
-					dump.Dump([]byte("\r\n\r\n"))
+					dump.DumpDefault([]byte("\r\n\r\n"))
 				}
 				break
 			}
@@ -424,11 +424,11 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 	if len(respHeaderDumps) > 0 {
 		for _, hf := range hfs {
 			for _, dump := range respHeaderDumps {
-				dump.Dump([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
+				dump.DumpResponseHeader([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
 			}
 		}
 		for _, dump := range respHeaderDumps {
-			dump.Dump([]byte("\r\n"))
+			dump.DumpResponseHeader([]byte("\r\n"))
 		}
 	}
 	if err != nil {

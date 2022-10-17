@@ -540,7 +540,7 @@ func (h2f *Framer) ReadFrame() (Frame, error) {
 		hr, err := h2f.readMetaFrame(f.(*HeadersFrame), dumps)
 		if err == nil && len(dumps) > 0 {
 			for _, dump := range dumps {
-				dump.Dump([]byte("\r\n"))
+				dump.DumpResponseHeader([]byte("\r\n"))
 			}
 		}
 		return hr, err
@@ -1587,11 +1587,10 @@ func (h2f *Framer) readMetaFrame(hf *HeadersFrame, dumps []*dump.Dumper) (*MetaH
 	}
 	emitFunc := rawEmitFunc
 
-	if len(dumps) > 0 {
+	ds := dump.Dumpers(dumps)
+	if ds.ShouldDump() {
 		emitFunc = func(hf hpack.HeaderField) {
-			for _, dump := range dumps {
-				dump.Dump([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
-			}
+			ds.DumpResponseHeader([]byte(fmt.Sprintf("%s: %s\r\n", hf.Name, hf.Value)))
 			rawEmitFunc(hf)
 		}
 	}

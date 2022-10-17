@@ -9,6 +9,10 @@ import (
 // Options controls the dump behavior.
 type Options interface {
 	Output() io.Writer
+	RequestHeaderOutput() io.Writer
+	RequestBodyOutput() io.Writer
+	ResponseHeaderOutput() io.Writer
+	ResponseBodyOutput() io.Writer
 	RequestHeader() bool
 	RequestBody() bool
 	ResponseHeader() bool
@@ -17,52 +21,70 @@ type Options interface {
 	Clone() Options
 }
 
-func (d *Dumper) WrapReadCloser(rc io.ReadCloser) io.ReadCloser {
-	return &dumpReadCloser{rc, d}
+func (d *Dumper) WrapResponseBodyReadCloser(rc io.ReadCloser) io.ReadCloser {
+	return &dumpReponseBodyReadCloser{rc, d}
 }
 
-type dumpReadCloser struct {
+type dumpReponseBodyReadCloser struct {
 	io.ReadCloser
 	dump *Dumper
 }
 
-func (r *dumpReadCloser) Read(p []byte) (n int, err error) {
+func (r *dumpReponseBodyReadCloser) Read(p []byte) (n int, err error) {
 	n, err = r.ReadCloser.Read(p)
-	r.dump.Dump(p[:n])
+	r.dump.DumpResponseBody(p[:n])
 	if err == io.EOF {
-		r.dump.Dump([]byte("\r\n"))
+		r.dump.DumpDefault([]byte("\r\n"))
 	}
 	return
 }
 
-func (d *Dumper) WrapWriteCloser(rc io.WriteCloser) io.WriteCloser {
-	return &dumpWriteCloser{rc, d}
+func (d *Dumper) WrapRequestBodyWriteCloser(rc io.WriteCloser) io.WriteCloser {
+	return &dumpRequestBodyWriteCloser{rc, d}
 }
 
-type dumpWriteCloser struct {
+type dumpRequestBodyWriteCloser struct {
 	io.WriteCloser
 	dump *Dumper
 }
 
-func (w *dumpWriteCloser) Write(p []byte) (n int, err error) {
+func (w *dumpRequestBodyWriteCloser) Write(p []byte) (n int, err error) {
 	n, err = w.WriteCloser.Write(p)
-	w.dump.Dump(p[:n])
+	w.dump.DumpRequestBody(p[:n])
 	return
 }
 
-type dumpWriter struct {
+type dumpRequestHeaderWriter struct {
 	w    io.Writer
 	dump *Dumper
 }
 
-func (w *dumpWriter) Write(p []byte) (n int, err error) {
+func (w *dumpRequestHeaderWriter) Write(p []byte) (n int, err error) {
 	n, err = w.w.Write(p)
-	w.dump.Dump(p[:n])
+	w.dump.DumpRequestHeader(p[:n])
 	return
 }
 
-func (d *Dumper) WrapWriter(w io.Writer) io.Writer {
-	return &dumpWriter{
+func (d *Dumper) WrapRequestHeaderWriter(w io.Writer) io.Writer {
+	return &dumpRequestHeaderWriter{
+		w:    w,
+		dump: d,
+	}
+}
+
+type dumpRequestBodyWriter struct {
+	w    io.Writer
+	dump *Dumper
+}
+
+func (w *dumpRequestBodyWriter) Write(p []byte) (n int, err error) {
+	n, err = w.w.Write(p)
+	w.dump.DumpRequestBody(p[:n])
+	return
+}
+
+func (d *Dumper) WrapRequestBodyWriter(w io.Writer) io.Writer {
+	return &dumpRequestBodyWriter{
 		w:    w,
 		dump: d,
 	}
@@ -88,24 +110,28 @@ func (ds Dumpers) ShouldDump() bool {
 	return len(ds) > 0
 }
 
-// Dump with all dumpers.
-func (ds Dumpers) Dump(p []byte) {
+func (ds Dumpers) DumpResponseHeader(p []byte) {
 	for _, d := range ds {
-		d.Dump(p)
+		d.DumpResponseHeader(p)
 	}
 }
 
 // Dumper is the dump tool.
 type Dumper struct {
 	Options
-	ch chan []byte
+	ch chan *dumpTask
+}
+
+type dumpTask struct {
+	Data   []byte
+	Output io.Writer
 }
 
 // NewDumper create a new Dumper.
 func NewDumper(opt Options) *Dumper {
 	d := &Dumper{
 		Options: opt,
-		ch:      make(chan []byte, 20),
+		ch:      make(chan *dumpTask, 20),
 	}
 	return d
 }
@@ -121,21 +147,41 @@ func (d *Dumper) Clone() *Dumper {
 	}
 	return &Dumper{
 		Options: d.Options.Clone(),
-		ch:      make(chan []byte, 20),
+		ch:      make(chan *dumpTask, 20),
 	}
 }
 
-func (d *Dumper) Dump(p []byte) {
-	if len(p) == 0 {
+func (d *Dumper) DumpTo(p []byte, output io.Writer) {
+	if len(p) == 0 || output == nil {
 		return
 	}
 	if d.Async() {
 		b := make([]byte, len(p))
 		copy(b, p)
-		d.ch <- b
+		d.ch <- &dumpTask{Data: b, Output: output}
 		return
 	}
-	d.Output().Write(p)
+	output.Write(p)
+}
+
+func (d *Dumper) DumpDefault(p []byte) {
+	d.DumpTo(p, d.Output())
+}
+
+func (d *Dumper) DumpRequestHeader(p []byte) {
+	d.DumpTo(p, d.RequestHeaderOutput())
+}
+
+func (d *Dumper) DumpRequestBody(p []byte) {
+	d.DumpTo(p, d.RequestBodyOutput())
+}
+
+func (d *Dumper) DumpResponseHeader(p []byte) {
+	d.DumpTo(p, d.ResponseHeaderOutput())
+}
+
+func (d *Dumper) DumpResponseBody(p []byte) {
+	d.DumpTo(p, d.ResponseBodyOutput())
 }
 
 func (d *Dumper) Stop() {
@@ -143,11 +189,11 @@ func (d *Dumper) Stop() {
 }
 
 func (d *Dumper) Start() {
-	for b := range d.ch {
-		if b == nil {
+	for t := range d.ch {
+		if t == nil {
 			return
 		}
-		d.Output().Write(b)
+		t.Output.Write(t.Data)
 	}
 }
 
@@ -170,7 +216,7 @@ func WrapResponseBodyIfNeeded(res *http.Response, req *http.Request, dump *Dumpe
 	dumps := GetDumpers(req.Context(), dump)
 	for _, d := range dumps {
 		if d.ResponseBody() {
-			res.Body = d.WrapReadCloser(res.Body)
+			res.Body = d.WrapResponseBodyReadCloser(res.Body)
 		}
 	}
 }

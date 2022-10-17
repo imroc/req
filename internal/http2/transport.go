@@ -1239,7 +1239,7 @@ func (cs *clientStream) writeRequest(req *http.Request) (err error) {
 		} else {
 			cs.sentEndStream = true
 			for _, dump := range bodyDumps {
-				dump.Dump([]byte("\r\n\r\n"))
+				dump.DumpDefault([]byte("\r\n\r\n"))
 			}
 		}
 	}
@@ -1499,7 +1499,7 @@ func (cs *clientStream) writeRequestBody(req *http.Request, dumps []*dump.Dumper
 	if len(dumps) > 0 {
 		writeData = func(streamID uint32, endStream bool, data []byte) error {
 			for _, dump := range dumps {
-				dump.Dump(data)
+				dump.DumpRequestBody(data)
 			}
 			return cc.fr.WriteData(streamID, endStream, data)
 		}
@@ -1818,7 +1818,7 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 		if len(headerDumps) > 0 {
 			writeHeader = func(name, value string) {
 				for _, dump := range headerDumps {
-					dump.Dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
+					dump.DumpRequestHeader([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
 				}
 				cc.writeHeader(name, value)
 			}
@@ -1840,7 +1840,7 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 	})
 
 	for _, dump := range headerDumps {
-		dump.Dump([]byte("\r\n"))
+		dump.DumpRequestHeader([]byte("\r\n"))
 	}
 
 	return cc.hbuf.Bytes(), nil
@@ -1887,7 +1887,7 @@ func (cc *ClientConn) encodeTrailers(trailer http.Header, dumps []*dump.Dumper) 
 	if len(dumps) > 0 {
 		writeHeader = func(name, value string) {
 			for _, dump := range dumps {
-				dump.Dump([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
+				dump.DumpRequestHeader([]byte(fmt.Sprintf("%s: %s\r\n", name, value)))
 			}
 			cc.writeHeader(name, value)
 		}

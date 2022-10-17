@@ -2743,7 +2743,7 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 	dumps := dump.GetDumpers(r.Context(), pc.t.Dump)
 	for _, dump := range dumps {
 		if dump.RequestHeader() {
-			w = dump.WrapWriter(w)
+			w = dump.WrapRequestHeaderWriter(w)
 		}
 	}
 

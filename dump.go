@@ -8,12 +8,18 @@ import (
 
 // DumpOptions controls the dump behavior.
 type DumpOptions struct {
-	Output         io.Writer
-	RequestHeader  bool
-	RequestBody    bool
-	ResponseHeader bool
-	ResponseBody   bool
-	Async          bool
+	Output               io.Writer
+	RequestOutput        io.Writer
+	ResponseOutput       io.Writer
+	RequestHeaderOutput  io.Writer
+	RequestBodyOutput    io.Writer
+	ResponseHeaderOutput io.Writer
+	ResponseBodyOutput   io.Writer
+	RequestHeader        bool
+	RequestBody          bool
+	ResponseHeader       bool
+	ResponseBody         bool
+	Async                bool
 }
 
 // Clone return a copy of DumpOptions
@@ -30,7 +36,50 @@ type dumpOptions struct {
 }
 
 func (o dumpOptions) Output() io.Writer {
+	if o.DumpOptions.Output == nil {
+		return os.Stdout
+	}
 	return o.DumpOptions.Output
+}
+
+func (o dumpOptions) RequestHeaderOutput() io.Writer {
+	if o.DumpOptions.RequestHeaderOutput != nil {
+		return o.DumpOptions.RequestHeaderOutput
+	}
+	if o.DumpOptions.RequestOutput != nil {
+		return o.DumpOptions.RequestOutput
+	}
+	return o.Output()
+}
+
+func (o dumpOptions) RequestBodyOutput() io.Writer {
+	if o.DumpOptions.RequestBodyOutput != nil {
+		return o.DumpOptions.RequestBodyOutput
+	}
+	if o.DumpOptions.RequestOutput != nil {
+		return o.DumpOptions.RequestOutput
+	}
+	return o.Output()
+}
+
+func (o dumpOptions) ResponseHeaderOutput() io.Writer {
+	if o.DumpOptions.ResponseHeaderOutput != nil {
+		return o.DumpOptions.ResponseHeaderOutput
+	}
+	if o.DumpOptions.ResponseOutput != nil {
+		return o.DumpOptions.ResponseOutput
+	}
+	return o.Output()
+}
+
+func (o dumpOptions) ResponseBodyOutput() io.Writer {
+	if o.DumpOptions.ResponseBodyOutput != nil {
+		return o.DumpOptions.ResponseBodyOutput
+	}
+	if o.DumpOptions.ResponseOutput != nil {
+		return o.DumpOptions.ResponseOutput
+	}
+	return o.Output()
 }
 
 func (o dumpOptions) RequestHeader() bool {
