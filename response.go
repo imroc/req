@@ -49,12 +49,14 @@ func (r *Response) GetContentType() string {
 	return r.Header.Get(header.ContentType)
 }
 
-// Result returns the response value as an object if it has one
+// Result returns the automatically unmarshalled object if Request.SetResult is called,
+// and Response.IsSuccess() == true. Otherwise return nil.
 func (r *Response) Result() interface{} {
 	return r.result
 }
 
-// Error returns the error object if it has one.
+// Error returns the automatically unmarshalled object when Request.SetError is called,
+// and Response.IsError() == true. Otherwise return nil.
 func (r *Response) Error() interface{} {
 	return r.error
 }
