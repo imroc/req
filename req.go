@@ -45,6 +45,8 @@ type FileUpload struct {
 	GetFileContent GetContentFunc
 	// Optional file length in bytes.
 	FileSize int64
+	// Optional Content-Type
+	ContentType string
 
 	// Optional extra ContentDisposition parameters.
 	// According to the HTTP specification, this should be nil,
