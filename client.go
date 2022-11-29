@@ -1277,6 +1277,7 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		ContentLength: contentLength,
 		Body:          reqBody,
 		GetBody:       r.GetBody,
+		Close:         r.close,
 	}
 	for _, cookie := range r.Cookies {
 		req.AddCookie(cookie)

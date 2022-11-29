@@ -481,3 +481,9 @@ func SetDownloadCallback(callback DownloadCallback) *Request {
 func SetDownloadCallbackWithInterval(callback DownloadCallback, minInterval time.Duration) *Request {
 	return defaultClient.R().SetDownloadCallbackWithInterval(callback, minInterval)
 }
+
+// EnableCloseConnection is a global wrapper methods which delegated
+// to the default client, create a request and EnableCloseConnection for request.
+func EnableCloseConnection() *Request {
+	return defaultClient.R().EnableCloseConnection()
+}

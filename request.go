@@ -43,6 +43,7 @@ type Request struct {
 	isMultiPart              bool
 	forceChunkedEncoding     bool
 	isSaveResponse           bool
+	close                    bool
 	error                    error
 	client                   *Client
 	uploadCallback           UploadCallback
@@ -1051,4 +1052,15 @@ func (r *Request) SetClient(client *Client) *Request {
 // GetClient returns the current client used by request.
 func (r *Request) GetClient() *Client {
 	return r.client
+}
+
+// EnableCloseConnection closes the connection after sending this
+// request and reading its response if set to true in HTTP/1.1 and
+// HTTP/2.
+//
+// Setting this field prevents re-use of TCP connections between
+// requests to the same hosts event if EnableKeepAlives() were called.
+func (r *Request) EnableCloseConnection() *Request {
+	r.close = true
+	return r
 }
