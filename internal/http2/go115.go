@@ -11,24 +11,18 @@ import (
 	"context"
 	"crypto/tls"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
-	"net"
 )
 
 // dialTLSWithContext uses tls.Dialer, added in Go 1.15, to open a TLS
 // connection.
-func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (tlsCn reqtls.Conn, err error) {
-	var conn net.Conn
-	if t.DialTLSContext != nil {
-		conn, err = t.DialTLSContext(ctx, network, addr)
-	} else {
-		dialer := &tls.Dialer{
-			Config: cfg,
-		}
-		conn, err = dialer.DialContext(ctx, network, addr)
+func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (reqtls.Conn, error) {
+	dialer := &tls.Dialer{
+		Config: cfg,
 	}
+	conn, err := dialer.DialContext(ctx, network, addr)
 	if err != nil {
-		return
+		return nil, err
 	}
-	tlsCn = conn.(reqtls.Conn)
-	return
+	tlsCn := conn.(reqtls.Conn)
+	return tlsCn, nil
 }

@@ -73,6 +73,7 @@ const (
 // for concurrent use by multiple goroutines.
 type Transport struct {
 	*transport.Options
+
 	// DialTLS specifies an optional dial function for creating
 	// TLS connections for requests.
 	//
@@ -559,6 +560,11 @@ func (t *Transport) newTLSConfig(host string) *tls.Config {
 func (t *Transport) dialTLS(ctx context.Context) func(string, string, *tls.Config) (net.Conn, error) {
 	if t.DialTLS != nil {
 		return t.DialTLS
+	}
+	if t.DialTLSContext != nil {
+		return func(network string, addr string, cfg *tls.Config) (net.Conn, error) {
+			return t.DialTLSContext(ctx, network, addr)
+		}
 	}
 	return func(network, addr string, cfg *tls.Config) (net.Conn, error) {
 		tlsCn, err := t.dialTLSWithContext(ctx, network, addr, cfg)

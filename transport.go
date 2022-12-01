@@ -367,7 +367,7 @@ func (t *Transport) EnableForceHTTP2() *Transport {
 func (t *Transport) EnableH2C() *Transport {
 	t.Options.EnableH2C = true
 	t.t2.AllowHTTP = true
-	t.t2.DialTLS = func(network, addr string, cfg *tls.Config) (net.Conn, error) {
+	t.DialTLSContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
 		return net.Dial(network, addr)
 	}
 	return t
@@ -377,7 +377,7 @@ func (t *Transport) EnableH2C() *Transport {
 func (t *Transport) DisableH2C() *Transport {
 	t.Options.EnableH2C = false
 	t.t2.AllowHTTP = false
-	t.t2.DialTLS = nil
+	t.t2.DialTLSContext = nil
 	return t
 }
 
