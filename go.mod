@@ -1,6 +1,6 @@
 module github.com/imroc/req/v3
 
-go 1.15
+go 1.16
 
 require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
