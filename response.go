@@ -135,9 +135,8 @@ func (r *Response) Into(v interface{}) error {
 // Bytes return the response body as []bytes that hava already been read, could be
 // nil if not read, the following cases are already read:
 //  1. `Request.SetResult` or `Request.SetError` is called.
-//  2. `Client.DisableAutoReadResponse(false)` is not called,
-//  3. `Request.DisableAutoReadResponse(false)` is not called,
-//     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
+//  2. `Client.DisableAutoReadResponse` and `Request.DisableAutoReadResponse` is not
+//     called, and also `Request.SetOutput` and `Request.SetOutputFile` is not called.
 func (r *Response) Bytes() []byte {
 	return r.body
 }
@@ -145,9 +144,8 @@ func (r *Response) Bytes() []byte {
 // String returns the response body as string that hava already been read, could be
 // nil if not read, the following cases are already read:
 //  1. `Request.SetResult` or `Request.SetError` is called.
-//  2. `Client.DisableAutoReadResponse(false)` is not called,
-//  3. `Request.DisableAutoReadResponse(false)` is not called,
-//     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
+//  2. `Client.DisableAutoReadResponse` and `Request.DisableAutoReadResponse` is not
+//     called, and also `Request.SetOutput` and `Request.SetOutputFile` is not called.
 func (r *Response) String() string {
 	return string(r.body)
 }
