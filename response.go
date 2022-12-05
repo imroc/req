@@ -136,6 +136,7 @@ func (r *Response) Into(v interface{}) error {
 // nil if not read, the following cases are already read:
 //  1. `Request.SetResult` or `Request.SetError` is called.
 //  2. `Client.DisableAutoReadResponse(false)` is not called,
+//  3. `Request.DisableAutoReadResponse(false)` is not called,
 //     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
 func (r *Response) Bytes() []byte {
 	return r.body
@@ -145,6 +146,7 @@ func (r *Response) Bytes() []byte {
 // nil if not read, the following cases are already read:
 //  1. `Request.SetResult` or `Request.SetError` is called.
 //  2. `Client.DisableAutoReadResponse(false)` is not called,
+//  3. `Request.DisableAutoReadResponse(false)` is not called,
 //     also `Request.SetOutput` and `Request.SetOutputFile` is not called.
 func (r *Response) String() string {
 	return string(r.body)
