@@ -1312,7 +1312,7 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		return
 	}
 	// auto-read response body if possible
-	if !c.disableAutoReadResponse && !r.isSaveResponse {
+	if !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
 		_, err = resp.ToBytes()
 		if err != nil {
 			return

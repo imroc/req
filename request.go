@@ -41,6 +41,7 @@ type Request struct {
 	GetBody      GetContentFunc
 
 	isMultiPart              bool
+	disableAutoReadResponse  bool
 	forceChunkedEncoding     bool
 	isSaveResponse           bool
 	close                    bool
@@ -824,15 +825,21 @@ func (r *Request) SetContext(ctx context.Context) *Request {
 	return r
 }
 
-// DisableTrace disables trace.
-func (r *Request) DisableTrace() *Request {
-	r.trace = nil
+// DisableAutoReadResponse disable read response body automatically (enabled by default).
+func (r *Request) DisableAutoReadResponse() *Request {
+	r.disableAutoReadResponse = true
 	return r
 }
 
-// DisableAutoReadResponse disable read response body automatically (enabled by default).
-func (r *Request) DisableAutoReadResponse() *Request {
-	r.isSaveResponse = true
+// EnableAutoReadResponse enable read response body automatically (enabled by default).
+func (r *Request) EnableAutoReadResponse() *Request {
+	r.disableAutoReadResponse = false
+	return r
+}
+
+// DisableTrace disables trace.
+func (r *Request) DisableTrace() *Request {
+	r.trace = nil
 	return r
 }
 
