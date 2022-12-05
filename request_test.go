@@ -998,6 +998,22 @@ func TestDownloadCallback(t *testing.T) {
 	tests.AssertEqual(t, true, n > 0)
 }
 
+func TestRequestDisableAutoReadResponse(t *testing.T) {
+	testWithAllTransport(t, func(t *testing.T, c *Client) {
+		resp, err := c.R().DisableAutoReadResponse().Get("/")
+		assertSuccess(t, resp, err)
+		tests.AssertEqual(t, "", resp.String())
+		result, err := resp.ToString()
+		tests.AssertNoError(t, err)
+		tests.AssertEqual(t, "TestGet: text response", result)
+
+		resp, err = c.R().DisableAutoReadResponse().Get("/")
+		assertSuccess(t, resp, err)
+		_, err = ioutil.ReadAll(resp.Body)
+		tests.AssertNoError(t, err)
+	})
+}
+
 func TestRestoreResponseBody(t *testing.T) {
 	c := tc()
 	resp, err := c.R().Get("/")

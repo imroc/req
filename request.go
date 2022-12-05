@@ -830,6 +830,12 @@ func (r *Request) DisableTrace() *Request {
 	return r
 }
 
+// DisableAutoReadResponse disable read response body automatically (enabled by default).
+func (r *Request) DisableAutoReadResponse() *Request {
+	r.isSaveResponse = true
+	return r
+}
+
 // EnableTrace enables trace (http3 currently does not support trace).
 func (r *Request) EnableTrace() *Request {
 	if r.trace == nil {
