@@ -206,6 +206,9 @@ func GetDumpers(ctx context.Context, dump *Dumper) []*Dumper {
 	if dump != nil {
 		dumps = append(dumps, dump)
 	}
+	if ctx == nil {
+		return dumps
+	}
 	if d, ok := ctx.Value(DumperKey).(*Dumper); ok {
 		dumps = append(dumps, d)
 	}

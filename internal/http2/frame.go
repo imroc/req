@@ -6,6 +6,7 @@ package http2
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 	"golang.org/x/net/http2/hpack"
 	"io"
 	"log"
+	"net/http"
 	"strings"
 	"sync"
 )
@@ -487,6 +489,28 @@ func terminalReadFrameError(err error) bool {
 	return err != nil
 }
 
+func (h2f *Framer) streamByID(id uint32) *clientStream {
+	if h2f.cc == nil {
+		return nil
+	}
+	h2f.cc.mu.Lock()
+	defer h2f.cc.mu.Unlock()
+	cs := h2f.cc.streams[id]
+	if cs != nil && !cs.readAborted {
+		return cs
+	}
+	return nil
+}
+
+func (h2f *Framer) currentRequest(id uint32) *http.Request {
+	if cs := h2f.streamByID(id); cs != nil {
+		if req := cs.currentRequest; req != nil {
+			return req
+		}
+	}
+	return nil
+}
+
 // ReadFrame reads a single frame. The returned Frame is only valid
 // until the next call to ReadFrame.
 //
@@ -524,9 +548,15 @@ func (h2f *Framer) ReadFrame() (Frame, error) {
 		h2f.debugReadLoggerf("http2: Framer %p: read %v", h2f, summarizeFrame(f))
 	}
 	if fh.Type == FrameHeaders && h2f.ReadMetaHeaders != nil {
+		hf := f.(*HeadersFrame)
+		req := h2f.currentRequest(hf.StreamID)
+		var ctx context.Context
+		if req != nil {
+			ctx = req.Context()
+		}
 		var dumps []*dump.Dumper
 		if h2f.cc != nil {
-			dumps = dump.GetDumpers(h2f.cc.currentRequest.Context(), h2f.cc.t.Dump)
+			dumps = dump.GetDumpers(ctx, h2f.cc.t.Dump)
 		}
 		if len(dumps) > 0 {
 			dd := []*dump.Dumper{}
@@ -537,7 +567,7 @@ func (h2f *Framer) ReadFrame() (Frame, error) {
 			}
 			dumps = dd
 		}
-		hr, err := h2f.readMetaFrame(f.(*HeadersFrame), dumps)
+		hr, err := h2f.readMetaFrame(hf, dumps)
 		if err == nil && len(dumps) > 0 {
 			for _, dump := range dumps {
 				dump.DumpResponseHeader([]byte("\r\n"))

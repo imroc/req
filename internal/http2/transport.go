@@ -172,13 +172,12 @@ func (t *Transport) initConnPool() {
 // ClientConn is the state of a single HTTP/2 client connection to an
 // HTTP/2 server.
 type ClientConn struct {
-	currentRequest *http.Request
-	t              *Transport
-	tconn          net.Conn             // usually TLSConn, except specialized impls
-	tlsState       *tls.ConnectionState // nil only for specialized impls
-	reused         uint32               // whether conn is being reused; atomic
-	singleUse      bool                 // whether being used for a single http.Request
-	getConnCalled  bool                 // used by clientConnPool
+	t             *Transport
+	tconn         net.Conn             // usually TLSConn, except specialized impls
+	tlsState      *tls.ConnectionState // nil only for specialized impls
+	reused        uint32               // whether conn is being reused; atomic
+	singleUse     bool                 // whether being used for a single http.Request
+	getConnCalled bool                 // used by clientConnPool
 
 	// readLoop goroutine fields:
 	readerDone chan struct{} // closed on error
@@ -231,7 +230,8 @@ type ClientConn struct {
 // clientStream is the state for a single HTTP/2 stream. One of these
 // is created for each Transport.RoundTrip call.
 type clientStream struct {
-	cc *ClientConn
+	currentRequest *http.Request
+	cc             *ClientConn
 
 	// Fields of Request that we may access even after the response body is closed.
 	ctx       context.Context
@@ -622,7 +622,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	})
 	cc.br = bufio.NewReader(c)
 	cc.fr = NewFramer(cc.bw, cc.br)
-	cc.fr.cc = cc // for dump single request
+	cc.fr.cc = cc
 	if t.CountError != nil {
 		cc.fr.countError = t.CountError
 	}
@@ -1026,9 +1026,9 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 	if cc.t != nil && cc.t.Debugf != nil {
 		cc.t.Debugf("HTTP/2 %s %s", req.Method, req.URL.String())
 	}
-	cc.currentRequest = req
 	ctx := req.Context()
 	cs := &clientStream{
+		currentRequest:       req,
 		cc:                   cc,
 		ctx:                  ctx,
 		reqCancel:            req.Cancel,
