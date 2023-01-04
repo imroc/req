@@ -37,8 +37,10 @@ type Request struct {
 	RawURL       string // read only
 	Method       string
 	Body         []byte
-	URL          *urlpkg.URL
 	GetBody      GetContentFunc
+	// URL is an auto-generated field, and is nil in request middleware (OnBeforeRequest),
+	// consider using RawURL if you want, it's not nil in client middleware (WrapRoundTripFunc)
+	URL *urlpkg.URL
 
 	isMultiPart              bool
 	disableAutoReadResponse  bool
