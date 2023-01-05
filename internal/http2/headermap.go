@@ -96,3 +96,11 @@ func lowerHeader(v string) (lower string, isAscii bool) {
 	}
 	return ascii.ToLower(v)
 }
+
+func canonicalHeader(v string) string {
+	buildCommonHeaderMapsOnce()
+	if s, ok := commonCanonHeader[v]; ok {
+		return s
+	}
+	return http.CanonicalHeaderKey(v)
+}
