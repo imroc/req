@@ -292,25 +292,33 @@ func (cs *clientStream) get1xxTraceFunc() func(int, textproto.MIMEHeader) error 
 }
 
 func (cs *clientStream) abortStream(err error) {
+	var reqBody io.ReadCloser
+	defer func() {
+		if reqBody != nil {
+			reqBody.Close()
+		}
+	}()
 	cs.cc.mu.Lock()
 	defer cs.cc.mu.Unlock()
-	cs.abortStreamLocked(err)
+	reqBody = cs.abortStreamLocked(err)
 }
 
-func (cs *clientStream) abortStreamLocked(err error) {
+func (cs *clientStream) abortStreamLocked(err error) io.ReadCloser {
 	cs.abortOnce.Do(func() {
 		cs.abortErr = err
 		close(cs.abort)
 	})
+	var reqBody io.ReadCloser
 	if cs.reqBody != nil && !cs.reqBodyClosed {
-		cs.reqBody.Close()
 		cs.reqBodyClosed = true
+		reqBody = cs.reqBody
 	}
 	// TODO(dneil): Clean up tests where cs.cc.cond is nil.
 	if cs.cc.cond != nil {
 		// Wake up writeRequestBody if it is waiting on flow control.
 		cs.cc.cond.Broadcast()
 	}
+	return reqBody
 }
 
 func (cs *clientStream) abortRequestBodyWrite() {
@@ -690,6 +698,12 @@ func (cc *ClientConn) SetDoNotReuse() {
 }
 
 func (cc *ClientConn) setGoAway(f *GoAwayFrame) {
+	var reqBodiesToClose []io.ReadCloser
+	defer func() {
+		for _, reqBody := range reqBodiesToClose {
+			reqBody.Close()
+		}
+	}()
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 
@@ -706,7 +720,10 @@ func (cc *ClientConn) setGoAway(f *GoAwayFrame) {
 	last := f.LastStreamID
 	for streamID, cs := range cc.streams {
 		if streamID > last {
-			cs.abortStreamLocked(errClientConnGotGoAway)
+			reqBody := cs.abortStreamLocked(errClientConnGotGoAway)
+			if reqBody != nil {
+				reqBodiesToClose = append(reqBodiesToClose, reqBody)
+			}
 		}
 	}
 }
@@ -937,11 +954,19 @@ func (cc *ClientConn) sendGoAway() error {
 func (cc *ClientConn) closeForError(err error) {
 	cc.mu.Lock()
 	cc.closed = true
+
+	var reqBodiesToClose []io.ReadCloser
 	for _, cs := range cc.streams {
-		cs.abortStreamLocked(err)
+		reqBody := cs.abortStreamLocked(err)
+		if reqBody != nil {
+			reqBodiesToClose = append(reqBodiesToClose, reqBody)
+		}
 	}
 	cc.cond.Broadcast()
 	cc.mu.Unlock()
+	for _, reqBody := range reqBodiesToClose {
+		reqBody.Close()
+	}
 	cc.closeConn()
 }
 
@@ -2037,17 +2062,25 @@ func (rl *clientConnReadLoop) cleanup() {
 		err = io.ErrUnexpectedEOF
 	}
 	cc.closed = true
+
+	var reqBodiesToClose []io.ReadCloser
 	for _, cs := range cc.streams {
 		select {
 		case <-cs.peerClosed:
 			// The server closed the stream before closing the conn,
 			// so no need to interrupt it.
 		default:
-			cs.abortStreamLocked(err)
+			reqBody := cs.abortStreamLocked(err)
+			if reqBody != nil {
+				reqBodiesToClose = append(reqBodiesToClose, reqBody)
+			}
 		}
 	}
 	cc.cond.Broadcast()
 	cc.mu.Unlock()
+	for _, reqBody := range reqBodiesToClose {
+		reqBody.Close()
+	}
 }
 
 // countReadFrameError calls Transport.CountError with a string

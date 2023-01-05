@@ -5775,3 +5775,52 @@ func testTransportClosesConnAfterGoAway(t *testing.T, lastStream uint32) {
 
 	ct.run()
 }
+
+type slowCloser struct {
+	closing chan struct{}
+	closed  chan struct{}
+}
+
+func (r *slowCloser) Read([]byte) (int, error) {
+	return 0, io.EOF
+}
+
+func (r *slowCloser) Close() error {
+	close(r.closing)
+	<-r.closed
+	return nil
+}
+
+func TestTransportSlowClose(t *testing.T) {
+	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
+	}, optOnlyServer)
+	defer st.Close()
+
+	client := st.ts.Client()
+	body := &slowCloser{
+		closing: make(chan struct{}),
+		closed:  make(chan struct{}),
+	}
+
+	reqc := make(chan struct{})
+	go func() {
+		defer close(reqc)
+		res, err := client.Post(st.ts.URL, "text/plain", body)
+		if err != nil {
+			t.Error(err)
+		}
+		res.Body.Close()
+	}()
+	defer func() {
+		close(body.closed)
+		<-reqc // wait for POST request to finish
+	}()
+
+	<-body.closing // wait for POST request to call body.Close
+	// This GET request should not be blocked by the in-progress POST.
+	res, err := client.Get(st.ts.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res.Body.Close()
+}
