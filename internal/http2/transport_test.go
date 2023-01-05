@@ -3845,6 +3845,64 @@ func TestTransportRetryAfterRefusedStream(t *testing.T) {
 	ct.run()
 }
 
+func TestTransportRetryHasLimit(t *testing.T) {
+	// Skip in short mode because the total expected delay is 1s+2s+4s+8s+16s=29s.
+	if testing.Short() {
+		t.Skip("skipping long test in short mode")
+	}
+	retryBackoffHook = func(d time.Duration) *time.Timer {
+		return time.NewTimer(0) // fires immediately
+	}
+	defer func() {
+		retryBackoffHook = nil
+	}()
+	clientDone := make(chan struct{})
+	ct := newClientTester(t)
+	ct.client = func() error {
+		defer ct.cc.(*net.TCPConn).CloseWrite()
+		if runtime.GOOS == "plan9" {
+			// CloseWrite not supported on Plan 9; Issue 17906
+			defer ct.cc.(*net.TCPConn).Close()
+		}
+		defer close(clientDone)
+		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
+		resp, err := ct.tr.RoundTrip(req)
+		if err == nil {
+			return fmt.Errorf("RoundTrip expected error, got response: %+v", resp)
+		}
+		t.Logf("expected error, got: %v", err)
+		return nil
+	}
+	ct.server = func() error {
+		ct.greet()
+		for {
+			f, err := ct.fr.ReadFrame()
+			if err != nil {
+				select {
+				case <-clientDone:
+					// If the client's done, it
+					// will have reported any
+					// errors on its side.
+					return nil
+				default:
+					return err
+				}
+			}
+			switch f := f.(type) {
+			case *WindowUpdateFrame, *SettingsFrame:
+			case *HeadersFrame:
+				if !f.HeadersEnded() {
+					return fmt.Errorf("headers should have END_HEADERS be ended: %v", f)
+				}
+				ct.fr.WriteRSTStream(f.StreamID, ErrCodeRefusedStream)
+			default:
+				return fmt.Errorf("Unexpected client frame %v", f)
+			}
+		}
+	}
+	ct.run()
+}
+
 func TestTransportResponseDataBeforeHeaders(t *testing.T) {
 	// This test use not valid response format.
 	// Discarding logger output to not spam tests output.
