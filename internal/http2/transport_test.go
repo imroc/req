@@ -3381,7 +3381,7 @@ func TestClientConnPing(t *testing.T) {
 // connection.
 func TestTransportCancelDataResponseRace(t *testing.T) {
 	cancel := make(chan struct{})
-	clientGotError := make(chan bool, 1)
+	clientGotResponse := make(chan bool, 1)
 
 	const msg = "Hello."
 	st := newServerTester(t, func(w http.ResponseWriter, r *http.Request) {
@@ -3394,8 +3394,8 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 			io.WriteString(w, "Some data.")
 			w.(http.Flusher).Flush()
 			if i == 2 {
+				<-clientGotResponse
 				close(cancel)
-				<-clientGotError
 			}
 			time.Sleep(10 * time.Millisecond)
 		}
@@ -3409,13 +3409,13 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 	req, _ := http.NewRequest("GET", st.ts.URL, nil)
 	req.Cancel = cancel
 	res, err := c.Do(req)
+	clientGotResponse <- true
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err = io.Copy(ioutil.Discard, res.Body); err == nil {
 		t.Fatal("unexpected success")
 	}
-	clientGotError <- true
 
 	res, err = c.Get(st.ts.URL + "/hello")
 	if err != nil {
