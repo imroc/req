@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/xml"
 	"errors"
 	"flag"
 	"fmt"
@@ -21,7 +20,6 @@ import (
 	"net/url"
 	"os"
 	"reflect"
-	"regexp"
 	"runtime"
 	"sort"
 	"strconv"
@@ -1010,8 +1008,8 @@ type serverConn struct {
 	wroteFrameCh     chan frameWriteResult  // from writeFrameAsync -> serve, tickles more frame writes
 	bodyReadCh       chan bodyReadMsg       // from handlers -> serve
 	serveMsgCh       chan interface{}       // misc messages & code to send to / run on the serve loop
-	flow             flow                   // conn-wide (not stream-specific) outbound flow control
-	inflow           flow                   // conn-wide inbound flow control
+	flow             outflow                // conn-wide (not stream-specific) outbound flow control
+	inflow           inflow                 // conn-wide inbound flow control
 	tlsState         *tls.ConnectionState   // shared by all handlers, like net/http
 	remoteAddrStr    string
 	writeSched       WriteScheduler
@@ -1108,10 +1106,10 @@ type stream struct {
 	cancelCtx func()
 
 	// owned by serverConn's serve loop:
-	bodyBytes        int64 // body bytes seen so far
-	declBodyBytes    int64 // or -1 if undeclared
-	flow             flow  // limits writing from Handler to client
-	inflow           flow  // what the client is allowed to POST/etc to us
+	bodyBytes        int64   // body bytes seen so far
+	declBodyBytes    int64   // or -1 if undeclared
+	flow             outflow // limits writing from Handler to client
+	inflow           inflow  // what the client is allowed to POST/etc to us
 	state            streamState
 	resetQueued      bool        // RST_STREAM queued for write; set by sc.resetStream
 	gotTrailerHeader bool        // HEADER frame for trailers was seen
@@ -2279,14 +2277,9 @@ func (sc *serverConn) processData(f *DataFrame) error {
 		// But still enforce their connection-level flow control,
 		// and return any flow control bytes since we're not going
 		// to consume them.
-		if sc.inflow.available() < int32(f.Length) {
+		if !sc.inflow.take(f.Length) {
 			return sc.countError("data_flow", streamError(id, ErrCodeFlowControl))
 		}
-		// Deduct the flow control from inflow, since we're
-		// going to immediately add it back in
-		// sendWindowUpdate, which also schedules sending the
-		// frames.
-		sc.inflow.take(int32(f.Length))
 		sc.sendWindowUpdate(nil, int(f.Length)) // conn-level
 
 		if st != nil && st.resetQueued {
@@ -2301,6 +2294,11 @@ func (sc *serverConn) processData(f *DataFrame) error {
 
 	// Sender sending more than they'd declared?
 	if st.declBodyBytes != -1 && st.bodyBytes+int64(len(data)) > st.declBodyBytes {
+		if !sc.inflow.take(f.Length) {
+			return sc.countError("data_flow", streamError(id, ErrCodeFlowControl))
+		}
+		sc.sendWindowUpdate(nil, int(f.Length)) // conn-level
+
 		st.body.CloseWithError(fmt.Errorf("sender tried to send more than declared Content-Length of %d bytes", st.declBodyBytes))
 		// RFC 7540, sec 8.1.2.6: A request or response is also malformed if the
 		// value of a content-length header field does not equal the sum of the
@@ -2309,10 +2307,9 @@ func (sc *serverConn) processData(f *DataFrame) error {
 	}
 	if f.Length > 0 {
 		// Check whether the client has flow control quota.
-		if st.inflow.available() < int32(f.Length) {
+		if !takeInflows(&sc.inflow, &st.inflow, f.Length) {
 			return sc.countError("flow_on_data_length", streamError(id, ErrCodeFlowControl))
 		}
-		st.inflow.take(int32(f.Length))
 
 		if len(data) > 0 {
 			wrote, err := st.body.Write(data)
@@ -2328,10 +2325,12 @@ func (sc *serverConn) processData(f *DataFrame) error {
 
 		// Return any padded flow control now, since we won't
 		// refund it later on body reads.
-		if pad := int32(f.Length) - int32(len(data)); pad > 0 {
-			sc.sendWindowUpdate32(nil, pad)
-			sc.sendWindowUpdate32(st, pad)
-		}
+		// Call sendWindowUpdate even if there is no padding,
+		// to return buffered flow control credit if the sent
+		// window has shrunk.
+		pad := int32(f.Length) - int32(len(data))
+		sc.sendWindowUpdate32(nil, pad)
+		sc.sendWindowUpdate32(st, pad)
 	}
 	if f.StreamEnded() {
 		st.endStream()
@@ -2575,8 +2574,7 @@ func (sc *serverConn) newStream(id, pusherID uint32, state streamState) *stream 
 	st.cw.Init()
 	st.flow.conn = &sc.flow // link to conn-level counter
 	st.flow.add(sc.initialStreamSendWindowSize)
-	st.inflow.conn = &sc.inflow // link to conn-level counter
-	st.inflow.add(sc.srv.initialStreamRecvWindowSize())
+	st.inflow.init(sc.srv.initialStreamRecvWindowSize())
 	if sc.hs.WriteTimeout != 0 {
 		st.writeDeadline = time.AfterFunc(sc.hs.WriteTimeout, st.onWriteTimeout)
 	}
@@ -2858,47 +2856,28 @@ func (sc *serverConn) noteBodyRead(st *stream, n int) {
 }
 
 // st may be nil for conn-level
-func (sc *serverConn) sendWindowUpdate(st *stream, n int) {
-	sc.serveG.check()
-	// "The legal range for the increment to the flow control
-	// window is 1 to 2^31-1 (2,147,483,647) octets."
-	// A Go Read call on 64-bit machines could in theory read
-	// a larger Read than this. Very unlikely, but we handle it here
-	// rather than elsewhere for now.
-	const maxUint31 = 1<<31 - 1
-	for n >= maxUint31 {
-		sc.sendWindowUpdate32(st, maxUint31)
-		n -= maxUint31
-	}
-	sc.sendWindowUpdate32(st, int32(n))
+func (sc *serverConn) sendWindowUpdate32(st *stream, n int32) {
+	sc.sendWindowUpdate(st, int(n))
 }
 
 // st may be nil for conn-level
-func (sc *serverConn) sendWindowUpdate32(st *stream, n int32) {
+func (sc *serverConn) sendWindowUpdate(st *stream, n int) {
 	sc.serveG.check()
-	if n == 0 {
+	var streamID uint32
+	var send int32
+	if st == nil {
+		send = sc.inflow.add(n)
+	} else {
+		streamID = st.id
+		send = st.inflow.add(n)
+	}
+	if send == 0 {
 		return
 	}
-	if n < 0 {
-		panic("negative update")
-	}
-	var streamID uint32
-	if st != nil {
-		streamID = st.id
-	}
 	sc.writeFrame(FrameWriteRequest{
-		write:  writeWindowUpdate{streamID: streamID, n: uint32(n)},
+		write:  writeWindowUpdate{streamID: streamID, n: uint32(send)},
 		stream: st,
 	})
-	var ok bool
-	if st == nil {
-		ok = sc.inflow.add(n)
-	} else {
-		ok = st.inflow.add(n)
-	}
-	if !ok {
-		panic("internal error; sent too many window updates without decrements?")
-	}
 }
 
 // requestBody is the Handler's Request.Body type.
@@ -3142,8 +3121,9 @@ func (rws *responseWriterState) writeChunk(p []byte) (n int, err error) {
 // prior to the headers being written. If the set of trailers is fixed
 // or known before the header is written, the normal Go trailers mechanism
 // is preferred:
-//    https://golang.org/pkg/net/http/#ResponseWriter
-//    https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
+//
+//	https://golang.org/pkg/net/http/#ResponseWriter
+//	https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
 const TrailerPrefix = "Trailer:"
 
 // promoteUndeclaredTrailers permits http.Handlers to set trailers
@@ -5289,6 +5269,22 @@ func (st *serverTester) writeDataPadded(streamID uint32, endStream bool, data, p
 	}
 }
 
+// writeReadPing sends a PING and immediately reads the PING ACK.
+// It will fail if any other unread data was pending on the connection.
+func (st *serverTester) writeReadPing() {
+	data := [8]byte{1, 2, 3, 4, 5, 6, 7, 8}
+	if err := st.fr.WritePing(false, data); err != nil {
+		st.t.Fatalf("Error writing PING: %v", err)
+	}
+	p := st.wantPing()
+	if p.Flags&FlagPingAck == 0 {
+		st.t.Fatalf("got a PING, want a PING ACK")
+	}
+	if p.Data != data {
+		st.t.Fatalf("got PING data = %x, want %x", p.Data, data)
+	}
+}
+
 func (st *serverTester) readFrame() (Frame, error) {
 	return st.fr.ReadFrame()
 }
@@ -5399,284 +5395,24 @@ func (st *serverTester) wantWindowUpdate(streamID, incr uint32) {
 	}
 }
 
-func (st *serverTester) wantSettingsAck() {
-	f, err := st.readFrame()
-	if err != nil {
-		st.t.Fatal(err)
-	}
-	sf, ok := f.(*SettingsFrame)
-	if !ok {
-		st.t.Fatalf("Wanting a settings ACK, received a %T", f)
-	}
-	if !sf.Header().Flags.Has(FlagSettingsAck) {
-		st.t.Fatal("Settings Frame didn't have ACK set")
-	}
-}
-
-func (st *serverTester) wantPushPromise() *PushPromiseFrame {
-	f, err := st.readFrame()
-	if err != nil {
-		st.t.Fatal(err)
-	}
-	ppf, ok := f.(*PushPromiseFrame)
-	if !ok {
-		st.t.Fatalf("Wanted PushPromise, received %T", ppf)
-	}
-	return ppf
-}
-
-type specCoverage struct {
-	coverage map[specPart]bool
-	d        *xml.Decoder
-}
-
-func joinSection(sec []int) string {
-	s := fmt.Sprintf("%d", sec[0])
-	for _, n := range sec[1:] {
-		s = fmt.Sprintf("%s.%d", s, n)
-	}
-	return s
-}
-
-func (sc specCoverage) readSection(sec []int) {
-	var (
-		buf = new(bytes.Buffer)
-		sub = 0
-	)
-	for {
-		tk, err := sc.d.Token()
-		if err != nil {
-			if err == io.EOF {
-				return
-			}
-			panic(err)
-		}
-		switch v := tk.(type) {
-		case xml.StartElement:
-			if skipElement(v) {
-				if err := sc.d.Skip(); err != nil {
-					panic(err)
-				}
-				if v.Name.Local == "section" {
-					sub++
-				}
-				break
-			}
-			switch v.Name.Local {
-			case "section":
-				sub++
-				sc.readSection(append(sec, sub))
-			case "xref":
-				buf.Write(sc.readXRef(v))
-			}
-		case xml.CharData:
-			if len(sec) == 0 {
-				break
-			}
-			buf.Write(v)
-		case xml.EndElement:
-			if v.Name.Local == "section" {
-				sc.addSentences(joinSection(sec), buf.String())
-				return
-			}
-		}
-	}
-}
-
-func attrSig(se xml.StartElement) string {
-	var names []string
-	for _, attr := range se.Attr {
-		if attr.Name.Local == "fmt" {
-			names = append(names, "fmt-"+attr.Value)
-		} else {
-			names = append(names, attr.Name.Local)
-		}
-	}
-	sort.Strings(names)
-	return strings.Join(names, ",")
-}
-
-func attrValue(se xml.StartElement, attr string) string {
-	for _, a := range se.Attr {
-		if a.Name.Local == attr {
-			return a.Value
-		}
-	}
-	panic("unknown attribute " + attr)
-}
-
-func (sc specCoverage) readXRef(se xml.StartElement) []byte {
-	var b []byte
-	for {
-		tk, err := sc.d.Token()
-		if err != nil {
-			panic(err)
-		}
-		switch v := tk.(type) {
-		case xml.CharData:
-			if b != nil {
-				panic("unexpected CharData")
-			}
-			b = []byte(string(v))
-		case xml.EndElement:
-			if v.Name.Local != "xref" {
-				panic("expected </xref>")
-			}
-			if b != nil {
-				return b
-			}
-			sig := attrSig(se)
-			switch sig {
-			case "target":
-				return []byte(fmt.Sprintf("[%s]", attrValue(se, "target")))
-			case "fmt-of,rel,target", "fmt-,,rel,target":
-				return []byte(fmt.Sprintf("[%s, %s]", attrValue(se, "target"), attrValue(se, "rel")))
-			case "fmt-of,sec,target", "fmt-,,sec,target":
-				return []byte(fmt.Sprintf("[section %s of %s]", attrValue(se, "sec"), attrValue(se, "target")))
-			case "fmt-of,rel,sec,target":
-				return []byte(fmt.Sprintf("[section %s of %s, %s]", attrValue(se, "sec"), attrValue(se, "target"), attrValue(se, "rel")))
-			default:
-				panic(fmt.Sprintf("unknown attribute signature %q in %#v", sig, fmt.Sprintf("%#v", se)))
-			}
-		default:
-			panic(fmt.Sprintf("unexpected tag %q", v))
-		}
-	}
-}
-
-var skipAnchor = map[string]bool{
-	"intro":    true,
-	"Overview": true,
-}
-
-var skipTitle = map[string]bool{
-	"Acknowledgements":            true,
-	"Change Log":                  true,
-	"Document Organization":       true,
-	"Conventions and Terminology": true,
-}
-
-func skipElement(s xml.StartElement) bool {
-	switch s.Name.Local {
-	case "artwork":
-		return true
-	case "section":
-		for _, attr := range s.Attr {
-			switch attr.Name.Local {
-			case "anchor":
-				if skipAnchor[attr.Value] || strings.HasPrefix(attr.Value, "changes.since.") {
-					return true
-				}
-			case "title":
-				if skipTitle[attr.Value] {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-type specPart struct {
-	section  string
-	sentence string
-}
-
-func (ss specPart) Less(oo specPart) bool {
-	atoi := func(s string) int {
-		n, err := strconv.Atoi(s)
-		if err != nil {
-			panic(err)
-		}
-		return n
-	}
-	a := strings.Split(ss.section, ".")
-	b := strings.Split(oo.section, ".")
-	for len(a) > 0 {
-		if len(b) == 0 {
-			return false
-		}
-		x, y := atoi(a[0]), atoi(b[0])
-		if x == y {
-			a, b = a[1:], b[1:]
-			continue
-		}
-		return x < y
-	}
-	if len(b) > 0 {
-		return true
-	}
-	return false
-}
-
-type bySpecSection []specPart
-
-func (a bySpecSection) Len() int           { return len(a) }
-func (a bySpecSection) Less(i, j int) bool { return a[i].Less(a[j]) }
-func (a bySpecSection) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-
-func readSpecCov(r io.Reader) specCoverage {
-	sc := specCoverage{
-		coverage: map[specPart]bool{},
-		d:        xml.NewDecoder(r)}
-	sc.readSection(nil)
-	return sc
-}
-
-var whitespaceRx = regexp.MustCompile(`\s+`)
-
-func parseSentences(sens string) []string {
-	sens = strings.TrimSpace(sens)
-	if sens == "" {
-		return nil
-	}
-	ss := strings.Split(whitespaceRx.ReplaceAllString(sens, " "), ". ")
-	for i, s := range ss {
-		s = strings.TrimSpace(s)
-		if !strings.HasSuffix(s, ".") {
-			s += "."
-		}
-		ss[i] = s
-	}
-	return ss
-}
-
-func (sc specCoverage) addSentences(sec string, sentence string) {
-	for _, s := range parseSentences(sentence) {
-		sc.coverage[specPart{sec, s}] = false
-	}
-}
-
-func (sc specCoverage) cover(sec string, sentence string) {
-	for _, s := range parseSentences(sentence) {
-		p := specPart{sec, s}
-		if _, ok := sc.coverage[p]; !ok {
-			panic(fmt.Sprintf("Not found in spec: %q, %q", sec, s))
-		}
-		sc.coverage[specPart{sec, s}] = true
-	}
-
-}
-
-var coverSpec = flag.Bool("coverspec", false, "Run spec coverage tests")
-
-// The global map of sentence coverage for the http2 spec.
-var defaultSpecCoverage specCoverage
-
-var loadSpecOnce sync.Once
-
-func loadSpec() {
-	if f, err := os.Open("testdata/draft-ietf-httpbis-http2.xml"); err != nil {
-		panic(err)
+func (st *serverTester) wantFlowControlConsumed(streamID, consumed int32) {
+	var initial int32
+	if streamID == 0 {
+		initial = st.sc.srv.initialConnRecvWindowSize()
 	} else {
-		defaultSpecCoverage = readSpecCov(f)
-		f.Close()
+		initial = st.sc.srv.initialStreamRecvWindowSize()
 	}
-}
-
-// covers marks all sentences for section sec in defaultSpecCoverage. Sentences not
-// "covered" will be included in report outputted by TestSpecCoverage.
-func covers(sec, sentences string) {
-	loadSpecOnce.Do(loadSpec)
-	defaultSpecCoverage.cover(sec, sentences)
+	donec := make(chan struct{})
+	st.sc.sendServeMsg(func(sc *serverConn) {
+		defer close(donec)
+		var avail int32
+		if streamID == 0 {
+			avail = sc.inflow.avail + sc.inflow.unsent
+		} else {
+		}
+		if got, want := initial-avail, consumed; got != want {
+			st.t.Errorf("stream %v flow control consumed: %v, want %v", streamID, got, want)
+		}
+	})
+	<-donec
 }

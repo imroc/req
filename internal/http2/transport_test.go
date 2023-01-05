@@ -797,6 +797,55 @@ func (ct *clientTester) readNonSettingsFrame() (Frame, error) {
 	}
 }
 
+// writeReadPing sends a PING and immediately reads the PING ACK.
+// It will fail if any other unread data was pending on the connection,
+// aside from SETTINGS frames.
+func (ct *clientTester) writeReadPing() error {
+	data := [8]byte{1, 2, 3, 4, 5, 6, 7, 8}
+	if err := ct.fr.WritePing(false, data); err != nil {
+		return fmt.Errorf("Error writing PING: %v", err)
+	}
+	f, err := ct.readNonSettingsFrame()
+	if err != nil {
+		return err
+	}
+	p, ok := f.(*PingFrame)
+	if !ok {
+		return fmt.Errorf("got a %v, want a PING ACK", f)
+	}
+	if p.Flags&FlagPingAck == 0 {
+		return fmt.Errorf("got a PING, want a PING ACK")
+	}
+	if p.Data != data {
+		return fmt.Errorf("got PING data = %x, want %x", p.Data, data)
+	}
+	return nil
+}
+
+func (ct *clientTester) inflowWindow(streamID uint32) int32 {
+	pool := ct.tr.connPoolOrDef.(*clientConnPool)
+	pool.mu.Lock()
+	defer pool.mu.Unlock()
+	if n := len(pool.keys); n != 1 {
+		ct.t.Errorf("clientConnPool contains %v keys, expected 1", n)
+		return -1
+	}
+	for cc := range pool.keys {
+		cc.mu.Lock()
+		defer cc.mu.Unlock()
+		if streamID == 0 {
+			return cc.inflow.avail + cc.inflow.unsent
+		}
+		cs := cc.streams[streamID]
+		if cs == nil {
+			ct.t.Errorf("no stream with id %v", streamID)
+			return -1
+		}
+		return cs.inflow.avail + cs.inflow.unsent
+	}
+	return -1
+}
+
 func (ct *clientTester) cleanup() {
 	ct.tr.CloseIdleConnections()
 
@@ -2873,22 +2922,17 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 	ct := newClientTester(t)
 
-	clientClosed := make(chan struct{})
-	serverWroteFirstByte := make(chan struct{})
-
 	ct.client = func() error {
 		req, _ := http.NewRequest("GET", "https://dummy.tld/", nil)
 		res, err := ct.tr.RoundTrip(req)
 		if err != nil {
 			return err
 		}
-		<-serverWroteFirstByte
 
 		if n, err := res.Body.Read(make([]byte, 1)); err != nil || n != 1 {
 			return fmt.Errorf("body read = %v, %v; want 1, nil", n, err)
 		}
 		res.Body.Close() // leaving 4999 bytes unread
-		close(clientClosed)
 
 		return nil
 	}
@@ -2923,6 +2967,7 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 			EndStream:     false,
 			BlockFragment: buf.Bytes(),
 		})
+		initialInflow := ct.inflowWindow(0)
 
 		// Two cases:
 		// - Send one DATA frame with 5000 bytes.
@@ -2931,49 +2976,62 @@ func testTransportReturnsUnusedFlowControl(t *testing.T, oneDataFrame bool) {
 		// In both cases, the client should consume one byte of data,
 		// refund that byte, then refund the following 4999 bytes.
 		//
-		// In the second case, the server waits for the client connection to
-		// close before seconding the second DATA frame. This tests the case
+		// In the second case, the server waits for the client to reset the
+		// stream before sending the second DATA frame. This tests the case
 		// where the client receives a DATA frame after it has reset the stream.
 		if oneDataFrame {
 			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 5000))
-			close(serverWroteFirstByte)
-			<-clientClosed
 		} else {
 			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 1))
-			close(serverWroteFirstByte)
-			<-clientClosed
-			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 4999))
 		}
 
-		waitingFor := "RSTStreamFrame"
-		sawRST := false
-		sawWUF := false
-		for !sawRST && !sawWUF {
-			f, err := ct.fr.ReadFrame()
+		wantRST := true
+		wantWUF := true
+		if !oneDataFrame {
+			wantWUF = false // flow control update is small, and will not be sent
+		}
+		for wantRST || wantWUF {
+			f, err := ct.readNonSettingsFrame()
 			if err != nil {
-				return fmt.Errorf("ReadFrame while waiting for %s: %v", waitingFor, err)
+				return err
 			}
 			switch f := f.(type) {
-			case *SettingsFrame:
 			case *RSTStreamFrame:
-				if sawRST {
-					return fmt.Errorf("saw second RSTStreamFrame: %v", summarizeFrame(f))
+				if !wantRST {
+					return fmt.Errorf("Unexpected frame: %v", summarizeFrame(f))
 				}
 				if f.ErrCode != ErrCodeCancel {
 					return fmt.Errorf("Expected a RSTStreamFrame with code cancel; got %v", summarizeFrame(f))
 				}
-				sawRST = true
+				wantRST = false
 			case *WindowUpdateFrame:
-				if sawWUF {
-					return fmt.Errorf("saw second WindowUpdateFrame: %v", summarizeFrame(f))
+				if !wantWUF {
+					return fmt.Errorf("Unexpected frame: %v", summarizeFrame(f))
 				}
-				if f.Increment != 4999 {
+				if f.Increment != 5000 {
 					return fmt.Errorf("Expected WindowUpdateFrames for 5000 bytes; got %v", summarizeFrame(f))
 				}
-				sawWUF = true
+				wantWUF = false
 			default:
 				return fmt.Errorf("Unexpected frame: %v", summarizeFrame(f))
 			}
+		}
+		if !oneDataFrame {
+			ct.fr.WriteData(hf.StreamID, false /* don't end stream */, make([]byte, 4999))
+			f, err := ct.readNonSettingsFrame()
+			if err != nil {
+				return err
+			}
+			wuf, ok := f.(*WindowUpdateFrame)
+			if !ok || wuf.Increment != 5000 {
+				return fmt.Errorf("want WindowUpdateFrame for 5000 bytes; got %v", summarizeFrame(f))
+			}
+		}
+		if err := ct.writeReadPing(); err != nil {
+			return err
+		}
+		if got, want := ct.inflowWindow(0), initialInflow; got != want {
+			return fmt.Errorf("connection flow tokens = %v, want %v", got, want)
 		}
 		return nil
 	}
@@ -3101,6 +3159,8 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 			break
 		}
 
+		initialConnWindow := ct.inflowWindow(0)
+
 		var buf bytes.Buffer
 		enc := hpack.NewEncoder(&buf)
 		enc.WriteField(hpack.HeaderField{Name: ":status", Value: "200"})
@@ -3111,24 +3171,18 @@ func TestTransportReturnsDataPaddingFlowControl(t *testing.T) {
 			EndStream:     false,
 			BlockFragment: buf.Bytes(),
 		})
+		initialStreamWindow := ct.inflowWindow(hf.StreamID)
 		pad := make([]byte, 5)
 		ct.fr.WriteDataPadded(hf.StreamID, false, make([]byte, 5000), pad) // without ending stream
-
-		f, err := ct.readNonSettingsFrame()
-		if err != nil {
-			return fmt.Errorf("ReadFrame while waiting for first WindowUpdateFrame: %v", err)
+		if err := ct.writeReadPing(); err != nil {
+			return err
 		}
-		wantBack := uint32(len(pad)) + 1 // one byte for the length of the padding
-		if wuf, ok := f.(*WindowUpdateFrame); !ok || wuf.Increment != wantBack || wuf.StreamID != 0 {
-			return fmt.Errorf("Expected conn WindowUpdateFrame for %d bytes; got %v", wantBack, summarizeFrame(f))
+		// Padding flow control should have been returned.
+		if got, want := ct.inflowWindow(0), initialConnWindow-5000; got != want {
+			t.Errorf("conn inflow window = %v, want %v", got, want)
 		}
-
-		f, err = ct.readNonSettingsFrame()
-		if err != nil {
-			return fmt.Errorf("ReadFrame while waiting for second WindowUpdateFrame: %v", err)
-		}
-		if wuf, ok := f.(*WindowUpdateFrame); !ok || wuf.Increment != wantBack || wuf.StreamID == 0 {
-			return fmt.Errorf("Expected stream WindowUpdateFrame for %d bytes; got %v", wantBack, summarizeFrame(f))
+		if got, want := ct.inflowWindow(hf.StreamID), initialStreamWindow-5000; got != want {
+			t.Errorf("stream inflow window = %v, want %v", got, want)
 		}
 		unblockClient <- true
 		return nil
