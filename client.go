@@ -1296,7 +1296,10 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 				interval: r.downloadCallbackInterval,
 			}
 		}
-		ctx = context.WithValue(r.Context(), wrapResponseBodyKey, wrap)
+		if ctx == nil {
+			ctx = context.Background()
+		}
+		ctx = context.WithValue(ctx, wrapResponseBodyKey, wrap)
 	}
 	if ctx != nil {
 		req = req.WithContext(ctx)
