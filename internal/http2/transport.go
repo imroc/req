@@ -23,6 +23,7 @@ import (
 	"github.com/imroc/req/v3/internal/transport"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"io"
+	"io/fs"
 	"log"
 	"math"
 	mathrand "math/rand"
@@ -2961,7 +2962,11 @@ func (gz *GzipReader) Read(p []byte) (n int, err error) {
 }
 
 func (gz *GzipReader) Close() error {
-	return gz.Body.Close()
+	if err := gz.Body.Close(); err != nil {
+		return err
+	}
+	gz.zerr = fs.ErrClosed
+	return nil
 }
 
 // isConnectionCloseRequest reports whether req should use its own
