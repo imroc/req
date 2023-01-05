@@ -5706,6 +5706,20 @@ func TestTransportClosesConnAfterGoAwayLastStream(t *testing.T) {
 	testTransportClosesConnAfterGoAway(t, 1)
 }
 
+type closeOnceConn struct {
+	net.Conn
+	closed uint32
+}
+
+var errClosed = errors.New("Close of closed connection")
+
+func (c *closeOnceConn) Close() error {
+	if atomic.CompareAndSwapUint32(&c.closed, 0, 1) {
+		return c.Conn.Close()
+	}
+	return errClosed
+}
+
 // testTransportClosesConnAfterGoAway verifies that the transport
 // closes a connection after reading a GOAWAY from it.
 //
@@ -5714,6 +5728,7 @@ func TestTransportClosesConnAfterGoAwayLastStream(t *testing.T) {
 // when 1, the transport reads the response after receiving the GOAWAY.
 func testTransportClosesConnAfterGoAway(t *testing.T, lastStream uint32) {
 	ct := newClientTester(t)
+	ct.cc = &closeOnceConn{Conn: ct.cc}
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -5727,12 +5742,10 @@ func testTransportClosesConnAfterGoAway(t *testing.T, lastStream uint32) {
 		if gotErr, wantErr := err != nil, lastStream == 0; gotErr != wantErr {
 			t.Errorf("RoundTrip got error %v (want error: %v)", err, wantErr)
 		}
-		if err = ct.cc.Close(); err == nil {
-			err = fmt.Errorf("expected error on Close")
-		} else if strings.Contains(err.Error(), "use of closed network") {
-			err = nil
+		if err = ct.cc.Close(); err != errClosed {
+			return fmt.Errorf("ct.cc.Close() = %v, want errClosed", err)
 		}
-		return err
+		return nil
 	}
 
 	ct.server = func() error {
