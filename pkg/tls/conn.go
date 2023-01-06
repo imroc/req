@@ -24,12 +24,3 @@ type Conn interface {
 	// HandshakeContext or the Dialer's DialContext method instead.
 	Handshake() error
 }
-
-// NetConnWrapper is the interface to get underlying connection, which is
-// introduced in go1.18 for *tls.Conn.
-type NetConnWrapper interface {
-	// NetConn returns the underlying connection that is wrapped by c.
-	// Note that writing to or reading from this connection directly will corrupt the
-	// TLS session.
-	NetConn() net.Conn
-}

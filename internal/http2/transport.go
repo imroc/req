@@ -21,7 +21,6 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/transport"
-	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"io"
 	"io/fs"
 	"log"
@@ -852,10 +851,19 @@ func (cc *ClientConn) closeConn() {
 	cc.tconn.Close()
 }
 
+// netConnWrapper is the interface to get underlying connection, which is
+// introduced in go1.18 for *tls.Conn.
+type netConnWrapper interface {
+	// NetConn returns the underlying connection that is wrapped by c.
+	// Note that writing to or reading from this connection directly will corrupt the
+	// TLS session.
+	NetConn() net.Conn
+}
+
 // A tls.Conn.Close can hang for a long time if the peer is unresponsive.
 // Try to shut it down more aggressively.
 func (cc *ClientConn) forceCloseConn() {
-	tc, ok := cc.tconn.(reqtls.NetConnWrapper)
+	tc, ok := cc.tconn.(netConnWrapper)
 	if !ok {
 		return
 	}
