@@ -246,97 +246,153 @@ func (t *Transport) GetMaxIdleConns() int {
 	return t.MaxIdleConns
 }
 
-// SetMaxIdleConns set the MaxIdleConns.
+// SetMaxIdleConns set the MaxIdleConns, which controls the maximum number of idle (keep-alive)
+// connections across all hosts. Zero means no limit.
 func (t *Transport) SetMaxIdleConns(max int) *Transport {
 	t.MaxIdleConns = max
 	return t
 }
 
-// SetMaxConnsPerHost set the MaxConnsPerHost.
+// SetMaxConnsPerHost set the MaxConnsPerHost, optionally limits the
+// total number of connections per host, including connections in the
+// dialing, active, and idle states. On limit violation, dials will block.
+//
+// Zero means no limit.
 func (t *Transport) SetMaxConnsPerHost(max int) *Transport {
 	t.MaxConnsPerHost = max
 	return t
 }
 
-// SetIdleConnTimeout set the IdleConnTimeout.
+// SetIdleConnTimeout set the IdleConnTimeout, which  is the maximum
+// amount of time an idle (keep-alive) connection will remain idle before
+// closing itself.
+//
+// Zero means no limit.
 func (t *Transport) SetIdleConnTimeout(timeout time.Duration) *Transport {
 	t.IdleConnTimeout = timeout
 	return t
 }
 
-// SetTLSHandshakeTimeout set the TLSHandshakeTimeout.
+// SetTLSHandshakeTimeout set the TLSHandshakeTimeout, which specifies the
+// maximum amount of time waiting to wait for a TLS handshake.
+//
+// Zero means no timeout.
 func (t *Transport) SetTLSHandshakeTimeout(timeout time.Duration) *Transport {
 	t.TLSHandshakeTimeout = timeout
 	return t
 }
 
-// SetResponseHeaderTimeout set the ResponseHeaderTimeout.
+// SetResponseHeaderTimeout set the ResponseHeaderTimeout, if non-zero, specifies
+// the amount of time to wait for a server's response headers after fully writing
+// the request (including its body, if any). This time does not include the time
+// to read the response body.
 func (t *Transport) SetResponseHeaderTimeout(timeout time.Duration) *Transport {
 	t.ResponseHeaderTimeout = timeout
 	return t
 }
 
-// SetExpectContinueTimeout set the ExpectContinueTimeout.
+// SetExpectContinueTimeout set the ExpectContinueTimeout, if non-zero, specifies
+// the amount of time to wait for a server's first response headers after fully
+// writing the request headers if the request has an "Expect: 100-continue" header.
+// Zero means no timeout and causes the body to be sent immediately, without waiting
+// for the server to approve.
+// This time does not include the time to send the request header.
 func (t *Transport) SetExpectContinueTimeout(timeout time.Duration) *Transport {
 	t.ExpectContinueTimeout = timeout
 	return t
 }
 
-// SetGetProxyConnectHeader set the GetProxyConnectHeader function.
+// SetGetProxyConnectHeader set the GetProxyConnectHeader, which optionally specifies a func
+// to return headers to send to proxyURL during a CONNECT request to the ip:port target.
+// If it returns an error, the Transport's RoundTrip fails with that error. It can
+// return (nil, nil) to not add headers.
+// If GetProxyConnectHeader is non-nil, ProxyConnectHeader is ignored.
 func (t *Transport) SetGetProxyConnectHeader(fn func(ctx context.Context, proxyURL *url.URL, target string) (http.Header, error)) *Transport {
 	t.GetProxyConnectHeader = fn
 	return t
 }
 
-// SetProxyConnectHeader set the ProxyConnectHeader.
+// SetProxyConnectHeader set the ProxyConnectHeader, which optionally specifies headers to
+// send to proxies during CONNECT requests.
+// To set the header dynamically, see SetGetProxyConnectHeader.
 func (t *Transport) SetProxyConnectHeader(header http.Header) *Transport {
 	t.ProxyConnectHeader = header
 	return t
 }
 
-// SetReadBufferSize set the ReadBufferSize.
+// SetReadBufferSize set the ReadBufferSize, which specifies the size of the read buffer used
+// when reading from the transport.
+// If zero, a default (currently 4KB) is used.
 func (t *Transport) SetReadBufferSize(size int) *Transport {
 	t.ReadBufferSize = size
 	return t
 }
 
-// SetWriteBufferSize set the WriteBufferSize.
+// SetWriteBufferSize set the WriteBufferSize, which specifies the size of the write buffer used
+// when writing to the transport.
+// If zero, a default (currently 4KB) is used.
 func (t *Transport) SetWriteBufferSize(size int) *Transport {
 	t.WriteBufferSize = size
 	return t
 }
 
-// SetMaxResponseHeaderBytes set the MaxResponseHeaderBytes.
+// SetMaxResponseHeaderBytes set the MaxResponseHeaderBytes, which specifies a limit on how many
+// response bytes are allowed in the server's response header.
+//
+// Zero means to use a default limit.
 func (t *Transport) SetMaxResponseHeaderBytes(max int64) *Transport {
 	t.MaxResponseHeaderBytes = max
 	return t
 }
 
-// SetTLSClientConfig set the custom tle client config.
+// SetTLSClientConfig set the custom TLSClientConfig, which specifies the TLS configuration to
+// use with tls.Client.
+// If nil, the default configuration is used.
+// If non-nil, HTTP/2 support may not be enabled by default.
 func (t *Transport) SetTLSClientConfig(cfg *tls.Config) *Transport {
 	t.TLSClientConfig = cfg
 	return t
 }
 
-// SetDebug set the debug function.
+// SetDebug set the optional debug function.
 func (t *Transport) SetDebug(debugf func(format string, v ...interface{})) *Transport {
 	t.Debugf = debugf
 	return t
 }
 
-// SetProxy set the http proxy, only valid for HTTP1 and HTTP2.
+// SetProxy set the http proxy, only valid for HTTP1 and HTTP2, which specifies a function
+// to return a proxy for a given Request. If the function returns a non-nil error, the request
+// is aborted with the provided error.
+//
+// The proxy type is determined by the URL scheme. "http",
+// "https", and "socks5" are supported. If the scheme is empty,
+// "http" is assumed.
+//
+// If Proxy is nil or returns a nil *URL, no proxy is used.
 func (t *Transport) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Transport {
 	t.Proxy = proxy
 	return t
 }
 
-// SetDial set the custom DialContext function, only valid for HTTP1 and HTTP2.
+// SetDial set the custom DialContext function, only valid for HTTP1 and HTTP2, which specifies the
+// dial function for creating unencrypted TCP connections.
+// If it is nil, then the transport dials using package net.
+//
+// The dial function runs concurrently with calls to RoundTrip.
+// A RoundTrip call that initiates a dial may end up using a connection dialed previously when the
+// earlier connection becomes idle before the later dial function completes.
 func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
 	t.DialContext = fn
 	return t
 }
 
-// SetDialTLS set the custom DialTLSContext function, only valid for HTTP1 and HTTP2.
+// SetDialTLS set the custom DialTLSContext function, only valid for HTTP1 and HTTP2, which specifies
+// an optional dial function for creating TLS connections for non-proxied HTTPS requests.
+//
+// If it is nil, DialContext and TLSClientConfig are used.
+//
+// If it is set, the function that set in SetDial is not used for HTTPS requests and the TLSClientConfig
+// and TLSHandshakeTimeout are ignored. The returned net.Conn is assumed to already be past the TLS handshake.
 func (t *Transport) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
 	t.DialTLSContext = fn
 	return t
