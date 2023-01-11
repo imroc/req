@@ -594,9 +594,12 @@ func TestEnableDumpAllAsync(t *testing.T) {
 }
 
 func TestSetResponseBodyTransformer(t *testing.T) {
-	c := tc().SetResponseBodyTransformer(func(body []byte) ([]byte, error) {
-		result, err := url.QueryUnescape(string(body))
-		return []byte(result), err
+	c := tc().SetResponseBodyTransformer(func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error) {
+		if resp.IsSuccess() {
+			result, err := url.QueryUnescape(string(rawBody))
+			return []byte(result), err
+		}
+		return rawBody, nil
 	})
 	user := &UserInfo{}
 	resp, err := c.R().SetResult(user).Get("/urlencode")

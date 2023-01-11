@@ -66,7 +66,7 @@ type Client struct {
 	udBeforeRequest         []RequestMiddleware
 	afterResponse           []ResponseMiddleware
 	wrappedRoundTrip        RoundTripper
-	responseBodyTransformer func([]byte) ([]byte, error)
+	responseBodyTransformer func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
 }
 
 // R create a new request.
@@ -154,7 +154,7 @@ func (c *Client) GetTransport() *Transport {
 
 // SetResponseBodyTransformer set the response body transformer, which can modify the
 // response body before unmarshalled if auto-read response body is not disabled.
-func (c *Client) SetResponseBodyTransformer(fn func(body []byte) ([]byte, error)) *Client {
+func (c *Client) SetResponseBodyTransformer(fn func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)) *Client {
 	c.responseBodyTransformer = fn
 	return c
 }

@@ -600,7 +600,7 @@ func AddCommonRetryCondition(condition RetryConditionFunc) *Client {
 
 // SetResponseBodyTransformer is a global wrapper methods which delegated
 // to the default client, create a request and SetResponseBodyTransformer for request.
-func SetResponseBodyTransformer(fn func(body []byte) ([]byte, error)) *Client {
+func SetResponseBodyTransformer(fn func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)) *Client {
 	return defaultClient.SetResponseBodyTransformer(fn)
 }
 
