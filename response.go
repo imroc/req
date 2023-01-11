@@ -157,7 +157,7 @@ func (r *Response) ToString() (string, error) {
 }
 
 // ToBytes returns the response body as []byte, read body if not have been read.
-func (r *Response) ToBytes() ([]byte, error) {
+func (r *Response) ToBytes() (body []byte, err error) {
 	if r.Err != nil {
 		return nil, r.Err
 	}
@@ -167,15 +167,19 @@ func (r *Response) ToBytes() ([]byte, error) {
 	if r.Response == nil || r.Response.Body == nil {
 		return []byte{}, nil
 	}
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	defer func() {
+		r.Body.Close()
+		if err != nil {
+			r.Err = err
+		}
+		r.body = body
+	}()
+	body, err = ioutil.ReadAll(r.Body)
 	r.setReceivedAt()
-	r.body = body
 	if err == nil && r.Request.client.responseBodyTransformer != nil {
 		body, err = r.Request.client.responseBodyTransformer(body, r.Request, r)
-		r.body = body
 	}
-	return body, err
+	return
 }
 
 // Dump return the string content that have been dumped for the request.

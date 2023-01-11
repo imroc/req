@@ -1319,17 +1319,13 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	httpResponse, err = c.httpClient.Do(r.RawRequest)
 	resp.Response = httpResponse
 
-	if err != nil {
-		return
-	}
 	// auto-read response body if possible
-	if !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
+	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
 		_, err = resp.ToBytes()
-		if err != nil {
-			return
-		}
 		// restore body for re-reads
 		resp.Body = ioutil.NopCloser(bytes.NewReader(resp.body))
+	} else if err != nil {
+		resp.Err = err
 	}
 
 	for _, f := range r.client.afterResponse {
