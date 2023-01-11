@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -226,6 +227,17 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
 		w.Write([]byte("TestGet: text response"))
+	case "/urlencode":
+		info := &UserInfo{
+			Username: "我是roc",
+			Email:    "roc@imroc.cc",
+		}
+		bs, err := json.Marshal(info)
+		if err != nil {
+			panic(err)
+		}
+		result := url.QueryEscape(string(bs))
+		w.Write([]byte(result))
 	case "/bad-request":
 		w.WriteHeader(http.StatusBadRequest)
 	case "/too-many":

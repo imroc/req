@@ -66,6 +66,7 @@ type Client struct {
 	udBeforeRequest         []RequestMiddleware
 	afterResponse           []ResponseMiddleware
 	wrappedRoundTrip        RoundTripper
+	responseBodyTransformer func([]byte) ([]byte, error)
 }
 
 // R create a new request.
@@ -149,6 +150,13 @@ func (c *Client) Options(url ...string) *Request {
 // GetTransport return the underlying transport.
 func (c *Client) GetTransport() *Transport {
 	return c.t
+}
+
+// SetResponseBodyTransformer set the response body transformer, which can modify the
+// response body before unmarshalled if auto-read response body is not disabled.
+func (c *Client) SetResponseBodyTransformer(fn func(body []byte) ([]byte, error)) *Client {
+	c.responseBodyTransformer = fn
+	return c
 }
 
 // SetCommonError set the common result that response body will be unmarshalled to
@@ -1077,7 +1085,7 @@ func (c *Client) AddCommonRetryCondition(condition RetryConditionFunc) *Client {
 // SetUnixSocket set client to dial connection use unix socket.
 // For example:
 //
-//	client.SetUnixSocket("/var/run/custom.sock")
+// client.SetUnixSocket("/var/run/custom.sock")
 func (c *Client) SetUnixSocket(file string) *Client {
 	return c.SetDial(func(ctx context.Context, network, addr string) (net.Conn, error) {
 		var d net.Dialer

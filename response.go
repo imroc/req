@@ -169,8 +169,11 @@ func (r *Response) ToBytes() ([]byte, error) {
 	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
-	r.body = body
 	r.setReceivedAt()
+	if err == nil && r.Request.client.responseBodyTransformer != nil {
+		body, err = r.Request.client.responseBodyTransformer(body)
+	}
+	r.body = body
 	return body, err
 }
 

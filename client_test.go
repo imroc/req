@@ -592,3 +592,15 @@ func TestEnableDumpAllAsync(t *testing.T) {
 	c.EnableDumpAllTo(buf).EnableDumpAllAsync()
 	tests.AssertEqual(t, true, c.getDumpOptions().Async)
 }
+
+func TestSetResponseBodyTransformer(t *testing.T) {
+	c := tc().SetResponseBodyTransformer(func(body []byte) ([]byte, error) {
+		result, err := url.QueryUnescape(string(body))
+		return []byte(result), err
+	})
+	user := &UserInfo{}
+	resp, err := c.R().SetResult(user).Get("/urlencode")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, user.Username, "我是roc")
+	tests.AssertEqual(t, user.Email, "roc@imroc.cc")
+}

@@ -598,6 +598,12 @@ func AddCommonRetryCondition(condition RetryConditionFunc) *Client {
 	return defaultClient.AddCommonRetryCondition(condition)
 }
 
+// SetResponseBodyTransformer is a global wrapper methods which delegated
+// to the default client, create a request and SetResponseBodyTransformer for request.
+func SetResponseBodyTransformer(fn func(body []byte) ([]byte, error)) *Client {
+	return defaultClient.SetResponseBodyTransformer(fn)
+}
+
 // SetUnixSocket is a global wrapper methods which delegated
 // to the default client, create a request and SetUnixSocket for request.
 func SetUnixSocket(file string) *Client {
