@@ -131,6 +131,18 @@ If you have questions, feel free to reach out to us in the following ways:
 * [Slack](https://imroc-req.slack.com/archives/C03UFPGSNC8) | [Join](https://slack.req.cool/)
 * QQ Group (Chinese): 621411351 - <a href="https://qm.qq.com/cgi-bin/qm/qr?k=P8vOMuNytG-hhtPlgijwW6orJV765OAO&jump_from=webapi"><img src="https://pub.idqqimg.com/wpa/images/group.png"></a>
 
+## Sponsor
+
+If you like req and it really helps you, feel free to reward me with a cup of coffee, and don't forget to mention your github id.
+
+Wechat:
+
+![](https://req.cool/images/wechat.jpg)
+
+Alipay:
+
+![](https://req.cool/images/alipay.jpg)
+
 ## <a name="License">License</a>
 
 `Req` released under MIT license, refer [LICENSE](LICENSE) file.
