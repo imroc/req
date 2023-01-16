@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	mockquic "github.com/imroc/req/v3/internal/mocks/quic"
+	mockquic "github.com/imroc/req/v3/internal/quic-go/mocks/quic"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"

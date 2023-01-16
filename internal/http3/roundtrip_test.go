@@ -11,8 +11,8 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	mockquic "github.com/imroc/req/v3/internal/mocks/quic"
-	"github.com/lucas-clemente/quic-go"
+	"github.com/imroc/req/v3/internal/quic-go"
+	mockquic "github.com/imroc/req/v3/internal/quic-go/mocks/quic"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

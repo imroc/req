@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/lucas-clemente/quic-go"
+	"github.com/imroc/req/v3/internal/quic-go"
 
 	"golang.org/x/net/http/httpguts"
 )

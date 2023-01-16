@@ -7,20 +7,19 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/marten-seemann/qpack"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
 
-	mockquic "github.com/imroc/req/v3/internal/mocks/quic"
-	"github.com/imroc/req/v3/internal/protocol"
-	"github.com/imroc/req/v3/internal/quicvarint"
-	"github.com/imroc/req/v3/internal/utils"
-	"github.com/lucas-clemente/quic-go"
+	"github.com/imroc/req/v3/internal/quic-go"
+	mockquic "github.com/imroc/req/v3/internal/quic-go/mocks/quic"
+	"github.com/imroc/req/v3/internal/quic-go/protocol"
+	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
+	"github.com/imroc/req/v3/internal/quic-go/utils"
 
 	"github.com/golang/mock/gomock"
-	"github.com/marten-seemann/qpack"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

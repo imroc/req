@@ -7,8 +7,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/imroc/req/v3/internal/protocol"
-	"github.com/imroc/req/v3/internal/quicvarint"
+	"github.com/imroc/req/v3/internal/quic-go/protocol"
+	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
 )
 
 // FrameType is the frame type of a HTTP/3 frame

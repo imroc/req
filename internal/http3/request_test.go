@@ -1,10 +1,10 @@
 package http3
 
 import (
+	"github.com/marten-seemann/qpack"
 	"net/http"
 	"net/url"
 
-	"github.com/marten-seemann/qpack"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

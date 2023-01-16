@@ -2,15 +2,14 @@ package http3
 
 import (
 	"bytes"
+	"github.com/marten-seemann/qpack"
 	"io"
 	"net/http"
 
-	mockquic "github.com/imroc/req/v3/internal/mocks/quic"
-	"github.com/imroc/req/v3/internal/utils"
+	mockquic "github.com/imroc/req/v3/internal/quic-go/mocks/quic"
+	"github.com/imroc/req/v3/internal/quic-go/utils"
 
 	"github.com/golang/mock/gomock"
-	"github.com/marten-seemann/qpack"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

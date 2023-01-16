@@ -3,12 +3,11 @@ package http3
 import (
 	"crypto/tls"
 	"errors"
+	"github.com/marten-seemann/qpack"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/marten-seemann/qpack"
 )
 
 func requestFromHeaders(headers []qpack.HeaderField) (*http.Request, error) {

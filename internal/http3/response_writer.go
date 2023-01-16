@@ -3,13 +3,13 @@ package http3
 import (
 	"bufio"
 	"bytes"
+	"github.com/marten-seemann/qpack"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/imroc/req/v3/internal/utils"
-	"github.com/lucas-clemente/quic-go"
-	"github.com/marten-seemann/qpack"
+	"github.com/imroc/req/v3/internal/quic-go"
+	"github.com/imroc/req/v3/internal/quic-go/utils"
 )
 
 type responseWriter struct {

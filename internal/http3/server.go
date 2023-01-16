@@ -1,8 +1,8 @@
 package http3
 
 import (
-	"github.com/imroc/req/v3/internal/protocol"
-	"github.com/lucas-clemente/quic-go"
+	"github.com/imroc/req/v3/internal/quic-go"
+	"github.com/imroc/req/v3/internal/quic-go/protocol"
 )
 
 // allows mocking of quic.Listen and quic.ListenAddr
