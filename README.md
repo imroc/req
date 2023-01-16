@@ -131,7 +131,7 @@ If you have questions, feel free to reach out to us in the following ways:
 * [Slack](https://imroc-req.slack.com/archives/C03UFPGSNC8) | [Join](https://slack.req.cool/)
 * QQ Group (Chinese): 621411351 - <a href="https://qm.qq.com/cgi-bin/qm/qr?k=P8vOMuNytG-hhtPlgijwW6orJV765OAO&jump_from=webapi"><img src="https://pub.idqqimg.com/wpa/images/group.png"></a>
 
-## Sponsor
+## Sponsors
 
 If you like req and it really helps you, feel free to reward me with a cup of coffee, and don't forget to mention your github id.
 
@@ -142,6 +142,21 @@ Wechat:
 Alipay:
 
 ![](https://req.cool/images/alipay.jpg)
+
+Many thanks to the following sponsors:
+
+<table>
+    <tr>
+        <td align="center">
+            <a href="https://github.com/aadog">
+                <img src="https://avatars.githubusercontent.com/u/18098725?v=4?s=100" width="160px"   alt=""/>
+                <br />
+                <sub><b>aadog 🥇</b></sub>
+            </a>
+        </td>
+    </tr>
+</table>
+
 
 ## <a name="License">License</a>
 
