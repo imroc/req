@@ -135,13 +135,20 @@ If you have questions, feel free to reach out to us in the following ways:
 
 If you like req and it really helps you, feel free to reward me with a cup of coffee, and don't forget to mention your github id.
 
-Wechat:
-
-![](https://req.cool/images/wechat.jpg)
-
-Alipay:
-
-![](https://req.cool/images/alipay.jpg)
+<table>
+    <tr>
+        <td align="center">
+            <img src="https://req.cool/images/wechat.jpg" width="200px"   alt=""/>
+            <br />
+            <sub><b>Wechat</b></sub>
+        </td>
+        <td align="center">
+            <img src="https://req.cool/images/alipay.jpg" width="200px"   alt=""/>
+            <br />
+            <sub><b>Alipay</b></sub>
+        </td>
+    </tr>
+</table>
 
 Many thanks to the following sponsors:
 
