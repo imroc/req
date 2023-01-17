@@ -148,15 +148,23 @@ Many thanks to the following sponsors:
 <table>
     <tr>
         <td align="center">
+            <a href="https://github.com/M-Cosmosss">
+                <img src="https://avatars.githubusercontent.com/u/46757262?v=4?s=100" width="160px"   alt=""/>
+                <br />
+                <sub><b>M-Cosmosss 🥇</b></sub>
+            </a>
+        </td>
+    </tr>
+    <tr>
+        <td align="center">
             <a href="https://github.com/aadog">
                 <img src="https://avatars.githubusercontent.com/u/18098725?v=4?s=100" width="160px"   alt=""/>
                 <br />
-                <sub><b>aadog 🥇</b></sub>
+                <sub><b>aadog 🥈</b></sub>
             </a>
         </td>
     </tr>
 </table>
-
 
 ## <a name="License">License</a>
 
