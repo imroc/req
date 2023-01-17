@@ -154,8 +154,6 @@ Many thanks to the following sponsors:
                 <sub><b>M-Cosmosss 🥇</b></sub>
             </a>
         </td>
-    </tr>
-    <tr>
         <td align="center">
             <a href="https://github.com/aadog">
                 <img src="https://avatars.githubusercontent.com/u/18098725?v=4?s=100" width="160px"   alt=""/>
