@@ -184,16 +184,16 @@ func (c *Client) SetCommonErrorResult(err interface{}) *Client {
 
 // SetCommonUnknownResultHandlerFunc set the response handler which will be executed when no
 // error occurs, but Response.ResultState returns UnknownState.
-func (c *Client) SetCommonUnknownResultHandlerFunc(handler func(resp *Response) error) *Client {
-	c.unknownResultHandlerFunc = handler
+func (c *Client) SetCommonUnknownResultHandlerFunc(fn func(resp *Response) error) *Client {
+	c.unknownResultHandlerFunc = fn
 	return c
 }
 
-// SetCommonResultStateChecker overrides the default result state checker with customized one,
+// SetCommonResultStateCheckFunc overrides the default result state checker with customized one,
 // which returns SuccessState when HTTP status `code >= 200 and <= 299`, and returns
 // ErrorState when HTTP status `code >= 400`, otherwise returns UnknownState.
-func (c *Client) SetCommonResultStateChecker(checker func(resp *Response) ResultState) *Client {
-	c.resultStateCheckFunc = checker
+func (c *Client) SetCommonResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
+	c.resultStateCheckFunc = fn
 	return c
 }
 

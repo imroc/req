@@ -26,7 +26,7 @@ type Response struct {
 }
 
 // IsSuccess method returns true if no error occurs and HTTP status `code >= 200 and <= 299`
-// by default, you can also use Request.SetResultStateChecker to customize the result
+// by default, you can also use Request.SetResultStateCheckFunc to customize the result
 // state check logic.
 //
 // Deprecated: Use IsSuccessState instead.
@@ -35,7 +35,7 @@ func (r *Response) IsSuccess() bool {
 }
 
 // IsSuccessState method returns true if no error occurs and HTTP status `code >= 200 and <= 299`
-// by default, you can also use Request.SetResultStateChecker to customize the result state
+// by default, you can also use Request.SetResultStateCheckFunc to customize the result state
 // check logic.
 func (r *Response) IsSuccessState() bool {
 	if r.Response == nil {
@@ -45,7 +45,7 @@ func (r *Response) IsSuccessState() bool {
 }
 
 // IsError method returns true if no error occurs and HTTP status `code >= 400`
-// by default, you can also use Request.SetResultStateChecker to customize the result
+// by default, you can also use Request.SetResultStateCheckFunc to customize the result
 // state check logic.
 //
 // Deprecated: Use IsErrorState instead.
@@ -54,7 +54,7 @@ func (r *Response) IsError() bool {
 }
 
 // IsErrorState method returns true if no error occurs and HTTP status `code >= 400`
-// by default, you can also use Request.SetResultStateChecker to customize the result
+// by default, you can also use Request.SetResultStateCheckFunc to customize the result
 // state check logic.
 func (r *Response) IsErrorState() bool {
 	if r.Response == nil {
@@ -74,7 +74,7 @@ func (r *Response) GetContentType() string {
 // ResultState returns the result state.
 // By default, it returns SuccessState if HTTP status `code >= 400`, and returns
 // ErrorState if HTTP status `code >= 400`, otherwise returns UnknownState.
-// You can also use Request.SetResultStateChecker or Client.SetCommonResultStateChecker
+// You can also use Request.SetResultStateCheckFunc or Client.SetCommonResultStateCheckFunc
 // to customize the result state check logic.
 func (r *Response) ResultState() ResultState {
 	if r.Response == nil {

@@ -23,9 +23,29 @@ func WrapRoundTripFunc(funcs ...RoundTripWrapperFunc) *Client {
 }
 
 // SetCommonError is a global wrapper methods which delegated
-// to the default client's SetCommonError.
+// to the default client's SetCommonErrorResult.
+//
+// Deprecated: Use SetCommonErrorResult instead.
 func SetCommonError(err interface{}) *Client {
-	return defaultClient.SetCommonError(err)
+	return defaultClient.SetCommonErrorResult(err)
+}
+
+// SetCommonErrorResult is a global wrapper methods which delegated
+// to the default client's SetCommonError.
+func SetCommonErrorResult(err interface{}) *Client {
+	return defaultClient.SetCommonErrorResult(err)
+}
+
+// SetCommonUnknownResultHandlerFunc is a global wrapper methods which delegated
+// to the default client's SetCommonUnknownResultHandlerFunc.
+func SetCommonUnknownResultHandlerFunc(fn func(resp *Response) error) *Client {
+	return defaultClient.SetCommonUnknownResultHandlerFunc(fn)
+}
+
+// SetCommonResultStateCheckFunc is a global wrapper methods which delegated
+// to the default client's SetCommonResultStateCheckFunc.
+func SetCommonResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
+	return defaultClient.SetCommonResultStateCheckFunc(fn)
 }
 
 // SetCommonFormDataFromValues is a global wrapper methods which delegated

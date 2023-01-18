@@ -75,15 +75,43 @@ func SetFileUpload(f ...FileUpload) *Request {
 }
 
 // SetResult is a global wrapper methods which delegated
-// to the default client, create a request and SetResult for request.
+// to the default client, create a request and SetSuccessResult for request.
+//
+// Deprecated: Use SetSuccessResult instead.
 func SetResult(result interface{}) *Request {
-	return defaultClient.R().SetResult(result)
+	return defaultClient.R().SetSuccessResult(result)
+}
+
+// SetSuccessResult is a global wrapper methods which delegated
+// to the default client, create a request and SetSuccessResult for request.
+func SetSuccessResult(result interface{}) *Request {
+	return defaultClient.R().SetSuccessResult(result)
 }
 
 // SetError is a global wrapper methods which delegated
-// to the default client, create a request and SetError for request.
+// to the default client, create a request and SetErrorResult for request.
+//
+// Deprecated: Use SetErrorResult instead.
 func SetError(error interface{}) *Request {
-	return defaultClient.R().SetError(error)
+	return defaultClient.R().SetErrorResult(error)
+}
+
+// SetErrorResult is a global wrapper methods which delegated
+// to the default client, create a request and SetErrorResult for request.
+func SetErrorResult(error interface{}) *Request {
+	return defaultClient.R().SetErrorResult(error)
+}
+
+// SetResultStateCheckFunc is a global wrapper methods which delegated
+// to the default client, create a request and SetResultStateCheckFunc for request.
+func SetResultStateCheckFunc(fn func(resp *Response) ResultState) *Request {
+	return defaultClient.R().SetResultStateCheckFunc(fn)
+}
+
+// SetUnknownResultHandlerFunc is a global wrapper methods which delegated
+// to the default client, create a request and SetUnknownResultHandlerFunc for request.
+func SetUnknownResultHandlerFunc(fn func(resp *Response) error) *Request {
+	return defaultClient.R().SetUnknownResultHandlerFunc(fn)
 }
 
 // SetBearerAuthToken is a global wrapper methods which delegated
