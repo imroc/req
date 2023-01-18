@@ -197,8 +197,8 @@ func (c *Client) SetCommonResultStateCheckFunc(fn func(resp *Response) ResultSta
 	return c
 }
 
-// SetCommonFormDataFromValues set the form data from url.Values for all requests
-// which request method allows payload.
+// SetCommonFormDataFromValues set the form data from url.Values for requests
+// fired from the client which request method allows payload.
 func (c *Client) SetCommonFormDataFromValues(data urlpkg.Values) *Client {
 	if c.FormData == nil {
 		c.FormData = urlpkg.Values{}
@@ -211,7 +211,7 @@ func (c *Client) SetCommonFormDataFromValues(data urlpkg.Values) *Client {
 	return c
 }
 
-// SetCommonFormData set the form data from map for all requests
+// SetCommonFormData set the form data from map for requests fired from the client
 // which request method allows payload.
 func (c *Client) SetCommonFormData(data map[string]string) *Client {
 	if c.FormData == nil {
@@ -391,7 +391,7 @@ func (c *Client) DisableInsecureSkipVerify() *Client {
 }
 
 // SetCommonQueryParams set URL query parameters with a map
-// for all requests.
+// for requests fired from the client.
 func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
 	for k, v := range params {
 		c.SetCommonQueryParam(k, v)
@@ -400,7 +400,7 @@ func (c *Client) SetCommonQueryParams(params map[string]string) *Client {
 }
 
 // AddCommonQueryParam add a URL query parameter with a key-value
-// pair for all requests.
+// pair for requests fired from the client.
 func (c *Client) AddCommonQueryParam(key, value string) *Client {
 	if c.QueryParams == nil {
 		c.QueryParams = make(urlpkg.Values)
@@ -409,7 +409,8 @@ func (c *Client) AddCommonQueryParam(key, value string) *Client {
 	return c
 }
 
-// AddCommonQueryParams add one or more values of specified URL query parameter for all requests.
+// AddCommonQueryParams add one or more values of specified URL query parameter
+// for requests fired from the client.
 func (c *Client) AddCommonQueryParams(key string, values ...string) *Client {
 	if c.QueryParams == nil {
 		c.QueryParams = make(urlpkg.Values)
@@ -427,13 +428,13 @@ func (c *Client) pathParams() map[string]string {
 	return c.PathParams
 }
 
-// SetCommonPathParam set a path parameter for all requests.
+// SetCommonPathParam set a path parameter for requests fired from the client.
 func (c *Client) SetCommonPathParam(key, value string) *Client {
 	c.pathParams()[key] = value
 	return c
 }
 
-// SetCommonPathParams set path parameters for all requests.
+// SetCommonPathParams set path parameters for requests fired from the client.
 func (c *Client) SetCommonPathParams(pathParams map[string]string) *Client {
 	m := c.pathParams()
 	for k, v := range pathParams {
@@ -443,7 +444,7 @@ func (c *Client) SetCommonPathParams(pathParams map[string]string) *Client {
 }
 
 // SetCommonQueryParam set a URL query parameter with a key-value
-// pair for all requests.
+// pair for requests fired from the client.
 func (c *Client) SetCommonQueryParam(key, value string) *Client {
 	if c.QueryParams == nil {
 		c.QueryParams = make(urlpkg.Values)
@@ -453,7 +454,7 @@ func (c *Client) SetCommonQueryParam(key, value string) *Client {
 }
 
 // SetCommonQueryString set URL query parameters with a raw query string
-// for all requests.
+// for requests fired from the client.
 func (c *Client) SetCommonQueryString(query string) *Client {
 	params, err := urlpkg.ParseQuery(strings.TrimSpace(query))
 	if err != nil {
@@ -471,7 +472,7 @@ func (c *Client) SetCommonQueryString(query string) *Client {
 	return c
 }
 
-// SetCommonCookies set HTTP cookies for all requests.
+// SetCommonCookies set HTTP cookies for requests fired from the client.
 func (c *Client) SetCommonCookies(cookies ...*http.Cookie) *Client {
 	c.Cookies = append(c.Cookies, cookies...)
 	return c
@@ -527,7 +528,7 @@ func (c *Client) SetLogger(log Logger) *Client {
 	return c
 }
 
-// SetTimeout set timeout for all requests.
+// SetTimeout set timeout for requests fired from the client.
 func (c *Client) SetTimeout(d time.Duration) *Client {
 	c.httpClient.Timeout = d
 	return c
@@ -540,7 +541,7 @@ func (c *Client) getDumpOptions() *DumpOptions {
 	return c.dumpOptions
 }
 
-// EnableDumpAll enable dump for all requests, including
+// EnableDumpAll enable dump for requests fired from the client, including
 // all content for the request and response by default.
 func (c *Client) EnableDumpAll() *Client {
 	if c.t.Dump != nil { // dump already started
@@ -550,8 +551,8 @@ func (c *Client) EnableDumpAll() *Client {
 	return c
 }
 
-// EnableDumpAllToFile enable dump for all requests and output
-// to the specified file.
+// EnableDumpAllToFile enable dump for requests fired from the
+// client and output to the specified file.
 func (c *Client) EnableDumpAllToFile(filename string) *Client {
 	file, err := os.Create(filename)
 	if err != nil {
@@ -563,17 +564,17 @@ func (c *Client) EnableDumpAllToFile(filename string) *Client {
 	return c
 }
 
-// EnableDumpAllTo enable dump for all requests and output to
-// the specified io.Writer.
+// EnableDumpAllTo enable dump for requests fired from the
+// client and output to the specified io.Writer.
 func (c *Client) EnableDumpAllTo(output io.Writer) *Client {
 	c.getDumpOptions().Output = output
 	c.EnableDumpAll()
 	return c
 }
 
-// EnableDumpAllAsync enable dump for all requests and output
-// asynchronously, can be used for debugging in production
-// environment without affecting performance.
+// EnableDumpAllAsync enable dump for requests fired from the
+// client and output asynchronously, can be used for debugging
+// in production environment without affecting performance.
 func (c *Client) EnableDumpAllAsync() *Client {
 	o := c.getDumpOptions()
 	o.Async = true
@@ -581,9 +582,9 @@ func (c *Client) EnableDumpAllAsync() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutRequestBody enable dump for all requests without
-// request body, can be used in the upload request to avoid dumping the
-// unreadable binary content.
+// EnableDumpAllWithoutRequestBody enable dump for requests fired
+// from the client without request body, can be used in the upload
+// request to avoid dumping the unreadable binary content.
 func (c *Client) EnableDumpAllWithoutRequestBody() *Client {
 	o := c.getDumpOptions()
 	o.RequestBody = false
@@ -591,9 +592,9 @@ func (c *Client) EnableDumpAllWithoutRequestBody() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutResponseBody enable dump for all requests without
-// response body, can be used in the download request to avoid dumping the
-// unreadable binary content.
+// EnableDumpAllWithoutResponseBody enable dump for requests fired
+// from the client without response body, can be used in the download
+// request to avoid dumping the unreadable binary content.
 func (c *Client) EnableDumpAllWithoutResponseBody() *Client {
 	o := c.getDumpOptions()
 	o.ResponseBody = false
@@ -601,8 +602,9 @@ func (c *Client) EnableDumpAllWithoutResponseBody() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutResponse enable dump for all requests without response,
-// can be used if you only care about the request.
+// EnableDumpAllWithoutResponse enable dump for requests fired from
+// the client without response, can be used if you only care about
+// the request.
 func (c *Client) EnableDumpAllWithoutResponse() *Client {
 	o := c.getDumpOptions()
 	o.ResponseBody = false
@@ -611,8 +613,9 @@ func (c *Client) EnableDumpAllWithoutResponse() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutRequest enables dump for all requests without request,
-// can be used if you only care about the response.
+// EnableDumpAllWithoutRequest enables dump for requests fired from
+// the client without request, can be used if you only care about
+// the response.
 func (c *Client) EnableDumpAllWithoutRequest() *Client {
 	o := c.getDumpOptions()
 	o.RequestHeader = false
@@ -621,8 +624,9 @@ func (c *Client) EnableDumpAllWithoutRequest() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutHeader enable dump for all requests without header,
-// can be used if you only care about the body.
+// EnableDumpAllWithoutHeader enable dump for requests fired from
+// the client without header, can be used if you only care about
+// the body.
 func (c *Client) EnableDumpAllWithoutHeader() *Client {
 	o := c.getDumpOptions()
 	o.RequestHeader = false
@@ -631,8 +635,9 @@ func (c *Client) EnableDumpAllWithoutHeader() *Client {
 	return c
 }
 
-// EnableDumpAllWithoutBody enable dump for all requests without body,
-// can be used if you only care about the header.
+// EnableDumpAllWithoutBody enable dump for requests fired from
+// the client without body, can be used if you only care about
+// the header.
 func (c *Client) EnableDumpAllWithoutBody() *Client {
 	o := c.getDumpOptions()
 	o.RequestBody = false
@@ -784,23 +789,26 @@ func (c *Client) EnableAutoDecode() *Client {
 	return c
 }
 
-// SetUserAgent set the "User-Agent" header for all requests.
+// SetUserAgent set the "User-Agent" header for requests fired from
+// the client.
 func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c.SetCommonHeader(header.UserAgent, userAgent)
 }
 
-// SetCommonBearerAuthToken set the bearer auth token for all requests.
+// SetCommonBearerAuthToken set the bearer auth token for requests
+// fired from the client.
 func (c *Client) SetCommonBearerAuthToken(token string) *Client {
 	return c.SetCommonHeader("Authorization", "Bearer "+token)
 }
 
-// SetCommonBasicAuth set the basic auth for all requests.
+// SetCommonBasicAuth set the basic auth for requests fired from
+// the client.
 func (c *Client) SetCommonBasicAuth(username, password string) *Client {
 	c.SetCommonHeader("Authorization", util.BasicAuthHeaderValue(username, password))
 	return c
 }
 
-// SetCommonHeaders set headers for all requests.
+// SetCommonHeaders set headers for requests fired from the client.
 func (c *Client) SetCommonHeaders(hdrs map[string]string) *Client {
 	for k, v := range hdrs {
 		c.SetCommonHeader(k, v)
@@ -808,7 +816,7 @@ func (c *Client) SetCommonHeaders(hdrs map[string]string) *Client {
 	return c
 }
 
-// SetCommonHeader set a header for all requests.
+// SetCommonHeader set a header for requests fired from the client.
 func (c *Client) SetCommonHeader(key, value string) *Client {
 	if c.Headers == nil {
 		c.Headers = make(http.Header)
@@ -817,8 +825,9 @@ func (c *Client) SetCommonHeader(key, value string) *Client {
 	return c
 }
 
-// SetCommonHeaderNonCanonical set a header for all requests which key is a
-// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+// SetCommonHeaderNonCanonical set a header for requests fired from
+// the client which key is a non-canonical key (keep case unchanged),
+// only valid for HTTP/1.1.
 func (c *Client) SetCommonHeaderNonCanonical(key, value string) *Client {
 	if c.Headers == nil {
 		c.Headers = make(http.Header)
@@ -827,8 +836,9 @@ func (c *Client) SetCommonHeaderNonCanonical(key, value string) *Client {
 	return c
 }
 
-// SetCommonHeadersNonCanonical set headers for all requests which key is a
-// non-canonical key (keep case unchanged), only valid for HTTP/1.1.
+// SetCommonHeadersNonCanonical set headers for requests fired from the
+// client which key is a non-canonical key (keep case unchanged), only
+// valid for HTTP/1.1.
 func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 	for k, v := range hdrs {
 		c.SetCommonHeaderNonCanonical(k, v)
@@ -836,20 +846,21 @@ func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 	return c
 }
 
-// SetCommonContentType set the `Content-Type` header for all requests.
+// SetCommonContentType set the `Content-Type` header for requests fired
+// from the client.
 func (c *Client) SetCommonContentType(ct string) *Client {
 	c.SetCommonHeader(header.ContentType, ct)
 	return c
 }
 
-// DisableDumpAll disable dump for all requests.
+// DisableDumpAll disable dump for requests fired from the client.
 func (c *Client) DisableDumpAll() *Client {
 	c.t.DisableDump()
 	return c
 }
 
 // SetCommonDumpOptions configures the underlying Transport's DumpOptions
-// for all requests.
+// for requests fired from the client.
 func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 	if opt == nil {
 		return c
@@ -902,13 +913,14 @@ func (c *Client) SetProxyURL(proxyUrl string) *Client {
 	return c
 }
 
-// DisableTraceAll disable trace for all requests.
+// DisableTraceAll disable trace for requests fired from the client.
 func (c *Client) DisableTraceAll() *Client {
 	c.trace = false
 	return c
 }
 
-// EnableTraceAll enable trace for all requests (http3 currently does not support trace).
+// EnableTraceAll enable trace for requests fired from the client (http3
+// currently does not support trace).
 func (c *Client) EnableTraceAll() *Client {
 	c.trace = true
 	return c
@@ -1045,14 +1057,15 @@ func (c *Client) getRetryOption() *retryOption {
 	return c.retryOption
 }
 
-// SetCommonRetryCount enables retry and set the maximum retry count for all requests.
+// SetCommonRetryCount enables retry and set the maximum retry count for requests
+// fired from the client.
 func (c *Client) SetCommonRetryCount(count int) *Client {
 	c.getRetryOption().MaxRetries = count
 	return c
 }
 
-// SetCommonRetryInterval sets the custom GetRetryIntervalFunc for all requests,
-// you can use this to implement your own backoff retry algorithm.
+// SetCommonRetryInterval sets the custom GetRetryIntervalFunc for requests fired
+// from the client, you can use this to implement your own backoff retry algorithm.
 // For example:
 //
 //		 req.SetCommonRetryInterval(func(resp *req.Response, attempt int) time.Duration {
@@ -1064,7 +1077,8 @@ func (c *Client) SetCommonRetryInterval(getRetryIntervalFunc GetRetryIntervalFun
 	return c
 }
 
-// SetCommonRetryFixedInterval set retry to use a fixed interval for all requests.
+// SetCommonRetryFixedInterval set retry to use a fixed interval for requests
+// fired from the client.
 func (c *Client) SetCommonRetryFixedInterval(interval time.Duration) *Client {
 	c.getRetryOption().GetRetryInterval = func(resp *Response, attempt int) time.Duration {
 		return interval
@@ -1072,8 +1086,8 @@ func (c *Client) SetCommonRetryFixedInterval(interval time.Duration) *Client {
 	return c
 }
 
-// SetCommonRetryBackoffInterval set retry to use a capped exponential backoff with jitter
-// for all requests.
+// SetCommonRetryBackoffInterval set retry to use a capped exponential backoff
+// with jitter for requests fired from the client.
 // https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
 func (c *Client) SetCommonRetryBackoffInterval(min, max time.Duration) *Client {
 	c.getRetryOption().GetRetryInterval = backoffInterval(min, max)
@@ -1087,8 +1101,8 @@ func (c *Client) SetCommonRetryHook(hook RetryHookFunc) *Client {
 	return c
 }
 
-// AddCommonRetryHook adds a retry hook for all requests, which will be
-// executed before a retry.
+// AddCommonRetryHook adds a retry hook for requests fired from the client,
+// which will be executed before a retry.
 func (c *Client) AddCommonRetryHook(hook RetryHookFunc) *Client {
 	ro := c.getRetryOption()
 	ro.RetryHooks = append(ro.RetryHooks, hook)
