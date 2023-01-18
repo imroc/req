@@ -25,20 +25,42 @@ type Response struct {
 	result     interface{}
 }
 
-// IsSuccess method returns true if HTTP status `code >= 200 and <= 299` otherwise false.
+// IsSuccess method returns true if no error occurs and HTTP status `code >= 200 and <= 299`
+// by default, you can also use Request.SetResultStateChecker to customize the result
+// state check logic.
+//
+// Deprecated: Use IsSuccessState instead.
 func (r *Response) IsSuccess() bool {
-	if r.Response == nil {
-		return false
-	}
-	return r.StatusCode > 199 && r.StatusCode < 300
+	return r.IsSuccessState()
 }
 
-// IsError method returns true if HTTP status `code >= 400` otherwise false.
-func (r *Response) IsError() bool {
+// IsSuccessState method returns true if no error occurs and HTTP status `code >= 200 and <= 299`
+// by default, you can also use Request.SetResultStateChecker to customize the result state
+// check logic.
+func (r *Response) IsSuccessState() bool {
 	if r.Response == nil {
 		return false
 	}
-	return r.StatusCode > 399
+	return r.ResultState() == SuccessState
+}
+
+// IsError method returns true if no error occurs and HTTP status `code >= 400`
+// by default, you can also use Request.SetResultStateChecker to customize the result
+// state check logic.
+//
+// Deprecated: Use IsErrorState instead.
+func (r *Response) IsError() bool {
+	return r.IsErrorState()
+}
+
+// IsErrorState method returns true if no error occurs and HTTP status `code >= 400`
+// by default, you can also use Request.SetResultStateChecker to customize the result
+// state check logic.
+func (r *Response) IsErrorState() bool {
+	if r.Response == nil {
+		return false
+	}
+	return r.ResultState() == ErrorState
 }
 
 // GetContentType return the `Content-Type` header value.
@@ -49,15 +71,47 @@ func (r *Response) GetContentType() string {
 	return r.Header.Get(header.ContentType)
 }
 
-// Result returns the automatically unmarshalled object if Request.SetResult is called,
-// and Response.IsSuccess() == true. Otherwise return nil.
+// ResultState returns the result state.
+// By default, it returns SuccessState if HTTP status `code >= 400`, and returns
+// ErrorState if HTTP status `code >= 400`, otherwise returns UnknownState.
+// You can also use Request.SetResultStateChecker or Client.SetCommonResultStateChecker
+// to customize the result state check logic.
+func (r *Response) ResultState() ResultState {
+	if r.Response == nil {
+		return UnknownState
+	}
+	return r.Request.resultStateCheckFunc(r)
+}
+
+// Result returns the automatically unmarshalled object if Request.SetSuccessResult
+// is called and ResultState returns SuccessState.
+// Otherwise, return nil.
+//
+// Deprecated: Use SuccessResult instead.
 func (r *Response) Result() interface{} {
+	return r.SuccessResult()
+}
+
+// SuccessResult returns the automatically unmarshalled object if Request.SetSuccessResult
+// is called and ResultState returns SuccessState.
+// Otherwise, return nil.
+func (r *Response) SuccessResult() interface{} {
 	return r.result
 }
 
-// Error returns the automatically unmarshalled object when Request.SetError is called,
-// and Response.IsError() == true. Otherwise return nil.
+// Error returns the automatically unmarshalled object when Request.SetErrorResult
+// or Client.SetCommonErrorResult is called, and ResultState returns ErrorState.
+// Otherwise, return nil.
+//
+// Deprecated: Use ErrorResult instead.
 func (r *Response) Error() interface{} {
+	return r.error
+}
+
+// ErrorResult returns the automatically unmarshalled object when Request.SetErrorResult
+// or Client.SetCommonErrorResult is called, and ResultState returns ErrorState.
+// Otherwise, return nil.
+func (r *Response) ErrorResult() interface{} {
 	return r.error
 }
 
@@ -86,7 +140,7 @@ func (r *Response) setReceivedAt() {
 	}
 }
 
-// UnmarshalJson unmarshals JSON response body into the specified object.
+// UnmarshalJson unmarshalls JSON response body into the specified object.
 func (r *Response) UnmarshalJson(v interface{}) error {
 	if r.Err != nil {
 		return r.Err
@@ -98,7 +152,7 @@ func (r *Response) UnmarshalJson(v interface{}) error {
 	return r.Request.client.jsonUnmarshal(b, v)
 }
 
-// UnmarshalXml unmarshals XML response body into the specified object.
+// UnmarshalXml unmarshalls XML response body into the specified object.
 func (r *Response) UnmarshalXml(v interface{}) error {
 	if r.Err != nil {
 		return r.Err
@@ -110,7 +164,7 @@ func (r *Response) UnmarshalXml(v interface{}) error {
 	return r.Request.client.xmlUnmarshal(b, v)
 }
 
-// Unmarshal unmarshals response body into the specified object according
+// Unmarshal unmarshalls response body into the specified object according
 // to response `Content-Type`.
 func (r *Response) Unmarshal(v interface{}) error {
 	if r.Err != nil {
@@ -126,7 +180,7 @@ func (r *Response) Unmarshal(v interface{}) error {
 	return r.UnmarshalJson(v)
 }
 
-// Into unmarshals response body into the specified object according
+// Into unmarshalls response body into the specified object according
 // to response `Content-Type`.
 func (r *Response) Into(v interface{}) error {
 	return r.Unmarshal(v)

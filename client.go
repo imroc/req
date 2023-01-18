@@ -48,25 +48,27 @@ type Client struct {
 	DebugLog              bool
 	AllowGetMethodPayload bool
 
-	trace                   bool
-	disableAutoReadResponse bool
-	commonErrorType         reflect.Type
-	retryOption             *retryOption
-	jsonMarshal             func(v interface{}) ([]byte, error)
-	jsonUnmarshal           func(data []byte, v interface{}) error
-	xmlMarshal              func(v interface{}) ([]byte, error)
-	xmlUnmarshal            func(data []byte, v interface{}) error
-	outputDirectory         string
-	scheme                  string
-	log                     Logger
-	t                       *Transport
-	dumpOptions             *DumpOptions
-	httpClient              *http.Client
-	beforeRequest           []RequestMiddleware
-	udBeforeRequest         []RequestMiddleware
-	afterResponse           []ResponseMiddleware
-	wrappedRoundTrip        RoundTripper
-	responseBodyTransformer func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
+	trace                    bool
+	disableAutoReadResponse  bool
+	commonErrorType          reflect.Type
+	retryOption              *retryOption
+	jsonMarshal              func(v interface{}) ([]byte, error)
+	jsonUnmarshal            func(data []byte, v interface{}) error
+	xmlMarshal               func(v interface{}) ([]byte, error)
+	xmlUnmarshal             func(data []byte, v interface{}) error
+	outputDirectory          string
+	scheme                   string
+	log                      Logger
+	t                        *Transport
+	dumpOptions              *DumpOptions
+	httpClient               *http.Client
+	beforeRequest            []RequestMiddleware
+	udBeforeRequest          []RequestMiddleware
+	afterResponse            []ResponseMiddleware
+	wrappedRoundTrip         RoundTripper
+	responseBodyTransformer  func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
+	unknownResultHandlerFunc func(resp *Response) error
+	resultStateCheckFunc     func(resp *Response) ResultState
 }
 
 // R create a new request.
@@ -160,11 +162,38 @@ func (c *Client) SetResponseBodyTransformer(fn func(rawBody []byte, req *Request
 }
 
 // SetCommonError set the common result that response body will be unmarshalled to
-// if it is an error response ( status `code >= 400`).
+// if no error occurs but Response.ResultState returns ErrorState, by default it
+// is HTTP status `code >= 400`, you can also use SetCommonResultStateChecker
+// to customize the result state check logic.
+//
+// Deprecated: Use SetCommonErrorResult instead.
 func (c *Client) SetCommonError(err interface{}) *Client {
+	return c.SetCommonErrorResult(err)
+}
+
+// SetCommonErrorResult set the common result that response body will be unmarshalled to
+// if no error occurs but Response.ResultState returns ErrorState, by default it
+// is HTTP status `code >= 400`, you can also use SetCommonResultStateChecker
+// to customize the result state check logic.
+func (c *Client) SetCommonErrorResult(err interface{}) *Client {
 	if err != nil {
 		c.commonErrorType = util.GetType(err)
 	}
+	return c
+}
+
+// SetCommonUnknownResultHandlerFunc set the response handler which will be executed when no
+// error occurs, but Response.ResultState returns UnknownState.
+func (c *Client) SetCommonUnknownResultHandlerFunc(handler func(resp *Response) error) *Client {
+	c.unknownResultHandlerFunc = handler
+	return c
+}
+
+// SetCommonResultStateChecker overrides the default result state checker with customized one,
+// which returns SuccessState when HTTP status `code >= 200 and <= 299`, and returns
+// ErrorState when HTTP status `code >= 400`, otherwise returns UnknownState.
+func (c *Client) SetCommonResultStateChecker(checker func(resp *Response) ResultState) *Client {
+	c.resultStateCheckFunc = checker
 	return c
 }
 
@@ -1318,6 +1347,15 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	var httpResponse *http.Response
 	httpResponse, err = c.httpClient.Do(r.RawRequest)
 	resp.Response = httpResponse
+
+	// setup resultStateCheckFunc
+	if r.resultStateCheckFunc == nil {
+		if c.resultStateCheckFunc != nil {
+			r.resultStateCheckFunc = c.resultStateCheckFunc
+		} else {
+			r.resultStateCheckFunc = defaultResultStateChecker
+		}
+	}
 
 	// auto-read response body if possible
 	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {

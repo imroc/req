@@ -243,21 +243,34 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 	return
 }
 
+func defaultResultStateChecker(resp *Response) ResultState {
+	if code := resp.StatusCode; code > 199 && code < 300 {
+		return SuccessState
+	} else if code > 399 {
+		return ErrorState
+	} else {
+		return UnknownState
+	}
+}
+
 func parseResponseBody(c *Client, r *Response) (err error) {
 	if r.Response == nil || r.StatusCode == http.StatusNoContent {
 		return
 	}
-	if r.Request.Result != nil && r.IsSuccess() {
-		err = unmarshalBody(c, r, r.Request.Result)
-		if err == nil {
-			r.result = r.Request.Result
-		}
-	}
-	if r.IsError() {
-		if r.Request.Error != nil {
-			err = unmarshalBody(c, r, r.Request.Error)
+	req := r.Request
+	switch req.resultStateCheckFunc(r) {
+	case SuccessState:
+		if req.Result != nil {
+			err = unmarshalBody(c, r, r.Request.Result)
 			if err == nil {
-				r.error = r.Request.Error
+				r.result = r.Request.Result
+			}
+		}
+	case ErrorState:
+		if req.Error != nil {
+			err = unmarshalBody(c, r, req.Error)
+			if err == nil {
+				r.error = req.Error
 			}
 		} else if c.commonErrorType != nil {
 			e := reflect.New(c.commonErrorType).Interface()
@@ -265,6 +278,14 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 			if err == nil {
 				r.error = e
 			}
+		}
+	default:
+		handleUnknownResult := req.unknownResultHandlerFunc
+		if handleUnknownResult == nil {
+			handleUnknownResult = c.unknownResultHandlerFunc
+		}
+		if handleUnknownResult != nil {
+			handleUnknownResult(r)
 		}
 	}
 	return
@@ -325,7 +346,7 @@ func (r *callbackReader) Read(p []byte) (n int, err error) {
 }
 
 func handleDownload(c *Client, r *Response) (err error) {
-	if !r.Request.isSaveResponse {
+	if r.Response == nil || !r.Request.isSaveResponse {
 		return nil
 	}
 	var body io.ReadCloser
