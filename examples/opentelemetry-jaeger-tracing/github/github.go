@@ -59,23 +59,23 @@ func NewClient() *Client {
 		// request middleware
 		EnableDumpEachRequest().
 		// Unmarshal response body into an APIError struct when status >= 400.
-		SetCommonError(&APIError{}).
+		SetCommonErrorResult(&APIError{}).
 		// Handle common exceptions in response middleware.
 		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
 			if resp.Err != nil { // There is an underlying error, e.g. network error or unmarshal error(SetResult or SetError was invoked before).
 				if dump := resp.Dump(); dump != "" { // Append dump content to original underlying error to help troubleshoot.
-					resp.Err = fmt.Errorf("%s\nraw content:\n%s", resp.Err.Error(), resp.Dump())
+					resp.Err = fmt.Errorf("error: %s\nraw content:\n%s", resp.Err.Error(), resp.Dump())
 				}
 				return nil // Skip the following logic if there is an underlying error.
 			}
-			if err, ok := resp.Error().(*APIError); ok { // Server returns an error message.
-				// Convert it to human-readable go error.
+			if err, ok := resp.ErrorResult().(*APIError); ok { // Server returns an error message.
+				// Convert it to human-readable go error which implements the error interface.
 				resp.Err = err
 				return nil
 			}
-			// Corner case: neither an error response nor a success response, e.g. status code < 200
-			// Just dump the raw content into error to help troubleshoot.
-			if !resp.IsSuccess() {
+			// Corner case: neither an error response nor a success response, e.g. status code < 200 or
+			// code >= 300 && code <= 399, just dump the raw content into error to help troubleshoot.
+			if !resp.IsSuccessState() {
 				resp.Err = fmt.Errorf("bad response, raw content:\n%s", resp.Dump())
 			}
 			return nil
@@ -145,7 +145,7 @@ type UserProfile struct {
 func (c *Client) GetUserProfile(ctx context.Context, username string) (user *UserProfile, err error) {
 	err = c.Get("/users/{username}").
 		SetPathParam("username", username).
-		SetResult(&user).
+		SetSuccessResult(&user).
 		Do(withAPIName(ctx, "GetUserProfile")).Err
 	return
 }
@@ -167,7 +167,7 @@ func (c *Client) ListUserRepo(ctx context.Context, username string, page int) (r
 			"sort":      "updated",
 			"direction": "desc",
 		}).
-		SetResult(&repos).
+		SetSuccessResult(&repos).
 		Do(withAPIName(ctx, "ListUserRepo")).Err
 	return
 }

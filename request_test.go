@@ -706,7 +706,7 @@ func testError(t *testing.T, c *Client) {
 	assertIsError(t, resp, err)
 	tests.AssertEqual(t, 10001, errMsg.ErrorCode)
 
-	c.SetCommonError(&errMsg)
+	c.SetCommonErrorResult(&errMsg)
 	resp, err = c.R().
 		SetQueryParam("username", "").
 		Get("/search")

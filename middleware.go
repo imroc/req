@@ -254,19 +254,22 @@ func defaultResultStateChecker(resp *Response) ResultState {
 }
 
 func parseResponseBody(c *Client, r *Response) (err error) {
-	if r.Response == nil || r.StatusCode == http.StatusNoContent {
+	if r.Response == nil {
 		return
 	}
 	req := r.Request
 	switch req.resultStateCheckFunc(r) {
 	case SuccessState:
-		if req.Result != nil {
+		if req.Result != nil && r.StatusCode != http.StatusNoContent {
 			err = unmarshalBody(c, r, r.Request.Result)
 			if err == nil {
 				r.result = r.Request.Result
 			}
 		}
 	case ErrorState:
+		if r.StatusCode == http.StatusNoContent {
+			return
+		}
 		if req.Error != nil {
 			err = unmarshalBody(c, r, req.Error)
 			if err == nil {
@@ -285,7 +288,7 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 			handleUnknownResult = c.unknownResultHandlerFunc
 		}
 		if handleUnknownResult != nil {
-			handleUnknownResult(r)
+			return handleUnknownResult(r)
 		}
 	}
 	return

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -21,7 +20,23 @@ func main() {
 }
 
 func init() {
-	req.EnableDumpAllWithoutBody().EnableDebugLog().EnableTraceAll()
+	req.EnableDebugLog().
+		EnableTraceAll().
+		EnableDumpEachRequest().
+		SetCommonErrorResult(&ErrorMessage{}).
+		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
+			if resp.Err != nil {
+				return nil
+			}
+			if errMsg, ok := resp.ErrorResult().(*ErrorMessage); ok {
+				resp.Err = errMsg
+				return nil
+			}
+			if !resp.IsSuccessState() {
+				resp.Err = fmt.Errorf("bad status: %s\nraw content:\n%s", resp.Status, resp.Dump())
+			}
+			return nil
+		})
 }
 
 type Repo struct {
@@ -32,14 +47,16 @@ type ErrorMessage struct {
 	Message string `json:"message"`
 }
 
-func findTheMostPopularRepo(username string) (repo string, star int, err error) {
+func (msg *ErrorMessage) Error() string {
+	return fmt.Sprintf("API Error: %s", msg.Message)
+}
 
+func findTheMostPopularRepo(username string) (repo string, star int, err error) {
 	var popularRepo Repo
 	var resp *req.Response
 
 	for page := 1; ; page++ {
 		repos := []*Repo{}
-		errMsg := ErrorMessage{}
 		resp, err = req.SetHeader("Accept", "application/vnd.github.v3+json").
 			SetQueryParams(map[string]string{
 				"type":      "owner",
@@ -49,8 +66,7 @@ func findTheMostPopularRepo(username string) (repo string, star int, err error) 
 				"direction": "desc",
 			}).
 			SetPathParam("username", username).
-			SetResult(&repos).
-			SetError(&errMsg).
+			SetSuccessResult(&repos).
 			Get("https://api.github.com/users/{username}/repos")
 
 		fmt.Println("TraceInfo:")
@@ -62,29 +78,20 @@ func findTheMostPopularRepo(username string) (repo string, star int, err error) 
 			return
 		}
 
-		if resp.IsSuccess() { //  HTTP status `code >= 200 and <= 299` is considred as success
-			for _, repo := range repos {
-				if repo.Star >= popularRepo.Star {
-					popularRepo = *repo
-				}
-			}
-			if len(repo) == 100 { // Try Next page
-				continue
-			}
-			// All repos have been traversed, return the final result
-			repo = popularRepo.Name
-			star = popularRepo.Star
-			return
-		} else if resp.IsError() { // HTTP status `code >= 400` is considred as an error
-			// Extract the error message, wrap and return err
-			err = errors.New(errMsg.Message)
+		if !resp.IsSuccessState() { //  HTTP status `code >= 200 and <= 299` is considered as success by default
 			return
 		}
-
-		// Unkown http status code, record and return error, here we can use
-		// String() to get response body, cuz response body have already been read
-		// and no error returned, do not need to use ToString().
-		err = fmt.Errorf("unknown error. status code %d; body: %s", resp.StatusCode, resp.String())
+		for _, repo := range repos {
+			if repo.Star >= popularRepo.Star {
+				popularRepo = *repo
+			}
+		}
+		if len(repo) == 100 { // Try Next page
+			continue
+		}
+		// All repos have been traversed, return the final result
+		repo = popularRepo.Name
+		star = popularRepo.Star
 		return
 	}
 }
