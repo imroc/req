@@ -350,7 +350,10 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 }
 
 // SetResult set the result that response Body will be unmarshalled to if
-// Response.IsSuccess() == true (Response.Err == nil && status `code >= 200 and <= 299`).
+// no error occurs and Response.ResultState() returns SuccessState, by default
+// it requires HTTP status `code >= 200 && code <= 299`, you can also use
+// Request.SetResultStateChecker or Client.SetCommonResultStateChecker to customize
+// the result state check logic.
 //
 // Deprecated: Use SetSuccessResult instead.
 func (r *Request) SetResult(result interface{}) *Request {
@@ -358,7 +361,10 @@ func (r *Request) SetResult(result interface{}) *Request {
 }
 
 // SetSuccessResult set the result that response Body will be unmarshalled to if
-// Response.IsSuccess() == true (Response.Err == nil && status `code >= 200 and <= 299`).
+// no error occurs and Response.ResultState() returns SuccessState, by default
+// it requires HTTP status `code >= 200 && code <= 299`, you can also use
+// Request.SetResultStateChecker or Client.SetCommonResultStateChecker to customize
+// the result state check logic.
 func (r *Request) SetSuccessResult(result interface{}) *Request {
 	r.Result = util.GetPointer(result)
 	return r
