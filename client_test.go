@@ -270,7 +270,7 @@ func TestSetCommonCookies(t *testing.T) {
 	resp, err := tc().SetCommonCookies(&http.Cookie{
 		Name:  "test",
 		Value: "test",
-	}).R().SetResult(&headers).Get("/header")
+	}).R().SetSuccessResult(&headers).Get("/header")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "test=test", headers.Get("Cookie"))
 }
@@ -434,7 +434,7 @@ func TestSetCommonFormDataFromValues(t *testing.T) {
 	expectedForm.Set("test", "test")
 	resp, err := tc().
 		SetCommonFormDataFromValues(expectedForm).
-		R().SetResult(&gotForm).
+		R().SetSuccessResult(&gotForm).
 		Post("/form")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "test", gotForm.Get("test"))
@@ -447,7 +447,7 @@ func TestSetCommonFormData(t *testing.T) {
 			map[string]string{
 				"test": "test",
 			}).R().
-		SetResult(&form).
+		SetSuccessResult(&form).
 		Post("/form")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "test", form.Get("test"))
@@ -595,14 +595,14 @@ func TestEnableDumpAllAsync(t *testing.T) {
 
 func TestSetResponseBodyTransformer(t *testing.T) {
 	c := tc().SetResponseBodyTransformer(func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error) {
-		if resp.IsSuccess() {
+		if resp.IsSuccessState() {
 			result, err := url.QueryUnescape(string(rawBody))
 			return []byte(result), err
 		}
 		return rawBody, nil
 	})
 	user := &UserInfo{}
-	resp, err := c.R().SetResult(user).Get("/urlencode")
+	resp, err := c.R().SetSuccessResult(user).Get("/urlencode")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, user.Username, "我是roc")
 	tests.AssertEqual(t, user.Email, "roc@imroc.cc")

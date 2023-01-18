@@ -353,7 +353,7 @@ func TestSetBodyMarshal(t *testing.T) {
 		r := c.R()
 		tc.Set(r)
 		var e Echo
-		resp, err := r.SetResult(&e).Post("/echo")
+		resp, err := r.SetSuccessResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
 		tc.Assert([]byte(e.Body))
 	}
@@ -369,22 +369,22 @@ func TestDoAPIStyle(t *testing.T) {
 	tests.AssertEqual(t, "imroc", user.Username)
 }
 
-func TestSetResult(t *testing.T) {
+func TestSetSuccessResult(t *testing.T) {
 	c := tc()
 	var user *UserInfo
 	url := "/search?username=imroc&type=json"
 
-	resp, err := c.R().SetResult(&user).Get(url)
+	resp, err := c.R().SetSuccessResult(&user).Get(url)
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "imroc", user.Username)
 
 	user = &UserInfo{}
-	resp, err = c.R().SetResult(user).Get(url)
+	resp, err = c.R().SetSuccessResult(user).Get(url)
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "imroc", user.Username)
 
 	user = nil
-	resp, err = c.R().SetResult(user).Get(url)
+	resp, err = c.R().SetSuccessResult(user).Get(url)
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "imroc", resp.Result().(*UserInfo).Username)
 }
@@ -472,7 +472,7 @@ func TestSetBody(t *testing.T) {
 		r := c.R()
 		tc.SetBody(r)
 		var e Echo
-		resp, err := r.SetResult(&e).Post("/echo")
+		resp, err := r.SetSuccessResult(&e).Post("/echo")
 		assertSuccess(t, resp, err)
 		tests.AssertEqual(t, tc.ContentType, e.Header.Get(header.ContentType))
 		tests.AssertEqual(t, body, e.Body)
@@ -490,7 +490,7 @@ func TestCookie(t *testing.T) {
 			Name:  "cookie2",
 			Value: "value2",
 		},
-	).SetResult(&headers).Get("/header")
+	).SetSuccessResult(&headers).Get("/header")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "cookie1=value1; cookie2=value2", headers.Get("Cookie"))
 }
@@ -499,7 +499,7 @@ func TestSetBasicAuth(t *testing.T) {
 	headers := make(http.Header)
 	resp, err := tc().R().
 		SetBasicAuth("imroc", "123456").
-		SetResult(&headers).
+		SetSuccessResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "Basic aW1yb2M6MTIzNDU2", headers.Get("Authorization"))
@@ -510,7 +510,7 @@ func TestSetBearerAuthToken(t *testing.T) {
 	headers := make(http.Header)
 	resp, err := tc().R().
 		SetBearerAuthToken(token).
-		SetResult(&headers).
+		SetSuccessResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "Bearer "+token, headers.Get("Authorization"))
@@ -534,7 +534,7 @@ func testHeader(t *testing.T, c *Client) {
 		SetHeaders(map[string]string{
 			"header2": "value2",
 			"header3": "value3",
-		}).SetResult(&headers).
+		}).SetSuccessResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "value1", headers.Get("header1"))
@@ -661,7 +661,7 @@ func testSuccess(t *testing.T, c *Client) {
 	var userInfo UserInfo
 	resp, err := c.R().
 		SetQueryParam("username", "imroc").
-		SetResult(&userInfo).
+		SetSuccessResult(&userInfo).
 		Get("/search")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
@@ -670,7 +670,7 @@ func testSuccess(t *testing.T, c *Client) {
 	resp, err = c.R().
 		SetQueryParam("username", "imroc").
 		SetQueryParam("type", "xml"). // auto unmarshal to xml
-		SetResult(&userInfo).EnableDump().
+		SetSuccessResult(&userInfo).EnableDump().
 		Get("/search")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
@@ -684,7 +684,7 @@ func testError(t *testing.T, c *Client) {
 	var errMsg ErrorMessage
 	resp, err := c.R().
 		SetQueryParam("username", "").
-		SetError(&errMsg).
+		SetErrorResult(&errMsg).
 		Get("/search")
 	assertIsError(t, resp, err)
 	tests.AssertEqual(t, 10000, errMsg.ErrorCode)
@@ -692,7 +692,7 @@ func testError(t *testing.T, c *Client) {
 	errMsg = ErrorMessage{}
 	resp, err = c.R().
 		SetQueryParam("username", "test").
-		SetError(&errMsg).
+		SetErrorResult(&errMsg).
 		Get("/search")
 	assertIsError(t, resp, err)
 	tests.AssertEqual(t, 10001, errMsg.ErrorCode)
@@ -701,7 +701,7 @@ func testError(t *testing.T, c *Client) {
 	resp, err = c.R().
 		SetQueryParam("username", "test").
 		SetQueryParam("type", "xml"). // auto unmarshal to xml
-		SetError(&errMsg).
+		SetErrorResult(&errMsg).
 		Get("/search")
 	assertIsError(t, resp, err)
 	tests.AssertEqual(t, 10001, errMsg.ErrorCode)
@@ -727,7 +727,7 @@ func testForm(t *testing.T, c *Client) {
 			"username": "imroc",
 			"type":     "xml",
 		}).
-		SetResult(&userInfo).
+		SetSuccessResult(&userInfo).
 		Post("/search")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
@@ -737,7 +737,7 @@ func testForm(t *testing.T, c *Client) {
 	v.Add("type", "xml")
 	resp, err = c.R().
 		SetFormDataFromValues(v).
-		SetResult(&userInfo).
+		SetSuccessResult(&userInfo).
 		Post("/search")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
@@ -872,7 +872,7 @@ func TestUploadMultipart(t *testing.T) {
 			"param1": "value1",
 			"param2": "value2",
 		}).
-		SetResult(&m).
+		SetSuccessResult(&m).
 		Post("/multipart")
 	assertSuccess(t, resp, err)
 	tests.AssertContains(t, resp.String(), "sample-image.png", true)

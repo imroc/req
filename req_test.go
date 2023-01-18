@@ -347,8 +347,8 @@ func assertSuccess(t *testing.T, resp *Response, err error) {
 	tests.AssertNotNil(t, resp.Response.Body)
 	tests.AssertEqual(t, http.StatusOK, resp.StatusCode)
 	tests.AssertEqual(t, "200 OK", resp.Status)
-	if !resp.IsSuccess() {
-		t.Error("Response.IsSuccess should return true")
+	if !resp.IsSuccessState() {
+		t.Error("Response.IsSuccessState should return true")
 	}
 }
 
@@ -356,8 +356,8 @@ func assertIsError(t *testing.T, resp *Response, err error) {
 	tests.AssertNoError(t, err)
 	tests.AssertNotNil(t, resp)
 	tests.AssertNotNil(t, resp.Body)
-	if !resp.IsError() {
-		t.Error("Response.IsError should return true")
+	if !resp.IsErrorState() {
+		t.Error("Response.IsErrorState should return true")
 	}
 }
 
