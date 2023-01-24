@@ -624,7 +624,7 @@ func TestSetResultStateCheckFunc(t *testing.T) {
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, ErrorState, resp.ResultState())
 
-	resp, err = c.R().Get("/status?code=301")
+	resp, err = c.R().Get("/status?code=399")
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, ErrorState, resp.ResultState())
 
