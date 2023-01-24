@@ -258,7 +258,7 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 		return
 	}
 	req := r.Request
-	switch req.resultStateCheckFunc(r) {
+	switch r.ResultState() {
 	case SuccessState:
 		if req.Result != nil && r.StatusCode != http.StatusNoContent {
 			err = unmarshalBody(c, r, r.Request.Result)

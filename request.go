@@ -67,7 +67,6 @@ type Request struct {
 	dumpBuffer               *bytes.Buffer
 	responseReturnTime       time.Time
 	unknownResultHandlerFunc func(resp *Response) error
-	resultStateCheckFunc     func(resp *Response) ResultState
 }
 
 type GetContentFunc func() (io.ReadCloser, error)
@@ -352,7 +351,7 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 // SetResult set the result that response Body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns SuccessState, by default
 // it requires HTTP status `code >= 200 && code <= 299`, you can also use
-// Request.SetResultStateCheckFunc or Client.SetCommonResultStateCheckFunc to customize
+// Request.SetResultStateCheckFunc or Client.SetResultStateCheckFunc to customize
 // the result state check logic.
 //
 // Deprecated: Use SetSuccessResult instead.
@@ -363,7 +362,7 @@ func (r *Request) SetResult(result interface{}) *Request {
 // SetSuccessResult set the result that response Body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns SuccessState, by default
 // it requires HTTP status `code >= 200 && code <= 299`, you can also use
-// Request.SetResultStateCheckFunc or Client.SetCommonResultStateCheckFunc to customize
+// Request.SetResultStateCheckFunc or Client.SetResultStateCheckFunc to customize
 // the result state check logic.
 func (r *Request) SetSuccessResult(result interface{}) *Request {
 	r.Result = util.GetPointer(result)
@@ -373,7 +372,7 @@ func (r *Request) SetSuccessResult(result interface{}) *Request {
 // SetError set the result that response body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns ErrorState, by default
 // it requires HTTP status `code >= 400`, you can also use Request.SetResultStateCheckFunc
-// or Client.SetCommonResultStateCheckFunc to customize the result state check logic.
+// or Client.SetResultStateCheckFunc to customize the result state check logic.
 //
 // Deprecated: Use SetErrorResult result.
 func (r *Request) SetError(error interface{}) *Request {
@@ -383,7 +382,7 @@ func (r *Request) SetError(error interface{}) *Request {
 // SetErrorResult set the result that response body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns ErrorState, by default
 // it requires HTTP status `code >= 400`, you can also use Request.SetResultStateCheckFunc
-// or Client.SetCommonResultStateCheckFunc to customize the result state check logic.
+// or Client.SetResultStateCheckFunc to customize the result state check logic.
 func (r *Request) SetErrorResult(error interface{}) *Request {
 	r.Error = util.GetPointer(error)
 	return r
@@ -393,32 +392,6 @@ func (r *Request) SetErrorResult(error interface{}) *Request {
 // error occurs, but Response.ResultState returns UnknownState.
 func (r *Request) SetUnknownResultHandlerFunc(fn func(resp *Response) error) *Request {
 	r.unknownResultHandlerFunc = fn
-	return r
-}
-
-// ResultState represents the state of the result.
-type ResultState int
-
-const (
-	// SuccessState indicates the response is in success state,
-	// and result will be unmarshalled if Request.SetSuccessResult
-	// is called.
-	SuccessState ResultState = iota
-	// ErrorState indicates the response is in error state,
-	// and result will be unmarshalled if Request.SetErrorResult
-	// or Client.SetCommonErrorResult is called.
-	ErrorState
-	// UnknownState indicates the response is in unknown state,
-	// and handler will be invoked if Request.SetUnknownResultHandlerFunc
-	// or Client.SetCommonUnknownResultHandlerFunc is called.
-	UnknownState
-)
-
-// SetResultStateCheckFunc overrides the default result state checker with customized one,
-// which returns SuccessState when HTTP status `code >= 200 and <= 299`, and returns
-// ErrorState when HTTP status `code >= 400`, otherwise returns UnknownState.
-func (r *Request) SetResultStateCheckFunc(fn func(resp *Response) ResultState) *Request {
-	r.resultStateCheckFunc = fn
 	return r
 }
 

@@ -74,13 +74,19 @@ func (r *Response) GetContentType() string {
 // ResultState returns the result state.
 // By default, it returns SuccessState if HTTP status `code >= 400`, and returns
 // ErrorState if HTTP status `code >= 400`, otherwise returns UnknownState.
-// You can also use Request.SetResultStateCheckFunc or Client.SetCommonResultStateCheckFunc
+// You can also use Request.SetResultStateCheckFunc or Client.SetResultStateCheckFunc
 // to customize the result state check logic.
 func (r *Response) ResultState() ResultState {
 	if r.Response == nil {
 		return UnknownState
 	}
-	return r.Request.resultStateCheckFunc(r)
+	var resultStateCheckFunc func(resp *Response) ResultState
+	if r.Request.client.resultStateCheckFunc != nil {
+		resultStateCheckFunc = r.Request.client.resultStateCheckFunc
+	} else {
+		resultStateCheckFunc = defaultResultStateChecker
+	}
+	return resultStateCheckFunc(r)
 }
 
 // Result returns the automatically unmarshalled object if Request.SetSuccessResult

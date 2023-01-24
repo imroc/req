@@ -102,12 +102,6 @@ func SetErrorResult(error interface{}) *Request {
 	return defaultClient.R().SetErrorResult(error)
 }
 
-// SetResultStateCheckFunc is a global wrapper methods which delegated
-// to the default client, create a request and SetResultStateCheckFunc for request.
-func SetResultStateCheckFunc(fn func(resp *Response) ResultState) *Request {
-	return defaultClient.R().SetResultStateCheckFunc(fn)
-}
-
 // SetUnknownResultHandlerFunc is a global wrapper methods which delegated
 // to the default client, create a request and SetUnknownResultHandlerFunc for request.
 func SetUnknownResultHandlerFunc(fn func(resp *Response) error) *Request {

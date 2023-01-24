@@ -42,10 +42,10 @@ func SetCommonUnknownResultHandlerFunc(fn func(resp *Response) error) *Client {
 	return defaultClient.SetCommonUnknownResultHandlerFunc(fn)
 }
 
-// SetCommonResultStateCheckFunc is a global wrapper methods which delegated
+// SetResultStateCheckFunc is a global wrapper methods which delegated
 // to the default client's SetCommonResultStateCheckFunc.
-func SetCommonResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
-	return defaultClient.SetCommonResultStateCheckFunc(fn)
+func SetResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
+	return defaultClient.SetResultStateCheckFunc(fn)
 }
 
 // SetCommonFormDataFromValues is a global wrapper methods which delegated

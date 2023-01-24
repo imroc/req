@@ -189,10 +189,28 @@ func (c *Client) SetCommonUnknownResultHandlerFunc(fn func(resp *Response) error
 	return c
 }
 
-// SetCommonResultStateCheckFunc overrides the default result state checker with customized one,
+// ResultState represents the state of the result.
+type ResultState int
+
+const (
+	// SuccessState indicates the response is in success state,
+	// and result will be unmarshalled if Request.SetSuccessResult
+	// is called.
+	SuccessState ResultState = iota
+	// ErrorState indicates the response is in error state,
+	// and result will be unmarshalled if Request.SetErrorResult
+	// or Client.SetCommonErrorResult is called.
+	ErrorState
+	// UnknownState indicates the response is in unknown state,
+	// and handler will be invoked if Request.SetUnknownResultHandlerFunc
+	// or Client.SetCommonUnknownResultHandlerFunc is called.
+	UnknownState
+)
+
+// SetResultStateCheckFunc overrides the default result state checker with customized one,
 // which returns SuccessState when HTTP status `code >= 200 and <= 299`, and returns
 // ErrorState when HTTP status `code >= 400`, otherwise returns UnknownState.
-func (c *Client) SetCommonResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
+func (c *Client) SetResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
 	c.resultStateCheckFunc = fn
 	return c
 }
@@ -1361,15 +1379,6 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	var httpResponse *http.Response
 	httpResponse, err = c.httpClient.Do(r.RawRequest)
 	resp.Response = httpResponse
-
-	// setup resultStateCheckFunc
-	if r.resultStateCheckFunc == nil {
-		if c.resultStateCheckFunc != nil {
-			r.resultStateCheckFunc = c.resultStateCheckFunc
-		} else {
-			r.resultStateCheckFunc = defaultResultStateChecker
-		}
-	}
 
 	// auto-read response body if possible
 	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
