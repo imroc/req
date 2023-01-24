@@ -607,3 +607,28 @@ func TestSetResponseBodyTransformer(t *testing.T) {
 	tests.AssertEqual(t, user.Username, "我是roc")
 	tests.AssertEqual(t, user.Email, "roc@imroc.cc")
 }
+
+func TestSetResultStateCheckFunc(t *testing.T) {
+	c := tc().SetResultStateCheckFunc(func(resp *Response) ResultState {
+		if resp.StatusCode == http.StatusOK {
+			return SuccessState
+		} else {
+			return ErrorState
+		}
+	})
+	resp, err := c.R().Get("/status?code=200")
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, SuccessState, resp.ResultState())
+
+	resp, err = c.R().Get("/status?code=201")
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, ErrorState, resp.ResultState())
+
+	resp, err = c.R().Get("/status?code=301")
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, ErrorState, resp.ResultState())
+
+	resp, err = c.R().Get("/status?code=404")
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, ErrorState, resp.ResultState())
+}

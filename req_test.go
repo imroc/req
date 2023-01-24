@@ -227,6 +227,16 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
 		w.Write([]byte("TestGet: text response"))
+	case "/status":
+		r.ParseForm()
+		code := r.FormValue("code")
+		codeInt, err := strconv.Atoi(code)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(codeInt)
 	case "/urlencode":
 		info := &UserInfo{
 			Username: "我是roc",
