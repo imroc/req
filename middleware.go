@@ -282,14 +282,6 @@ func parseResponseBody(c *Client, r *Response) (err error) {
 				r.error = e
 			}
 		}
-	default:
-		handleUnknownResult := req.unknownResultHandlerFunc
-		if handleUnknownResult == nil {
-			handleUnknownResult = c.unknownResultHandlerFunc
-		}
-		if handleUnknownResult != nil {
-			return handleUnknownResult(r)
-		}
 	}
 	return
 }

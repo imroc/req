@@ -48,27 +48,26 @@ type Client struct {
 	DebugLog              bool
 	AllowGetMethodPayload bool
 
-	trace                    bool
-	disableAutoReadResponse  bool
-	commonErrorType          reflect.Type
-	retryOption              *retryOption
-	jsonMarshal              func(v interface{}) ([]byte, error)
-	jsonUnmarshal            func(data []byte, v interface{}) error
-	xmlMarshal               func(v interface{}) ([]byte, error)
-	xmlUnmarshal             func(data []byte, v interface{}) error
-	outputDirectory          string
-	scheme                   string
-	log                      Logger
-	t                        *Transport
-	dumpOptions              *DumpOptions
-	httpClient               *http.Client
-	beforeRequest            []RequestMiddleware
-	udBeforeRequest          []RequestMiddleware
-	afterResponse            []ResponseMiddleware
-	wrappedRoundTrip         RoundTripper
-	responseBodyTransformer  func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
-	unknownResultHandlerFunc func(resp *Response) error
-	resultStateCheckFunc     func(resp *Response) ResultState
+	trace                   bool
+	disableAutoReadResponse bool
+	commonErrorType         reflect.Type
+	retryOption             *retryOption
+	jsonMarshal             func(v interface{}) ([]byte, error)
+	jsonUnmarshal           func(data []byte, v interface{}) error
+	xmlMarshal              func(v interface{}) ([]byte, error)
+	xmlUnmarshal            func(data []byte, v interface{}) error
+	outputDirectory         string
+	scheme                  string
+	log                     Logger
+	t                       *Transport
+	dumpOptions             *DumpOptions
+	httpClient              *http.Client
+	beforeRequest           []RequestMiddleware
+	udBeforeRequest         []RequestMiddleware
+	afterResponse           []ResponseMiddleware
+	wrappedRoundTrip        RoundTripper
+	responseBodyTransformer func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
+	resultStateCheckFunc    func(resp *Response) ResultState
 }
 
 // R create a new request.
@@ -179,13 +178,6 @@ func (c *Client) SetCommonErrorResult(err interface{}) *Client {
 	if err != nil {
 		c.commonErrorType = util.GetType(err)
 	}
-	return c
-}
-
-// SetCommonUnknownResultHandlerFunc set the response handler which will be executed when no
-// error occurs, but Response.ResultState returns UnknownState.
-func (c *Client) SetCommonUnknownResultHandlerFunc(fn func(resp *Response) error) *Client {
-	c.unknownResultHandlerFunc = fn
 	return c
 }
 

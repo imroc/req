@@ -66,7 +66,6 @@ type Request struct {
 	trace                    *clientTrace
 	dumpBuffer               *bytes.Buffer
 	responseReturnTime       time.Time
-	unknownResultHandlerFunc func(resp *Response) error
 }
 
 type GetContentFunc func() (io.ReadCloser, error)
@@ -385,13 +384,6 @@ func (r *Request) SetError(error interface{}) *Request {
 // or Client.SetResultStateCheckFunc to customize the result state check logic.
 func (r *Request) SetErrorResult(error interface{}) *Request {
 	r.Error = util.GetPointer(error)
-	return r
-}
-
-// SetUnknownResultHandlerFunc set the response handler which will be executed when no
-// error occurs, but Response.ResultState returns UnknownState.
-func (r *Request) SetUnknownResultHandlerFunc(fn func(resp *Response) error) *Request {
-	r.unknownResultHandlerFunc = fn
 	return r
 }
 

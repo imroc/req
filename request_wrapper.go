@@ -102,12 +102,6 @@ func SetErrorResult(error interface{}) *Request {
 	return defaultClient.R().SetErrorResult(error)
 }
 
-// SetUnknownResultHandlerFunc is a global wrapper methods which delegated
-// to the default client, create a request and SetUnknownResultHandlerFunc for request.
-func SetUnknownResultHandlerFunc(fn func(resp *Response) error) *Request {
-	return defaultClient.R().SetUnknownResultHandlerFunc(fn)
-}
-
 // SetBearerAuthToken is a global wrapper methods which delegated
 // to the default client, create a request and SetBearerAuthToken for request.
 func SetBearerAuthToken(token string) *Request {

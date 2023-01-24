@@ -36,12 +36,6 @@ func SetCommonErrorResult(err interface{}) *Client {
 	return defaultClient.SetCommonErrorResult(err)
 }
 
-// SetCommonUnknownResultHandlerFunc is a global wrapper methods which delegated
-// to the default client's SetCommonUnknownResultHandlerFunc.
-func SetCommonUnknownResultHandlerFunc(fn func(resp *Response) error) *Client {
-	return defaultClient.SetCommonUnknownResultHandlerFunc(fn)
-}
-
 // SetResultStateCheckFunc is a global wrapper methods which delegated
 // to the default client's SetCommonResultStateCheckFunc.
 func SetResultStateCheckFunc(fn func(resp *Response) ResultState) *Client {
