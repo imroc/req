@@ -62,7 +62,7 @@ func NewClient() *Client {
 		SetCommonErrorResult(&APIError{}).
 		// Handle common exceptions in response middleware.
 		OnAfterResponse(func(client *req.Client, resp *req.Response) error {
-			if resp.Err != nil { // There is an underlying error, e.g. network error or unmarshal error(SetResult or SetError was invoked before).
+			if resp.Err != nil { // There is an underlying error, e.g. network error or unmarshal error (SetSuccessResult or SetErrorResult was invoked before).
 				if dump := resp.Dump(); dump != "" { // Append dump content to original underlying error to help troubleshoot.
 					resp.Err = fmt.Errorf("error: %s\nraw content:\n%s", resp.Err.Error(), resp.Dump())
 				}
@@ -167,8 +167,8 @@ func (c *Client) ListUserRepo(ctx context.Context, username string, page int) (r
 			"sort":      "updated",
 			"direction": "desc",
 		}).
-		SetSuccessResult(&repos).
-		Do(withAPIName(ctx, "ListUserRepo")).Err
+		Do(withAPIName(ctx, "ListUserRepo")).
+		Into(&repos)
 	return
 }
 
