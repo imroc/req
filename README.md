@@ -49,64 +49,72 @@ import "github.com/imroc/req/v3"
 
 **Basic Usage**
 
-```go
-// For testing, you can create and send a request with the global wrapper methods
-// that use the default client behind the scenes to initiate the request (you can
-// just treat package name `req` as a Client or Request, no need to create any client
-// or Request explicitly).
-req.DevMode() //  Use Client.DevMode to see all details, try and surprise :)
-req.Get("https://httpbin.org/get") // Use Request.Get to send a GET request.
-
-// In production, create a client explicitly and reuse it to send all requests
-client := req.C(). // Use C() to create a client and set with chainable client settings.
-    SetUserAgent("my-custom-client").
-    SetTimeout(5 * time.Second).
-    DevMode()
-resp, err := client.R(). // Use R() to create a request and set with chainable request settings.
-    SetHeader("Accept", "application/vnd.github.v3+json").
-    SetPathParam("username", "imroc").
-    SetQueryParam("page", "1").
-    SetResult(&result). // Unmarshal response into struct automatically if status code >= 200 and <= 299.
-    SetError(&errMsg). // Unmarshal response into struct automatically if status code >= 400.
-    EnableDump(). // Enable dump at request level to help troubleshoot, log content only when an unexpected exception occurs.
-    Get("https://api.github.com/users/{username}/repos")
-if err != nil {
-    // Handle error.
-    // ...
-    return
-}
-if resp.IsSuccess() {
-    // Handle result.
-    // ...
-    return
-}
-if resp.IsError() {
-    // Handle errMsg.	
-    // ...
-    return
-}
-// Handle unexpected response (corner case).
-err = fmt.Errorf("got unexpected response, raw dump:\n%s", resp.Dump())
-// ...
+```bash
+# assume the following codes in main.go file
+$ cat main.go
 ```
 
-You can also use another style if you want:
-
 ```go
-resp := client.Get("https://api.github.com/users/{username}/repos"). // Create a GET request with specified URL.
-    SetHeader("Accept", "application/vnd.github.v3+json").
-    SetPathParam("username", "imroc").
-    SetQueryParam("page", "1").
-    SetResult(&result).
-    SetError(&errMsg).
-    EnableDump().
-    Do() // Send request with Do.
+package main
 
-if resp.Err != nil {
-    // ...
+import (
+    "github.com/imroc/req/v3"
+)
+
+func main() {
+    req.DevMode() // Treat the package name as a Client, enable development mode
+    req.MustGet("https://httpbin.org/uuid") // Treat the package name as a Request, send GET request.
+
+    req.EnableForceHTTP1() // Force using HTTP/1.1
+    req.MustGet("https://httpbin.org/uuid")
 }
-// ...
 ```
+
+```bash
+$ go run main.go
+2022/05/19 10:05:07.920113 DEBUG [req] HTTP/2 GET https://httpbin.org/uuid
+:authority: httpbin.org
+:method: GET
+:path: /uuid
+:scheme: https
+user-agent: req/v3 (https://github.com/imroc/req/v3)
+accept-encoding: gzip
+
+:status: 200
+date: Thu, 19 May 2022 02:05:08 GMT
+content-type: application/json
+content-length: 53
+server: gunicorn/19.9.0
+access-control-allow-origin: *
+access-control-allow-credentials: true
+
+{
+  "uuid": "bd519208-35d1-4483-ad9f-e1555ae108ba"
+}
+
+2022/05/19 10:05:09.340974 DEBUG [req] HTTP/1.1 GET https://httpbin.org/uuid
+GET /uuid HTTP/1.1
+Host: httpbin.org
+User-Agent: req/v3 (https://github.com/imroc/req/v3)
+Accept-Encoding: gzip
+
+HTTP/1.1 200 OK
+Date: Thu, 19 May 2022 02:05:09 GMT
+Content-Type: application/json
+Content-Length: 53
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+
+{
+  "uuid": "49b7f916-c6f3-49d4-a6d4-22ae93b71969"
+}
+```
+
+The sample code above is good for quick testing purposes, which use `DevMode()` to see request details, and send requests using global wrapper methods that use the default client behind the scenes to initiate the request.
+
+In production, it is recommended to explicitly create a client, and then use the same client to send all requests, please see other examples below.
 
 **Videos**
 
@@ -118,6 +126,368 @@ The following is a series of video tutorials for req:
 **More**
 
 Check more introduction, tutorials, examples, best practices and API references on the [official website](https://req.cool/).
+
+## <a name="Simple-Get">Simple GET</a>
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/imroc/req/v3"
+	"log"
+)
+
+func main() {
+	client := req.C() // Use C() to create a client.
+	resp, err := client.R(). // Use R() to create a request.
+		Get("https://httpbin.org/uuid")
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(resp)
+}
+```
+
+```txt
+{
+  "uuid": "a4d4430d-0e5f-412f-88f5-722d84bc2a62"
+}
+```
+
+## <a name="Advanced-Get">Advanced GET</a>
+
+```go
+package main
+
+import (
+  "fmt"
+  "github.com/imroc/req/v3"
+  "log"
+  "time"
+)
+
+type ErrorMessage struct {
+  Message string `json:"message"`
+}
+
+type UserInfo struct {
+  Name string `json:"name"`
+  Blog string `json:"blog"`
+}
+
+func main() {
+  client := req.C().
+    SetUserAgent("my-custom-client"). // Chainable client settings.
+    SetTimeout(5 * time.Second)
+
+  var userInfo UserInfo
+  var errMsg ErrorMessage
+  resp, err := client.R().
+    SetHeader("Accept", "application/vnd.github.v3+json"). // Chainable request settings.
+    SetPathParam("username", "imroc"). // Replace path variable in url.
+    SetSuccessResult(&userInfo). // Unmarshal response body into userInfo automatically if status code is between 200 and 299.
+    SetErrorResult(&errMsg). // Unmarshal response body into errMsg automatically if status code >= 400.
+    EnableDump(). // Enable dump at request level, only print dump content if there is an error or some unknown situation occurs to help troubleshoot.
+    Get("https://api.github.com/users/{username}")
+
+  if err != nil { // Error handling.
+    log.Println("error:", err)
+    log.Println("raw content:")
+    log.Println(resp.Dump()) // Record raw content when error occurs.
+    return
+  }
+
+  if resp.IsErrorState() { // Status code >= 400.
+    fmt.Println(errMsg.Message) // Record error message returned.
+    return
+  }
+
+  if resp.IsSuccessState() { // Status code is between 200 and 299.
+    fmt.Printf("%s (%s)\n", userInfo.Name, userInfo.Blog)
+    return
+  }
+
+  // Unknown status code.
+  log.Println("unknown status", resp.Status)
+  log.Println("raw content:")
+  log.Println(resp.Dump()) // Record raw content when server returned unknown status code.
+}
+```
+
+Normally it will output (SuccessState):
+
+```txt
+roc (https://imroc.cc)
+```
+
+## <a name="More-Advanced-Get">More Advanced GET</a>
+
+You can set up a unified logic for error handling on the client, so that each time you send a request you only need to focus on the success situation, reducing duplicate code.
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/imroc/req/v3"
+	"log"
+	"time"
+)
+
+type ErrorMessage struct {
+	Message string `json:"message"`
+}
+
+func (msg *ErrorMessage) Error() string {
+	return fmt.Sprintf("API Error: %s", msg.Message)
+}
+
+type UserInfo struct {
+	Name string `json:"name"`
+	Blog string `json:"blog"`
+}
+
+var client = req.C().
+	SetUserAgent("my-custom-client"). // Chainable client settings.
+	SetTimeout(5 * time.Second).
+	EnableDumpEachRequest().
+	SetCommonErrorResult(&ErrorMessage{}).
+	OnAfterResponse(func(client *req.Client, resp *req.Response) error {
+		if resp.Err != nil { // There is an underlying error, e.g. network error or unmarshal error.
+			return nil
+		}
+		if errMsg, ok := resp.ErrorResult().(*ErrorMessage); ok {
+			resp.Err = errMsg // Convert api error into go error
+			return nil
+		}
+		if !resp.IsSuccessState() {
+			// Neither a success response nor a error response, record details to help troubleshooting
+			resp.Err = fmt.Errorf("bad status: %s\nraw content:\n%s", resp.Status, resp.Dump())
+		}
+		return nil
+	})
+
+func main() {
+	var userInfo UserInfo
+	resp, err := client.R().
+		SetHeader("Accept", "application/vnd.github.v3+json"). // Chainable request settings
+		SetPathParam("username", "imroc").
+		SetSuccessResult(&userInfo). // Unmarshal response body into userInfo automatically if status code is between 200 and 299.
+		Get("https://api.github.com/users/{username}")
+
+	if err != nil { // Error handling.
+		log.Println("error:", err)
+		return
+	}
+
+	if resp.IsSuccessState() { // Status code is between 200 and 299.
+		fmt.Printf("%s (%s)\n", userInfo.Name, userInfo.Blog)
+	}
+}
+```
+
+## <a name="Simple-Post">Simple POST</a>
+
+```go
+package main
+
+import (
+  "fmt"
+  "github.com/imroc/req/v3"
+  "log"
+)
+
+type Repo struct {
+  Name string `json:"name"`
+  Url  string `json:"url"`
+}
+
+type Result struct {
+  Data string `json:"data"`
+}
+
+func main() {
+  client := req.C().DevMode()
+  var result Result
+
+  resp, err := client.R().
+    SetBody(&Repo{Name: "req", Url: "https://github.com/imroc/req"}).
+    SetSuccessResult(&result).
+    Post("https://httpbin.org/post")
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  if !resp.IsSuccessState() {
+    fmt.Println("bad response status:", resp.Status)
+    return
+  }
+  fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++")
+  fmt.Println("data:", result.Data)
+  fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++")
+}
+```
+
+```txt
+2022/05/19 20:11:00.151171 DEBUG [req] HTTP/2 POST https://httpbin.org/post
+:authority: httpbin.org
+:method: POST
+:path: /post
+:scheme: https
+user-agent: req/v3 (https://github.com/imroc/req/v3)
+content-type: application/json; charset=utf-8
+content-length: 55
+accept-encoding: gzip
+
+{"name":"req","website":"https://github.com/imroc/req"}
+
+:status: 200
+date: Thu, 19 May 2022 12:11:00 GMT
+content-type: application/json
+content-length: 651
+server: gunicorn/19.9.0
+access-control-allow-origin: *
+access-control-allow-credentials: true
+
+{
+  "args": {},
+  "data": "{\"name\":\"req\",\"website\":\"https://github.com/imroc/req\"}",
+  "files": {},
+  "form": {},
+  "headers": {
+    "Accept-Encoding": "gzip",
+    "Content-Length": "55",
+    "Content-Type": "application/json; charset=utf-8",
+    "Host": "httpbin.org",
+    "User-Agent": "req/v3 (https://github.com/imroc/req/v3)",
+    "X-Amzn-Trace-Id": "Root=1-628633d4-7559d633152b4307288ead2e"
+  },
+  "json": {
+    "name": "req",
+    "website": "https://github.com/imroc/req"
+  },
+  "origin": "103.7.29.30",
+  "url": "https://httpbin.org/post"
+}
+
+++++++++++++++++++++++++++++++++++++++++++++++++
+data: {"name":"req","url":"https://github.com/imroc/req"}
+++++++++++++++++++++++++++++++++++++++++++++++++
+```
+
+## <a name="Do-API-Style">Do API Style</a>
+
+If you like, you can also use a Do API style like the following to make requests:
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/imroc/req/v3"
+)
+
+type APIResponse struct {
+	Origin string `json:"origin"`
+	Url    string `json:"url"`
+}
+
+func main() {
+	var resp APIResponse
+	c := req.C().SetBaseURL("https://httpbin.org/post")
+	err := c.Post().
+		SetBody("hello").
+		Do().
+		Into(&resp)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("My IP is", resp.Origin)
+}
+```
+
+```txt
+My IP is 182.138.155.113
+```
+
+* The order of chain calls is more intuitive: first call Client to create a request with a specified Method, then use chain calls to set the request, then use `Do()` to fire the request, return Response, and finally call `Response.Into` to unmarshal response body into specified object.
+* `Response.Into` will return an error if an error occurs during sending the request or during unmarshalling.
+* The url of some APIs is fixed, and different types of requests are implemented by passing different bodies. In this scenario, `Client.SetBaseURL` can be used to set a unified url, and there is no need to set the url for each request when initiating a request. Of course, you can also call `Request.SetURL` to set it if you need it.
+
+## <a name="Build-SDK-With-Req">Build SDK With Req</a>
+
+Here is an example of building GitHub's SDK with req, using two styles (`GetUserProfile_Style1`, `GetUserProfile_Style2`).
+
+```go
+import (
+	"context"
+	"fmt"
+	"github.com/imroc/req/v3"
+)
+
+type ErrorMessage struct {
+	Message string `json:"message"`
+}
+
+// Error implements go error interface.
+func (msg *ErrorMessage) Error() string {
+	return fmt.Sprintf("API Error: %s", msg.Message)
+}
+
+type GithubClient struct {
+	*req.Client
+}
+
+func NewGithubClient() *GithubClient {
+	return &GithubClient{
+		Client: req.C().
+			SetBaseURL("https://api.github.com").
+			SetCommonErrorResult(&ErrorMessage{}).
+			EnableDumpEachRequest().
+			OnAfterResponse(func(client *req.Client, resp *req.Response) error {
+				if resp.Err != nil { // There is an underlying error, e.g. network error or unmarshal error.
+					return nil
+				}
+				if errMsg, ok := resp.ErrorResult().(*ErrorMessage); ok {
+					resp.Err = errMsg // Convert api error into go error
+					return nil
+				}
+				if !resp.IsSuccessState() {
+					// Neither a success response nor a error response, record details to help troubleshooting
+					resp.Err = fmt.Errorf("bad status: %s\nraw content:\n%s", resp.Status, resp.Dump())
+				}
+				return nil
+			}),
+	}
+}
+
+type UserProfile struct {
+	Name string `json:"name"`
+	Blog string `json:"blog"`
+}
+
+// GetUserProfile_Style1 returns the user profile for the specified user.
+// Github API doc: https://docs.github.com/en/rest/users/users#get-a-user
+func (c *GithubClient) GetUserProfile_Style1(ctx context.Context, username string) (user *UserProfile, err error) {
+	_, err = c.R().
+		SetContext(ctx).
+		SetPathParam("username", username).
+		SetSuccessResult(&user).
+		Get("/users/{username}")
+	return
+}
+
+// GetUserProfile_Style2 returns the user profile for the specified user.
+// Github API doc: https://docs.github.com/en/rest/users/users#get-a-user
+func (c *GithubClient) GetUserProfile_Style2(ctx context.Context, username string) (user *UserProfile, err error) {
+	err = c.Get("/users/{username}").
+		SetPathParam("username", username).
+		Do(ctx).
+		Into(&user)
+	return
+}
+```
 
 ## Contributing
 
