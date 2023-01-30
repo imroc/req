@@ -1382,8 +1382,9 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	}
 
 	for _, f := range r.client.afterResponse {
-		if err = f(r.client, resp); err != nil {
-			resp.Err = err
+		if e := f(r.client, resp); e != nil {
+			err = e
+			resp.Err = e
 			return
 		}
 	}
