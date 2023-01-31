@@ -757,7 +757,7 @@ func (r *Request) SetBody(body interface{}) *Request {
 	default:
 		t := reflect.TypeOf(body)
 		switch t.Kind() {
-		case reflect.Ptr, reflect.Struct, reflect.Map:
+		case reflect.Ptr, reflect.Struct, reflect.Map, reflect.Slice, reflect.Array:
 			r.marshalBody = body
 		default:
 			r.SetBodyString(fmt.Sprint(body))
