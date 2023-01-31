@@ -1069,6 +1069,7 @@ func (c *Client) getRetryOption() *retryOption {
 
 // SetCommonRetryCount enables retry and set the maximum retry count for requests
 // fired from the client.
+// It will retry infinitely if count is negative.
 func (c *Client) SetCommonRetryCount(count int) *Client {
 	c.getRetryOption().MaxRetries = count
 	return c

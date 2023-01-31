@@ -539,7 +539,7 @@ func (r *Request) Do(ctx ...context.Context) *Response {
 	if r.error != nil {
 		return r.newErrorResponse(r.error)
 	}
-	if r.retryOption != nil && r.retryOption.MaxRetries > 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable Body
+	if r.retryOption != nil && r.retryOption.MaxRetries != 0 && r.unReplayableBody != nil { // retryable request should not have unreplayable Body
 		return r.newErrorResponse(errRetryableWithUnReplayableBody)
 	}
 	resp, _ := r.do()
@@ -578,7 +578,7 @@ func (r *Request) do() (resp *Response, err error) {
 			resp, err = r.client.roundTrip(r)
 		}
 
-		if r.retryOption == nil || r.RetryAttempt >= r.retryOption.MaxRetries { // absolutely cannot retry.
+		if r.retryOption == nil || (r.RetryAttempt >= r.retryOption.MaxRetries && r.retryOption.MaxRetries > 0) { // absolutely cannot retry.
 			return
 		}
 
@@ -1017,6 +1017,7 @@ func (r *Request) getRetryOption() *retryOption {
 }
 
 // SetRetryCount enables retry and set the maximum retry count.
+// It will retry infinitely if count is negative.
 func (r *Request) SetRetryCount(count int) *Request {
 	r.getRetryOption().MaxRetries = count
 	return r
