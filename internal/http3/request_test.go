@@ -1,7 +1,7 @@
 package http3
 
 import (
-	"github.com/marten-seemann/qpack"
+	"github.com/quic-go/qpack"
 	"net/http"
 	"net/url"
 

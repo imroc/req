@@ -12,7 +12,7 @@ import (
 	"github.com/imroc/req/v3/internal/quic-go/qtls"
 	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
 	"github.com/imroc/req/v3/internal/quic-go/utils"
-	"github.com/marten-seemann/qpack"
+	"github.com/quic-go/qpack"
 	"io"
 	"net/http"
 	"strconv"

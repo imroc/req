@@ -7,7 +7,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
-	"github.com/marten-seemann/qpack"
+	"github.com/quic-go/qpack"
 	"io"
 	"io/ioutil"
 	"net/http"

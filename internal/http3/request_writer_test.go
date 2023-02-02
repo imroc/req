@@ -2,7 +2,7 @@ package http3
 
 import (
 	"bytes"
-	"github.com/marten-seemann/qpack"
+	"github.com/quic-go/qpack"
 	"io"
 	"net/http"
 

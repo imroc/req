@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
-	"github.com/marten-seemann/qpack"
+	"github.com/quic-go/qpack"
 	"io"
 	"net"
 	"net/http"

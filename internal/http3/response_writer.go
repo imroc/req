@@ -3,7 +3,7 @@ package http3
 import (
 	"bufio"
 	"bytes"
-	"github.com/marten-seemann/qpack"
+	"github.com/quic-go/qpack"
 	"net/http"
 	"strconv"
 	"strings"
