@@ -3,7 +3,7 @@ package req
 import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -234,7 +234,7 @@ func (r *Response) ToBytes() (body []byte, err error) {
 		}
 		r.body = body
 	}()
-	body, err = ioutil.ReadAll(r.Body)
+	body, err = io.ReadAll(r.Body)
 	r.setReceivedAt()
 	if err == nil && r.Request.client.responseBodyTransformer != nil {
 		body, err = r.Request.client.responseBodyTransformer(body, r.Request, r)

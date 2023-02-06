@@ -19,7 +19,6 @@ import (
 	"github.com/imroc/req/v3/internal/transport"
 	"io"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
@@ -131,7 +130,7 @@ func TestTransportH2c(t *testing.T) {
 	if res.ProtoMajor != 2 {
 		t.Fatal("proto not h2c")
 	}
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +189,7 @@ func TestTransport(t *testing.T) {
 		if res.TLS == nil {
 			t.Errorf("%d: Response.TLS = nil; want non-nil", i)
 		}
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Errorf("%d: Body read: %v", i, err)
 		} else if string(slurp) != body {
@@ -224,7 +223,7 @@ func testTransportReusesConns(t *testing.T, wantSame bool, modReq func(*http.Req
 			t.Fatal(err)
 		}
 		defer res.Body.Close()
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("Body read: %v", err)
 		}
@@ -449,7 +448,7 @@ func TestTransportAbortClosesPipes(t *testing.T) {
 		}
 		defer res.Body.Close()
 		st.closeConn()
-		_, err = ioutil.ReadAll(res.Body)
+		_, err = io.ReadAll(res.Body)
 		if err == nil {
 			errCh <- errors.New("expected error from res.Body.Read")
 			return
@@ -585,7 +584,7 @@ func TestTransportBody(t *testing.T) {
 	gotc := make(chan reqInfo, 1)
 	st := newServerTester(t,
 		func(w http.ResponseWriter, r *http.Request) {
-			slurp, err := ioutil.ReadAll(r.Body)
+			slurp, err := io.ReadAll(r.Body)
 			if err != nil {
 				gotc <- reqInfo{err: err}
 			} else {
@@ -941,7 +940,7 @@ func testTransportReqBodyAfterResponse(t *testing.T, status int) {
 		}
 		io.Copy(body, io.LimitReader(tests.NeverEnding('A'), bodySize/2))
 		body.CloseWithError(io.EOF)
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf("Slurp: %v", err)
 		}
@@ -1061,7 +1060,7 @@ func TestTransportFullDuplex(t *testing.T) {
 	c := &http.Client{Transport: tr}
 
 	pr, pw := io.Pipe()
-	req, err := http.NewRequest("PUT", st.ts.URL, ioutil.NopCloser(pr))
+	req, err := http.NewRequest("PUT", st.ts.URL, io.NopCloser(pr))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1238,7 +1237,7 @@ func testTransportResPattern(t *testing.T, expect100Continue, resHeader headerTy
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf("Slurp: %v", err)
 		}
@@ -1424,7 +1423,7 @@ func TestTransportReceiveUndeclaredTrailer(t *testing.T) {
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf("res.Body ReadAll error = %q, %v; want %v", slurp, err, nil)
 		}
@@ -1524,7 +1523,7 @@ func testInvalidTrailer(t *testing.T, trailers headerType, wantErr error, writeT
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want 200", res.StatusCode)
 		}
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		se, ok := err.(StreamError)
 		if !ok || se.Cause != wantErr {
 			return fmt.Errorf("res.Body ReadAll error = %q, %#v; want StreamError with cause %T, %#v", slurp, err, wantErr, wantErr)
@@ -1712,11 +1711,11 @@ func TestTransportChecksRequestHeaderListSize(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			// Consume body & force client to send
 			// trailers before writing response.
-			// ioutil.ReadAll returns non-nil err for
+			// io.ReadAll returns non-nil err for
 			// requests that attempt to send greater than
 			// maxHeaderListSize bytes of trailers, since
 			// those requests generate a stream reset.
-			ioutil.ReadAll(r.Body)
+			io.ReadAll(r.Body)
 			r.Body.Close()
 		},
 		func(ts *httptest.Server) {
@@ -2075,7 +2074,7 @@ func TestTransportDisableKeepAlives(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ioutil.ReadAll(res.Body); err != nil {
+	if _, err := io.ReadAll(res.Body); err != nil {
 		t.Fatal(err)
 	}
 	defer res.Body.Close()
@@ -2139,7 +2138,7 @@ func TestTransportDisableKeepAlives_Concurrency(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			if _, err := ioutil.ReadAll(res.Body); err != nil {
+			if _, err := io.ReadAll(res.Body); err != nil {
 				t.Error(err)
 				return
 			}
@@ -2506,7 +2505,7 @@ func TestTransportFailsOnInvalidHeaders(t *testing.T) {
 // the first Read call's gzip.NewReader returning an error.
 func TestGzipReader_DoubleReadCrash(t *testing.T) {
 	gz := &GzipReader{
-		Body: ioutil.NopCloser(strings.NewReader("0123456789")),
+		Body: io.NopCloser(strings.NewReader("0123456789")),
 	}
 	var buf [1]byte
 	n, err1 := gz.Read(buf[:])
@@ -2631,7 +2630,7 @@ func TestTransportReadHeadResponse(t *testing.T) {
 		if res.ContentLength != 123 {
 			return fmt.Errorf("Content-Length = %d; want 123", res.ContentLength)
 		}
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf("ReadAll: %v", err)
 		}
@@ -2674,7 +2673,7 @@ func TestTransportReadHeadResponse(t *testing.T) {
 func TestTransportReadHeadResponseWithBody(t *testing.T) {
 	// This test use not valid response format.
 	// Discarding logger output to not spam tests output.
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	defer log.SetOutput(os.Stderr)
 
 	response := "redirecting to /elsewhere"
@@ -2690,7 +2689,7 @@ func TestTransportReadHeadResponseWithBody(t *testing.T) {
 		if res.ContentLength != int64(len(response)) {
 			return fmt.Errorf("Content-Length = %d; want %d", res.ContentLength, len(response))
 		}
-		slurp, err := ioutil.ReadAll(res.Body)
+		slurp, err := io.ReadAll(res.Body)
 		if err != nil {
 			return fmt.Errorf("ReadAll: %v", err)
 		}
@@ -2766,7 +2765,7 @@ func TestTransportHandlerBodyClose(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		n, err := io.Copy(ioutil.Discard, res.Body)
+		n, err := io.Copy(io.Discard, res.Body)
 		res.Body.Close()
 		if n != bodySize || err != nil {
 			t.Fatalf("req#%d: Copy = %d, %v; want %d, nil", i, n, err, bodySize)
@@ -2866,7 +2865,7 @@ func testTransportUsesGoAwayDebugError(t *testing.T, failMidBody bool) {
 			if err != nil {
 				return fmt.Errorf("unexpected client RoundTrip error: %v", err)
 			}
-			_, err = io.Copy(ioutil.Discard, res.Body)
+			_, err = io.Copy(io.Discard, res.Body)
 			res.Body.Close()
 		}
 		want := GoAwayError{
@@ -3420,7 +3419,7 @@ func TestTransportRequestPathPseudo(t *testing.T) {
 // before we've determined that the ClientConn is usable.
 func TestRoundTripDoesntConsumeRequestBodyEarly(t *testing.T) {
 	const body = "foo"
-	req, _ := http.NewRequest("POST", "http://foo.com/", ioutil.NopCloser(strings.NewReader(body)))
+	req, _ := http.NewRequest("POST", "http://foo.com/", io.NopCloser(strings.NewReader(body)))
 	cc := &ClientConn{
 		closed:      true,
 		reqHeaderMu: make(chan struct{}, 1),
@@ -3429,7 +3428,7 @@ func TestRoundTripDoesntConsumeRequestBodyEarly(t *testing.T) {
 	if err != errClientConnUnusable {
 		t.Fatalf("RoundTrip = %v; want errClientConnUnusable", err)
 	}
-	slurp, err := ioutil.ReadAll(req.Body)
+	slurp, err := io.ReadAll(req.Body)
 	if err != nil {
 		t.Errorf("ReadAll = %v", err)
 	}
@@ -3491,7 +3490,7 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = io.Copy(ioutil.Discard, res.Body); err == nil {
+	if _, err = io.Copy(io.Discard, res.Body); err == nil {
 		t.Fatal("unexpected success")
 	}
 
@@ -3499,7 +3498,7 @@ func TestTransportCancelDataResponseRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	slurp, err := ioutil.ReadAll(res.Body)
+	slurp, err := io.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -3525,7 +3524,7 @@ func TestTransportNoRaceOnRequestObjectAfterRequestComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = io.Copy(ioutil.Discard, resp.Body); err != nil {
+	if _, err = io.Copy(io.Discard, resp.Body); err != nil {
 		t.Fatalf("error reading response body: %v", err)
 	}
 	if err := resp.Body.Close(); err != nil {
@@ -3646,7 +3645,7 @@ func testTransportPingWhenReading(t *testing.T, readIdleTimeout, deadline time.D
 		if res.StatusCode != 200 {
 			return fmt.Errorf("status code = %v; want %v", res.StatusCode, 200)
 		}
-		_, err = ioutil.ReadAll(res.Body)
+		_, err = io.ReadAll(res.Body)
 		if expectedPingCount == 0 && errors.Is(ctx.Err(), context.DeadlineExceeded) {
 			return nil
 		}
@@ -3960,7 +3959,7 @@ func TestTransportRetryHasLimit(t *testing.T) {
 func TestTransportResponseDataBeforeHeaders(t *testing.T) {
 	// This test use not valid response format.
 	// Discarding logger output to not spam tests output.
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 	defer log.SetOutput(os.Stderr)
 
 	ct := newClientTester(t)
@@ -4166,7 +4165,7 @@ func TestTransportRequestsStallAtServerLimit(t *testing.T) {
 						errs <- fmt.Errorf("RoundTrip(%d): %v", k, err)
 						return
 					}
-					ioutil.ReadAll(resp.Body)
+					io.ReadAll(resp.Body)
 					resp.Body.Close()
 					if resp.StatusCode != 204 {
 						errs <- fmt.Errorf("Status = %v; want 204", resp.StatusCode)
@@ -4647,7 +4646,7 @@ func testClientConnClose(t *testing.T, closeMode closeMode) {
 	case closeAtHeaders, closeAtBody:
 		if closeMode == closeAtBody {
 			go close(sendBody)
-			if _, err := io.Copy(ioutil.Discard, res.Body); err == nil {
+			if _, err := io.Copy(io.Discard, res.Body); err == nil {
 				t.Error("expected a Copy error, got nil")
 			}
 		}
@@ -4698,7 +4697,7 @@ func TestClientConnShutdownCancel(t *testing.T) {
 func TestTransportUsesGetBodyWhenPresent(t *testing.T) {
 	calls := 0
 	someBody := func() io.ReadCloser {
-		return struct{ io.ReadCloser }{ioutil.NopCloser(bytes.NewReader(nil))}
+		return struct{ io.ReadCloser }{io.NopCloser(bytes.NewReader(nil))}
 	}
 	req := &http.Request{
 		Body: someBody(),
@@ -5149,7 +5148,7 @@ func TestTransportFrameBufferReuse(t *testing.T) {
 		if got, want := r.Header.Get("Big"), filler; got != want {
 			t.Errorf(`r.Header.Get("Big") = %q, want %q`, got, want)
 		}
-		b, err := ioutil.ReadAll(r.Body)
+		b, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("error reading request body: %v", err)
 		}

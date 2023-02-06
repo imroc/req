@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"testing"
 )
 
@@ -85,7 +84,7 @@ func TestPipeCloseWithError(t *testing.T) {
 	io.WriteString(p, body)
 	a := errors.New("test error")
 	p.CloseWithError(a)
-	all, err := ioutil.ReadAll(p)
+	all, err := io.ReadAll(p)
 	if string(all) != body {
 		t.Errorf("read bytes = %q; want %q", all, body)
 	}
@@ -112,7 +111,7 @@ func TestPipeBreakWithError(t *testing.T) {
 	io.WriteString(p, "foo")
 	a := errors.New("test err")
 	p.BreakWithError(a)
-	all, err := ioutil.ReadAll(p)
+	all, err := io.ReadAll(p)
 	if string(all) != "" {
 		t.Errorf("read bytes = %q; want empty string", all)
 	}

@@ -8,7 +8,6 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -392,7 +391,7 @@ func TestSetSuccessResult(t *testing.T) {
 func TestSetBody(t *testing.T) {
 	body := "hello"
 	fn := func() (io.ReadCloser, error) {
-		return ioutil.NopCloser(bytes.NewBufferString(body)), nil
+		return io.NopCloser(bytes.NewBufferString(body)), nil
 	}
 	c := tc()
 	testCases := []struct {
@@ -411,7 +410,7 @@ func TestSetBody(t *testing.T) {
 		},
 		{
 			SetBody: func(r *Request) { //  SetBody with io.ReadCloser
-				r.SetBody(ioutil.NopCloser(bytes.NewBufferString(body)))
+				r.SetBody(io.NopCloser(bytes.NewBufferString(body)))
 			},
 		},
 		{
@@ -903,7 +902,7 @@ func TestSetFileReader(t *testing.T) {
 
 	buff = bytes.NewBufferString("test")
 	resp = uploadTextFile(t, func(r *Request) {
-		r.SetFileReader("file", "file.txt", ioutil.NopCloser(buff))
+		r.SetFileReader("file", "file.txt", io.NopCloser(buff))
 	})
 	tests.AssertEqual(t, "test", resp.String())
 }
@@ -990,7 +989,7 @@ func TestUploadCallback(t *testing.T) {
 func TestDownloadCallback(t *testing.T) {
 	n := 0
 	resp, err := tc().R().
-		SetOutput(ioutil.Discard).
+		SetOutput(io.Discard).
 		SetDownloadCallback(func(info DownloadInfo) {
 			n++
 		}).Get("/download")
@@ -1009,7 +1008,7 @@ func TestRequestDisableAutoReadResponse(t *testing.T) {
 
 		resp, err = c.R().DisableAutoReadResponse().Get("/")
 		assertSuccess(t, resp, err)
-		_, err = ioutil.ReadAll(resp.Body)
+		_, err = io.ReadAll(resp.Body)
 		tests.AssertNoError(t, err)
 	})
 }
@@ -1020,7 +1019,7 @@ func TestRestoreResponseBody(t *testing.T) {
 	assertSuccess(t, resp, err)
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, true, len(resp.Bytes()) > 0)
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, true, len(body) > 0)
 }

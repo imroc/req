@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"github.com/imroc/req/v3/internal/ascii"
 	"io"
-	"io/ioutil"
 	"log"
 	"math"
 	"net"
@@ -4707,7 +4706,7 @@ func stderrv() io.Writer {
 		return os.Stderr
 	}
 
-	return ioutil.Discard
+	return io.Discard
 }
 
 type safeBuffer struct {
@@ -4947,7 +4946,7 @@ func newServerTester(t testing.TB, handler http.HandlerFunc, opts ...interface{}
 
 	ts.TLS = ts.Config.TLSConfig // the httptest.Server has its own copy of this TLS config
 	if quiet {
-		ts.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
+		ts.Config.ErrorLog = log.New(io.Discard, "", 0)
 	} else {
 		ts.Config.ErrorLog = log.New(io.MultiWriter(stderrv(), twriter{t: t, st: st}, &st.serverLogBuf), "", log.LstdFlags)
 	}

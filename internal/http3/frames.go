@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-
 	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
+	"io"
 )
 
 // FrameType is the frame type of a HTTP/3 frame
@@ -64,7 +62,7 @@ func parseNextFrame(r io.Reader, unknownFrameHandler unknownFrameHandlerFunc) (f
 		case 0xd: // MAX_PUSH_ID
 		}
 		// skip over unknown frames
-		if _, err := io.CopyN(ioutil.Discard, qr, int64(l)); err != nil {
+		if _, err := io.CopyN(io.Discard, qr, int64(l)); err != nil {
 			return nil, err
 		}
 	}

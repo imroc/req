@@ -10,7 +10,6 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
-	"io/ioutil"
 	"net/http"
 	urlpkg "net/url"
 	"os"
@@ -232,7 +231,7 @@ func (r *Request) SetFileReader(paramName, filename string, reader io.Reader) *R
 			if rc, ok := reader.(io.ReadCloser); ok {
 				return rc, nil
 			}
-			return ioutil.NopCloser(reader), nil
+			return io.NopCloser(reader), nil
 		},
 	})
 	return r
@@ -742,7 +741,7 @@ func (r *Request) SetBody(body interface{}) *Request {
 			return r.unReplayableBody, nil
 		}
 	case io.Reader:
-		r.unReplayableBody = ioutil.NopCloser(b)
+		r.unReplayableBody = io.NopCloser(b)
 		r.GetBody = func() (io.ReadCloser, error) {
 			return r.unReplayableBody, nil
 		}
@@ -770,7 +769,7 @@ func (r *Request) SetBody(body interface{}) *Request {
 func (r *Request) SetBodyBytes(body []byte) *Request {
 	r.Body = body
 	r.GetBody = func() (io.ReadCloser, error) {
-		return ioutil.NopCloser(bytes.NewReader(body)), nil
+		return io.NopCloser(bytes.NewReader(body)), nil
 	}
 	return r
 }

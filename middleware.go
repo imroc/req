@@ -5,7 +5,6 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"net/textproto"
@@ -143,7 +142,7 @@ func handleMultiPart(c *Client, r *Request) (err error) {
 		w := multipart.NewWriter(buf)
 		writeMultiPart(r, w)
 		r.GetBody = func() (io.ReadCloser, error) {
-			return ioutil.NopCloser(bytes.NewReader(buf.Bytes())), nil
+			return io.NopCloser(bytes.NewReader(buf.Bytes())), nil
 		}
 		r.Body = buf.Bytes()
 		r.SetContentType(w.FormDataContentType())
@@ -347,7 +346,7 @@ func handleDownload(c *Client, r *Response) (err error) {
 	var body io.ReadCloser
 
 	if r.body != nil { // already read
-		body = ioutil.NopCloser(bytes.NewReader(r.body))
+		body = io.NopCloser(bytes.NewReader(r.body))
 	} else {
 		body = r.Body
 	}

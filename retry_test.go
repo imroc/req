@@ -3,7 +3,7 @@ package req
 import (
 	"bytes"
 	"github.com/imroc/req/v3/internal/tests"
-	"io/ioutil"
+	"io"
 	"math"
 	"net/http"
 	"testing"
@@ -123,7 +123,7 @@ func TestRetryWithUnreplayableBody(t *testing.T) {
 
 	_, err = tc().R().
 		SetRetryCount(1).
-		SetBody(ioutil.NopCloser(bytes.NewBufferString("test"))).
+		SetBody(io.NopCloser(bytes.NewBufferString("test"))).
 		Post("/")
 	tests.AssertEqual(t, errRetryableWithUnReplayableBody, err)
 }

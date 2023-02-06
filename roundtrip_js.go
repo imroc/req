@@ -11,7 +11,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strconv"
 	"syscall/js"
@@ -102,7 +101,7 @@ func (t *Transport) RoundTrip(req *http.Request) (*http.Response, error) {
 		// See https://github.com/web-platform-tests/wpt/issues/7693 for WHATWG tests issue.
 		// See https://developer.mozilla.org/en-US/docs/Web/API/Streams_API for more details on the Streams API
 		// and browser support.
-		body, err := ioutil.ReadAll(req.Body)
+		body, err := io.ReadAll(req.Body)
 		if err != nil {
 			req.Body.Close() // RoundTrip must always close the body, including on errors.
 			return nil, err

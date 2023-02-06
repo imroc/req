@@ -6,7 +6,7 @@ package charsets
 
 import (
 	"github.com/imroc/req/v3/internal/tests"
-	"io/ioutil"
+	"os"
 	"runtime"
 	"testing"
 )
@@ -30,7 +30,7 @@ func TestSniff(t *testing.T) {
 	}
 
 	for _, tc := range sniffTestCases {
-		content, err := ioutil.ReadFile(tests.GetTestFilePath(tc.filename))
+		content, err := os.ReadFile(tests.GetTestFilePath(tc.filename))
 		if err != nil {
 			t.Errorf("%s: error reading file: %v", tc.filename, err)
 			continue

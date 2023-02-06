@@ -10,7 +10,6 @@ import (
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -68,7 +67,7 @@ func getTestServerURL() string {
 }
 
 func getTestFileContent(t *testing.T, filename string) []byte {
-	b, err := ioutil.ReadFile(tests.GetTestFilePath(filename))
+	b, err := os.ReadFile(tests.GetTestFilePath(filename))
 	tests.AssertNoError(t, err)
 	return b
 }
@@ -113,15 +112,15 @@ type Echo struct {
 func handlePost(w http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
 	case "/":
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 		w.Write([]byte("TestPost: text response"))
 	case "/raw-upload":
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 	case "/file-text":
 		r.ParseMultipartForm(10e6)
 		files := r.MultipartForm.File["file"]
 		file, _ := files[0].Open()
-		b, _ := ioutil.ReadAll(file)
+		b, _ := io.ReadAll(file)
 		r.ParseForm()
 		if a := r.FormValue("attempt"); a != "" && a != "2" {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -143,14 +142,14 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 	case "/search":
 		handleSearch(w, r)
 	case "/redirect":
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 		w.Header().Set(header.Location, "/")
 		w.WriteHeader(http.StatusMovedPermanently)
 	case "/content-type":
-		io.Copy(ioutil.Discard, r.Body)
+		io.Copy(io.Discard, r.Body)
 		w.Write([]byte(r.Header.Get(header.ContentType)))
 	case "/echo":
-		b, _ := ioutil.ReadAll(r.Body)
+		b, _ := io.ReadAll(r.Body)
 		e := Echo{
 			Header: r.Header,
 			Body:   string(b),
@@ -216,7 +215,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 
 func toGbk(s string) []byte {
 	reader := transform.NewReader(strings.NewReader(s), simplifiedchinese.GBK.NewEncoder())
-	d, e := ioutil.ReadAll(reader)
+	d, e := io.ReadAll(reader)
 	if e != nil {
 		panic(e)
 	}
@@ -286,13 +285,13 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 	case "/pragma":
 		w.Header().Add("Pragma", "no-cache")
 	case "/payload":
-		b, _ := ioutil.ReadAll(r.Body)
+		b, _ := io.ReadAll(r.Body)
 		w.Write(b)
 	case "/gbk":
 		w.Header().Set(header.ContentType, "text/plain; charset=gbk")
 		w.Write(toGbk("我是roc"))
 	case "/gbk-no-charset":
-		b, err := ioutil.ReadFile(tests.GetTestFilePath("sample-gbk.html"))
+		b, err := os.ReadFile(tests.GetTestFilePath("sample-gbk.html"))
 		if err != nil {
 			panic(err)
 		}

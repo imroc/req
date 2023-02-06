@@ -7,7 +7,7 @@ import (
 	"errors"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -484,7 +484,7 @@ func testDisableAutoReadResponse(t *testing.T, c *Client) {
 
 	resp, err = c.R().Get("/")
 	assertSuccess(t, resp, err)
-	_, err = ioutil.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	tests.AssertNoError(t, err)
 }
 

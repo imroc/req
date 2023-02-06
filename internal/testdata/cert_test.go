@@ -2,8 +2,6 @@ package testdata
 
 import (
 	"crypto/tls"
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -24,7 +22,7 @@ var _ = Describe("certificates", func() {
 
 		conn, err := tls.Dial("tcp", "localhost:4433", &tls.Config{RootCAs: GetRootCA()})
 		Expect(err).ToNot(HaveOccurred())
-		data, err := ioutil.ReadAll(conn)
+		data, err := io.ReadAll(conn)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(string(data)).To(Equal("foobar"))
 	})

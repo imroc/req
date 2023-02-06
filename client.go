@@ -12,7 +12,6 @@ import (
 	"github.com/imroc/req/v3/internal/util"
 	"golang.org/x/net/publicsuffix"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -284,7 +283,7 @@ func (c *Client) SetRootCertFromString(pemContent string) *Client {
 // SetRootCertsFromFile set root certificates from files.
 func (c *Client) SetRootCertsFromFile(pemFiles ...string) *Client {
 	for _, pemFile := range pemFiles {
-		rootPemData, err := ioutil.ReadFile(pemFile)
+		rootPemData, err := os.ReadFile(pemFile)
 		if err != nil {
 			c.log.Errorf("failed to read root cert file: %v", err)
 			return c
@@ -1377,7 +1376,7 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
 		_, err = resp.ToBytes()
 		// restore body for re-reads
-		resp.Body = ioutil.NopCloser(bytes.NewReader(resp.body))
+		resp.Body = io.NopCloser(bytes.NewReader(resp.body))
 	} else if err != nil {
 		resp.Err = err
 	}
