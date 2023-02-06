@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/imroc/req/v3/internal/quic-go"
+	"github.com/quic-go/quic-go"
 
 	"golang.org/x/net/http/httpguts"
 )
@@ -182,6 +182,7 @@ func (r *RoundTripper) getClient(hostname string, onlyCached bool) (roundTripClo
 			},
 			r.QuicConfig,
 			r.Dial,
+			r.Options,
 		)
 		if err != nil {
 			return nil, err

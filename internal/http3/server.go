@@ -1,14 +1,7 @@
 package http3
 
 import (
-	"github.com/imroc/req/v3/internal/quic-go"
-	"github.com/imroc/req/v3/internal/quic-go/protocol"
-)
-
-// allows mocking of quic.Listen and quic.ListenAddr
-var (
-	quicListen     = quic.ListenEarly
-	quicListenAddr = quic.ListenAddrEarly
+	"github.com/quic-go/quic-go"
 )
 
 const (
@@ -27,10 +20,10 @@ const (
 )
 
 func versionToALPN(v quic.VersionNumber) string {
-	if v == protocol.Version1 || v == protocol.Version2 {
+	switch v {
+	case Version1, Version2:
 		return nextProtoH3
-	}
-	if v == protocol.VersionTLS || v == protocol.VersionDraft29 {
+	case VersionDraft29:
 		return nextProtoH3Draft29
 	}
 	return ""

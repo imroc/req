@@ -3,18 +3,10 @@ package quicvarint
 import (
 	"fmt"
 	"io"
-
-	"github.com/imroc/req/v3/internal/quic-go/protocol"
 )
 
 // taken from the QUIC draft
 const (
-	// Min is the minimum value allowed for a QUIC varint.
-	Min = 0
-
-	// Max is the maximum allowed value for a QUIC varint (2^62-1).
-	Max = maxVarInt8
-
 	maxVarInt1 = 63
 	maxVarInt2 = 16383
 	maxVarInt4 = 1073741823
@@ -88,36 +80,8 @@ func Write(w Writer, i uint64) {
 	}
 }
 
-// WriteWithLen writes i in the QUIC varint format with the desired length to w.
-func WriteWithLen(w Writer, i uint64, length protocol.ByteCount) {
-	if length != 1 && length != 2 && length != 4 && length != 8 {
-		panic("invalid varint length")
-	}
-	l := Len(i)
-	if l == length {
-		Write(w, i)
-		return
-	}
-	if l > length {
-		panic(fmt.Sprintf("cannot encode %d in %d bytes", i, length))
-	}
-	if length == 2 {
-		w.WriteByte(0b01000000)
-	} else if length == 4 {
-		w.WriteByte(0b10000000)
-	} else if length == 8 {
-		w.WriteByte(0b11000000)
-	}
-	for j := protocol.ByteCount(1); j < length-l; j++ {
-		w.WriteByte(0)
-	}
-	for j := protocol.ByteCount(0); j < l; j++ {
-		w.WriteByte(uint8(i >> (8 * (l - 1 - j))))
-	}
-}
-
 // Len determines the number of bytes that will be needed to write the number i.
-func Len(i uint64) protocol.ByteCount {
+func Len(i uint64) uint64 {
 	if i <= maxVarInt1 {
 		return 1
 	}

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/imroc/req/v3/internal/quic-go"
+	"github.com/quic-go/quic-go"
 )
 
 // A Stream is a HTTP/3 stream.

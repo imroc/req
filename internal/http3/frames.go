@@ -7,7 +7,6 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/imroc/req/v3/internal/quic-go/protocol"
 	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
 )
 
@@ -145,14 +144,14 @@ func parseSettingsFrame(r io.Reader, l uint64) (*settingsFrame, error) {
 
 func (f *settingsFrame) Write(b *bytes.Buffer) {
 	quicvarint.Write(b, 0x4)
-	var l protocol.ByteCount
+	var l uint64
 	for id, val := range f.Other {
 		l += quicvarint.Len(id) + quicvarint.Len(val)
 	}
 	if f.Datagram {
 		l += quicvarint.Len(settingDatagram) + quicvarint.Len(1)
 	}
-	quicvarint.Write(b, uint64(l))
+	quicvarint.Write(b, l)
 	if f.Datagram {
 		quicvarint.Write(b, settingDatagram)
 		quicvarint.Write(b, 1)

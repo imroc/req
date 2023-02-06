@@ -13,8 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/imroc/req/v3/internal/quic-go"
-	"github.com/imroc/req/v3/internal/quic-go/utils"
+	"github.com/quic-go/quic-go"
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2/hpack"
 	"golang.org/x/net/idna"
@@ -27,16 +26,16 @@ type requestWriter struct {
 	encoder   *qpack.Encoder
 	headerBuf *bytes.Buffer
 
-	logger utils.Logger
+	debugf func(format string, v ...interface{})
 }
 
-func newRequestWriter(logger utils.Logger) *requestWriter {
+func newRequestWriter(debugf func(format string, v ...interface{})) *requestWriter {
 	headerBuf := &bytes.Buffer{}
 	encoder := qpack.NewEncoder(headerBuf)
 	return &requestWriter{
 		encoder:   encoder,
 		headerBuf: headerBuf,
-		logger:    logger,
+		debugf:    debugf,
 	}
 }
 

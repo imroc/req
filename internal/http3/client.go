@@ -7,14 +7,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/dump"
-	"github.com/imroc/req/v3/internal/quic-go"
-	"github.com/imroc/req/v3/internal/quic-go/protocol"
-	"github.com/imroc/req/v3/internal/quic-go/qtls"
 	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
-	"github.com/imroc/req/v3/internal/quic-go/utils"
+	"github.com/imroc/req/v3/internal/transport"
 	"github.com/quic-go/qpack"
+	"github.com/quic-go/quic-go"
 	"io"
 	"net/http"
+	"reflect"
 	"strconv"
 	"sync"
 	"time"
@@ -28,10 +27,16 @@ const (
 	defaultMaxResponseHeaderBytes = 10 * 1 << 20 // 10 MB
 )
 
+const (
+	VersionDraft29 quic.VersionNumber = 0xff00001d
+	Version1       quic.VersionNumber = 0x1
+	Version2       quic.VersionNumber = 0x6b3343cf
+)
+
 var defaultQuicConfig = &quic.Config{
 	MaxIncomingStreams: -1, // don't allow the server to create bidirectional streams
 	KeepAlivePeriod:    10 * time.Second,
-	Versions:           []quic.VersionNumber{protocol.VersionTLS},
+	Versions:           []quic.VersionNumber{Version1},
 }
 
 type dialFunc func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)
@@ -65,10 +70,10 @@ type client struct {
 	hostname string
 	conn     quic.EarlyConnection
 
-	logger utils.Logger
+	opt *transport.Options
 }
 
-func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, conf *quic.Config, dialer dialFunc) (*client, error) {
+func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, conf *quic.Config, dialer dialFunc, opt *transport.Options) (*client, error) {
 	if conf == nil {
 		conf = defaultQuicConfig.Clone()
 	} else if len(conf.Versions) == 0 {
@@ -82,7 +87,10 @@ func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, con
 		conf.MaxIncomingStreams = -1 // don't allow any bidirectional streams
 	}
 	conf.EnableDatagrams = opts.EnableDatagram
-	logger := utils.DefaultLogger.WithPrefix("h3 client")
+	var debugf func(format string, v ...interface{})
+	if opt != nil && opt.Debugf != nil {
+		debugf = opt.Debugf
+	}
 
 	if tlsConf == nil {
 		tlsConf = &tls.Config{}
@@ -95,12 +103,12 @@ func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, con
 	return &client{
 		hostname:      authorityAddr("https", hostname),
 		tlsConf:       tlsConf,
-		requestWriter: newRequestWriter(logger),
+		requestWriter: newRequestWriter(debugf),
 		decoder:       qpack.NewDecoder(func(hf qpack.HeaderField) {}),
 		config:        conf,
 		opts:          opts,
 		dialer:        dialer,
-		logger:        logger,
+		opt:           opt,
 	}, nil
 }
 
@@ -118,7 +126,7 @@ func (c *client) dial(ctx context.Context) error {
 	// send the SETTINGs frame, using 0-RTT data, if possible
 	go func() {
 		if err := c.setupConn(); err != nil {
-			c.logger.Debugf("Setting up connection failed: %s", err)
+			c.opt.Debugf("setting up http3 connection failed: %s", err)
 			c.conn.CloseWithError(quic.ApplicationErrorCode(errorInternalError), "")
 		}
 	}()
@@ -148,7 +156,7 @@ func (c *client) handleBidirectionalStreams() {
 	for {
 		str, err := c.conn.AcceptStream(context.Background())
 		if err != nil {
-			c.logger.Debugf("accepting bidirectional stream failed: %s", err)
+			c.opt.Debugf("accepting bidirectional stream failed: %s", err)
 			return
 		}
 		go func(str quic.Stream) {
@@ -159,7 +167,7 @@ func (c *client) handleBidirectionalStreams() {
 				return
 			}
 			if err != nil {
-				c.logger.Debugf("error handling stream: %s", err)
+				c.opt.Debugf("error handling stream: %s", err)
 			}
 			c.conn.CloseWithError(quic.ApplicationErrorCode(errorFrameUnexpected), "received HTTP/3 frame on bidirectional stream")
 		}(str)
@@ -170,7 +178,7 @@ func (c *client) handleUnidirectionalStreams() {
 	for {
 		str, err := c.conn.AcceptUniStream(context.Background())
 		if err != nil {
-			c.logger.Debugf("accepting unidirectional stream failed: %s", err)
+			c.opt.Debugf("accepting unidirectional stream failed: %s", err)
 			return
 		}
 
@@ -180,7 +188,7 @@ func (c *client) handleUnidirectionalStreams() {
 				if c.opts.UniStreamHijacker != nil && c.opts.UniStreamHijacker(StreamType(streamType), c.conn, str, err) {
 					return
 				}
-				c.logger.Debugf("reading stream type on stream %d failed: %s", str.StreamID(), err)
+				c.opt.Debugf("reading stream type on stream %d failed: %s", str.StreamID(), err)
 				return
 			}
 			// We're only interested in the control stream here.
@@ -391,7 +399,7 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 				}
 			}
 			if err := c.sendRequestBody(hstr, req.Body, bodyDumps); err != nil {
-				c.logger.Errorf("Error writing request: %s", err)
+				c.opt.Debugf("error writing request: %s", err)
 			}
 			if !opt.DontCloseRequestStream {
 				hstr.Close()
@@ -436,7 +444,10 @@ func (c *client) doRequest(req *http.Request, str quic.Stream, opt RoundTripOpt,
 		return nil, newConnError(errorGeneralProtocolError, err)
 	}
 
-	connState := qtls.ToTLSConnectionState(c.conn.ConnectionState().TLS)
+	connState, ok := reflect.ValueOf(c.conn.ConnectionState().TLS).Field(0).Interface().(tls.ConnectionState)
+	if !ok {
+		panic(fmt.Sprintf("bad tls connection state type: %s", reflect.ValueOf(c.conn.ConnectionState().TLS).Field(0).Type().Name()))
+	}
 	res := &http.Response{
 		Proto:      "HTTP/3.0",
 		ProtoMajor: 3,
