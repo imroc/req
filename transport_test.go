@@ -4523,7 +4523,7 @@ func TestTransportEventTraceTLSVerify(t *testing.T) {
 
 	wantOnce("TLSHandshakeStart")
 	wantOnce("TLSHandshakeDone")
-	wantOnce("err = x509: certificate is valid for example.com")
+	wantOnce("x509: certificate is valid for example.com")
 
 	if t.Failed() {
 		t.Errorf("Output:\n%s", got)
