@@ -172,7 +172,7 @@ func TestRetryFalse(t *testing.T) {
 	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 }
 
-func TestRetryTurnedOffByRetryCountEqZero(t *testing.T) {
+func TestRetryTurnedOffWhenRetryCountEqZero(t *testing.T) {
 	resp, err := tc().R().
 		SetRetryCount(0).
 		SetRetryCondition(func(resp *Response, err error) bool {
