@@ -5,10 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/hashicorp/go-multierror"
-	"github.com/imroc/req/v3/internal/dump"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"net/http"
 	urlpkg "net/url"
@@ -17,6 +13,11 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
+	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/util"
 )
 
 // Request struct is used to compose and fire individual request from
@@ -577,7 +578,7 @@ func (r *Request) do() (resp *Response, err error) {
 			resp, err = r.client.roundTrip(r)
 		}
 
-		if r.retryOption == nil || (r.RetryAttempt >= r.retryOption.MaxRetries && r.retryOption.MaxRetries > 0) { // absolutely cannot retry.
+		if r.retryOption == nil || (r.RetryAttempt >= r.retryOption.MaxRetries && r.retryOption.MaxRetries >= 0) { // absolutely cannot retry.
 			return
 		}
 
