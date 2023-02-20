@@ -2,12 +2,13 @@ package req
 
 import (
 	"bytes"
-	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"math"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/imroc/req/v3/internal/tests"
 )
 
 func TestRetryBackOff(t *testing.T) {
@@ -166,6 +167,31 @@ func TestRetryFalse(t *testing.T) {
 		SetRetryCondition(func(resp *Response, err error) bool {
 			return false
 		}).Get("https://non-exists-host.com.cn")
+	tests.AssertNotNil(t, err)
+	tests.AssertIsNil(t, resp.Response)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
+}
+
+func TestRetryTurnedOffWhenRetryCountEqZero(t *testing.T) {
+	resp, err := tc().R().
+		SetRetryCount(0).
+		SetRetryCondition(func(resp *Response, err error) bool {
+			t.Fatal("retry condition should not be executed")
+			return true
+		}).
+		Get("https://non-exists-host.com.cn")
+	tests.AssertNotNil(t, err)
+	tests.AssertIsNil(t, resp.Response)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
+
+	resp, err = tc().
+		SetCommonRetryCount(0).
+		SetCommonRetryCondition(func(resp *Response, err error) bool {
+			t.Fatal("retry condition should not be executed")
+			return true
+		}).
+		R().
+		Get("https://non-exists-host.com.cn")
 	tests.AssertNotNil(t, err)
 	tests.AssertIsNil(t, resp.Response)
 	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
