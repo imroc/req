@@ -131,7 +131,10 @@ func (r *Response) TotalTime() time.Duration {
 	if r.Request.trace != nil {
 		return r.Request.TraceInfo().TotalTime
 	}
-	return r.receivedAt.Sub(r.Request.StartTime)
+	if !r.receivedAt.IsZero() {
+		return r.receivedAt.Sub(r.Request.StartTime)
+	}
+	return r.Request.responseReturnTime.Sub(r.Request.StartTime)
 }
 
 // ReceivedAt returns the timestamp that response we received.
