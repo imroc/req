@@ -1297,6 +1297,9 @@ func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
 // RoundTrip implements RoundTripper
 func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	resp = &Response{Request: r}
+	defer func() {
+		err = resp.Err
+	}()
 
 	// setup trace
 	if r.trace == nil && r.client.trace {
@@ -1322,8 +1325,8 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 
 	var reqBody io.ReadCloser
 	if r.GetBody != nil {
-		reqBody, err = r.GetBody()
-		if err != nil {
+		reqBody, resp.Err = r.GetBody()
+		if resp.Err != nil {
 			return
 		}
 	}
@@ -1369,21 +1372,18 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	r.StartTime = time.Now()
 
 	var httpResponse *http.Response
-	httpResponse, err = c.httpClient.Do(r.RawRequest)
+	httpResponse, resp.Err = c.httpClient.Do(r.RawRequest)
 	resp.Response = httpResponse
 
 	// auto-read response body if possible
-	if err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
-		_, err = resp.ToBytes()
+	if resp.Err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse {
+		resp.ToBytes()
 		// restore body for re-reads
 		resp.Body = io.NopCloser(bytes.NewReader(resp.body))
-	} else if err != nil {
-		resp.Err = err
 	}
 
 	for _, f := range r.client.afterResponse {
 		if e := f(r.client, resp); e != nil {
-			err = e
 			resp.Err = e
 			return
 		}
