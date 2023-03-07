@@ -345,6 +345,63 @@ func (t *Transport) SetMaxResponseHeaderBytes(max int64) *Transport {
 	return t
 }
 
+// SetHTTP2MaxHeaderListSize set the http2 MaxHeaderListSize,
+// which is the http2 SETTINGS_MAX_HEADER_LIST_SIZE to
+// send in the initial settings frame. It is how many bytes
+// of response headers are allowed. Unlike the http2 spec, zero here
+// means to use a default limit (currently 10MB). If you actually
+// want to advertise an unlimited value to the peer, Transport
+// interprets the highest possible value here (0xffffffff or 1<<32-1)
+// to mean no limit.
+func (t *Transport) SetHTTP2MaxHeaderListSize(max uint32) *Transport {
+	t.t2.MaxHeaderListSize = max
+	return t
+}
+
+// SetHTTP2StrictMaxConcurrentStreams set the http2
+// StrictMaxConcurrentStreams, which controls whether the
+// server's SETTINGS_MAX_CONCURRENT_STREAMS should be respected
+// globally. If false, new TCP connections are created to the
+// server as needed to keep each under the per-connection
+// SETTINGS_MAX_CONCURRENT_STREAMS limit. If true, the
+// server's SETTINGS_MAX_CONCURRENT_STREAMS is interpreted as
+// a global limit and callers of RoundTrip block when needed,
+// waiting for their turn.
+func (t *Transport) SetHTTP2StrictMaxConcurrentStreams(strict bool) *Transport {
+	t.t2.StrictMaxConcurrentStreams = strict
+	return t
+}
+
+// SetHTTP2ReadIdleTimeout set the http2 ReadIdleTimeout,
+// which is the timeout after which a health check using ping
+// frame will be carried out if no frame is received on the connection.
+// Note that a ping response will is considered a received frame, so if
+// there is no other traffic on the connection, the health check will
+// be performed every ReadIdleTimeout interval.
+// If zero, no health check is performed.
+func (t *Transport) SetHTTP2ReadIdleTimeout(timeout time.Duration) *Transport {
+	t.t2.ReadIdleTimeout = timeout
+	return t
+}
+
+// SetHTTP2PingTimeout set the http2 PingTimeout, which is the timeout
+// after which the connection will be closed if a response to Ping is
+// not received.
+// Defaults to 15s
+func (t *Transport) SetHTTP2PingTimeout(timeout time.Duration) *Transport {
+	t.t2.PingTimeout = timeout
+	return t
+}
+
+// SetHTTP2WriteByteTimeout set the http2 WriteByteTimeout, which is the
+// timeout after which the connection will be closed no data can be written
+// to it. The timeout begins when data is available to write, and is
+// extended whenever any bytes are written.
+func (t *Transport) SetHTTP2WriteByteTimeout(timeout time.Duration) *Transport {
+	t.t2.WriteByteTimeout = timeout
+	return t
+}
+
 // SetTLSClientConfig set the custom TLSClientConfig, which specifies the TLS configuration to
 // use with tls.Client.
 // If nil, the default configuration is used.

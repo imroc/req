@@ -1158,6 +1158,63 @@ func (c *Client) EnableHTTP3() *Client {
 	return c
 }
 
+// SetHTTP2MaxHeaderListSize set the http2 MaxHeaderListSize,
+// which is the http2 SETTINGS_MAX_HEADER_LIST_SIZE to
+// send in the initial settings frame. It is how many bytes
+// of response headers are allowed. Unlike the http2 spec, zero here
+// means to use a default limit (currently 10MB). If you actually
+// want to advertise an unlimited value to the peer, Transport
+// interprets the highest possible value here (0xffffffff or 1<<32-1)
+// to mean no limit.
+func (c *Client) SetHTTP2MaxHeaderListSize(max uint32) *Client {
+	c.t.SetHTTP2MaxHeaderListSize(max)
+	return c
+}
+
+// SetHTTP2StrictMaxConcurrentStreams set the http2
+// StrictMaxConcurrentStreams, which controls whether the
+// server's SETTINGS_MAX_CONCURRENT_STREAMS should be respected
+// globally. If false, new TCP connections are created to the
+// server as needed to keep each under the per-connection
+// SETTINGS_MAX_CONCURRENT_STREAMS limit. If true, the
+// server's SETTINGS_MAX_CONCURRENT_STREAMS is interpreted as
+// a global limit and callers of RoundTrip block when needed,
+// waiting for their turn.
+func (c *Client) SetHTTP2StrictMaxConcurrentStreams(strict bool) *Client {
+	c.t.SetHTTP2StrictMaxConcurrentStreams(strict)
+	return c
+}
+
+// SetHTTP2ReadIdleTimeout set the http2 ReadIdleTimeout,
+// which is the timeout after which a health check using ping
+// frame will be carried out if no frame is received on the connection.
+// Note that a ping response will is considered a received frame, so if
+// there is no other traffic on the connection, the health check will
+// be performed every ReadIdleTimeout interval.
+// If zero, no health check is performed.
+func (c *Client) SetHTTP2ReadIdleTimeout(timeout time.Duration) *Client {
+	c.t.SetHTTP2ReadIdleTimeout(timeout)
+	return c
+}
+
+// SetHTTP2PingTimeout set the http2 PingTimeout, which is the timeout
+// after which the connection will be closed if a response to Ping is
+// not received.
+// Defaults to 15s
+func (c *Client) SetHTTP2PingTimeout(timeout time.Duration) *Client {
+	c.t.SetHTTP2PingTimeout(timeout)
+	return c
+}
+
+// SetHTTP2WriteByteTimeout set the http2 WriteByteTimeout, which is the
+// timeout after which the connection will be closed no data can be written
+// to it. The timeout begins when data is available to write, and is
+// extended whenever any bytes are written.
+func (c *Client) SetHTTP2WriteByteTimeout(timeout time.Duration) *Client {
+	c.t.SetHTTP2WriteByteTimeout(timeout)
+	return c
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
