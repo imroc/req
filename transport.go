@@ -604,14 +604,16 @@ func (t *Transport) handleAltSvc(req *http.Request, value string) {
 			Entries: entries,
 		}
 		t.pendingAltSvcs[addr] = pas
-		go t.handlePendingAltSvc(netutil.AuthorityAddr(req.URL.Scheme, req.URL.Host), pas)
+		go t.handlePendingAltSvc(req.URL, pas)
 	}
 }
 
-func (t *Transport) handlePendingAltSvc(hostname string, pas *pendingAltSvc) {
+func (t *Transport) handlePendingAltSvc(u *url.URL, pas *pendingAltSvc) {
 	for i := pas.CurrentIndex; i < len(pas.Entries); i++ {
 		switch pas.Entries[i].Protocol {
 		case "h3": // only support h3 in alt-svc for now
+			u2 := altsvcutil.ConvertURL(pas.Entries[i], u)
+			hostname := u2.Host
 			err := t.t3.AddConn(hostname)
 			if err != nil {
 				if t.Debugf != nil {
@@ -805,12 +807,14 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 				pas.Mu.Lock()
 				if pas.Transport != nil {
 					pas.LastTime = time.Now()
-					resp, err = pas.Transport.RoundTrip(req)
+					r := req.Clone(req.Context())
+					r.URL = altsvcutil.ConvertURL(pas.Entries[pas.CurrentIndex], req.URL)
+					resp, err = pas.Transport.RoundTrip(r)
 					if err != nil {
 						pas.Transport = nil
 						if pas.CurrentIndex+1 < len(pas.Entries) {
 							pas.CurrentIndex++
-							go t.handlePendingAltSvc(addr, pas)
+							go t.handlePendingAltSvc(req.URL, pas)
 						}
 					} else {
 						t.altSvcJar.SetAltSvc(addr, pas.Entries[pas.CurrentIndex])
