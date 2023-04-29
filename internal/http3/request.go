@@ -1,13 +1,13 @@
 package http3
 
 import (
-	"crypto/tls"
 	"errors"
-	"github.com/quic-go/qpack"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/quic-go/qpack"
 )
 
 func requestFromHeaders(headers []qpack.HeaderField) (*http.Request, error) {
@@ -100,7 +100,6 @@ func requestFromHeaders(headers []qpack.HeaderField) (*http.Request, error) {
 		ContentLength: contentLength,
 		Host:          authority,
 		RequestURI:    requestURI,
-		TLS:           &tls.ConnectionState{},
 	}, nil
 }
 

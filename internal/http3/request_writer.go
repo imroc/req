@@ -3,15 +3,16 @@ package http3
 import (
 	"bytes"
 	"fmt"
-	"github.com/imroc/req/v3/internal/dump"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/quic-go/qpack"
 	"io"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
+
+	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/quic-go/qpack"
 
 	"github.com/quic-go/quic-go"
 	"golang.org/x/net/http/httpguts"
@@ -59,10 +60,9 @@ func (w *requestWriter) writeHeaders(wr io.Writer, req *http.Request, gzip bool,
 		return err
 	}
 
-	buf := &bytes.Buffer{}
-	hf := headersFrame{Length: uint64(w.headerBuf.Len())}
-	hf.Write(buf)
-	if _, err := wr.Write(buf.Bytes()); err != nil {
+	b := make([]byte, 0, 128)
+	b = (&headersFrame{Length: uint64(w.headerBuf.Len())}).Append(b)
+	if _, err := wr.Write(b); err != nil {
 		return err
 	}
 	_, err := wr.Write(w.headerBuf.Bytes())
