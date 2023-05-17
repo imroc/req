@@ -8,9 +8,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/util"
-	"golang.org/x/net/publicsuffix"
 	"io"
 	"net"
 	"net/http"
@@ -20,6 +17,11 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"golang.org/x/net/publicsuffix"
+
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/util"
 )
 
 // DefaultClient returns the global default Client.
@@ -940,6 +942,18 @@ func (c *Client) EnableTraceAll() *Client {
 func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	c.httpClient.Jar = jar
 	return c
+}
+
+// GetCookiesFromJar get cookies from the underlying `http.Client`'s `CookieJar`.
+func (c *Client) GetCookiesFromJar(url string) ([]*http.Cookie, error) {
+	if c.httpClient.Jar == nil {
+		return nil, errors.New("cookie jar is not enabled")
+	}
+	u, err := urlpkg.Parse(url)
+	if err != nil {
+		return nil, err
+	}
+	return c.httpClient.Jar.Cookies(u), nil
 }
 
 // ClearCookies clears all cookies if cookie is enabled.
