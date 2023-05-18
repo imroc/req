@@ -944,8 +944,8 @@ func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
 	return c
 }
 
-// GetCookiesFromJar get cookies from the underlying `http.Client`'s `CookieJar`.
-func (c *Client) GetCookiesFromJar(url string) ([]*http.Cookie, error) {
+// GetCookies get cookies from the underlying `http.Client`'s `CookieJar`.
+func (c *Client) GetCookies(url string) ([]*http.Cookie, error) {
 	if c.httpClient.Jar == nil {
 		return nil, errors.New("cookie jar is not enabled")
 	}
