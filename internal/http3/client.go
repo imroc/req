@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -37,12 +38,11 @@ const (
 var defaultQuicConfig = &quic.Config{
 	MaxIncomingStreams: -1, // don't allow the server to create bidirectional streams
 	KeepAlivePeriod:    10 * time.Second,
-	Versions:           []quic.VersionNumber{Version1},
 }
 
 type dialFunc func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)
 
-var dialAddr = quic.DialAddrEarlyContext
+var dialAddr dialFunc = quic.DialAddrEarly
 
 type roundTripperOpts struct {
 	DisableCompression bool
@@ -79,9 +79,10 @@ var _ roundTripCloser = &client{}
 func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, conf *quic.Config, dialer dialFunc, opt *transport.Options) (roundTripCloser, error) {
 	if conf == nil {
 		conf = defaultQuicConfig.Clone()
-	} else if len(conf.Versions) == 0 {
+	}
+	if len(conf.Versions) == 0 {
 		conf = conf.Clone()
-		conf.Versions = []quic.VersionNumber{defaultQuicConfig.Versions[0]}
+		conf.Versions = []quic.VersionNumber{Version1}
 	}
 	if len(conf.Versions) != 1 {
 		return nil, errors.New("can only use a single QUIC version for dialing a HTTP/3 connection")
@@ -99,6 +100,10 @@ func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, con
 		tlsConf = &tls.Config{}
 	} else {
 		tlsConf = tlsConf.Clone()
+	}
+	if tlsConf.ServerName == "" {
+		host, _, _ := net.SplitHostPort(hostname)
+		tlsConf.ServerName = host
 	}
 	// Replace existing ALPNs by H3
 	tlsConf.NextProtos = []string{versionToALPN(conf.Versions[0])}
