@@ -1403,7 +1403,7 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	}
 	req := &http.Request{
 		Method:        r.Method,
-		Header:        r.Headers,
+		Header:        r.Headers.Clone(),
 		URL:           r.URL,
 		Host:          host,
 		Proto:         "HTTP/1.1",
