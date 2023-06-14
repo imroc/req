@@ -22,6 +22,7 @@ import (
 
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
+	utls "github.com/refraction-networking/utls"
 )
 
 // DefaultClient returns the global default Client.
@@ -1004,6 +1005,90 @@ func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (
 // SetDial set the customized `DialContext` function to Transport.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.t.SetDial(fn)
+	return c
+}
+
+// SetTLSFingerprintChrome uses tls fingerprint of Chrome browser.
+func (c *Client) SetTLSFingerprintChrome() *Client {
+	return c.SetTLSFingerprint(utls.HelloChrome_Auto)
+}
+
+// SetTLSFingerprintFirefox uses tls fingerprint of Firefox browser.
+func (c *Client) SetTLSFingerprintFirefox() *Client {
+	return c.SetTLSFingerprint(utls.HelloFirefox_Auto)
+}
+
+// SetTLSFingerprintEdge uses tls fingerprint of Edge browser.
+func (c *Client) SetTLSFingerprintEdge() *Client {
+	return c.SetTLSFingerprint(utls.HelloEdge_Auto)
+}
+
+// SetTLSFingerprintQQ uses tls fingerprint of QQ browser.
+func (c *Client) SetTLSFingerprintQQ() *Client {
+	return c.SetTLSFingerprint(utls.HelloQQ_Auto)
+}
+
+// SetTLSFingerprintSafari uses tls fingerprint of Safari browser.
+func (c *Client) SetTLSFingerprintSafari() *Client {
+	return c.SetTLSFingerprint(utls.HelloSafari_Auto)
+}
+
+// SetTLSFingerprint360 uses tls fingerprint of 360 browser.
+func (c *Client) SetTLSFingerprint360() *Client {
+	return c.SetTLSFingerprint(utls.Hello360_Auto)
+}
+
+// SetTLSFingerprintIOS uses tls fingerprint of IOS.
+func (c *Client) SetTLSFingerprintIOS() *Client {
+	return c.SetTLSFingerprint(utls.HelloIOS_Auto)
+}
+
+// SetTLSFingerprintAndroid uses tls fingerprint of Android.
+func (c *Client) SetTLSFingerprintAndroid() *Client {
+	return c.SetTLSFingerprint(utls.HelloAndroid_11_OkHttp)
+}
+
+// uTLSConn is wrapper of UConn which implements the net.Conn interface.
+type uTLSConn struct {
+	*utls.UConn
+}
+
+func (conn *uTLSConn) ConnectionState() tls.ConnectionState {
+	cs := conn.Conn.ConnectionState()
+	return tls.ConnectionState{
+		Version:                     cs.Version,
+		HandshakeComplete:           cs.HandshakeComplete,
+		DidResume:                   cs.DidResume,
+		CipherSuite:                 cs.CipherSuite,
+		NegotiatedProtocol:          cs.NegotiatedProtocol,
+		NegotiatedProtocolIsMutual:  cs.NegotiatedProtocolIsMutual,
+		ServerName:                  cs.ServerName,
+		PeerCertificates:            cs.PeerCertificates,
+		VerifiedChains:              cs.VerifiedChains,
+		SignedCertificateTimestamps: cs.SignedCertificateTimestamps,
+		OCSPResponse:                cs.OCSPResponse,
+		TLSUnique:                   cs.TLSUnique,
+	}
+}
+
+// SetTLSFingerprint set the tls fingerprint for tls handshake, will use utls
+// (https://github.com/refraction-networking/utls) to perform the tls handshake,
+// which uses the specified clientHelloID to simulate the tls fingerprint.
+func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
+	c.SetDialTLS(func(ctx context.Context, network, addr string) (net.Conn, error) {
+		plainConn, err := net.Dial(network, addr)
+		if err != nil {
+			return nil, err
+		}
+		colonPos := strings.LastIndex(addr, ":")
+		if colonPos == -1 {
+			colonPos = len(addr)
+		}
+		hostname := addr[:colonPos]
+		utlsConfig := &utls.Config{ServerName: hostname, NextProtos: c.GetTLSClientConfig().NextProtos}
+		conn := utls.UClient(plainConn, utlsConfig, clientHelloID)
+		return &uTLSConn{conn}, nil
+	})
 	return c
 }
 
