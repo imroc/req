@@ -1814,7 +1814,7 @@ func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace
 		if trace != nil && trace.TLSHandshakeStart != nil {
 			trace.TLSHandshakeStart()
 		}
-		err := tlsConn.Handshake()
+		err := tlsConn.HandshakeContext(ctx)
 		if timer != nil {
 			timer.Stop()
 		}
@@ -1845,10 +1845,6 @@ func newHttp2NotSupportedError(negotiatedProtocol string) error {
 		errMsg += fmt.Sprintf(", you can use %s which is supported", negotiatedProtocol)
 	}
 	return errors.New(errMsg)
-}
-
-type erringRoundTripper interface {
-	RoundTripErr() error
 }
 
 func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *persistConn, err error) {
