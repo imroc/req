@@ -6,6 +6,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/quic-go/qpack v0.4.0
 	github.com/quic-go/quic-go v0.35.0
+	github.com/refraction-networking/utls v1.3.2
 	golang.org/x/net v0.10.0
 	golang.org/x/text v0.9.0
 )
@@ -21,7 +22,6 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.5 // indirect
 	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
 	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
-	github.com/refraction-networking/utls v1.3.2 // indirect
 	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.10.0 // indirect
