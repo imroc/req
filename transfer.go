@@ -405,7 +405,7 @@ func (t *transferWriter) doBodyCopy(dst io.Writer, src io.Reader) (n int64, err 
 	return
 }
 
-// unwrapBodyReader unwraps the body's inner reader if it's a
+// unwrapBody unwraps the body's inner reader if it's a
 // nopCloser. This is to ensure that body writes sourced from local
 // files (*os.File types) are properly optimized.
 //
@@ -520,7 +520,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 	// or close connection when finished, since multipart is not supported yet
 	switch {
 	case t.Chunked:
-		if noResponseBodyExpected(t.RequestMethod) || !bodyAllowedForStatus(t.StatusCode) {
+		if isResponse && (noResponseBodyExpected(t.RequestMethod) || !bodyAllowedForStatus(t.StatusCode)) {
 			t.Body = NoBody
 		} else {
 			t.Body = &body{src: internal.NewChunkedReader(r), hdr: msg, r: r, closing: t.Close}
@@ -555,7 +555,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 	return nil
 }
 
-// Checks whether chunked is part of the encodings stack
+// Checks whether chunked is part of the encodings stack.
 func chunked(te []string) bool { return len(te) > 0 && te[0] == "chunked" }
 
 // Checks whether the encoding is explicitly "identity".
@@ -590,7 +590,7 @@ func (t *transferReader) parseTransferEncoding() error {
 	if len(raw) != 1 {
 		return &unsupportedTEError{fmt.Sprintf("too many transfer encodings: %q", raw)}
 	}
-	if !ascii.EqualFold(textproto.TrimString(raw[0]), "chunked") {
+	if !ascii.EqualFold(raw[0], "chunked") {
 		return &unsupportedTEError{fmt.Sprintf("unsupported transfer encoding: %q", raw[0])}
 	}
 
@@ -638,7 +638,7 @@ func fixLength(isResponse bool, status int, requestMethod string, header http.He
 	}
 
 	// Logic based on response type or status
-	if noResponseBodyExpected(requestMethod) {
+	if isResponse && noResponseBodyExpected(requestMethod) {
 		return 0, nil
 	}
 	if status/100 == 1 {
@@ -673,7 +673,7 @@ func fixLength(isResponse bool, status int, requestMethod string, header http.He
 
 // Determine whether to hang up after sending a request and body, or
 // receiving a response and body
-// 'header' is the request headers
+// 'header' is the request headers.
 func shouldClose(major, minor int, header http.Header, removeCloseHeader bool) bool {
 	if major < 1 {
 		return true
@@ -692,7 +692,7 @@ func shouldClose(major, minor int, header http.Header, removeCloseHeader bool) b
 	return hasClose
 }
 
-// Parse the trailer header
+// Parse the trailer header.
 func fixTrailer(header http.Header, chunked bool) (http.Header, error) {
 	vv, ok := header["Trailer"]
 	if !ok {
@@ -1010,7 +1010,7 @@ var nopCloserWriterToType = reflect.TypeOf(io.NopCloser(struct {
 }{}))
 
 // unwrapNopCloser return the underlying reader and true if r is a NopCloser
-// else it return false
+// else it return false.
 func unwrapNopCloser(r io.Reader) (underlyingReader io.Reader, isNopCloser bool) {
 	switch reflect.TypeOf(r) {
 	case nopCloserType, nopCloserWriterToType:
