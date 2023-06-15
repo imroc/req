@@ -1,6 +1,7 @@
 package tls
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 )
@@ -23,4 +24,16 @@ type Conn interface {
 	// For control over canceling or setting a timeout on a handshake, use
 	// HandshakeContext or the Dialer's DialContext method instead.
 	Handshake() error
+
+	// HandshakeContext runs the client or server handshake
+	// protocol if it has not yet been run.
+	//
+	// The provided Context must be non-nil. If the context is canceled before
+	// the handshake is complete, the handshake is interrupted and an error is returned.
+	// Once the handshake has completed, cancellation of the context will not affect the
+	// connection.
+	//
+	// Most uses of this package need not call HandshakeContext explicitly: the
+	// first Read or Write will call it automatically.
+	HandshakeContext(ctx context.Context) error
 }
