@@ -2780,18 +2780,6 @@ func TestTransportCloseResponseBody(t *testing.T) {
 	}
 }
 
-type fooProto struct{}
-
-func (fooProto) RoundTrip(req *http.Request) (*http.Response, error) {
-	res := &http.Response{
-		Status:     "200 OK",
-		StatusCode: 200,
-		Header:     make(http.Header),
-		Body:       io.NopCloser(strings.NewReader("You wanted " + req.URL.String())),
-	}
-	return res, nil
-}
-
 func TestTransportNoHost(t *testing.T) {
 	defer afterTest(t)
 	tr := T()
