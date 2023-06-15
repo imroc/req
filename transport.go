@@ -444,7 +444,8 @@ func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (
 }
 
 // SetDialTLS set the custom DialTLSContext function, only valid for HTTP1 and HTTP2, which specifies
-// an optional dial function for creating TLS connections for non-proxied HTTPS requests.
+// an optional dial function for creating TLS connections for non-proxied HTTPS requests (proxy will
+// not work if set).
 //
 // If it is nil, DialContext and TLSClientConfig are used.
 //
@@ -452,6 +453,14 @@ func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (
 // and TLSHandshakeTimeout are ignored. The returned net.Conn is assumed to already be past the TLS handshake.
 func (t *Transport) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
 	t.DialTLSContext = fn
+	return t
+}
+
+// SetTLSHandshake set the custom tls handshake function, only valid for HTTP1 and HTTP2, not HTTP3,
+// it specifies an optional dial function for tls handshake, it works even if a proxy is set, can be
+// used to customize the tls fingerprint.
+func (t *Transport) SetTLSHandshake(fn func(ctx context.Context, addr string, plainConn net.Conn) (conn net.Conn, tlsState *tls.ConnectionState, err error)) *Transport {
+	t.TLSHandshakeContext = fn
 	return t
 }
 
@@ -1793,6 +1802,7 @@ func (t *Transport) decConnsPerHost(key connectMethodKey) {
 // tunnel, this function establishes a nested TLS session inside the encrypted channel.
 // The remote endpoint's name may be overridden by TLSClientConfig.ServerName.
 func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace.ClientTrace, forProxy bool) error {
+
 	// Initiate TLS and check remote host name against certificate.
 	cfg := cloneTLSConfig(pc.t.TLSClientConfig)
 	if cfg.ServerName == "" {
@@ -1845,6 +1855,42 @@ func newHttp2NotSupportedError(negotiatedProtocol string) error {
 		errMsg += fmt.Sprintf(", you can use %s which is supported", negotiatedProtocol)
 	}
 	return errors.New(errMsg)
+}
+
+func (t *Transport) customTlsHandshake(ctx context.Context, trace *httptrace.ClientTrace, addr string, pconn *persistConn) error {
+	errc := make(chan error, 2)
+	var timer *time.Timer // for canceling TLS handshake
+	if d := t.TLSHandshakeTimeout; d != 0 {
+		timer = time.AfterFunc(d, func() {
+			errc <- tlsHandshakeTimeoutError{}
+		})
+	}
+	go func() {
+		if trace != nil && trace.TLSHandshakeStart != nil {
+			trace.TLSHandshakeStart()
+		}
+		conn, tlsState, err := t.TLSHandshakeContext(ctx, addr, pconn.conn)
+		if err != nil {
+			if timer != nil {
+				timer.Stop()
+			}
+			if trace != nil && trace.TLSHandshakeDone != nil {
+				trace.TLSHandshakeDone(tls.ConnectionState{}, err)
+			}
+		} else {
+			pconn.conn = conn
+			pconn.tlsState = tlsState
+			if trace != nil && trace.TLSHandshakeDone != nil {
+				trace.TLSHandshakeDone(*tlsState, nil)
+			}
+		}
+		errc <- err
+	}()
+	if err := <-errc; err != nil {
+		pconn.conn.Close()
+		return err
+	}
+	return nil
 }
 
 func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *persistConn, err error) {
@@ -1904,10 +1950,21 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			if firstTLSHost, _, err = net.SplitHostPort(cm.addr()); err != nil {
 				return nil, wrapErr(err)
 			}
-			if err = pconn.addTLS(ctx, firstTLSHost, trace, cm.proxyURL != nil); err != nil {
-				return nil, wrapErr(err)
+			if t.TLSHandshakeContext != nil && cm.proxyURL == nil {
+				err = t.customTlsHandshake(ctx, trace, firstTLSHost, pconn)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				if err = pconn.addTLS(ctx, firstTLSHost, trace, cm.proxyURL != nil); err != nil {
+					return nil, wrapErr(err)
+				}
 			}
 		}
+	}
+
+	if t.Debugf != nil && cm.proxyURL != nil {
+		t.Debugf("connect %s via proxy %s", cm.targetAddr, cm.proxyURL.String())
 	}
 
 	// Proxy setup.
@@ -2018,8 +2075,15 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 	}
 
 	if cm.proxyURL != nil && cm.targetScheme == "https" {
-		if err := pconn.addTLS(ctx, cm.tlsHost(), trace, false); err != nil {
-			return nil, err
+		if t.TLSHandshakeContext != nil {
+			err := t.customTlsHandshake(ctx, trace, cm.tlsHost(), pconn)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			if err := pconn.addTLS(ctx, cm.tlsHost(), trace, false); err != nil {
+				return nil, err
+			}
 		}
 	}
 
