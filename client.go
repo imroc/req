@@ -1048,6 +1048,11 @@ func (c *Client) SetTLSFingerprintAndroid() *Client {
 	return c.SetTLSFingerprint(utls.HelloAndroid_11_OkHttp)
 }
 
+// SetTLSFingerprintRandomized uses randomized tls fingerprint.
+func (c *Client) SetTLSFingerprintRandomized() *Client {
+	return c.SetTLSFingerprint(utls.HelloRandomized)
+}
+
 // uTLSConn is wrapper of UConn which implements the net.Conn interface.
 type uTLSConn struct {
 	*utls.UConn
