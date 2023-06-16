@@ -21,6 +21,7 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/transport"
+	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"io"
 	"io/fs"
 	"log"
@@ -575,6 +576,20 @@ func (t *Transport) newTLSConfig(host string) *tls.Config {
 		cfg.ServerName = host
 	}
 	return cfg
+}
+
+// dialTLSWithContext uses tls.Dialer, added in Go 1.15, to open a TLS
+// connection.
+func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (reqtls.Conn, error) {
+	dialer := &tls.Dialer{
+		Config: cfg,
+	}
+	conn, err := dialer.DialContext(ctx, network, addr)
+	if err != nil {
+		return nil, err
+	}
+	tlsCn := conn.(reqtls.Conn)
+	return tlsCn, nil
 }
 
 func (t *Transport) dialTLS(ctx context.Context) func(string, string, *tls.Config) (net.Conn, error) {
