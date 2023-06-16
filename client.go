@@ -68,6 +68,7 @@ type Client struct {
 	udBeforeRequest         []RequestMiddleware
 	afterResponse           []ResponseMiddleware
 	wrappedRoundTrip        RoundTripper
+	roundTripWrappers       []RoundTripWrapper
 	responseBodyTransformer func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
 	resultStateCheckFunc    func(resp *Response) ResultState
 }
@@ -1363,6 +1364,14 @@ func (c *Client) Clone() *Client {
 	client.Transport = cc.t
 	cc.httpClient = &client
 
+	// clone client middleware
+	if len(cc.roundTripWrappers) > 0 {
+		cc.wrappedRoundTrip = roundTripImpl{&cc}
+		for _, w := range cc.roundTripWrappers {
+			cc.wrappedRoundTrip = w(cc.wrappedRoundTrip)
+		}
+	}
+
 	// clone other fields that may need to be cloned
 	cc.Headers = cloneHeaders(c.Headers)
 	cc.Cookies = cloneCookies(c.Cookies)
@@ -1473,7 +1482,10 @@ func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
 		return c
 	}
 	if c.wrappedRoundTrip == nil {
+		c.roundTripWrappers = wrappers
 		c.wrappedRoundTrip = roundTripImpl{c}
+	} else {
+		c.roundTripWrappers = append(c.roundTripWrappers, wrappers...)
 	}
 	for _, w := range wrappers {
 		c.wrappedRoundTrip = w(c.wrappedRoundTrip)
