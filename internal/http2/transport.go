@@ -288,7 +288,6 @@ func (cs *clientStream) get1xxTraceFunc() func(int, textproto.MIMEHeader) error 
 }
 
 func (cs *clientStream) abortStream(err error) {
-	fmt.Println("abortStream")
 	cs.cc.mu.Lock()
 	defer cs.cc.mu.Unlock()
 	cs.abortStreamLocked(err)
@@ -1115,7 +1114,6 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	cancelRequest := func(cs *clientStream, err error) error {
 		cs.cc.mu.Lock()
-		fmt.Println("cancelRequest---")
 		cs.abortStreamLocked(err)
 		bodyClosed := cs.reqBodyClosed
 		if cs.ID != 0 {
@@ -1165,15 +1163,12 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 				// golang.org/issue/49645
 				return handleResponseHeaders()
 			default:
-				fmt.Println("just abort")
 				waitDone()
 				return nil, cancelRequest(cs, cs.abortErr)
 			}
 		case <-ctx.Done():
-			fmt.Println("ctx done")
 			return nil, cancelRequest(cs, ctx.Err())
 		case <-cs.reqCancel:
-			fmt.Println("reqCancel")
 			return nil, cancelRequest(cs, common.ErrRequestCanceled)
 		}
 	}
@@ -1439,7 +1434,6 @@ func (cs *clientStream) cleanupWriteRequest(err error) {
 		}
 	}
 	if err != nil {
-		fmt.Println("cleanupWriteRequest")
 		cs.abortStream(err) // possibly redundant, but harmless
 		if cs.sentHeaders {
 			if se, ok := err.(StreamError); ok {
