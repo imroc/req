@@ -364,6 +364,9 @@ func (r *Request) SetResult(result interface{}) *Request {
 // Request.SetResultStateCheckFunc or Client.SetResultStateCheckFunc to customize
 // the result state check logic.
 func (r *Request) SetSuccessResult(result interface{}) *Request {
+	if result == nil {
+		return r
+	}
 	r.Result = util.GetPointer(result)
 	return r
 }
@@ -374,16 +377,19 @@ func (r *Request) SetSuccessResult(result interface{}) *Request {
 // or Client.SetResultStateCheckFunc to customize the result state check logic.
 //
 // Deprecated: Use SetErrorResult result.
-func (r *Request) SetError(error interface{}) *Request {
-	return r.SetErrorResult(error)
+func (r *Request) SetError(err interface{}) *Request {
+	return r.SetErrorResult(err)
 }
 
 // SetErrorResult set the result that response body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns ErrorState, by default
 // it requires HTTP status `code >= 400`, you can also use Request.SetResultStateCheckFunc
 // or Client.SetResultStateCheckFunc to customize the result state check logic.
-func (r *Request) SetErrorResult(error interface{}) *Request {
-	r.Error = util.GetPointer(error)
+func (r *Request) SetErrorResult(err interface{}) *Request {
+	if err == nil {
+		return r
+	}
+	r.Error = util.GetPointer(err)
 	return r
 }
 
