@@ -26,7 +26,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	if err != nil {
 		return
 	}
-	if t.altSvcJar != nil {
+	if resp.ProtoMajor != 3 && t.altSvcJar != nil {
 		if v := resp.Header.Get("alt-svc"); v != "" {
 			t.handleAltSvc(req, v)
 		}
