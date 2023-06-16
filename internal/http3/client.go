@@ -102,8 +102,12 @@ func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, con
 		tlsConf = tlsConf.Clone()
 	}
 	if tlsConf.ServerName == "" {
-		host, _, _ := net.SplitHostPort(hostname)
-		tlsConf.ServerName = host
+		sni, _, err := net.SplitHostPort(hostname)
+		if err != nil {
+			// It's ok if net.SplitHostPort returns an error - it could be a hostname/IP address without a port.
+			sni = hostname
+		}
+		tlsConf.ServerName = sni
 	}
 	// Replace existing ALPNs by H3
 	tlsConf.NextProtos = []string{versionToALPN(conf.Versions[0])}

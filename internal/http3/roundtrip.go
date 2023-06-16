@@ -20,9 +20,6 @@ import (
 	"golang.org/x/net/http/httpguts"
 )
 
-// declare this as a variable, such that we can it mock it in the tests
-var quicDialer = quic.DialEarly
-
 type roundTripCloser interface {
 	RoundTripOpt(*http.Request, RoundTripOpt) (*http.Response, error)
 	HandshakeComplete() bool
@@ -74,7 +71,7 @@ type RoundTripper struct {
 
 	newClient func(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, conf *quic.Config, dialer dialFunc, opt *transport.Options) (roundTripCloser, error) // so we can mock it in tests
 	clients   map[string]*roundTripCloserWithCount
-	udpConn   *net.UDPConn
+	transport *quic.Transport
 }
 
 // RoundTripOpt are options for the Transport.RoundTripOpt method.
@@ -206,11 +203,12 @@ func (r *RoundTripper) getClient(hostname string, onlyCached bool) (rtc *roundTr
 		}
 		dial := r.Dial
 		if dial == nil {
-			if r.udpConn == nil {
-				r.udpConn, err = net.ListenUDP("udp", nil)
+			if r.transport == nil {
+				udpConn, err := net.ListenUDP("udp", nil)
 				if err != nil {
 					return nil, false, err
 				}
+				r.transport = &quic.Transport{Conn: udpConn}
 			}
 			dial = r.makeDialer()
 		}
@@ -259,9 +257,14 @@ func (r *RoundTripper) Close() error {
 		}
 	}
 	r.clients = nil
-	if r.udpConn != nil {
-		r.udpConn.Close()
-		r.udpConn = nil
+	if r.transport != nil {
+		if err := r.transport.Close(); err != nil {
+			return err
+		}
+		if err := r.transport.Conn.Close(); err != nil {
+			return err
+		}
+		r.transport = nil
 	}
 	return nil
 }
@@ -301,7 +304,7 @@ func (r *RoundTripper) makeDialer() func(ctx context.Context, addr string, tlsCf
 		if err != nil {
 			return nil, err
 		}
-		return quicDialer(ctx, r.udpConn, udpAddr, tlsCfg, cfg)
+		return r.transport.DialEarly(ctx, udpAddr, tlsCfg, cfg)
 	}
 }
 
