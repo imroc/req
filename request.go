@@ -846,6 +846,9 @@ func (r *Request) Context() context.Context {
 // to interrupt the request execution if ctx.Done() channel is closed.
 // See https://blog.golang.org/context article and the "context" package
 // documentation.
+//
+// Attention: make sure call SetContext before EnableDumpXXX if you want to
+// dump at the request level.
 func (r *Request) SetContext(ctx context.Context) *Request {
 	if ctx != nil {
 		r.ctx = ctx
