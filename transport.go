@@ -134,6 +134,7 @@ type Transport struct {
 	// Only valid when DisableAutoDecode is true.
 	autoDecodeContentType func(contentType string) bool
 	wrappedRoundTrip      http.RoundTripper
+	httpRoundTripWrappers []HttpRoundTripWrapper
 }
 
 // NewTransport is an alias of T
@@ -194,11 +195,15 @@ func (t *Transport) WrapRoundTrip(wrappers ...HttpRoundTripWrapper) *Transport {
 		return t
 	}
 	if t.wrappedRoundTrip == nil {
+		t.httpRoundTripWrappers = wrappers
 		fn := func(req *http.Request) (*http.Response, error) {
 			return t.roundTrip(req)
 		}
 		t.wrappedRoundTrip = HttpRoundTripFunc(fn)
+	} else {
+		t.httpRoundTripWrappers = append(t.httpRoundTripWrappers, wrappers...)
 	}
+
 	for _, w := range wrappers {
 		t.wrappedRoundTrip = w(t.wrappedRoundTrip)
 	}
@@ -724,8 +729,17 @@ func (t *Transport) Clone() *Transport {
 		Options:               t.Options.Clone(),
 		disableAutoDecode:     t.disableAutoDecode,
 		autoDecodeContentType: t.autoDecodeContentType,
-		wrappedRoundTrip:      t.wrappedRoundTrip,
 		forceHttpVersion:      t.forceHttpVersion,
+		httpRoundTripWrappers: t.httpRoundTripWrappers,
+	}
+	if len(tt.httpRoundTripWrappers) > 0 { // clone transport middleware
+		fn := func(req *http.Request) (*http.Response, error) {
+			return tt.roundTrip(req)
+		}
+		tt.wrappedRoundTrip = HttpRoundTripFunc(fn)
+		for _, w := range tt.httpRoundTripWrappers {
+			tt.wrappedRoundTrip = w(tt.wrappedRoundTrip)
+		}
 	}
 	if t.t2 != nil {
 		tt.t2 = &http2.Transport{Options: &tt.Options}
