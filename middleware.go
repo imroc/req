@@ -195,7 +195,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 		return
 	}
 	// handle multipart
-	if r.isMultiPart && (r.Method != http.MethodPatch) {
+	if r.isMultiPart {
 		return handleMultiPart(c, r)
 	}
 
