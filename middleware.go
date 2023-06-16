@@ -63,6 +63,14 @@ func writeMultipartFormFile(w *multipart.Writer, file *FileUpload, r *Request) e
 		return err
 	}
 	defer content.Close()
+	if r.RetryAttempt > 0 { // reset file reader when retry a multipart file upload
+		if rs, ok := content.(io.ReadSeeker); ok {
+			_, err = rs.Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	// Auto detect actual multipart content type
 	cbuf := make([]byte, 512)
 	seeEOF := false
