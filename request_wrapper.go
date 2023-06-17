@@ -114,6 +114,12 @@ func SetBasicAuth(username, password string) *Request {
 	return defaultClient.R().SetBasicAuth(username, password)
 }
 
+// SetDigestAuth is a global wrapper methods which delegated
+// to the default client, create a request and SetDigestAuth for request.
+func SetDigestAuth(username, password string) *Request {
+	return defaultClient.R().SetDigestAuth(username, password)
+}
+
 // SetHeaders is a global wrapper methods which delegated
 // to the default client, create a request and SetHeaders for request.
 func SetHeaders(hdrs map[string]string) *Request {
