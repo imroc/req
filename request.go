@@ -66,6 +66,7 @@ type Request struct {
 	trace                    *clientTrace
 	dumpBuffer               *bytes.Buffer
 	responseReturnTime       time.Time
+	afterResponse            []ResponseMiddleware
 }
 
 type GetContentFunc func() (io.ReadCloser, error)
@@ -395,12 +396,35 @@ func (r *Request) SetErrorResult(err interface{}) *Request {
 
 // SetBearerAuthToken set bearer auth token for the request.
 func (r *Request) SetBearerAuthToken(token string) *Request {
-	return r.SetHeader("Authorization", "Bearer "+token)
+	return r.SetHeader(header.Authorization, "Bearer "+token)
 }
 
 // SetBasicAuth set basic auth for the request.
 func (r *Request) SetBasicAuth(username, password string) *Request {
-	return r.SetHeader("Authorization", util.BasicAuthHeaderValue(username, password))
+	return r.SetHeader(header.Authorization, util.BasicAuthHeaderValue(username, password))
+}
+
+// SetDigestAuth sets the Digest Access auth scheme for the HTTP request. If a server responds with 401 and sends a
+// Digest challenge in the WWW-Authenticate Header, the request will be resent with the appropriate Authorization Header.
+//
+// For Example: To set the Digest scheme with username "roc" and password "123456"
+//
+//	client.R().SetDigestAuth("roc", "123456")
+//
+// Information about Digest Access Authentication can be found in RFC7616:
+//
+//	https://datatracker.ietf.org/doc/html/rfc7616
+//
+// This method overrides the username and password set by method `Client.SetCommonDigestAuth`.
+func (r *Request) SetDigestAuth(username, password string) *Request {
+	r.OnAfterResponse(handleDigestAuthFunc(username, password))
+	return r
+}
+
+// OnAfterResponse add a response middleware which hooks after response received.
+func (r *Request) OnAfterResponse(m ResponseMiddleware) *Request {
+	r.afterResponse = append(r.afterResponse, m)
+	return r
 }
 
 // SetHeaders set headers from a map for the request.
@@ -563,25 +587,16 @@ func (r *Request) do() (resp *Response, err error) {
 	}()
 
 	for {
-		for _, f := range r.client.udBeforeRequest {
-			if err = f(r.client, r); err != nil {
-				return
-			}
-		}
-		for _, f := range r.client.beforeRequest {
-			if err = f(r.client, r); err != nil {
-				return
-			}
-		}
-
-		if r.Headers == nil {
-			r.Headers = make(http.Header)
-		}
-
 		if r.client.wrappedRoundTrip != nil {
 			resp, err = r.client.wrappedRoundTrip.RoundTrip(r)
 		} else {
 			resp, err = r.client.roundTrip(r)
+		}
+
+		for _, f := range r.afterResponse {
+			if err = f(r.client, resp); err != nil {
+				return
+			}
 		}
 
 		if r.retryOption == nil || (r.RetryAttempt >= r.retryOption.MaxRetries && r.retryOption.MaxRetries >= 0) { // absolutely cannot retry.

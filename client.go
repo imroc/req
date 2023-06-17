@@ -767,57 +767,69 @@ func (c *Client) EnableAutoReadResponse() *Client {
 	return c
 }
 
-// SetAutoDecodeContentType set the content types that will be auto-detected and decode
-// to utf-8 (e.g. "json", "xml", "html", "text").
+// SetAutoDecodeContentType set the content types that will be auto-detected and decode to utf-8
+// (e.g. "json", "xml", "html", "text").
 func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
 	c.t.SetAutoDecodeContentType(contentTypes...)
 	return c
 }
 
-// SetAutoDecodeContentTypeFunc set the function that determines whether the
-// specified `Content-Type` should be auto-detected and decode to utf-8.
+// SetAutoDecodeContentTypeFunc set the function that determines whether the specified `Content-Type` should be auto-detected and decode to utf-8.
 func (c *Client) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
 	c.t.SetAutoDecodeContentTypeFunc(fn)
 	return c
 }
 
-// SetAutoDecodeAllContentType enable try auto-detect charset and decode all
-// content type to utf-8.
+// SetAutoDecodeAllContentType enable try auto-detect charset and decode all content type to utf-8.
 func (c *Client) SetAutoDecodeAllContentType() *Client {
 	c.t.SetAutoDecodeAllContentType()
 	return c
 }
 
-// DisableAutoDecode disable auto-detect charset and decode to utf-8
-// (enabled by default).
+// DisableAutoDecode disable auto-detect charset and decode to utf-8 (enabled by default).
 func (c *Client) DisableAutoDecode() *Client {
 	c.t.DisableAutoDecode()
 	return c
 }
 
-// EnableAutoDecode enable auto-detect charset and decode to utf-8
-// (enabled by default).
+// EnableAutoDecode enable auto-detect charset and decode to utf-8 (enabled by default).
 func (c *Client) EnableAutoDecode() *Client {
 	c.t.EnableAutoDecode()
 	return c
 }
 
-// SetUserAgent set the "User-Agent" header for requests fired from
-// the client.
+// SetUserAgent set the "User-Agent" header for requests fired from the client.
 func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c.SetCommonHeader(header.UserAgent, userAgent)
 }
 
-// SetCommonBearerAuthToken set the bearer auth token for requests
-// fired from the client.
+// SetCommonBearerAuthToken set the bearer auth token for requests fired from the client.
 func (c *Client) SetCommonBearerAuthToken(token string) *Client {
-	return c.SetCommonHeader("Authorization", "Bearer "+token)
+	return c.SetCommonHeader(header.Authorization, "Bearer "+token)
 }
 
 // SetCommonBasicAuth set the basic auth for requests fired from
 // the client.
 func (c *Client) SetCommonBasicAuth(username, password string) *Client {
-	c.SetCommonHeader("Authorization", util.BasicAuthHeaderValue(username, password))
+	c.SetCommonHeader(header.Authorization, util.BasicAuthHeaderValue(username, password))
+	return c
+}
+
+// SetCommonDigestAuth sets the Digest Access auth scheme for requests fired from the client. If a server responds with
+// 401 and sends a Digest challenge in the WWW-Authenticate Header, requests will be resent with the appropriate
+// Authorization Header.
+//
+// For Example: To set the Digest scheme with user "roc" and password "123456"
+//
+//	client.SetCommonDigestAuth("roc", "123456")
+//
+// Information about Digest Access Authentication can be found in RFC7616:
+//
+//	https://datatracker.ietf.org/doc/html/rfc7616
+//
+// See `Request.SetDigestAuth`
+func (c *Client) SetCommonDigestAuth(username, password string) *Client {
+	c.OnAfterResponse(handleDigestAuthFunc(username, password))
 	return c
 }
 
@@ -1500,6 +1512,21 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		err = resp.Err
 	}()
 
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+
+	for _, f := range r.client.udBeforeRequest {
+		if err = f(r.client, r); err != nil {
+			return
+		}
+	}
+	for _, f := range r.client.beforeRequest {
+		if err = f(r.client, r); err != nil {
+			return
+		}
+	}
+
 	// setup trace
 	if r.trace == nil && r.client.trace {
 		r.trace = &clientTrace{}
@@ -1581,8 +1608,8 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		resp.Body = io.NopCloser(bytes.NewReader(resp.body))
 	}
 
-	for _, f := range r.client.afterResponse {
-		if e := f(r.client, resp); e != nil {
+	for _, f := range c.afterResponse {
+		if e := f(c, resp); e != nil {
 			resp.Err = e
 		}
 	}

@@ -218,7 +218,10 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 
 	// handle marshal body
 	if r.marshalBody != nil {
-		handleMarshalBody(c, r)
+		err = handleMarshalBody(c, r)
+		if err != nil {
+			return
+		}
 	}
 
 	if r.Body == nil {

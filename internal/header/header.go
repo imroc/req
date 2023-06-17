@@ -9,4 +9,6 @@ const (
 	JsonContentType      = "application/json; charset=utf-8"
 	XmlContentType       = "text/xml; charset=utf-8"
 	FormContentType      = "application/x-www-form-urlencoded"
+	WwwAuthenticate      = "WWW-Authenticate"
+	Authorization        = "Authorization"
 )

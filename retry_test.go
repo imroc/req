@@ -162,7 +162,7 @@ func TestRetryWithModify(t *testing.T) {
 }
 
 func TestRetryFalse(t *testing.T) {
-	resp, err := tc().R().
+	resp, err := tc().SetTimeout(2 * time.Second).R().
 		SetRetryCount(1).
 		SetRetryCondition(func(resp *Response, err error) bool {
 			return false
@@ -173,7 +173,7 @@ func TestRetryFalse(t *testing.T) {
 }
 
 func TestRetryTurnedOffWhenRetryCountEqZero(t *testing.T) {
-	resp, err := tc().R().
+	resp, err := tc().SetTimeout(2 * time.Second).R().
 		SetRetryCount(0).
 		SetRetryCondition(func(resp *Response, err error) bool {
 			t.Fatal("retry condition should not be executed")
@@ -184,7 +184,7 @@ func TestRetryTurnedOffWhenRetryCountEqZero(t *testing.T) {
 	tests.AssertIsNil(t, resp.Response)
 	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 
-	resp, err = tc().
+	resp, err = tc().SetTimeout(2 * time.Second).
 		SetCommonRetryCount(0).
 		SetCommonRetryCondition(func(resp *Response, err error) bool {
 			t.Fatal("retry condition should not be executed")
