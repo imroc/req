@@ -1509,7 +1509,11 @@ func (c *Client) WrapRoundTrip(wrappers ...RoundTripWrapper) *Client {
 func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	resp = &Response{Request: r}
 	defer func() {
-		err = resp.Err
+		if err != nil {
+			resp.Err = err
+		} else {
+			err = resp.Err
+		}
 	}()
 
 	if r.Headers == nil {
