@@ -1518,11 +1518,13 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 
 	for _, f := range r.client.udBeforeRequest {
 		if err = f(r.client, r); err != nil {
+			resp.Err = err
 			return
 		}
 	}
 	for _, f := range r.client.beforeRequest {
 		if err = f(r.client, r); err != nil {
+			resp.Err = err
 			return
 		}
 	}
