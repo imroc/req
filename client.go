@@ -1516,21 +1516,6 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		}
 	}()
 
-	if r.Headers == nil {
-		r.Headers = make(http.Header)
-	}
-
-	for _, f := range r.client.udBeforeRequest {
-		if err = f(r.client, r); err != nil {
-			return
-		}
-	}
-	for _, f := range r.client.beforeRequest {
-		if err = f(r.client, r); err != nil {
-			return
-		}
-	}
-
 	// setup trace
 	if r.trace == nil && r.client.trace {
 		r.trace = &clientTrace{}

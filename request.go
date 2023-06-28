@@ -587,6 +587,20 @@ func (r *Request) do() (resp *Response, err error) {
 	}()
 
 	for {
+		if r.Headers == nil {
+			r.Headers = make(http.Header)
+		}
+		for _, f := range r.client.udBeforeRequest {
+			if err = f(r.client, r); err != nil {
+				return
+			}
+		}
+		for _, f := range r.client.beforeRequest {
+			if err = f(r.client, r); err != nil {
+				return
+			}
+		}
+
 		if r.client.wrappedRoundTrip != nil {
 			resp, err = r.client.wrappedRoundTrip.RoundTrip(r)
 		} else {
