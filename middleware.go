@@ -413,9 +413,7 @@ func parseRequestCookie(c *Client, r *Request) error {
 	if len(c.Cookies) == 0 {
 		return nil
 	}
-	for _, ck := range c.Cookies {
-		r.Cookies = append(r.Cookies, ck)
-	}
+	r.Cookies = append(r.Cookies, c.Cookies...)
 	return nil
 }
 

@@ -53,11 +53,7 @@ func (ro *retryOption) Clone() *retryOption {
 		MaxRetries:       ro.MaxRetries,
 		GetRetryInterval: ro.GetRetryInterval,
 	}
-	for _, c := range ro.RetryConditions {
-		o.RetryConditions = append(o.RetryConditions, c)
-	}
-	for _, h := range ro.RetryHooks {
-		o.RetryHooks = append(o.RetryHooks, h)
-	}
+	o.RetryConditions = append(o.RetryConditions, ro.RetryConditions...)
+	o.RetryHooks = append(o.RetryHooks, ro.RetryHooks...)
 	return o
 }
