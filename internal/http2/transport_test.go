@@ -4757,7 +4757,7 @@ func testTransportBodyReadError(t *testing.T, body []byte) {
 					// If the client's done, it
 					// will have reported any
 					// errors on its side.
-					if bytes.Compare(receivedBody, body) != 0 {
+					if !bytes.Equal(receivedBody, body) {
 						return fmt.Errorf("body: %q; expected %q", receivedBody, body)
 					}
 					if resetCount != 1 {
