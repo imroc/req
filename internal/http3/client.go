@@ -466,26 +466,12 @@ func (c *client) doRequest(req *http.Request, conn quic.EarlyConnection, str qui
 	if !ok {
 		panic(fmt.Sprintf("bad tls connection state type: %s", reflect.ValueOf(conn.ConnectionState().TLS).Field(0).Type().Name()))
 	}
-	res := &http.Response{
-		Proto:      "HTTP/3.0",
-		ProtoMajor: 3,
-		Header:     http.Header{},
-		TLS:        &connState,
-		Request:    req,
+	res, err := responseFromHeaders(hfs)
+	if err != nil {
+		return nil, newStreamError(errorMessageError, err)
 	}
-	for _, hf := range hfs {
-		switch hf.Name {
-		case ":status":
-			status, err := strconv.Atoi(hf.Value)
-			if err != nil {
-				return nil, newStreamError(errorGeneralProtocolError, errors.New("malformed non-numeric status pseudo header"))
-			}
-			res.StatusCode = status
-			res.Status = hf.Value + " " + http.StatusText(status)
-		default:
-			res.Header.Add(hf.Name, hf.Value)
-		}
-	}
+	res.Request = req
+	res.TLS = &connState
 	respBody := newResponseBody(hstr, conn, reqDone)
 
 	// Rules for when to set Content-Length are defined in https://tools.ietf.org/html/rfc7230#section-3.3.2.
