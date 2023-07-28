@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"net/http"
-	"reflect"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -462,15 +461,12 @@ func (c *client) doRequest(req *http.Request, conn quic.EarlyConnection, str qui
 		return nil, newConnError(errorGeneralProtocolError, err)
 	}
 
-	connState, ok := reflect.ValueOf(conn.ConnectionState().TLS).Field(0).Interface().(tls.ConnectionState)
-	if !ok {
-		panic(fmt.Sprintf("bad tls connection state type: %s", reflect.ValueOf(conn.ConnectionState().TLS).Field(0).Type().Name()))
-	}
 	res, err := responseFromHeaders(hfs)
 	if err != nil {
 		return nil, newStreamError(errorMessageError, err)
 	}
 	res.Request = req
+	connState := conn.ConnectionState().TLS
 	res.TLS = &connState
 	respBody := newResponseBody(hstr, conn, reqDone)
 
