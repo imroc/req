@@ -132,6 +132,18 @@ func SetHeader(key, value string) *Request {
 	return defaultClient.R().SetHeader(key, value)
 }
 
+// SetHeaderOrder is a global wrapper methods which delegated
+// to the default client, create a request and SetHeaderOrder for request.
+func SetHeaderOrder(keys ...string) *Request {
+	return defaultClient.R().SetHeaderOrder(keys...)
+}
+
+// SetPseudoHeaderOrder is a global wrapper methods which delegated
+// to the default client, create a request and SetPseudoHeaderOrder for request.
+func SetPseudoHeaderOrder(keys ...string) *Request {
+	return defaultClient.R().SetPseudoHeaderOrder(keys...)
+}
+
 // SetOutputFile is a global wrapper methods which delegated
 // to the default client, create a request and SetOutputFile for request.
 func SetOutputFile(file string) *Request {

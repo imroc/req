@@ -409,6 +409,18 @@ func SetCommonHeader(key, value string) *Client {
 	return defaultClient.SetCommonHeader(key, value)
 }
 
+// SetCommonHeaderOrder is a global wrapper methods which delegated
+// to the default client's Client.SetCommonHeaderOrder.
+func SetCommonHeaderOrder(keys ...string) *Client {
+	return defaultClient.SetCommonHeaderOrder(keys...)
+}
+
+// SetCommonPseudoHeaderOder is a global wrapper methods which delegated
+// to the default client's Client.SetCommonPseudoHeaderOder.
+func SetCommonPseudoHeaderOder(keys ...string) *Client {
+	return defaultClient.SetCommonPseudoHeaderOder(keys...)
+}
+
 // SetCommonContentType is a global wrapper methods which delegated
 // to the default client's Client.SetCommonContentType.
 func SetCommonContentType(ct string) *Client {
