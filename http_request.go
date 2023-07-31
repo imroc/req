@@ -3,6 +3,7 @@ package req
 import (
 	"errors"
 	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/imroc/req/v3/internal/header"
 	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"strings"
@@ -87,11 +88,12 @@ func closeRequestBody(r *http.Request) error {
 
 // Headers that Request.Write handles itself and should be skipped.
 var reqWriteExcludeHeader = map[string]bool{
-	"Host":              true, // not in Header map anyway
-	"User-Agent":        true,
-	"Content-Length":    true,
-	"Transfer-Encoding": true,
-	"Trailer":           true,
+	"Host":               true, // not in Header map anyway
+	"User-Agent":         true,
+	"Content-Length":     true,
+	"Transfer-Encoding":  true,
+	"Trailer":            true,
+	header.HeaderOderKey: true,
 }
 
 // requestMethodUsuallyLacksBody reports whether the given request

@@ -1,10 +1,10 @@
 package req
 
 import (
+	"github.com/imroc/req/v3/internal/header"
 	"golang.org/x/net/http/httpguts"
 	"io"
 	"net/http"
-	"net/http/httptrace"
 	"net/textproto"
 	"sort"
 	"strings"
@@ -22,21 +22,16 @@ func (w stringWriter) WriteString(s string) (n int, err error) {
 	return w.w.Write([]byte(s))
 }
 
-type keyValues struct {
-	key    string
-	values []string
-}
-
 // A headerSorter implements sort.Interface by sorting a []keyValues
 // by key. It's used as a pointer, so it can fit in a sort.Interface
 // interface value without allocation.
 type headerSorter struct {
-	kvs []keyValues
+	kvs []header.KeyValues
 }
 
 func (s *headerSorter) Len() int           { return len(s.kvs) }
 func (s *headerSorter) Swap(i, j int)      { s.kvs[i], s.kvs[j] = s.kvs[j], s.kvs[i] }
-func (s *headerSorter) Less(i, j int) bool { return s.kvs[i].key < s.kvs[j].key }
+func (s *headerSorter) Less(i, j int) bool { return s.kvs[i].Key < s.kvs[j].Key }
 
 var headerSorterPool = sync.Pool{
 	New: func() interface{} { return new(headerSorter) },
@@ -60,15 +55,15 @@ func headerHas(h http.Header, key string) bool {
 // sortedKeyValues returns h's keys sorted in the returned kvs
 // slice. The headerSorter used to sort is also returned, for possible
 // return to headerSorterCache.
-func headerSortedKeyValues(h http.Header, exclude map[string]bool) (kvs []keyValues, hs *headerSorter) {
+func headerSortedKeyValues(h http.Header, exclude map[string]bool) (kvs []header.KeyValues, hs *headerSorter) {
 	hs = headerSorterPool.Get().(*headerSorter)
 	if cap(hs.kvs) < len(h) {
-		hs.kvs = make([]keyValues, 0, len(h))
+		hs.kvs = make([]header.KeyValues, 0, len(h))
 	}
 	kvs = hs.kvs[:0]
 	for k, vv := range h {
 		if !exclude[k] {
-			kvs = append(kvs, keyValues{k, vv})
+			kvs = append(kvs, header.KeyValues{k, vv})
 		}
 	}
 	hs.kvs = kvs
@@ -76,43 +71,48 @@ func headerSortedKeyValues(h http.Header, exclude map[string]bool) (kvs []keyVal
 	return kvs, hs
 }
 
-func headerWrite(h http.Header, w io.Writer, trace *httptrace.ClientTrace) error {
-	return headerWriteSubset(h, w, nil, trace)
+func headerWrite(h http.Header, writeHeader func(key string, values ...string) error, sort bool) error {
+	return headerWriteSubset(h, nil, writeHeader, sort)
 }
 
-func headerWriteSubset(h http.Header, w io.Writer, exclude map[string]bool, trace *httptrace.ClientTrace) error {
-	ws, ok := w.(io.StringWriter)
-	if !ok {
-		ws = stringWriter{w}
+func headerWriteSubset(h http.Header, exclude map[string]bool, writeHeader func(key string, values ...string) error, sort bool) error {
+	var kvs []header.KeyValues
+	var hs *headerSorter
+	if sort {
+		kvs = make([]header.KeyValues, 0, len(h))
+		for k, v := range h {
+			if !exclude[k] {
+				kvs = append(kvs, header.KeyValues{k, v})
+			}
+		}
+	} else {
+		kvs, hs = headerSortedKeyValues(h, exclude)
 	}
-	kvs, sorter := headerSortedKeyValues(h, exclude)
-	var formattedVals []string
 	for _, kv := range kvs {
-		if !httpguts.ValidHeaderFieldName(kv.key) {
+		if !httpguts.ValidHeaderFieldName(kv.Key) {
 			// This could be an error. In the common case of
 			// writing response headers, however, we have no good
 			// way to provide the error back to the server
 			// handler, so just drop invalid headers instead.
 			continue
 		}
-		for _, v := range kv.values {
-			v = headerNewlineToSpace.Replace(v)
-			v = textproto.TrimString(v)
-			for _, s := range []string{kv.key, ": ", v, "\r\n"} {
-				if _, err := ws.WriteString(s); err != nil {
-					headerSorterPool.Put(sorter)
-					return err
-				}
-			}
-			if trace != nil && trace.WroteHeaderField != nil {
-				formattedVals = append(formattedVals, v)
+		for i, v := range kv.Values {
+			vv := headerNewlineToSpace.Replace(v)
+			vv = textproto.TrimString(v)
+			if vv != v {
+				kv.Values[i] = vv
 			}
 		}
-		if trace != nil && trace.WroteHeaderField != nil {
-			trace.WroteHeaderField(kv.key, formattedVals)
-			formattedVals = nil
+		err := writeHeader(kv.Key, kv.Values...)
+		if err != nil {
+			if hs != nil {
+				headerSorterPool.Put(hs)
+			}
+			return err
 		}
 	}
-	headerSorterPool.Put(sorter)
+	if hs != nil {
+		headerSorterPool.Put(hs)
+	}
 	return nil
 }

@@ -463,6 +463,27 @@ func (r *Request) SetHeaderNonCanonical(key, value string) *Request {
 	return r
 }
 
+const (
+	HeaderOderKey       = "__Header_Order__"
+	PseudoHeaderOderKey = "__Pseudo_Header_Order__"
+)
+
+func (r *Request) SetHeaderOrder(keys ...string) *Request {
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+	r.Headers[HeaderOderKey] = append(r.Headers[HeaderOderKey], keys...)
+	return r
+}
+
+func (r *Request) SetPseudoHeaderOrder(keys ...string) *Request {
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+	r.Headers[PseudoHeaderOderKey] = append(r.Headers[PseudoHeaderOderKey], keys...)
+	return r
+}
+
 // SetOutputFile set the file that response Body will be downloaded to.
 func (r *Request) SetOutputFile(file string) *Request {
 	r.isSaveResponse = true

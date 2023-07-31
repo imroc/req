@@ -2966,13 +2966,39 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 		return err
 	}
 
+	_writeHeader := func(key string, values ...string) error {
+		for _, value := range values {
+			_, err := fmt.Fprintf(w, "%s: %s\r\n", key, value)
+			if err != nil {
+				return err
+			}
+		}
+		if trace != nil && trace.WroteHeaderField != nil {
+			trace.WroteHeaderField(key, values)
+		}
+		return nil
+	}
+
+	var writeHeader func(key string, values ...string) error
+	var kvs []header.KeyValues
+	sort := false
+
+	if r.Header != nil && len(r.Header[header.HeaderOderKey]) > 0 {
+		writeHeader = func(key string, values ...string) error {
+			kvs = append(kvs, header.KeyValues{
+				Key:    key,
+				Values: values,
+			})
+			return nil
+		}
+		sort = true
+	} else {
+		writeHeader = _writeHeader
+	}
 	// Header lines
-	_, err = fmt.Fprintf(w, "Host: %s\r\n", host)
+	err = writeHeader("Host", host)
 	if err != nil {
 		return err
-	}
-	if trace != nil && trace.WroteHeaderField != nil {
-		trace.WroteHeaderField("Host", []string{host})
 	}
 
 	// Use the defaultUserAgent unless the Header contains one, which
@@ -2982,12 +3008,9 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 		userAgent = r.Header.Get("User-Agent")
 	}
 	if userAgent != "" {
-		_, err = fmt.Fprintf(w, "User-Agent: %s\r\n", userAgent)
+		err = writeHeader("User-Agent", userAgent)
 		if err != nil {
 			return err
-		}
-		if trace != nil && trace.WroteHeaderField != nil {
-			trace.WroteHeaderField("User-Agent", []string{userAgent})
 		}
 	}
 
@@ -2996,20 +3019,27 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 	if err != nil {
 		return err
 	}
-	err = tw.writeHeader(w, trace)
+	err = tw.writeHeader(writeHeader)
 	if err != nil {
 		return err
 	}
 
-	err = headerWriteSubset(r.Header, w, reqWriteExcludeHeader, trace)
+	err = headerWriteSubset(r.Header, reqWriteExcludeHeader, writeHeader, sort)
 	if err != nil {
 		return err
 	}
 
 	if extraHeaders != nil {
-		err = headerWrite(extraHeaders, w, trace)
+		err = headerWrite(extraHeaders, writeHeader, sort)
 		if err != nil {
 			return err
+		}
+	}
+
+	if sort { // sort and write headers
+		header.SortKeyValues(kvs, r.Header[header.HeaderOderKey])
+		for _, kv := range kvs {
+			_writeHeader(kv.Key, kv.Values...)
 		}
 	}
 

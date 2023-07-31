@@ -14,7 +14,6 @@ import (
 	"github.com/imroc/req/v3/internal/dump"
 	"io"
 	"net/http"
-	"net/http/httptrace"
 	"net/textproto"
 	"reflect"
 	"sort"
@@ -245,13 +244,11 @@ func (t *transferWriter) shouldSendContentLength() bool {
 	return false
 }
 
-func (t *transferWriter) writeHeader(w io.Writer, trace *httptrace.ClientTrace) error {
+func (t *transferWriter) writeHeader(writeHeader func(key string, values ...string) error) error {
 	if t.Close && !hasToken(headerGet(t.Header, "Connection"), "close") {
-		if _, err := io.WriteString(w, "Connection: close\r\n"); err != nil {
+		err := writeHeader("Connection", "close")
+		if err != nil {
 			return err
-		}
-		if trace != nil && trace.WroteHeaderField != nil {
-			trace.WroteHeaderField("Connection", []string{"close"})
 		}
 	}
 
@@ -259,21 +256,14 @@ func (t *transferWriter) writeHeader(w io.Writer, trace *httptrace.ClientTrace) 
 	// function of the sanitized field triple (Body, ContentLength,
 	// TransferEncoding)
 	if t.shouldSendContentLength() {
-		if _, err := io.WriteString(w, "Content-Length: "); err != nil {
+		err := writeHeader("Content-Length", strconv.FormatInt(t.ContentLength, 10))
+		if err != nil {
 			return err
-		}
-		if _, err := io.WriteString(w, strconv.FormatInt(t.ContentLength, 10)+"\r\n"); err != nil {
-			return err
-		}
-		if trace != nil && trace.WroteHeaderField != nil {
-			trace.WroteHeaderField("Content-Length", []string{strconv.FormatInt(t.ContentLength, 10)})
 		}
 	} else if chunked(t.TransferEncoding) {
-		if _, err := io.WriteString(w, "Transfer-Encoding: chunked\r\n"); err != nil {
+		err := writeHeader("Transfer-Encoding", "chunked")
+		if err != nil {
 			return err
-		}
-		if trace != nil && trace.WroteHeaderField != nil {
-			trace.WroteHeaderField("Transfer-Encoding", []string{"chunked"})
 		}
 	}
 
@@ -292,11 +282,9 @@ func (t *transferWriter) writeHeader(w io.Writer, trace *httptrace.ClientTrace) 
 			sort.Strings(keys)
 			// TODO: could do better allocation-wise here, but trailers are rare,
 			// so being lazy for now.
-			if _, err := io.WriteString(w, "Trailer: "+strings.Join(keys, ",")+"\r\n"); err != nil {
+			err := writeHeader("Trailer", strings.Join(keys, ","))
+			if err != nil {
 				return err
-			}
-			if trace != nil && trace.WroteHeaderField != nil {
-				trace.WroteHeaderField("Trailer", keys)
 			}
 		}
 	}
