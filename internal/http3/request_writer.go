@@ -71,25 +71,6 @@ func (w *requestWriter) writeHeaders(wr io.Writer, req *http.Request, gzip bool,
 	return err
 }
 
-var reqWriteExcludeHeader = map[string]bool{
-	// Host is :authority, already sent.
-	// Content-Length is automatic.
-	"host":           true,
-	"content-length": true,
-	// Per 8.1.2.2 Connection-Specific Header
-	// Fields, don't send connection-specific
-	// fields. We have already checked if any
-	// are error-worthy so just ignore the rest.
-	"connection":        true,
-	"proxy-connection":  true,
-	"transfer-encoding": true,
-	"upgrade":           true,
-	"keep-alive":        true,
-	// Ignore header order keys which is only used internally.
-	header.HeaderOderKey:       true,
-	header.PseudoHeaderOderKey: true,
-}
-
 // copied from net/transport.go
 // Modified to support Extended CONNECT:
 // Contrary to what the godoc for the http.Request says,
@@ -207,7 +188,7 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 
 		var didUA bool
 		for k, vv := range req.Header {
-			if reqWriteExcludeHeader[strings.ToLower(k)] {
+			if header.IsExcluded(k) {
 				continue
 			} else if strings.EqualFold(k, "user-agent") {
 				// Match Go's http1 behavior: at most one
