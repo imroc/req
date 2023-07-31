@@ -464,8 +464,8 @@ func (r *Request) SetHeaderNonCanonical(key, value string) *Request {
 }
 
 const (
-	HeaderOderKey       = "__Header_Order__"
-	PseudoHeaderOderKey = "__Pseudo_Header_Order__"
+	HeaderOderKey       = "__header_order__"
+	PseudoHeaderOderKey = "__pseudo_header_order__"
 )
 
 func (r *Request) SetHeaderOrder(keys ...string) *Request {

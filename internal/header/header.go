@@ -11,6 +11,6 @@ const (
 	FormContentType      = "application/x-www-form-urlencoded"
 	WwwAuthenticate      = "WWW-Authenticate"
 	Authorization        = "Authorization"
-	HeaderOderKey        = "__Header_Order__"
-	PseudoHeaderOderKey  = "__Pseudo_Header_Order__"
+	HeaderOderKey        = "__header_order__"
+	PseudoHeaderOderKey  = "__pseudo_header_order__"
 )
