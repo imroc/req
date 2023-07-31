@@ -871,11 +871,32 @@ func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 	return c
 }
 
+// SetCommonHeaderOrder set the order of the http header requests fired from the
+// client (case-insensitive).
+// For example:
+//
+//	client.R().SetCommonHeaderOrder(
+//	    "custom-header",
+//	    "cookie",
+//	    "user-agent",
+//	    "accept-encoding",
+//	).Get(url
 func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
 	c.t.SetHeaderOrder(keys...)
 	return c
 }
 
+// SetCommonPseudoHeaderOder set the order of the pseudo http header requests fired
+// from the client (case-insensitive).
+// Note this is only valid for http2 and http3.
+// For example:
+//
+//	client.SetCommonPseudoHeaderOder(
+//	    ":scheme",
+//	    ":authority",
+//	    ":path",
+//	    ":method",
+//	)
 func (c *Client) SetCommonPseudoHeaderOder(keys ...string) *Client {
 	c.t.SetPseudoHeaderOder(keys...)
 	return c

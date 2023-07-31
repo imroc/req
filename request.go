@@ -464,10 +464,23 @@ func (r *Request) SetHeaderNonCanonical(key, value string) *Request {
 }
 
 const (
-	HeaderOderKey       = "__header_order__"
+	// HeaderOderKey is the key of header order, which specifies the order
+	// of the http header.
+	HeaderOderKey = "__header_order__"
+	// PseudoHeaderOderKey is the key of pseudo header order, which specifies
+	// the order of the http2 and http3 pseudo header.
 	PseudoHeaderOderKey = "__pseudo_header_order__"
 )
 
+// SetHeaderOrder set the order of the http header (case-insensitive).
+// For example:
+//
+//	client.R().SetHeaderOrder(
+//	    "custom-header",
+//	    "cookie",
+//	    "user-agent",
+//	    "accept-encoding",
+//	).Get(url)
 func (r *Request) SetHeaderOrder(keys ...string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
@@ -476,6 +489,16 @@ func (r *Request) SetHeaderOrder(keys ...string) *Request {
 	return r
 }
 
+// SetPseudoHeaderOrder set the order of the pseudo http header (case-insensitive).
+// Note this is only valid for http2 and http3.
+// For example:
+//
+//	client.R().SetPseudoHeaderOrder(
+//	    ":scheme",
+//	    ":authority",
+//	    ":path",
+//	    ":method",
+//	).Get(url)
 func (r *Request) SetPseudoHeaderOrder(keys ...string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
@@ -1086,10 +1109,10 @@ func (r *Request) SetRetryCount(count int) *Request {
 // implement your own backoff retry algorithm.
 // For example:
 //
-//		 req.SetRetryInterval(func(resp *req.Response, attempt int) time.Duration {
-//	     sleep := 0.01 * math.Exp2(float64(attempt))
-//	     return time.Duration(math.Min(2, sleep)) * time.Second
-//		 })
+//	req.SetRetryInterval(func(resp *req.Response, attempt int) time.Duration {
+//	    sleep := 0.01 * math.Exp2(float64(attempt))
+//	    return time.Duration(math.Min(2, sleep)) * time.Second
+//	})
 func (r *Request) SetRetryInterval(getRetryIntervalFunc GetRetryIntervalFunc) *Request {
 	r.getRetryOption().GetRetryInterval = getRetryIntervalFunc
 	return r
