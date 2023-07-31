@@ -480,7 +480,7 @@ const (
 //	    "cookie",
 //	    "user-agent",
 //	    "accept-encoding",
-//	).Get(url)
+//	)
 func (r *Request) SetHeaderOrder(keys ...string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
@@ -498,7 +498,7 @@ func (r *Request) SetHeaderOrder(keys ...string) *Request {
 //	    ":authority",
 //	    ":path",
 //	    ":method",
-//	).Get(url)
+//	)
 func (r *Request) SetPseudoHeaderOrder(keys ...string) *Request {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
