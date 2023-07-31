@@ -210,6 +210,30 @@ func (t *Transport) WrapRoundTrip(wrappers ...HttpRoundTripWrapper) *Transport {
 	return t
 }
 
+func (t *Transport) SetHeaderOrder(keys ...string) {
+	t.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			req.Header[HeaderOderKey] = keys
+			return rt.RoundTrip(req)
+		}
+	})
+}
+
+func (t *Transport) SetPseudoHeaderOder(keys ...string) {
+	t.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			req.Header[PseudoHeaderOderKey] = keys
+			return rt.RoundTrip(req)
+		}
+	})
+}
+
 // DisableAutoDecode disable auto-detect charset and decode to utf-8
 // (enabled by default).
 func (t *Transport) DisableAutoDecode() *Transport {

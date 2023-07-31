@@ -871,6 +871,16 @@ func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 	return c
 }
 
+func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
+	c.t.SetHeaderOrder(keys...)
+	return c
+}
+
+func (c *Client) SetCommonPseudoHeaderOder(keys ...string) *Client {
+	c.t.SetPseudoHeaderOder(keys...)
+	return c
+}
+
 // SetCommonContentType set the `Content-Type` header for requests fired
 // from the client.
 func (c *Client) SetCommonContentType(ct string) *Client {
