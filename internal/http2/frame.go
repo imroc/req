@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/pkg/http2"
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2/hpack"
 	"io"
@@ -794,7 +795,7 @@ func parseSettingsFrame(_ *frameCache, fh FrameHeader, countError func(string), 
 		return nil, ConnectionError(ErrCodeFrameSize)
 	}
 	f := &SettingsFrame{FrameHeader: fh, p: p}
-	if v, ok := f.Value(SettingInitialWindowSize); ok && v > (1<<31)-1 {
+	if v, ok := f.Value(http2.SettingInitialWindowSize); ok && v > (1<<31)-1 {
 		countError("frame_settings_window_size_too_big")
 		// Values above the maximum flow control window size of 2^31 - 1 MUST
 		// be treated as a connection error (Section 5.4.1) of type
@@ -808,7 +809,7 @@ func (f *SettingsFrame) IsAck() bool {
 	return f.FrameHeader.Flags.Has(FlagSettingsAck)
 }
 
-func (f *SettingsFrame) Value(id SettingID) (v uint32, ok bool) {
+func (f *SettingsFrame) Value(id http2.SettingID) (v uint32, ok bool) {
 	f.checkValid()
 	for i := 0; i < f.NumSettings(); i++ {
 		if s := f.Setting(i); s.ID == id {
@@ -823,7 +824,7 @@ func (f *SettingsFrame) Value(id SettingID) (v uint32, ok bool) {
 func (f *SettingsFrame) Setting(i int) Setting {
 	buf := f.p
 	return Setting{
-		ID:  SettingID(binary.BigEndian.Uint16(buf[i*6 : i*6+2])),
+		ID:  http2.SettingID(binary.BigEndian.Uint16(buf[i*6 : i*6+2])),
 		Val: binary.BigEndian.Uint32(buf[i*6+2 : i*6+6]),
 	}
 }
@@ -850,7 +851,7 @@ func (f *SettingsFrame) HasDuplicates() bool {
 		}
 		return false
 	}
-	seen := map[SettingID]bool{}
+	seen := map[http2.SettingID]bool{}
 	for i := 0; i < num; i++ {
 		id := f.Setting(i).ID
 		if seen[id] {

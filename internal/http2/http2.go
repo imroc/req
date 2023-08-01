@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"fmt"
+	"github.com/imroc/req/v3/pkg/http2"
 	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"os"
@@ -59,7 +60,7 @@ var (
 type Setting struct {
 	// ID is which setting is being set.
 	// See https://httpwg.org/specs/rfc7540.html#SettingValues
-	ID SettingID
+	ID http2.SettingID
 
 	// Val is the value.
 	Val uint32
@@ -73,49 +74,20 @@ func (s Setting) String() string {
 func (s Setting) Valid() error {
 	// Limits and error codes from 6.5.2 Defined SETTINGS Parameters
 	switch s.ID {
-	case SettingEnablePush:
+	case http2.SettingEnablePush:
 		if s.Val != 1 && s.Val != 0 {
 			return ConnectionError(ErrCodeProtocol)
 		}
-	case SettingInitialWindowSize:
+	case http2.SettingInitialWindowSize:
 		if s.Val > 1<<31-1 {
 			return ConnectionError(ErrCodeFlowControl)
 		}
-	case SettingMaxFrameSize:
+	case http2.SettingMaxFrameSize:
 		if s.Val < 16384 || s.Val > 1<<24-1 {
 			return ConnectionError(ErrCodeProtocol)
 		}
 	}
 	return nil
-}
-
-// A SettingID is an HTTP/2 setting as defined in
-// https://httpwg.org/specs/rfc7540.html#iana-settings
-type SettingID uint16
-
-const (
-	SettingHeaderTableSize      SettingID = 0x1
-	SettingEnablePush           SettingID = 0x2
-	SettingMaxConcurrentStreams SettingID = 0x3
-	SettingInitialWindowSize    SettingID = 0x4
-	SettingMaxFrameSize         SettingID = 0x5
-	SettingMaxHeaderListSize    SettingID = 0x6
-)
-
-var settingName = map[SettingID]string{
-	SettingHeaderTableSize:      "HEADER_TABLE_SIZE",
-	SettingEnablePush:           "ENABLE_PUSH",
-	SettingMaxConcurrentStreams: "MAX_CONCURRENT_STREAMS",
-	SettingInitialWindowSize:    "INITIAL_WINDOW_SIZE",
-	SettingMaxFrameSize:         "MAX_FRAME_SIZE",
-	SettingMaxHeaderListSize:    "MAX_HEADER_LIST_SIZE",
-}
-
-func (s SettingID) String() string {
-	if v, ok := settingName[s]; ok {
-		return v
-	}
-	return fmt.Sprintf("UNKNOWN_SETTING_%d", uint16(s))
 }
 
 // validWireHeaderFieldName reports whether v is a valid header field

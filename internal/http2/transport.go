@@ -21,6 +21,7 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/transport"
+	"github.com/imroc/req/v3/pkg/http2"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"io"
 	"io/fs"
@@ -678,11 +679,11 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	}
 
 	initialSettings := []Setting{
-		{ID: SettingEnablePush, Val: 0},
-		{ID: SettingInitialWindowSize, Val: transportDefaultStreamFlow},
+		{ID: http2.SettingEnablePush, Val: 0},
+		{ID: http2.SettingInitialWindowSize, Val: transportDefaultStreamFlow},
 	}
 	if max := t.maxHeaderListSize(); max != 0 {
-		initialSettings = append(initialSettings, Setting{ID: SettingMaxHeaderListSize, Val: max})
+		initialSettings = append(initialSettings, Setting{ID: http2.SettingMaxHeaderListSize, Val: max})
 	}
 
 	cc.bw.Write(clientPreface)
@@ -2809,14 +2810,14 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 	var seenMaxConcurrentStreams bool
 	err := f.ForeachSetting(func(s Setting) error {
 		switch s.ID {
-		case SettingMaxFrameSize:
+		case http2.SettingMaxFrameSize:
 			cc.maxFrameSize = s.Val
-		case SettingMaxConcurrentStreams:
+		case http2.SettingMaxConcurrentStreams:
 			cc.maxConcurrentStreams = s.Val
 			seenMaxConcurrentStreams = true
-		case SettingMaxHeaderListSize:
+		case http2.SettingMaxHeaderListSize:
 			cc.peerMaxHeaderListSize = uint64(s.Val)
-		case SettingInitialWindowSize:
+		case http2.SettingInitialWindowSize:
 			// Values above the maximum flow-control
 			// window size of 2^31-1 MUST be treated as a
 			// connection error (Section 5.4.1) of type
