@@ -211,6 +211,54 @@ func (t *Transport) WrapRoundTrip(wrappers ...HttpRoundTripWrapper) *Transport {
 	return t
 }
 
+// SetHeaders set headers for all requests, if the same header exists at
+// the request-level, the request-level header takes precedence.
+func (t *Transport) SetHeaders(hdrs http.Header) *Transport {
+	if len(hdrs) == 0 {
+		return t
+	}
+	t.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			for k, v := range hdrs {
+				if len(v) == 0 {
+					continue
+				}
+				kk := textproto.CanonicalMIMEHeaderKey(k)
+				if len(req.Header[kk]) == 0 {
+					req.Header[kk] = v
+				}
+			}
+			return rt.RoundTrip(req)
+		}
+	})
+	return t
+}
+
+// SetHeadersNonCanonical set non-canonical headers for all requests, if the
+// same header exists at the request-level, the request-level header takes precedence.
+func (t *Transport) SetHeadersNonCanonical(hdrs http.Header) *Transport {
+	if len(hdrs) == 0 {
+		return t
+	}
+	t.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			for k, v := range hdrs {
+				if len(v) > 0 && len(req.Header[k]) == 0 {
+					req.Header[k] = v
+				}
+			}
+			return rt.RoundTrip(req)
+		}
+	})
+	return t
+}
+
 // SetHeaderOrder set the order of the http header (case-insensitive).
 // For example:
 //
