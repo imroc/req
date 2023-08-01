@@ -678,12 +678,12 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.tlsState = &state
 	}
 
-	initialSettings := []Setting{
+	initialSettings := []http2.Setting{
 		{ID: http2.SettingEnablePush, Val: 0},
 		{ID: http2.SettingInitialWindowSize, Val: transportDefaultStreamFlow},
 	}
 	if max := t.maxHeaderListSize(); max != 0 {
-		initialSettings = append(initialSettings, Setting{ID: http2.SettingMaxHeaderListSize, Val: max})
+		initialSettings = append(initialSettings, http2.Setting{ID: http2.SettingMaxHeaderListSize, Val: max})
 	}
 
 	cc.bw.Write(clientPreface)
@@ -2808,7 +2808,7 @@ func (rl *clientConnReadLoop) processSettingsNoWrite(f *SettingsFrame) error {
 	}
 
 	var seenMaxConcurrentStreams bool
-	err := f.ForeachSetting(func(s Setting) error {
+	err := f.ForeachSetting(func(s http2.Setting) error {
 		switch s.ID {
 		case http2.SettingMaxFrameSize:
 			cc.maxFrameSize = s.Val

@@ -32,3 +32,17 @@ func (s SettingID) String() string {
 	}
 	return fmt.Sprintf("UNKNOWN_SETTING_%d", uint16(s))
 }
+
+// Setting is a setting parameter: which setting it is, and its value.
+type Setting struct {
+	// ID is which setting is being set.
+	// See https://httpwg.org/specs/rfc7540.html#SettingValues
+	ID SettingID
+
+	// Val is the value.
+	Val uint32
+}
+
+func (s Setting) String() string {
+	return fmt.Sprintf("[%v = %d]", s.ID, s.Val)
+}

@@ -821,9 +821,9 @@ func (f *SettingsFrame) Value(id http2.SettingID) (v uint32, ok bool) {
 
 // Setting returns the setting from the frame at the given 0-based index.
 // The index must be >= 0 and less than f.NumSettings().
-func (f *SettingsFrame) Setting(i int) Setting {
+func (f *SettingsFrame) Setting(i int) http2.Setting {
 	buf := f.p
-	return Setting{
+	return http2.Setting{
 		ID:  http2.SettingID(binary.BigEndian.Uint16(buf[i*6 : i*6+2])),
 		Val: binary.BigEndian.Uint32(buf[i*6+2 : i*6+6]),
 	}
@@ -864,7 +864,7 @@ func (f *SettingsFrame) HasDuplicates() bool {
 
 // ForeachSetting runs fn for each setting.
 // It stops and returns the first error.
-func (f *SettingsFrame) ForeachSetting(fn func(Setting) error) error {
+func (f *SettingsFrame) ForeachSetting(fn func(http2.Setting) error) error {
 	f.checkValid()
 	for i := 0; i < f.NumSettings(); i++ {
 		if err := fn(f.Setting(i)); err != nil {
@@ -879,7 +879,7 @@ func (f *SettingsFrame) ForeachSetting(fn func(Setting) error) error {
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (h2f *Framer) WriteSettings(settings ...Setting) error {
+func (h2f *Framer) WriteSettings(settings ...http2.Setting) error {
 	h2f.startWrite(FrameSettings, 0, 0)
 	for _, s := range settings {
 		h2f.writeUint16(uint16(s.ID))
@@ -1685,7 +1685,7 @@ func summarizeFrame(f Frame) string {
 	switch f := f.(type) {
 	case *SettingsFrame:
 		n := 0
-		f.ForeachSetting(func(s Setting) error {
+		f.ForeachSetting(func(s http2.Setting) error {
 			n++
 			if n == 1 {
 				buf.WriteString(", settings:")

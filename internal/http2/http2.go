@@ -7,8 +7,6 @@ package http2
 import (
 	"bufio"
 	"crypto/tls"
-	"fmt"
-	"github.com/imroc/req/v3/pkg/http2"
 	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"os"
@@ -55,40 +53,6 @@ const (
 var (
 	clientPreface = []byte(ClientPreface)
 )
-
-// Setting is a setting parameter: which setting it is, and its value.
-type Setting struct {
-	// ID is which setting is being set.
-	// See https://httpwg.org/specs/rfc7540.html#SettingValues
-	ID http2.SettingID
-
-	// Val is the value.
-	Val uint32
-}
-
-func (s Setting) String() string {
-	return fmt.Sprintf("[%v = %d]", s.ID, s.Val)
-}
-
-// Valid reports whether the setting is valid.
-func (s Setting) Valid() error {
-	// Limits and error codes from 6.5.2 Defined SETTINGS Parameters
-	switch s.ID {
-	case http2.SettingEnablePush:
-		if s.Val != 1 && s.Val != 0 {
-			return ConnectionError(ErrCodeProtocol)
-		}
-	case http2.SettingInitialWindowSize:
-		if s.Val > 1<<31-1 {
-			return ConnectionError(ErrCodeFlowControl)
-		}
-	case http2.SettingMaxFrameSize:
-		if s.Val < 16384 || s.Val > 1<<24-1 {
-			return ConnectionError(ErrCodeProtocol)
-		}
-	}
-	return nil
-}
 
 // validWireHeaderFieldName reports whether v is a valid header field
 // name (key). See httpguts.ValidHeaderName for the base rules.
