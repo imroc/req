@@ -792,7 +792,15 @@ func (t *Transport) Clone() *Transport {
 		}
 	}
 	if t.t2 != nil {
-		tt.t2 = &h2internal.Transport{Options: &tt.Options}
+		tt.t2 = &h2internal.Transport{
+			Options:                    &tt.Options,
+			Settings:                   t.t2.Settings,
+			MaxHeaderListSize:          t.t2.MaxHeaderListSize,
+			StrictMaxConcurrentStreams: t.t2.StrictMaxConcurrentStreams,
+			ReadIdleTimeout:            t.t2.ReadIdleTimeout,
+			PingTimeout:                t.t2.PingTimeout,
+			WriteByteTimeout:           t.t2.WriteByteTimeout,
+		}
 	}
 	if t.t3 != nil {
 		tt.EnableHTTP3()
