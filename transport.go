@@ -22,13 +22,14 @@ import (
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/http2"
+	h2internal "github.com/imroc/req/v3/internal/http2"
 	"github.com/imroc/req/v3/internal/http3"
 	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/socks"
 	"github.com/imroc/req/v3/internal/transport"
 	"github.com/imroc/req/v3/internal/util"
 	"github.com/imroc/req/v3/pkg/altsvc"
+	"github.com/imroc/req/v3/pkg/http2"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
@@ -122,7 +123,7 @@ type Transport struct {
 
 	transport.Options
 
-	t2 *http2.Transport // non-nil if http2 wired up
+	t2 *h2internal.Transport // non-nil if http2 wired up
 	t3 *http3.RoundTripper
 
 	// disableAutoDecode, if true, prevents auto detect response
@@ -154,7 +155,7 @@ func T() *Transport {
 			TLSClientConfig:       &tls.Config{NextProtos: []string{"http/1.1", "h2"}},
 		},
 	}
-	t.t2 = &http2.Transport{Options: &t.Options}
+	t.t2 = &h2internal.Transport{Options: &t.Options}
 	return t
 }
 
@@ -450,6 +451,12 @@ func (t *Transport) SetHTTP2WriteByteTimeout(timeout time.Duration) *Transport {
 	return t
 }
 
+// SetHTTP2SettingsFrame set the ordered http2 settings frame.
+func (t *Transport) SetHTTP2SettingsFrame(settings ...http2.Setting) *Transport {
+	t.t2.Settings = settings
+	return t
+}
+
 // SetTLSClientConfig set the custom TLSClientConfig, which specifies the TLS configuration to
 // use with tls.Client.
 // If nil, the default configuration is used.
@@ -692,7 +699,7 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 	switch b := res.Body.(type) {
 	case *gzipReader:
 		b.body.body = wrap(b.body.body)
-	case *http2.GzipReader:
+	case *h2internal.GzipReader:
 		b.Body = wrap(b.Body)
 	case *http3.GzipReader:
 		b.Body = wrap(b.Body)
@@ -785,7 +792,7 @@ func (t *Transport) Clone() *Transport {
 		}
 	}
 	if t.t2 != nil {
-		tt.t2 = &http2.Transport{Options: &tt.Options}
+		tt.t2 = &h2internal.Transport{Options: &tt.Options}
 	}
 	if t.t3 != nil {
 		tt.EnableHTTP3()
@@ -934,7 +941,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 
 	if scheme == "https" && t.forceHttpVersion != h1 {
 		resp, err := t.t2.RoundTripOnlyCachedConn(req)
-		if err != http2.ErrNoCachedConn {
+		if err != h2internal.ErrNoCachedConn {
 			return resp, err
 		}
 		req, err = rewindBody(req)
@@ -1007,7 +1014,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		}
 
 		// Failed. Clean up and determine whether to retry.
-		if http2.IsNoCachedConnError(err) {
+		if h2internal.IsNoCachedConnError(err) {
 			if t.removeIdleConn(pconn) {
 				t.decConnsPerHost(pconn.cacheKey)
 			}
@@ -1096,7 +1103,7 @@ func rewindBody(req *http.Request) (rewound *http.Request, err error) {
 // HTTP request on a new connection. The non-nil input error is the
 // error from roundTrip.
 func (pc *persistConn) shouldRetryRequest(req *http.Request, err error) bool {
-	if http2.IsNoCachedConnError(err) {
+	if h2internal.IsNoCachedConnError(err) {
 		// Issue 16582: if the user started a bunch of
 		// requests at once, they can all pick the same conn
 		// and violate the server's max concurrent streams.
@@ -1911,7 +1918,7 @@ func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace
 	}
 	pc.tlsState = &cs
 	pc.conn = tlsConn
-	if !forProxy && pc.t.forceHttpVersion == h2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
+	if !forProxy && pc.t.forceHttpVersion == h2 && cs.NegotiatedProtocol != h2internal.NextProtoTLS {
 		return newHttp2NotSupportedError(cs.NegotiatedProtocol)
 	}
 	return nil
@@ -2003,7 +2010,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 				trace.TLSHandshakeDone(cs, nil)
 			}
 			pconn.tlsState = &cs
-			if cm.proxyURL == nil && pconn.t.forceHttpVersion == h2 && cs.NegotiatedProtocol != http2.NextProtoTLS {
+			if cm.proxyURL == nil && pconn.t.forceHttpVersion == h2 && cs.NegotiatedProtocol != h2internal.NextProtoTLS {
 				return nil, newHttp2NotSupportedError(cs.NegotiatedProtocol)
 			}
 		}
@@ -2164,7 +2171,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 	}
 
 	if s := pconn.tlsState; t.forceHttpVersion != h1 && s != nil && s.NegotiatedProtocolIsMutual && s.NegotiatedProtocol != "" {
-		if s.NegotiatedProtocol == http2.NextProtoTLS {
+		if s.NegotiatedProtocol == h2internal.NextProtoTLS {
 			if used, err := t.t2.AddConn(pconn.conn, cm.targetAddr); err != nil {
 				go pconn.conn.Close()
 				return nil, err

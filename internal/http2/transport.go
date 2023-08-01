@@ -132,6 +132,8 @@ type Transport struct {
 	// The errType consists of only ASCII word characters.
 	CountError func(errType string)
 
+	Settings []http2.Setting
+
 	connPoolOnce  sync.Once
 	connPoolOrDef ClientConnPool // non-nil version of ConnPool
 }
@@ -678,12 +680,17 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.tlsState = &state
 	}
 
-	initialSettings := []http2.Setting{
-		{ID: http2.SettingEnablePush, Val: 0},
-		{ID: http2.SettingInitialWindowSize, Val: transportDefaultStreamFlow},
-	}
-	if max := t.maxHeaderListSize(); max != 0 {
-		initialSettings = append(initialSettings, http2.Setting{ID: http2.SettingMaxHeaderListSize, Val: max})
+	var initialSettings []http2.Setting
+	if len(t.Settings) > 0 {
+		initialSettings = t.Settings
+	} else {
+		initialSettings = []http2.Setting{
+			{ID: http2.SettingEnablePush, Val: 0},
+			{ID: http2.SettingInitialWindowSize, Val: transportDefaultStreamFlow},
+		}
+		if max := t.maxHeaderListSize(); max != 0 {
+			initialSettings = append(initialSettings, http2.Setting{ID: http2.SettingMaxHeaderListSize, Val: max})
+		}
 	}
 
 	cc.bw.Write(clientPreface)

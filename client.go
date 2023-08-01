@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"github.com/imroc/req/v3/pkg/http2"
 	"io"
 	"net"
 	"net/http"
@@ -899,6 +900,18 @@ func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
 //	)
 func (c *Client) SetCommonPseudoHeaderOder(keys ...string) *Client {
 	c.t.SetPseudoHeaderOder(keys...)
+	return c
+}
+
+// SetHTTP2SettingsFrame set the ordered http2 settings frame.
+func (c *Client) SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
+	c.t.SetHTTP2SettingsFrame(settings...)
+	return c
+}
+
+// SetProfile set the http client profile.
+func (c *Client) SetProfile(p ClientProfile) *Client {
+	p(c)
 	return c
 }
 
