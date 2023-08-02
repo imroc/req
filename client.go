@@ -907,10 +907,15 @@ func (c *Client) SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
 	return c
 }
 
-// SetProfile set the http client profile.
-func (c *Client) SetProfile(p ClientProfile) *Client {
+// SetClientProfile set the http client profile.
+func (c *Client) SetClientProfile(p ClientProfile) *Client {
 	p(c)
 	return c
+}
+
+// UseChromeProfile set the http client profile to chrome.
+func (c *Client) UseChromeProfile() *Client {
+	return c.SetClientProfile(ClientProfile_Chrome)
 }
 
 // SetCommonContentType set the `Content-Type` header for requests fired
