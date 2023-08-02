@@ -5427,6 +5427,12 @@ func TestTransportClone(t *testing.T) {
 		Headers: http.Header{
 			"test-key": []string{"test-value"},
 		},
+		Cookies: []*http.Cookie{
+			{
+				Name:  "test",
+				Value: "test",
+			},
+		},
 		forceHttpVersion: h1,
 		Options: transport.Options{
 			Proxy:                  func(*http.Request) (*url.URL, error) { panic("") },

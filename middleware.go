@@ -392,14 +392,6 @@ func handleDownload(c *Client, r *Response) (err error) {
 	return
 }
 
-func parseRequestCookie(c *Client, r *Request) error {
-	if len(c.Cookies) == 0 {
-		return nil
-	}
-	r.Cookies = append(r.Cookies, c.Cookies...)
-	return nil
-}
-
 // generate URL
 func parseRequestURL(c *Client, r *Request) error {
 	tempURL := r.RawURL

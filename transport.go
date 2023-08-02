@@ -103,6 +103,7 @@ const defaultMaxIdleConnsPerHost = 2
 // wire.
 type Transport struct {
 	Headers http.Header
+	Cookies []*http.Cookie
 
 	idleMu       sync.Mutex
 	closeIdle    bool                                // user has requested to close all idle conns
@@ -827,6 +828,7 @@ func (t *Transport) readBufferSize() int {
 func (t *Transport) Clone() *Transport {
 	tt := &Transport{
 		Headers:               cloneHeaders(t.Headers),
+		Cookies:               cloneCookies(t.Cookies),
 		Options:               t.Options.Clone(),
 		disableAutoDecode:     t.disableAutoDecode,
 		autoDecodeContentType: t.autoDecodeContentType,
@@ -921,7 +923,7 @@ func (t *Transport) roundTripAltSvc(req *http.Request, as *altsvc.AltSvc) (resp 
 	return
 }
 
-func (t *Transport) ensureHeader(req *http.Request, isHTTP bool) error {
+func (t *Transport) ensureHeaderAndCookie(req *http.Request, isHTTP bool) error {
 	if req.Header == nil {
 		closeBody(req)
 		return errors.New("http: nil Request.Header")
@@ -930,6 +932,9 @@ func (t *Transport) ensureHeader(req *http.Request, isHTTP bool) error {
 		if len(req.Header[k]) == 0 {
 			req.Header[k] = vs
 		}
+	}
+	for _, c := range t.Cookies {
+		req.AddCookie(c)
 	}
 	if !isHTTP {
 		return nil
@@ -1002,7 +1007,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 	scheme := req.URL.Scheme
 	isHTTP := scheme == "http" || scheme == "https"
 
-	err = t.ensureHeader(req, isHTTP)
+	err = t.ensureHeaderAndCookie(req, isHTTP)
 	if err != nil {
 		return
 	}

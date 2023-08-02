@@ -45,7 +45,6 @@ type Client struct {
 	BaseURL               string
 	PathParams            map[string]string
 	QueryParams           urlpkg.Values
-	Cookies               []*http.Cookie
 	FormData              urlpkg.Values
 	DebugLog              bool
 	AllowGetMethodPayload bool
@@ -1428,7 +1427,6 @@ func (c *Client) Clone() *Client {
 	}
 
 	// clone other fields that may need to be cloned
-	cc.Cookies = cloneCookies(c.Cookies)
 	cc.PathParams = cloneMap(c.PathParams)
 	cc.QueryParams = cloneUrlValues(c.QueryParams)
 	cc.FormData = cloneUrlValues(c.FormData)
@@ -1453,7 +1451,6 @@ func C() *Client {
 	beforeRequest := []RequestMiddleware{
 		parseRequestURL,
 		parseRequestBody,
-		parseRequestCookie,
 	}
 	afterResponse := []ResponseMiddleware{
 		parseResponseBody,
