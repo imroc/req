@@ -5424,6 +5424,9 @@ func TestTransportRequestWriteRoundTrip(t *testing.T) {
 
 func TestTransportClone(t *testing.T) {
 	tr := &Transport{
+		Headers: http.Header{
+			"test-key": []string{"test-value"},
+		},
 		forceHttpVersion: h1,
 		Options: transport.Options{
 			Proxy:                  func(*http.Request) (*url.URL, error) { panic("") },

@@ -102,6 +102,8 @@ const defaultMaxIdleConnsPerHost = 2
 // request is treated as idempotent but the header is not sent on the
 // wire.
 type Transport struct {
+	Headers http.Header
+
 	idleMu       sync.Mutex
 	closeIdle    bool                                // user has requested to close all idle conns
 	idleConn     map[connectMethodKey][]*persistConn // most recently used at end
@@ -824,6 +826,7 @@ func (t *Transport) readBufferSize() int {
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
 	tt := &Transport{
+		Headers:               cloneHeaders(t.Headers),
 		Options:               t.Options.Clone(),
 		disableAutoDecode:     t.disableAutoDecode,
 		autoDecodeContentType: t.autoDecodeContentType,
@@ -918,6 +921,69 @@ func (t *Transport) roundTripAltSvc(req *http.Request, as *altsvc.AltSvc) (resp 
 	return
 }
 
+func (t *Transport) ensureHeader(req *http.Request, isHTTP bool) error {
+	if req.Header == nil {
+		closeBody(req)
+		return errors.New("http: nil Request.Header")
+	}
+	for k, vs := range t.Headers {
+		if len(req.Header[k]) == 0 {
+			req.Header[k] = vs
+		}
+	}
+	if !isHTTP {
+		return nil
+	}
+	// TODO: is h2c should also check this?
+	for k, vv := range req.Header {
+		if !httpguts.ValidHeaderFieldName(k) {
+			closeBody(req)
+			return fmt.Errorf("net/http: invalid header field name %q", k)
+		}
+		for _, v := range vv {
+			if !httpguts.ValidHeaderFieldValue(v) {
+				closeBody(req)
+				// Don't include the value in the error, because it may be sensitive.
+				return fmt.Errorf("net/http: invalid header field value for %q", k)
+			}
+		}
+	}
+	return nil
+}
+
+func (t *Transport) checkAltSvc(req *http.Request) (resp *http.Response, err error) {
+	if t.altSvcJar == nil {
+		return
+	}
+	addr := netutil.AuthorityKey(req.URL)
+	pas, ok := t.pendingAltSvcs[addr]
+	if ok && pas.Transport != nil {
+		pas.Mu.Lock()
+		if pas.Transport != nil {
+			pas.LastTime = time.Now()
+			r := req.Clone(req.Context())
+			r.URL = altsvcutil.ConvertURL(pas.Entries[pas.CurrentIndex], req.URL)
+			resp, err = pas.Transport.RoundTrip(r)
+			if err != nil {
+				pas.Transport = nil
+				if pas.CurrentIndex+1 < len(pas.Entries) {
+					pas.CurrentIndex++
+					go t.handlePendingAltSvc(req.URL, pas)
+				}
+			} else {
+				t.altSvcJar.SetAltSvc(addr, pas.Entries[pas.CurrentIndex])
+				delete(t.pendingAltSvcs, addr)
+			}
+		}
+		pas.Mu.Unlock()
+		return
+	}
+	if as := t.altSvcJar.GetAltSvc(addr); as != nil {
+		return t.roundTripAltSvc(req, as)
+	}
+	return
+}
+
 // roundTrip implements a http.RoundTripper over HTTP.
 func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error) {
 	ctx := req.Context()
@@ -928,58 +994,17 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		return nil, errors.New("http: nil Request.URL")
 	}
 
-	if t.altSvcJar != nil {
-		addr := netutil.AuthorityKey(req.URL)
-		pas, ok := t.pendingAltSvcs[addr]
-		if ok {
-			if pas.Transport != nil {
-				pas.Mu.Lock()
-				if pas.Transport != nil {
-					pas.LastTime = time.Now()
-					r := req.Clone(req.Context())
-					r.URL = altsvcutil.ConvertURL(pas.Entries[pas.CurrentIndex], req.URL)
-					resp, err = pas.Transport.RoundTrip(r)
-					if err != nil {
-						pas.Transport = nil
-						if pas.CurrentIndex+1 < len(pas.Entries) {
-							pas.CurrentIndex++
-							go t.handlePendingAltSvc(req.URL, pas)
-						}
-					} else {
-						t.altSvcJar.SetAltSvc(addr, pas.Entries[pas.CurrentIndex])
-						delete(t.pendingAltSvcs, addr)
-					}
-				}
-				pas.Mu.Unlock()
-				return
-			}
-		}
-		as := t.altSvcJar.GetAltSvc(addr)
-		if as != nil {
-			return t.roundTripAltSvc(req, as)
-		}
+	resp, err = t.checkAltSvc(req)
+	if err != nil || resp != nil {
+		return
 	}
 
-	if req.Header == nil {
-		closeBody(req)
-		return nil, errors.New("http: nil Request.Header")
-	}
 	scheme := req.URL.Scheme
 	isHTTP := scheme == "http" || scheme == "https"
-	if isHTTP {
-		for k, vv := range req.Header {
-			if !httpguts.ValidHeaderFieldName(k) {
-				closeBody(req)
-				return nil, fmt.Errorf("net/http: invalid header field name %q", k)
-			}
-			for _, v := range vv {
-				if !httpguts.ValidHeaderFieldValue(v) {
-					closeBody(req)
-					// Don't include the value in the error, because it may be sensitive.
-					return nil, fmt.Errorf("net/http: invalid header field value for %q", k)
-				}
-			}
-		}
+
+	err = t.ensureHeader(req, isHTTP)
+	if err != nil {
+		return
 	}
 
 	if t.forceHttpVersion != "" {

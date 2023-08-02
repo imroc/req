@@ -45,7 +45,6 @@ type Client struct {
 	BaseURL               string
 	PathParams            map[string]string
 	QueryParams           urlpkg.Values
-	Headers               http.Header
 	Cookies               []*http.Cookie
 	FormData              urlpkg.Values
 	DebugLog              bool
@@ -1429,7 +1428,6 @@ func (c *Client) Clone() *Client {
 	}
 
 	// clone other fields that may need to be cloned
-	cc.Headers = cloneHeaders(c.Headers)
 	cc.Cookies = cloneCookies(c.Cookies)
 	cc.PathParams = cloneMap(c.PathParams)
 	cc.QueryParams = cloneUrlValues(c.QueryParams)

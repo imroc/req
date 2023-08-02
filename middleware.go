@@ -399,13 +399,6 @@ func parseRequestHeader(c *Client, r *Request) error {
 	if r.Headers == nil {
 		r.Headers = make(http.Header)
 	}
-	for k, vs := range c.Headers {
-		for _, v := range vs {
-			if len(r.Headers[k]) == 0 {
-				r.Headers[k] = append(r.Headers[k], v)
-			}
-		}
-	}
 	return nil
 }
 
