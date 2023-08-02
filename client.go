@@ -904,7 +904,7 @@ func (c *Client) SetCommonPseudoHeaderOder(keys ...string) *Client {
 
 // SetHTTP2SettingsFrame set the ordered http2 settings frame.
 func (c *Client) SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
-	c.SetHTTP2SettingsFrame(settings...)
+	c.Transport.SetHTTP2SettingsFrame(settings...)
 	return c
 }
 
