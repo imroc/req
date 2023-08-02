@@ -63,7 +63,7 @@ func TestAllowGetMethodPayload(t *testing.T) {
 func TestSetTLSHandshakeTimeout(t *testing.T) {
 	timeout := 2 * time.Second
 	c := tc().SetTLSHandshakeTimeout(timeout)
-	tests.AssertEqual(t, timeout, c.t.TLSHandshakeTimeout)
+	tests.AssertEqual(t, timeout, c.TLSHandshakeTimeout)
 }
 
 func TestSetDial(t *testing.T) {
@@ -72,7 +72,7 @@ func TestSetDial(t *testing.T) {
 		return nil, testErr
 	}
 	c := tc().SetDial(testDial)
-	_, err := c.t.DialContext(nil, "", "")
+	_, err := c.DialContext(nil, "", "")
 	tests.AssertEqual(t, testErr, err)
 }
 
@@ -82,7 +82,7 @@ func TestSetDialTLS(t *testing.T) {
 		return nil, testErr
 	}
 	c := tc().SetDialTLS(testDialTLS)
-	_, err := c.t.DialTLSContext(nil, "", "")
+	_, err := c.DialTLSContext(nil, "", "")
 	tests.AssertEqual(t, testErr, err)
 }
 
@@ -147,7 +147,7 @@ func TestOnBeforeRequest(t *testing.T) {
 
 func TestSetProxyURL(t *testing.T) {
 	c := tc().SetProxyURL("http://dummy.proxy.local")
-	u, err := c.t.Proxy(nil)
+	u, err := c.Proxy(nil)
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, "http://dummy.proxy.local", u.String())
 }
@@ -156,7 +156,7 @@ func TestSetProxy(t *testing.T) {
 	u, _ := url.Parse("http://dummy.proxy.local")
 	proxy := http.ProxyURL(u)
 	c := tc().SetProxy(proxy)
-	uu, err := c.t.Proxy(nil)
+	uu, err := c.Proxy(nil)
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, u.String(), uu.String())
 }
@@ -316,32 +316,32 @@ func TestSetCommonQueryParams(t *testing.T) {
 
 func TestInsecureSkipVerify(t *testing.T) {
 	c := tc().EnableInsecureSkipVerify()
-	tests.AssertEqual(t, true, c.t.TLSClientConfig.InsecureSkipVerify)
+	tests.AssertEqual(t, true, c.TLSClientConfig.InsecureSkipVerify)
 
 	c.DisableInsecureSkipVerify()
-	tests.AssertEqual(t, false, c.t.TLSClientConfig.InsecureSkipVerify)
+	tests.AssertEqual(t, false, c.TLSClientConfig.InsecureSkipVerify)
 }
 
 func TestSetTLSClientConfig(t *testing.T) {
 	config := &tls.Config{InsecureSkipVerify: true}
 	c := tc().SetTLSClientConfig(config)
-	tests.AssertEqual(t, config, c.t.TLSClientConfig)
+	tests.AssertEqual(t, config, c.TLSClientConfig)
 }
 
 func TestCompression(t *testing.T) {
 	c := tc().DisableCompression()
-	tests.AssertEqual(t, true, c.t.DisableCompression)
+	tests.AssertEqual(t, true, c.Transport.DisableCompression)
 
 	c.EnableCompression()
-	tests.AssertEqual(t, false, c.t.DisableCompression)
+	tests.AssertEqual(t, false, c.Transport.DisableCompression)
 }
 
 func TestKeepAlives(t *testing.T) {
 	c := tc().DisableKeepAlives()
-	tests.AssertEqual(t, true, c.t.DisableKeepAlives)
+	tests.AssertEqual(t, true, c.Transport.DisableKeepAlives)
 
 	c.EnableKeepAlives()
-	tests.AssertEqual(t, false, c.t.DisableKeepAlives)
+	tests.AssertEqual(t, false, c.Transport.DisableKeepAlives)
 }
 
 func TestRedirect(t *testing.T) {
@@ -383,23 +383,23 @@ func TestRedirect(t *testing.T) {
 func TestGetTLSClientConfig(t *testing.T) {
 	c := tc()
 	config := c.GetTLSClientConfig()
-	tests.AssertEqual(t, true, c.t.TLSClientConfig != nil)
-	tests.AssertEqual(t, config, c.t.TLSClientConfig)
+	tests.AssertEqual(t, true, c.TLSClientConfig != nil)
+	tests.AssertEqual(t, config, c.TLSClientConfig)
 }
 
 func TestSetRootCertFromFile(t *testing.T) {
 	c := tc().SetRootCertsFromFile(tests.GetTestFilePath("sample-root.pem"))
-	tests.AssertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
+	tests.AssertEqual(t, true, c.TLSClientConfig.RootCAs != nil)
 }
 
 func TestSetRootCertFromString(t *testing.T) {
 	c := tc().SetRootCertFromString(string(getTestFileContent(t, "sample-root.pem")))
-	tests.AssertEqual(t, true, c.t.TLSClientConfig.RootCAs != nil)
+	tests.AssertEqual(t, true, c.TLSClientConfig.RootCAs != nil)
 }
 
 func TestSetCerts(t *testing.T) {
 	c := tc().SetCerts(tls.Certificate{}, tls.Certificate{})
-	tests.AssertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 2)
+	tests.AssertEqual(t, true, len(c.TLSClientConfig.Certificates) == 2)
 }
 
 func TestSetCertFromFile(t *testing.T) {
@@ -407,7 +407,7 @@ func TestSetCertFromFile(t *testing.T) {
 		tests.GetTestFilePath("sample-client.pem"),
 		tests.GetTestFilePath("sample-client-key.pem"),
 	)
-	tests.AssertEqual(t, true, len(c.t.TLSClientConfig.Certificates) == 1)
+	tests.AssertEqual(t, true, len(c.TLSClientConfig.Certificates) == 1)
 }
 
 func TestSetOutputDirectory(t *testing.T) {

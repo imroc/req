@@ -50,6 +50,7 @@ type Client struct {
 	FormData              urlpkg.Values
 	DebugLog              bool
 	AllowGetMethodPayload bool
+	*Transport
 
 	trace                   bool
 	disableAutoReadResponse bool
@@ -62,7 +63,6 @@ type Client struct {
 	outputDirectory         string
 	scheme                  string
 	log                     Logger
-	t                       *Transport
 	dumpOptions             *DumpOptions
 	httpClient              *http.Client
 	beforeRequest           []RequestMiddleware
@@ -154,7 +154,7 @@ func (c *Client) Options(url ...string) *Request {
 
 // GetTransport return the underlying transport.
 func (c *Client) GetTransport() *Transport {
-	return c.t
+	return c.Transport
 }
 
 // SetResponseBodyTransformer set the response body transformer, which can modify the
@@ -300,12 +300,12 @@ func (c *Client) SetRootCertsFromFile(pemFiles ...string) *Client {
 
 // GetTLSClientConfig return the underlying tls.Config.
 func (c *Client) GetTLSClientConfig() *tls.Config {
-	if c.t.TLSClientConfig == nil {
-		c.t.TLSClientConfig = &tls.Config{
+	if c.TLSClientConfig == nil {
+		c.TLSClientConfig = &tls.Config{
 			NextProtos: []string{"h2", "http/1.1"},
 		}
 	}
-	return c.t.TLSClientConfig
+	return c.TLSClientConfig
 }
 
 func (c *Client) defaultCheckRedirect(req *http.Request, via []*http.Request) error {
@@ -350,13 +350,13 @@ func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 //
 // This is unrelated to the similarly named TCP keep-alives.
 func (c *Client) DisableKeepAlives() *Client {
-	c.t.DisableKeepAlives = true
+	c.Transport.DisableKeepAlives = true
 	return c
 }
 
 // EnableKeepAlives enables HTTP keep-alives (enabled by default).
 func (c *Client) EnableKeepAlives() *Client {
-	c.t.DisableKeepAlives = false
+	c.Transport.DisableKeepAlives = false
 	return c
 }
 
@@ -369,13 +369,13 @@ func (c *Client) EnableKeepAlives() *Client {
 // However, if the user explicitly requested gzip it is not
 // automatically uncompressed.
 func (c *Client) DisableCompression() *Client {
-	c.t.DisableCompression = true
+	c.Transport.DisableCompression = true
 	return c
 }
 
 // EnableCompression enables the compression (enabled by default).
 func (c *Client) EnableCompression() *Client {
-	c.t.DisableCompression = false
+	c.Transport.DisableCompression = false
 	return c
 }
 
@@ -386,7 +386,7 @@ func (c *Client) EnableCompression() *Client {
 // overwriting some important configurations, such as not setting NextProtos
 // will not use http2 by default.
 func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
-	c.t.TLSClientConfig = conf
+	c.TLSClientConfig = conf
 	return c
 }
 
@@ -558,10 +558,10 @@ func (c *Client) getDumpOptions() *DumpOptions {
 // EnableDumpAll enable dump for requests fired from the client, including
 // all content for the request and response by default.
 func (c *Client) EnableDumpAll() *Client {
-	if c.t.Dump != nil { // dump already started
+	if c.Dump != nil { // dump already started
 		return c
 	}
-	c.t.EnableDump(c.getDumpOptions())
+	c.EnableDump(c.getDumpOptions())
 	return c
 }
 
@@ -771,31 +771,31 @@ func (c *Client) EnableAutoReadResponse() *Client {
 // SetAutoDecodeContentType set the content types that will be auto-detected and decode to utf-8
 // (e.g. "json", "xml", "html", "text").
 func (c *Client) SetAutoDecodeContentType(contentTypes ...string) *Client {
-	c.t.SetAutoDecodeContentType(contentTypes...)
+	c.Transport.SetAutoDecodeContentType(contentTypes...)
 	return c
 }
 
 // SetAutoDecodeContentTypeFunc set the function that determines whether the specified `Content-Type` should be auto-detected and decode to utf-8.
 func (c *Client) SetAutoDecodeContentTypeFunc(fn func(contentType string) bool) *Client {
-	c.t.SetAutoDecodeContentTypeFunc(fn)
+	c.Transport.SetAutoDecodeContentTypeFunc(fn)
 	return c
 }
 
 // SetAutoDecodeAllContentType enable try auto-detect charset and decode all content type to utf-8.
 func (c *Client) SetAutoDecodeAllContentType() *Client {
-	c.t.SetAutoDecodeAllContentType()
+	c.Transport.SetAutoDecodeAllContentType()
 	return c
 }
 
 // DisableAutoDecode disable auto-detect charset and decode to utf-8 (enabled by default).
 func (c *Client) DisableAutoDecode() *Client {
-	c.t.DisableAutoDecode()
+	c.Transport.DisableAutoDecode()
 	return c
 }
 
 // EnableAutoDecode enable auto-detect charset and decode to utf-8 (enabled by default).
 func (c *Client) EnableAutoDecode() *Client {
-	c.t.EnableAutoDecode()
+	c.Transport.EnableAutoDecode()
 	return c
 }
 
@@ -883,7 +883,7 @@ func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 //	    "accept-encoding",
 //	).Get(url
 func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
-	c.t.SetHeaderOrder(keys...)
+	c.SetHeaderOrder(keys...)
 	return c
 }
 
@@ -899,13 +899,13 @@ func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
 //	    ":method",
 //	)
 func (c *Client) SetCommonPseudoHeaderOder(keys ...string) *Client {
-	c.t.SetPseudoHeaderOder(keys...)
+	c.SetPseudoHeaderOder(keys...)
 	return c
 }
 
 // SetHTTP2SettingsFrame set the ordered http2 settings frame.
 func (c *Client) SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
-	c.t.SetHTTP2SettingsFrame(settings...)
+	c.SetHTTP2SettingsFrame(settings...)
 	return c
 }
 
@@ -924,7 +924,7 @@ func (c *Client) SetCommonContentType(ct string) *Client {
 
 // DisableDumpAll disable dump for requests fired from the client.
 func (c *Client) DisableDumpAll() *Client {
-	c.t.DisableDump()
+	c.DisableDump()
 	return c
 }
 
@@ -942,15 +942,15 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 		}
 	}
 	c.dumpOptions = opt
-	if c.t.Dump != nil {
-		c.t.Dump.SetOptions(dumpOptions{opt})
+	if c.Dump != nil {
+		c.Dump.SetOptions(dumpOptions{opt})
 	}
 	return c
 }
 
 // SetProxy set the proxy function.
 func (c *Client) SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
-	c.t.SetProxy(proxy)
+	c.Transport.SetProxy(proxy)
 	return c
 }
 
@@ -978,7 +978,7 @@ func (c *Client) SetProxyURL(proxyUrl string) *Client {
 		return c
 	}
 	proxy := http.ProxyURL(u)
-	c.t.SetProxy(proxy)
+	c.SetProxy(proxy)
 	return c
 }
 
@@ -1055,13 +1055,13 @@ func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Cli
 // Make sure the returned `conn` implements pkg/tls.Conn if you want your
 // customized `conn` supports HTTP2.
 func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
-	c.t.SetDialTLS(fn)
+	c.Transport.SetDialTLS(fn)
 	return c
 }
 
 // SetDial set the customized `DialContext` function to Transport.
 func (c *Client) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
-	c.t.SetDial(fn)
+	c.Transport.SetDial(fn)
 	return c
 }
 
@@ -1168,7 +1168,7 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 		}
 		return
 	}
-	c.SetTLSHandshake(fn)
+	c.Transport.SetTLSHandshake(fn)
 	return c
 }
 
@@ -1176,52 +1176,52 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 // it specifies an optional dial function for tls handshake, it works even if a proxy is set, can be
 // used to customize the tls fingerprint.
 func (c *Client) SetTLSHandshake(fn func(ctx context.Context, addr string, plainConn net.Conn) (conn net.Conn, tlsState *tls.ConnectionState, err error)) *Client {
-	c.t.SetTLSHandshake(fn)
+	c.Transport.SetTLSHandshake(fn)
 	return c
 }
 
 // SetTLSHandshakeTimeout set the TLS handshake timeout.
 func (c *Client) SetTLSHandshakeTimeout(timeout time.Duration) *Client {
-	c.t.SetTLSHandshakeTimeout(timeout)
+	c.Transport.SetTLSHandshakeTimeout(timeout)
 	return c
 }
 
 // EnableForceHTTP1 enable force using HTTP1 (disabled by default).
 func (c *Client) EnableForceHTTP1() *Client {
-	c.t.EnableForceHTTP1()
+	c.Transport.EnableForceHTTP1()
 	return c
 }
 
 // EnableForceHTTP2 enable force using HTTP2 for https requests
 // (disabled by default).
 func (c *Client) EnableForceHTTP2() *Client {
-	c.t.EnableForceHTTP2()
+	c.Transport.EnableForceHTTP2()
 	return c
 }
 
 // EnableForceHTTP3 enable force using HTTP3 for https requests
 // (disabled by default).
 func (c *Client) EnableForceHTTP3() *Client {
-	c.t.EnableForceHTTP3()
+	c.Transport.EnableForceHTTP3()
 	return c
 }
 
 // DisableForceHttpVersion disable force using specified http
 // version (disabled by default).
 func (c *Client) DisableForceHttpVersion() *Client {
-	c.t.DisableForceHttpVersion()
+	c.Transport.DisableForceHttpVersion()
 	return c
 }
 
 // EnableH2C enables HTTP/2 over TCP without TLS.
 func (c *Client) EnableH2C() *Client {
-	c.t.EnableH2C()
+	c.Transport.EnableH2C()
 	return c
 }
 
 // DisableH2C disables HTTP/2 over TCP without TLS.
 func (c *Client) DisableH2C() *Client {
-	c.t.DisableH2C()
+	c.Transport.DisableH2C()
 	return c
 }
 
@@ -1335,13 +1335,13 @@ func (c *Client) SetUnixSocket(file string) *Client {
 
 // DisableHTTP3 disables the http3 protocol.
 func (c *Client) DisableHTTP3() *Client {
-	c.t.DisableHTTP3()
+	c.Transport.DisableHTTP3()
 	return c
 }
 
 // EnableHTTP3 enables the http3 protocol.
 func (c *Client) EnableHTTP3() *Client {
-	c.t.EnableHTTP3()
+	c.Transport.EnableHTTP3()
 	return c
 }
 
@@ -1354,7 +1354,7 @@ func (c *Client) EnableHTTP3() *Client {
 // interprets the highest possible value here (0xffffffff or 1<<32-1)
 // to mean no limit.
 func (c *Client) SetHTTP2MaxHeaderListSize(max uint32) *Client {
-	c.t.SetHTTP2MaxHeaderListSize(max)
+	c.Transport.SetHTTP2MaxHeaderListSize(max)
 	return c
 }
 
@@ -1368,7 +1368,7 @@ func (c *Client) SetHTTP2MaxHeaderListSize(max uint32) *Client {
 // a global limit and callers of RoundTrip block when needed,
 // waiting for their turn.
 func (c *Client) SetHTTP2StrictMaxConcurrentStreams(strict bool) *Client {
-	c.t.SetHTTP2StrictMaxConcurrentStreams(strict)
+	c.Transport.SetHTTP2StrictMaxConcurrentStreams(strict)
 	return c
 }
 
@@ -1380,7 +1380,7 @@ func (c *Client) SetHTTP2StrictMaxConcurrentStreams(strict bool) *Client {
 // be performed every ReadIdleTimeout interval.
 // If zero, no health check is performed.
 func (c *Client) SetHTTP2ReadIdleTimeout(timeout time.Duration) *Client {
-	c.t.SetHTTP2ReadIdleTimeout(timeout)
+	c.Transport.SetHTTP2ReadIdleTimeout(timeout)
 	return c
 }
 
@@ -1389,7 +1389,7 @@ func (c *Client) SetHTTP2ReadIdleTimeout(timeout time.Duration) *Client {
 // not received.
 // Defaults to 15s
 func (c *Client) SetHTTP2PingTimeout(timeout time.Duration) *Client {
-	c.t.SetHTTP2PingTimeout(timeout)
+	c.Transport.SetHTTP2PingTimeout(timeout)
 	return c
 }
 
@@ -1398,7 +1398,7 @@ func (c *Client) SetHTTP2PingTimeout(timeout time.Duration) *Client {
 // to it. The timeout begins when data is available to write, and is
 // extended whenever any bytes are written.
 func (c *Client) SetHTTP2WriteByteTimeout(timeout time.Duration) *Client {
-	c.t.SetHTTP2WriteByteTimeout(timeout)
+	c.Transport.SetHTTP2WriteByteTimeout(timeout)
 	return c
 }
 
@@ -1412,12 +1412,12 @@ func (c *Client) Clone() *Client {
 	cc := *c
 
 	// clone Transport
-	cc.t = c.t.Clone()
+	cc.Transport = c.Transport.Clone()
 	cc.initTransport()
 
 	// clone http.Client
 	client := *c.httpClient
-	client.Transport = cc.t
+	client.Transport = cc.Transport
 	cc.httpClient = &client
 
 	// clone client middleware
@@ -1468,7 +1468,7 @@ func C() *Client {
 		afterResponse:         afterResponse,
 		log:                   createDefaultLogger(),
 		httpClient:            httpClient,
-		t:                     t,
+		Transport:             t,
 		jsonMarshal:           json.Marshal,
 		jsonUnmarshal:         json.Unmarshal,
 		xmlMarshal:            xml.Marshal,
@@ -1481,7 +1481,7 @@ func C() *Client {
 }
 
 func (c *Client) initTransport() {
-	c.t.Debugf = func(format string, v ...interface{}) {
+	c.Debugf = func(format string, v ...interface{}) {
 		if c.DebugLog {
 			c.log.Debugf(format, v...)
 		}

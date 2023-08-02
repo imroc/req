@@ -1213,7 +1213,7 @@ func TestRoundTripGzip(t *testing.T) {
 		}
 	}))
 	defer ts.Close()
-	tr := tc().t
+	tr := tc().GetTransport()
 
 	for i, test := range roundTripTests {
 		// Test basic request (no accept-encoding)
@@ -3902,7 +3902,7 @@ func TestTransportResponseCancelRace(t *testing.T) {
 		w.Write(b[:])
 	}))
 	defer ts.Close()
-	tr := tc().t
+	tr := tc().GetTransport()
 
 	req, err := http.NewRequest("GET", ts.URL, nil)
 	if err != nil {
@@ -3970,7 +3970,7 @@ func TestTransportDialCancelRace(t *testing.T) {
 
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	defer ts.Close()
-	tr := tc().t
+	tr := tc().GetTransport()
 
 	req, err := http.NewRequest("GET", ts.URL, nil)
 	if err != nil {
