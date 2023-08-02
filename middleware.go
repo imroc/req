@@ -392,16 +392,6 @@ func handleDownload(c *Client, r *Response) (err error) {
 	return
 }
 
-func parseRequestHeader(c *Client, r *Request) error {
-	if c.Headers == nil {
-		return nil
-	}
-	if r.Headers == nil {
-		r.Headers = make(http.Header)
-	}
-	return nil
-}
-
 func parseRequestCookie(c *Client, r *Request) error {
 	if len(c.Cookies) == 0 {
 		return nil

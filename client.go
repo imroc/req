@@ -1451,7 +1451,6 @@ func C() *Client {
 		Timeout:   2 * time.Minute,
 	}
 	beforeRequest := []RequestMiddleware{
-		parseRequestHeader,
 		parseRequestURL,
 		parseRequestBody,
 		parseRequestCookie,
