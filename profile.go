@@ -74,7 +74,6 @@ var chromeHeaders = map[string]string{
 
 var ClientProfile_Chrome ClientProfile = func(c *Client) {
 	c.SetTLSFingerprint(utls.HelloChrome_106_Shuffle).
-		SetUserAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/106.0.0.0 Safari/537.36").
 		SetCommonPseudoHeaderOder(chromePseudoHeaderOrder...).
 		SetCommonHeaders(chromeHeaders).
 		SetCommonHeaderOrder(chromeHeaderOrder...).
