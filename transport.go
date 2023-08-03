@@ -17,6 +17,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/altsvcutil"
 	"github.com/imroc/req/v3/internal/ascii"
 	"github.com/imroc/req/v3/internal/common"
@@ -29,7 +30,6 @@ import (
 	"github.com/imroc/req/v3/internal/transport"
 	"github.com/imroc/req/v3/internal/util"
 	"github.com/imroc/req/v3/pkg/altsvc"
-	"github.com/imroc/req/v3/pkg/http2"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
@@ -464,6 +464,12 @@ func (t *Transport) SetHTTP2SettingsFrame(settings ...http2.Setting) *Transport 
 // value of initial WINDOW_UPDATE frame.
 func (t *Transport) SetHTTP2ConnectionFlow(flow uint32) *Transport {
 	t.t2.ConnectionFlow = flow
+	return t
+}
+
+// SetHTTP2HeaderPriority set the header priority param.
+func (t *Transport) SetHTTP2HeaderPriority(priority http2.PriorityParam) *Transport {
+	t.t2.HeaderPriority = priority
 	return t
 }
 

@@ -15,13 +15,13 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/ascii"
 	"github.com/imroc/req/v3/internal/common"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/netutil"
 	"github.com/imroc/req/v3/internal/transport"
-	"github.com/imroc/req/v3/pkg/http2"
 	reqtls "github.com/imroc/req/v3/pkg/tls"
 	"io"
 	"io/fs"
@@ -135,6 +135,7 @@ type Transport struct {
 	Settings []http2.Setting
 
 	ConnectionFlow uint32
+	HeaderPriority http2.PriorityParam
 
 	connPoolOnce  sync.Once
 	connPoolOrDef ClientConnPool // non-nil version of ConnPool
@@ -1533,6 +1534,7 @@ func (cc *ClientConn) writeHeaders(streamID uint32, endStream bool, maxFrameSize
 				BlockFragment: chunk,
 				EndStream:     endStream,
 				EndHeaders:    endHeaders,
+				Priority:      cc.t.HeaderPriority,
 			})
 			first = false
 		} else {

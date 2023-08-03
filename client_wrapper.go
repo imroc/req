@@ -3,7 +3,7 @@ package req
 import (
 	"context"
 	"crypto/tls"
-	"github.com/imroc/req/v3/pkg/http2"
+	"github.com/imroc/req/v3/http2"
 	utls "github.com/refraction-networking/utls"
 	"io"
 	"net"

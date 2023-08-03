@@ -10,8 +10,8 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/dump"
-	"github.com/imroc/req/v3/pkg/http2"
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2/hpack"
 	"io"
@@ -1049,7 +1049,7 @@ type HeadersFrame struct {
 	FrameHeader
 
 	// Priority is set if FlagHeadersPriority is set in the FrameHeader.
-	Priority PriorityParam
+	Priority http2.PriorityParam
 
 	headerFragBuf []byte // not owned
 }
@@ -1137,7 +1137,7 @@ type HeadersFrameParam struct {
 
 	// Priority, if non-zero, includes stream priority information
 	// in the HEADER frame.
-	Priority PriorityParam
+	Priority http2.PriorityParam
 }
 
 // WriteHeaders writes a single HEADERS frame.
@@ -1189,28 +1189,7 @@ func (h2f *Framer) WriteHeaders(p HeadersFrameParam) error {
 // See https://httpwg.org/specs/rfc7540.html#rfc.section.6.3
 type PriorityFrame struct {
 	FrameHeader
-	PriorityParam
-}
-
-// PriorityParam are the stream prioritzation parameters.
-type PriorityParam struct {
-	// StreamDep is a 31-bit stream identifier for the
-	// stream that this stream depends on. Zero means no
-	// dependency.
-	StreamDep uint32
-
-	// Exclusive is whether the dependency is exclusive.
-	Exclusive bool
-
-	// Weight is the stream's zero-indexed weight. It should be
-	// set together with StreamDep, or neither should be set. Per
-	// the spec, "Add one to the value to obtain a weight between
-	// 1 and 256."
-	Weight uint8
-}
-
-func (p PriorityParam) IsZero() bool {
-	return p == PriorityParam{}
+	http2.PriorityParam
 }
 
 func parsePriorityFrame(_ *frameCache, fh FrameHeader, countError func(string), payload []byte) (Frame, error) {
@@ -1226,7 +1205,7 @@ func parsePriorityFrame(_ *frameCache, fh FrameHeader, countError func(string), 
 	streamID := v & 0x7fffffff // mask off high bit
 	return &PriorityFrame{
 		FrameHeader: fh,
-		PriorityParam: PriorityParam{
+		PriorityParam: http2.PriorityParam{
 			Weight:    payload[4],
 			StreamDep: streamID,
 			Exclusive: streamID != v, // was high bit set?
@@ -1238,7 +1217,7 @@ func parsePriorityFrame(_ *frameCache, fh FrameHeader, countError func(string), 
 //
 // It will perform exactly one Write to the underlying Writer.
 // It is the caller's responsibility to not call other Write methods concurrently.
-func (h2f *Framer) WritePriority(streamID uint32, p PriorityParam) error {
+func (h2f *Framer) WritePriority(streamID uint32, p http2.PriorityParam) error {
 	if !validStreamID(streamID) && !h2f.AllowIllegalWrites {
 		return errStreamID
 	}

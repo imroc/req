@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/imroc/req/v3/pkg/http2"
+	"github.com/imroc/req/v3/http2"
 	"io"
 	"net"
 	"net/http"
@@ -911,6 +911,12 @@ func (c *Client) SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
 // value of initial WINDOW_UPDATE frame.
 func (c *Client) SetHTTP2ConnectionFlow(flow uint32) *Client {
 	c.Transport.SetHTTP2ConnectionFlow(flow)
+	return c
+}
+
+// SetHTTP2HeaderPriority set the header priority param.
+func (c *Client) SetHTTP2HeaderPriority(priority http2.PriorityParam) *Client {
+	c.SetHTTP2HeaderPriority(priority)
 	return c
 }
 

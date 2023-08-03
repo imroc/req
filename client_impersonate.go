@@ -1,7 +1,7 @@
 package req
 
 import (
-	"github.com/imroc/req/v3/pkg/http2"
+	"github.com/imroc/req/v3/http2"
 	utls "github.com/refraction-networking/utls"
 )
 
