@@ -914,17 +914,6 @@ func (c *Client) SetHTTP2ConnectionFlow(flow uint32) *Client {
 	return c
 }
 
-// SetClientProfile set the http client profile.
-func (c *Client) SetClientProfile(p ClientProfile) *Client {
-	p(c)
-	return c
-}
-
-// UseChromeProfile set the http client profile to chrome.
-func (c *Client) UseChromeProfile() *Client {
-	return c.SetClientProfile(ClientProfile_Chrome)
-}
-
 // SetCommonContentType set the `Content-Type` header for requests fired
 // from the client.
 func (c *Client) SetCommonContentType(ct string) *Client {

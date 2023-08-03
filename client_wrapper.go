@@ -464,16 +464,10 @@ func SetHTTP2WriteByteTimeout(timeout time.Duration) *Client {
 	return defaultClient.SetHTTP2WriteByteTimeout(timeout)
 }
 
-// SetClientProfile is a global wrapper methods which delegated
-// to the default client's Client.SetClientProfile.
-func SetClientProfile(p ClientProfile) *Client {
-	return defaultClient.SetClientProfile(p)
-}
-
-// UseChromeProfile is a global wrapper methods which delegated
-// to the default client's Client.UseChromeProfile.
-func UseChromeProfile() *Client {
-	return defaultClient.UseChromeProfile()
+// ImpersonateChrome is a global wrapper methods which delegated
+// to the default client's Client.ImpersonateChrome.
+func ImpersonateChrome() *Client {
+	return defaultClient.ImpersonateChrome()
 }
 
 // SetCommonContentType is a global wrapper methods which delegated
