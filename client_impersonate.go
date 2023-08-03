@@ -42,6 +42,7 @@ var chromeHeaderOrder = []string{
 	"sec-fetch-mode",
 	"sec-fetch-user",
 	"sec-fetch-dest",
+	"referer",
 	"accept-encoding",
 	"accept-language",
 	"cookie",
