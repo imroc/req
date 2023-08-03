@@ -3,6 +3,7 @@ package req
 import (
 	"context"
 	"crypto/tls"
+	"github.com/imroc/req/v3/pkg/http2"
 	utls "github.com/refraction-networking/utls"
 	"io"
 	"net"
@@ -419,6 +420,60 @@ func SetCommonHeaderOrder(keys ...string) *Client {
 // to the default client's Client.SetCommonPseudoHeaderOder.
 func SetCommonPseudoHeaderOder(keys ...string) *Client {
 	return defaultClient.SetCommonPseudoHeaderOder(keys...)
+}
+
+// SetHTTP2SettingsFrame is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2SettingsFrame.
+func SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
+	return defaultClient.SetHTTP2SettingsFrame(settings...)
+}
+
+// SetHTTP2ConnectionFlow is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2ConnectionFlow.
+func SetHTTP2ConnectionFlow(flow uint32) *Client {
+	return defaultClient.SetHTTP2ConnectionFlow(flow)
+}
+
+// SetHTTP2MaxHeaderListSize is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2MaxHeaderListSize.
+func SetHTTP2MaxHeaderListSize(max uint32) *Client {
+	return defaultClient.SetHTTP2MaxHeaderListSize(max)
+}
+
+// SetHTTP2StrictMaxConcurrentStreams is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2StrictMaxConcurrentStreams.
+func SetHTTP2StrictMaxConcurrentStreams(strict bool) *Client {
+	return defaultClient.SetHTTP2StrictMaxConcurrentStreams(strict)
+}
+
+// SetHTTP2ReadIdleTimeout is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2ReadIdleTimeout.
+func SetHTTP2ReadIdleTimeout(timeout time.Duration) *Client {
+	return defaultClient.SetHTTP2ReadIdleTimeout(timeout)
+}
+
+// SetHTTP2PingTimeout is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2PingTimeout.
+func SetHTTP2PingTimeout(timeout time.Duration) *Client {
+	return defaultClient.SetHTTP2PingTimeout(timeout)
+}
+
+// SetHTTP2WriteByteTimeout is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2WriteByteTimeout.
+func SetHTTP2WriteByteTimeout(timeout time.Duration) *Client {
+	return defaultClient.SetHTTP2WriteByteTimeout(timeout)
+}
+
+// SetClientProfile is a global wrapper methods which delegated
+// to the default client's Client.SetClientProfile.
+func SetClientProfile(p ClientProfile) *Client {
+	return defaultClient.SetClientProfile(p)
+}
+
+// UseChromeProfile is a global wrapper methods which delegated
+// to the default client's Client.UseChromeProfile.
+func UseChromeProfile() *Client {
+	return defaultClient.UseChromeProfile()
 }
 
 // SetCommonContentType is a global wrapper methods which delegated
