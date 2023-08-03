@@ -77,5 +77,6 @@ var ClientProfile_Chrome ClientProfile = func(c *Client) {
 		SetCommonPseudoHeaderOder(chromePseudoHeaderOrder...).
 		SetCommonHeaders(chromeHeaders).
 		SetCommonHeaderOrder(chromeHeaderOrder...).
-		SetHTTP2SettingsFrame(http2SettingsChrome...)
+		SetHTTP2SettingsFrame(http2SettingsChrome...).
+		SetHTTP2ConnectionFlow(15663105)
 }

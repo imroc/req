@@ -134,6 +134,8 @@ type Transport struct {
 
 	Settings []http2.Setting
 
+	ConnectionFlow uint32
+
 	connPoolOnce  sync.Once
 	connPoolOrDef ClientConnPool // non-nil version of ConnPool
 }
@@ -695,8 +697,12 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 
 	cc.bw.Write(clientPreface)
 	cc.fr.WriteSettings(initialSettings...)
-	cc.fr.WriteWindowUpdate(0, transportDefaultConnFlow)
-	cc.inflow.init(transportDefaultConnFlow + initialWindowSize)
+	connFlow := cc.t.ConnectionFlow
+	if connFlow < 1 {
+		connFlow = transportDefaultConnFlow
+	}
+	cc.fr.WriteWindowUpdate(0, connFlow)
+	cc.inflow.init(int32(connFlow) + initialWindowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {
 		cc.Close()

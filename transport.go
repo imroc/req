@@ -460,6 +460,13 @@ func (t *Transport) SetHTTP2SettingsFrame(settings ...http2.Setting) *Transport 
 	return t
 }
 
+// SetHTTP2ConnectionFlow set the default http2 connection flow, which is the increment
+// value of initial WINDOW_UPDATE frame.
+func (t *Transport) SetHTTP2ConnectionFlow(flow uint32) *Transport {
+	t.t2.ConnectionFlow = flow
+	return t
+}
+
 // SetTLSClientConfig set the custom TLSClientConfig, which specifies the TLS configuration to
 // use with tls.Client.
 // If nil, the default configuration is used.

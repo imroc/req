@@ -907,6 +907,13 @@ func (c *Client) SetHTTP2SettingsFrame(settings ...http2.Setting) *Client {
 	return c
 }
 
+// SetHTTP2ConnectionFlow set the default http2 connection flow, which is the increment
+// value of initial WINDOW_UPDATE frame.
+func (c *Client) SetHTTP2ConnectionFlow(flow uint32) *Client {
+	c.Transport.SetHTTP2ConnectionFlow(flow)
+	return c
+}
+
 // SetClientProfile set the http client profile.
 func (c *Client) SetClientProfile(p ClientProfile) *Client {
 	p(c)
