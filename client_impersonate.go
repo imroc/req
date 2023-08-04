@@ -78,6 +78,11 @@ func (c *Client) ImpersonateChrome() *Client {
 		SetCommonHeaders(chromeHeaders).
 		SetCommonHeaderOrder(chromeHeaderOrder...).
 		SetHTTP2SettingsFrame(http2SettingsChrome...).
-		SetHTTP2ConnectionFlow(15663105)
+		SetHTTP2ConnectionFlow(15663105).
+		SetHTTP2HeaderPriority(http2.PriorityParam{
+			StreamDep: 0,
+			Exclusive: true,
+			Weight:    255,
+		})
 	return c
 }
