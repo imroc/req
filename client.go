@@ -916,7 +916,7 @@ func (c *Client) SetHTTP2ConnectionFlow(flow uint32) *Client {
 
 // SetHTTP2HeaderPriority set the header priority param.
 func (c *Client) SetHTTP2HeaderPriority(priority http2.PriorityParam) *Client {
-	c.SetHTTP2HeaderPriority(priority)
+	c.Transport.SetHTTP2HeaderPriority(priority)
 	return c
 }
 
