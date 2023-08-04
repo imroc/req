@@ -662,11 +662,13 @@ func (r *Request) do() (resp *Response, err error) {
 		}
 
 		// check retry whether is needed.
-		needRetry := err != nil                                   // default behaviour: retry if error occurs
-		for _, condition := range r.retryOption.RetryConditions { // override default behaviour if custom RetryConditions has been set.
-			needRetry = condition(resp, err)
-			if needRetry {
-				break
+		needRetry := err != nil                             // default behaviour: retry if error occurs
+		if l := len(r.retryOption.RetryConditions); l > 0 { // override default behaviour if custom RetryConditions has been set.
+			for i := l - 1; i >= 0; i-- {
+				needRetry = r.retryOption.RetryConditions[i](resp, err)
+				if needRetry {
+					break
+				}
 			}
 		}
 		if !needRetry { // no retry is needed.
