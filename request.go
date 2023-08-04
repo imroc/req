@@ -677,8 +677,10 @@ func (r *Request) do() (resp *Response, err error) {
 
 		// need retry, attempt to retry
 		r.RetryAttempt++
-		for _, hook := range r.retryOption.RetryHooks { // run retry hooks
-			hook(resp, err)
+		if l := len(r.retryOption.RetryHooks); l > 0 {
+			for i := l - 1; i >= 0; i-- { // run retry hooks in reverse order
+				r.retryOption.RetryHooks[i](resp, err)
+			}
 		}
 		time.Sleep(r.retryOption.GetRetryInterval(resp, r.RetryAttempt))
 
