@@ -473,6 +473,12 @@ func (t *Transport) SetHTTP2HeaderPriority(priority http2.PriorityParam) *Transp
 	return t
 }
 
+// SetHTTP2PriorityFrames set the ordered http2 priority frames.
+func (t *Transport) SetHTTP2PriorityFrames(frames ...http2.PriorityFrame) *Transport {
+	t.t2.PriorityFrames = frames
+	return t
+}
+
 // SetTLSClientConfig set the custom TLSClientConfig, which specifies the TLS configuration to
 // use with tls.Client.
 // If nil, the default configuration is used.

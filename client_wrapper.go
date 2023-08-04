@@ -434,6 +434,18 @@ func SetHTTP2ConnectionFlow(flow uint32) *Client {
 	return defaultClient.SetHTTP2ConnectionFlow(flow)
 }
 
+// SetHTTP2HeaderPriority is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2HeaderPriority.
+func SetHTTP2HeaderPriority(priority http2.PriorityParam) *Client {
+	return defaultClient.SetHTTP2HeaderPriority(priority)
+}
+
+// SetHTTP2PriorityFrames is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2PriorityFrames.
+func SetHTTP2PriorityFrames(frames ...http2.PriorityFrame) *Client {
+	return defaultClient.SetHTTP2PriorityFrames(frames...)
+}
+
 // SetHTTP2MaxHeaderListSize is a global wrapper methods which delegated
 // to the default client's Client.SetHTTP2MaxHeaderListSize.
 func SetHTTP2MaxHeaderListSize(max uint32) *Client {

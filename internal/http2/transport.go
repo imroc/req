@@ -136,6 +136,7 @@ type Transport struct {
 
 	ConnectionFlow uint32
 	HeaderPriority http2.PriorityParam
+	PriorityFrames []http2.PriorityFrame
 
 	connPoolOnce  sync.Once
 	connPoolOrDef ClientConnPool // non-nil version of ConnPool
@@ -703,6 +704,12 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		connFlow = transportDefaultConnFlow
 	}
 	cc.fr.WriteWindowUpdate(0, connFlow)
+
+	for _, p := range t.PriorityFrames {
+		cc.fr.WritePriority(p.StreamID, p.PriorityParam)
+		cc.nextStreamID = p.StreamID + 2
+	}
+
 	cc.inflow.init(int32(connFlow) + initialWindowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {

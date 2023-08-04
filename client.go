@@ -920,6 +920,12 @@ func (c *Client) SetHTTP2HeaderPriority(priority http2.PriorityParam) *Client {
 	return c
 }
 
+// SetHTTP2PriorityFrames set the ordered http2 priority frames.
+func (c *Client) SetHTTP2PriorityFrames(frames ...http2.PriorityFrame) *Client {
+	c.Transport.SetHTTP2PriorityFrames(frames...)
+	return c
+}
+
 // SetCommonContentType set the `Content-Type` header for requests fired
 // from the client.
 func (c *Client) SetCommonContentType(ct string) *Client {

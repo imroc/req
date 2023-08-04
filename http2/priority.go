@@ -20,3 +20,9 @@ type PriorityParam struct {
 func (p PriorityParam) IsZero() bool {
 	return p == PriorityParam{}
 }
+
+// PriorityFrame represents a http priority frame.
+type PriorityFrame struct {
+	StreamID      uint32
+	PriorityParam PriorityParam
+}
