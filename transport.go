@@ -798,8 +798,8 @@ func (t *Transport) readBufferSize() int {
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
 	tt := &Transport{
-		Headers:               cloneHeaders(t.Headers),
-		Cookies:               cloneCookies(t.Cookies),
+		Headers:               t.Headers.Clone(),
+		Cookies:               cloneSlice(t.Cookies),
 		Options:               t.Options.Clone(),
 		disableAutoDecode:     t.disableAutoDecode,
 		autoDecodeContentType: t.autoDecodeContentType,
@@ -818,12 +818,15 @@ func (t *Transport) Clone() *Transport {
 	if t.t2 != nil {
 		tt.t2 = &h2internal.Transport{
 			Options:                    &tt.Options,
-			Settings:                   t.t2.Settings,
 			MaxHeaderListSize:          t.t2.MaxHeaderListSize,
 			StrictMaxConcurrentStreams: t.t2.StrictMaxConcurrentStreams,
 			ReadIdleTimeout:            t.t2.ReadIdleTimeout,
 			PingTimeout:                t.t2.PingTimeout,
 			WriteByteTimeout:           t.t2.WriteByteTimeout,
+			ConnectionFlow:             t.t2.ConnectionFlow,
+			Settings:                   cloneSlice(t.t2.Settings),
+			HeaderPriority:             t.t2.HeaderPriority,
+			PriorityFrames:             cloneSlice(t.t2.PriorityFrames),
 		}
 	}
 	if t.t3 != nil {
