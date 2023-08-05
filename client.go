@@ -881,7 +881,15 @@ func (c *Client) SetCommonHeadersNonCanonical(hdrs map[string]string) *Client {
 //	    "accept-encoding",
 //	).Get(url
 func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
-	c.SetHeaderOrder(keys...)
+	c.Transport.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			req.Header[HeaderOderKey] = keys
+			return rt.RoundTrip(req)
+		}
+	})
 	return c
 }
 
@@ -897,7 +905,15 @@ func (c *Client) SetCommonHeaderOrder(keys ...string) *Client {
 //	    ":method",
 //	)
 func (c *Client) SetCommonPseudoHeaderOder(keys ...string) *Client {
-	c.SetPseudoHeaderOder(keys...)
+	c.Transport.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
+		return func(req *http.Request) (resp *http.Response, err error) {
+			if req.Header == nil {
+				req.Header = make(http.Header)
+			}
+			req.Header[PseudoHeaderOderKey] = keys
+			return rt.RoundTrip(req)
+		}
+	})
 	return c
 }
 

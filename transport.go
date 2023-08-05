@@ -214,49 +214,6 @@ func (t *Transport) WrapRoundTrip(wrappers ...HttpRoundTripWrapper) *Transport {
 	return t
 }
 
-// SetHeaderOrder set the order of the http header (case-insensitive).
-// For example:
-//
-//	t.SetHeaderOrder(
-//	    "custom-header",
-//	    "cookie",
-//	    "user-agent",
-//	    "accept-encoding",
-//	)
-func (t *Transport) SetHeaderOrder(keys ...string) {
-	t.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
-		return func(req *http.Request) (resp *http.Response, err error) {
-			if req.Header == nil {
-				req.Header = make(http.Header)
-			}
-			req.Header[HeaderOderKey] = keys
-			return rt.RoundTrip(req)
-		}
-	})
-}
-
-// SetPseudoHeaderOder set the order of the pseudo http header (case-insensitive).
-// Note this is only valid for http2 and http3.
-// For example:
-//
-//	t.SetPseudoHeaderOrder(
-//	    ":scheme",
-//	    ":authority",
-//	    ":path",
-//	    ":method",
-//	)
-func (t *Transport) SetPseudoHeaderOder(keys ...string) {
-	t.WrapRoundTripFunc(func(rt http.RoundTripper) HttpRoundTripFunc {
-		return func(req *http.Request) (resp *http.Response, err error) {
-			if req.Header == nil {
-				req.Header = make(http.Header)
-			}
-			req.Header[PseudoHeaderOderKey] = keys
-			return rt.RoundTrip(req)
-		}
-	})
-}
-
 // DisableAutoDecode disable auto-detect charset and decode to utf-8
 // (enabled by default).
 func (t *Transport) DisableAutoDecode() *Transport {
