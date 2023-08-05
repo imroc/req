@@ -207,3 +207,63 @@ func (c *Client) ImpersonateFirefox() *Client {
 		SetHTTP2HeaderPriority(firefoxHeaderPriority)
 	return c
 }
+
+var (
+	safariHttp2Settings = []http2.Setting{
+		{
+			ID:  http2.SettingInitialWindowSize,
+			Val: 4194304,
+		},
+		{
+			ID:  http2.SettingMaxConcurrentStreams,
+			Val: 100,
+		},
+	}
+
+	safariPseudoHeaderOrder = []string{
+		":method",
+		":scheme",
+		":path",
+		":authority",
+	}
+
+	safariHeaderOrder = []string{
+		"accept",
+		"sec-fetch-site",
+		"cookie",
+		"sec-fetch-dest",
+		"accept-language",
+		"sec-fetch-mode",
+		"user-agent",
+		"referer",
+		"accept-encoding",
+	}
+
+	safariHeaders = map[string]string{
+		"accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+		"sec-fetch-site":  "same-origin",
+		"sec-fetch-dest":  "document",
+		"accept-language": "zh-CN,zh-Hans;q=0.9",
+		"sec-fetch-mode":  "navigate",
+		"user-agent":      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Safari/605.1.15",
+	}
+
+	safariHeaderPriority = http2.PriorityParam{
+		StreamDep: 0,
+		Exclusive: false,
+		Weight:    254,
+	}
+)
+
+// ImpersonateSafari impersonates Safari browser (version 16).
+func (c *Client) ImpersonateSafari() *Client {
+	c.
+		SetTLSFingerprint(utls.HelloSafari_16_0).
+		SetHTTP2SettingsFrame(safariHttp2Settings...).
+		SetHTTP2ConnectionFlow(10485760).
+		SetCommonPseudoHeaderOder(safariPseudoHeaderOrder...).
+		SetCommonHeaderOrder(safariHeaderOrder...).
+		SetCommonHeaders(safariHeaders).
+		SetHTTP2HeaderPriority(safariHeaderPriority)
+	return c
+}
