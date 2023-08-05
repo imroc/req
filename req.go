@@ -93,25 +93,6 @@ func cloneSlice[T any](s []T) []T {
 	return ss
 }
 
-// TODO: change to generics function when generics are commonly used.
-func cloneRequestMiddleware(m []RequestMiddleware) []RequestMiddleware {
-	if len(m) == 0 {
-		return nil
-	}
-	mm := make([]RequestMiddleware, len(m))
-	copy(mm, m)
-	return mm
-}
-
-func cloneResponseMiddleware(m []ResponseMiddleware) []ResponseMiddleware {
-	if len(m) == 0 {
-		return nil
-	}
-	mm := make([]ResponseMiddleware, len(m))
-	copy(mm, m)
-	return mm
-}
-
 func cloneUrlValues(v url.Values) url.Values {
 	if v == nil {
 		return nil

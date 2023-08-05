@@ -1443,9 +1443,9 @@ func (c *Client) Clone() *Client {
 	cc.PathParams = cloneMap(c.PathParams)
 	cc.QueryParams = cloneUrlValues(c.QueryParams)
 	cc.FormData = cloneUrlValues(c.FormData)
-	cc.beforeRequest = cloneRequestMiddleware(c.beforeRequest)
-	cc.udBeforeRequest = cloneRequestMiddleware(c.udBeforeRequest)
-	cc.afterResponse = cloneResponseMiddleware(c.afterResponse)
+	cc.beforeRequest = cloneSlice(c.beforeRequest)
+	cc.udBeforeRequest = cloneSlice(c.udBeforeRequest)
+	cc.afterResponse = cloneSlice(c.afterResponse)
 	cc.dumpOptions = c.dumpOptions.Clone()
 	cc.retryOption = c.retryOption.Clone()
 	return &cc
