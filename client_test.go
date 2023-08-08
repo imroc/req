@@ -7,9 +7,11 @@ import (
 	"errors"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
+	"golang.org/x/net/publicsuffix"
 	"io"
 	"net"
 	"net/http"
+	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"strings"
@@ -631,4 +633,18 @@ func TestSetResultStateCheckFunc(t *testing.T) {
 	resp, err = c.R().Get("/status?code=404")
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, ErrorState, resp.ResultState())
+}
+func TestCloneCookieJar(t *testing.T) {
+	c1 := C()
+	c2 := c1.Clone()
+	tests.AssertEqual(t, true, c1.httpClient.Jar != c2.httpClient.Jar)
+
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	c1.SetCookieJar(jar)
+	c2 = c1.Clone()
+	tests.AssertEqual(t, true, c1.httpClient.Jar == c2.httpClient.Jar)
+
+	c2.SetCookieJar(nil)
+	tests.AssertEqual(t, true, c2.cookiejarFactory == nil)
+	tests.AssertEqual(t, true, c2.httpClient.Jar == nil)
 }

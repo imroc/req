@@ -50,6 +50,7 @@ type Client struct {
 	AllowGetMethodPayload bool
 	*Transport
 
+	cookiejarFactory        func() *cookiejar.Jar
 	trace                   bool
 	disableAutoReadResponse bool
 	commonErrorType         reflect.Type
@@ -1022,9 +1023,13 @@ func (c *Client) EnableTraceAll() *Client {
 	return c
 }
 
-// SetCookieJar set the `CookeJar` to the underlying `http.Client`, set to nil if you
-// want to disable cookie.
+// SetCookieJar set the cookie jar to the underlying `http.Client`, set to nil if you
+// want to disable cookies.
+// Note: If you use Client.Clone to clone a new Client, the new client will share the same
+// cookie jar as the old Client after cloning. Use SetCookieJarFactory instead if you want
+// to create a new CookieJar automatically when cloning a client.
 func (c *Client) SetCookieJar(jar http.CookieJar) *Client {
+	c.cookiejarFactory = nil
 	c.httpClient.Jar = jar
 	return c
 }
@@ -1042,11 +1047,10 @@ func (c *Client) GetCookies(url string) ([]*http.Cookie, error) {
 }
 
 // ClearCookies clears all cookies if cookie is enabled.
+// Note: It has no effect if you called SetCookieJar instead of
+// SetCookieJarFactory.
 func (c *Client) ClearCookies() *Client {
-	if c.httpClient.Jar != nil {
-		jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-		c.httpClient.Jar = jar
-	}
+	c.initCookieJar()
 	return c
 }
 
@@ -1446,6 +1450,7 @@ func (c *Client) Clone() *Client {
 	client := *c.httpClient
 	client.Transport = cc.Transport
 	cc.httpClient = &client
+	cc.initCookieJar()
 
 	// clone client middleware
 	if len(cc.roundTripWrappers) > 0 {
@@ -1467,14 +1472,17 @@ func (c *Client) Clone() *Client {
 	return &cc
 }
 
+func memoryCookieJarFactory() *cookiejar.Jar {
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
+	return jar
+}
+
 // C create a new client.
 func C() *Client {
 	t := T()
 
-	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	httpClient := &http.Client{
 		Transport: t,
-		Jar:       jar,
 		Timeout:   2 * time.Minute,
 	}
 	beforeRequest := []RequestMiddleware{
@@ -1496,11 +1504,33 @@ func C() *Client {
 		jsonUnmarshal:         json.Unmarshal,
 		xmlMarshal:            xml.Marshal,
 		xmlUnmarshal:          xml.Unmarshal,
+		cookiejarFactory:      memoryCookieJarFactory,
 	}
 	httpClient.CheckRedirect = c.defaultCheckRedirect
+	c.initCookieJar()
 
 	c.initTransport()
 	return c
+}
+
+// SetCookieJarFactory set the functional factory of cookie jar, which creates
+// cookie jar that store cookies for underlying `http.Client`. After client clone,
+// the cookie jar of the new client will also be regenerated using this factory
+// function.
+func (c *Client) SetCookieJarFactory(factory func() *cookiejar.Jar) *Client {
+	c.cookiejarFactory = factory
+	c.initCookieJar()
+	return c
+}
+
+func (c *Client) initCookieJar() {
+	if c.cookiejarFactory == nil {
+		return
+	}
+	jar := c.cookiejarFactory()
+	if jar != nil {
+		c.httpClient.Jar = jar
+	}
 }
 
 func (c *Client) initTransport() {
