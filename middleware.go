@@ -228,9 +228,14 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 		return
 	}
 	// body is in-memory []byte, so we can guess content type
-	if r.getHeader(header.ContentType) == "" {
-		r.SetContentType(http.DetectContentType(r.Body))
+
+	if c.Headers != nil && c.Headers.Get(header.ContentType) != "" { // ignore if content type set at client-level
+		return
 	}
+	if r.getHeader(header.ContentType) != "" { // ignore if content-type set at request-level
+		return
+	}
+	r.SetContentType(http.DetectContentType(r.Body))
 	return
 }
 
