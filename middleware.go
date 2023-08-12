@@ -472,3 +472,26 @@ func parseRequestURL(c *Client, r *Request) error {
 	r.URL = reqURL
 	return nil
 }
+
+func parseRequestHeader(c *Client, r *Request) error {
+	if c.Headers == nil {
+		return nil
+	}
+	if r.Headers == nil {
+		r.Headers = make(http.Header)
+	}
+	for k, vs := range c.Headers {
+		if len(r.Headers[k]) == 0 {
+			r.Headers[k] = vs
+		}
+	}
+	return nil
+}
+
+func parseRequestCookie(c *Client, r *Request) error {
+	if len(c.Cookies) == 0 {
+		return nil
+	}
+	r.Cookies = append(r.Cookies, c.Cookies...)
+	return nil
+}

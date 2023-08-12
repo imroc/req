@@ -854,39 +854,6 @@ func (t *Transport) roundTripAltSvc(req *http.Request, as *altsvc.AltSvc) (resp 
 	return
 }
 
-func (t *Transport) ensureHeaderAndCookie(req *http.Request, isHTTP bool) error {
-	if req.Header == nil {
-		closeBody(req)
-		return errors.New("http: nil Request.Header")
-	}
-	for k, vs := range t.Headers {
-		if len(req.Header[k]) == 0 {
-			req.Header[k] = vs
-		}
-	}
-	for _, c := range t.Cookies {
-		req.AddCookie(c)
-	}
-	if !isHTTP {
-		return nil
-	}
-	// TODO: is h2c should also check this?
-	for k, vv := range req.Header {
-		if !httpguts.ValidHeaderFieldName(k) {
-			closeBody(req)
-			return fmt.Errorf("net/http: invalid header field name %q", k)
-		}
-		for _, v := range vv {
-			if !httpguts.ValidHeaderFieldValue(v) {
-				closeBody(req)
-				// Don't include the value in the error, because it may be sensitive.
-				return fmt.Errorf("net/http: invalid header field value for %q", k)
-			}
-		}
-	}
-	return nil
-}
-
 func (t *Transport) checkAltSvc(req *http.Request) (resp *http.Response, err error) {
 	if t.altSvcJar == nil {
 		return
@@ -938,9 +905,27 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 	scheme := req.URL.Scheme
 	isHTTP := scheme == "http" || scheme == "https"
 
-	err = t.ensureHeaderAndCookie(req, isHTTP)
-	if err != nil {
-		return
+	if isHTTP {
+		// TODO: is h2c should also check this?
+		for k, vv := range req.Header {
+			if !httpguts.ValidHeaderFieldName(k) {
+				closeBody(req)
+				err = fmt.Errorf("net/http: invalid header field name %q", k)
+				return
+			}
+			for _, v := range vv {
+				if !httpguts.ValidHeaderFieldValue(v) {
+					closeBody(req)
+					// Don't include the value in the error, because it may be sensitive.
+					err = fmt.Errorf("net/http: invalid header field value for %q", k)
+					return
+				}
+			}
+		}
+	}
+
+	if req.Header == nil {
+		req.Header = make(http.Header)
 	}
 
 	if t.forceHttpVersion != "" {
