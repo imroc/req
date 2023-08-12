@@ -1175,7 +1175,11 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 			colonPos = len(addr)
 		}
 		hostname := addr[:colonPos]
-		utlsConfig := &utls.Config{ServerName: hostname, NextProtos: c.GetTLSClientConfig().NextProtos}
+		utlsConfig := &utls.Config{
+			ServerName:         hostname,
+			NextProtos:         c.GetTLSClientConfig().NextProtos,
+			InsecureSkipVerify: c.GetTLSClientConfig().InsecureSkipVerify,
+		}
 		uconn := &uTLSConn{utls.UClient(plainConn, utlsConfig, clientHelloID)}
 		err = uconn.HandshakeContext(ctx)
 		if err != nil {
