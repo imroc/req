@@ -114,6 +114,9 @@ type challenge struct {
 }
 
 func parseChallenge(input string) (*challenge, error) {
+	if !strings.HasPrefix(input, "Digest ") {
+		return nil, errDigestBadChallenge
+	}
 	c := &challenge{}
 	c.algorithm = "MD5"
 	re := regexp.MustCompile(`([\w]+)="?([^",]+)"?`)
