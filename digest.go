@@ -7,11 +7,12 @@ import (
 	"crypto/sha512"
 	"errors"
 	"fmt"
-	"github.com/imroc/req/v3/internal/header"
 	"hash"
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/imroc/req/v3/internal/header"
 )
 
 var (
@@ -19,7 +20,6 @@ var (
 	errDigestCharset         = errors.New("digest: unsupported charset")
 	errDigestAlgNotSupported = errors.New("digest: algorithm is not supported")
 	errDigestQopNotSupported = errors.New("digest: no supported qop in list")
-	errDigestNoQop           = errors.New("digest: qop must be specified")
 )
 
 var hashFuncs = map[string]func() hash.Hash{
@@ -213,7 +213,7 @@ func (c *credentials) authorize() (string, error) {
 func (c *credentials) validateQop() error {
 	// Currently only supporting auth quality of protection. TODO: add auth-int support
 	if c.messageQop == "" {
-		return errDigestNoQop
+		c.messageQop = "auth"
 	}
 	possibleQops := strings.Split(c.messageQop, ", ")
 	var authSupport bool
@@ -226,8 +226,6 @@ func (c *credentials) validateQop() error {
 	if !authSupport {
 		return errDigestQopNotSupported
 	}
-
-	c.messageQop = "auth"
 
 	return nil
 }
