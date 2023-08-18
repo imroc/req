@@ -10,6 +10,7 @@ import (
 	"hash"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"github.com/imroc/req/v3/internal/header"
@@ -113,42 +114,38 @@ type challenge struct {
 }
 
 func parseChallenge(input string) (*challenge, error) {
-	const ws = " \n\r\t"
-	const qs = `"`
-	s := strings.Trim(input, ws)
-	if !strings.HasPrefix(s, "Digest ") {
+	if !strings.HasPrefix(input, "Digest ") {
 		return nil, errDigestBadChallenge
 	}
-	s = strings.Trim(s[7:], ws)
-	sl := strings.Split(s, ", ")
 	c := &challenge{}
-	var r []string
-	for i := range sl {
-		r = strings.SplitN(sl[i], "=", 2)
-		if len(r) != 2 {
-			return nil, errDigestBadChallenge
-		}
-		switch r[0] {
+	c.algorithm = "MD5"
+	re := regexp.MustCompile(`([\w]+)="?([^",]+)"?`)
+	matches := re.FindAllStringSubmatch(input, -1)
+
+	for _, match := range matches {
+		switch match[1] {
 		case "realm":
-			c.realm = strings.Trim(r[1], qs)
-		case "domain":
-			c.domain = strings.Trim(r[1], qs)
-		case "nonce":
-			c.nonce = strings.Trim(r[1], qs)
-		case "opaque":
-			c.opaque = strings.Trim(r[1], qs)
-		case "stale":
-			c.stale = r[1]
+			c.realm = match[2]
 		case "algorithm":
-			c.algorithm = r[1]
+			c.algorithm = match[2]
+		case "nonce":
+			c.nonce = match[2]
+		case "stale":
+			c.stale = match[2]
 		case "qop":
-			c.qop = strings.Trim(r[1], qs)
-		case "charset":
-			if strings.ToUpper(strings.Trim(r[1], qs)) != "UTF-8" {
-				return nil, errDigestCharset
+			for _, v := range strings.Split(match[2], ",") {
+				v = strings.Trim(v, " ")
+				if v == "auth" || v == "auth-int" {
+					c.qop = "auth"
+					break
+				}
 			}
 		case "userhash":
-			c.userhash = strings.Trim(r[1], qs)
+			c.userhash = match[2]
+		case "domain":
+			c.domain = match[2]
+		case "opaque":
+			c.opaque = match[2]
 		default:
 			return nil, errDigestBadChallenge
 		}
@@ -213,7 +210,7 @@ func (c *credentials) authorize() (string, error) {
 func (c *credentials) validateQop() error {
 	// Currently only supporting auth quality of protection. TODO: add auth-int support
 	if c.messageQop == "" {
-		c.messageQop = "auth"
+		return nil
 	}
 	possibleQops := strings.Split(c.messageQop, ", ")
 	var authSupport bool
@@ -249,7 +246,9 @@ func (c *credentials) resp() (string, error) {
 
 	ha1 := c.ha1()
 	ha2 := c.ha2()
-
+	if c.messageQop == "" {
+		return c.h(fmt.Sprintf("%s:%s:%s", ha1, c.nonce, ha2)), nil
+	}
 	return c.kd(ha1, fmt.Sprintf("%s:%08x:%s:%s:%s",
 		c.nonce, c.nc, c.cNonce, c.messageQop, ha2)), nil
 }
