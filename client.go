@@ -1046,11 +1046,13 @@ func (c *Client) GetCookies(url string) ([]*http.Cookie, error) {
 	return c.httpClient.Jar.Cookies(u), nil
 }
 
-// ClearCookies clears all cookies if cookie is enabled.
-// Note: It has no effect if you called SetCookieJar instead of
-// SetCookieJarFactory.
+// ClearCookies clears all cookies if cookie is enabled, including
+// cookies from cookie jar and cookies set by SetCommonCookies.
+// Note: The cookie jar will not be cleared if you called SetCookieJar
+// instead of SetCookieJarFactory.
 func (c *Client) ClearCookies() *Client {
 	c.initCookieJar()
+	c.Cookies = nil
 	return c
 }
 
