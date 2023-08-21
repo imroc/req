@@ -1224,20 +1224,27 @@ func (c *Client) SetTLSHandshakeTimeout(timeout time.Duration) *Client {
 }
 
 // EnableForceHTTP1 enable force using HTTP1 (disabled by default).
+//
+// Attention: This method should not be called when ImpersonateXXX, SetTLSFingerPrint or
+// SetTLSHandshake and other methods that will customize the tls handshake are called.
 func (c *Client) EnableForceHTTP1() *Client {
 	c.Transport.EnableForceHTTP1()
 	return c
 }
 
-// EnableForceHTTP2 enable force using HTTP2 for https requests
-// (disabled by default).
+// EnableForceHTTP2 enable force using HTTP2 for https requests (disabled by default).
+//
+// Attention: This method should not be called when ImpersonateXXX, SetTLSFingerPrint or
+// SetTLSHandshake and other methods that will customize the tls handshake are called.
 func (c *Client) EnableForceHTTP2() *Client {
 	c.Transport.EnableForceHTTP2()
 	return c
 }
 
-// EnableForceHTTP3 enable force using HTTP3 for https requests
-// (disabled by default).
+// EnableForceHTTP3 enable force using HTTP3 for https requests (disabled by default).
+//
+// Attention: This method should not be called when ImpersonateXXX, SetTLSFingerPrint or
+// SetTLSHandshake and other methods that will customize the tls handshake are called.
 func (c *Client) EnableForceHTTP3() *Client {
 	c.Transport.EnableForceHTTP3()
 	return c
