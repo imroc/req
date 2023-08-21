@@ -120,11 +120,11 @@ func parseChallenge(input string) (*challenge, error) {
 		return nil, errDigestBadChallenge
 	}
 	s = strings.Trim(s[7:], ws)
-	sl := strings.Split(s, ", ")
+	sl := strings.Split(s, ",")
 	c := &challenge{}
 	var r []string
 	for i := range sl {
-		r = strings.SplitN(sl[i], "=", 2)
+		r = strings.SplitN(strings.TrimSpace(sl[i]), "=", 2)
 		if len(r) != 2 {
 			return nil, errDigestBadChallenge
 		}
