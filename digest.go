@@ -213,7 +213,7 @@ func (c *credentials) authorize() (string, error) {
 func (c *credentials) validateQop() error {
 	// Currently only supporting auth quality of protection. TODO: add auth-int support
 	if c.messageQop == "" {
-		c.messageQop = "auth"
+		return nil
 	}
 	possibleQops := strings.Split(c.messageQop, ", ")
 	var authSupport bool
@@ -250,6 +250,9 @@ func (c *credentials) resp() (string, error) {
 	ha1 := c.ha1()
 	ha2 := c.ha2()
 
+	if len(c.messageQop) == 0 {
+		return c.h(fmt.Sprintf("%s:%s:%s", ha1, c.nonce, ha2)), nil
+	}
 	return c.kd(ha1, fmt.Sprintf("%s:%08x:%s:%s:%s",
 		c.nonce, c.nc, c.cNonce, c.messageQop, ha2)), nil
 }
