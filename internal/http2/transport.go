@@ -653,7 +653,23 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	}
 
 	cc.cond = sync.NewCond(&cc.mu)
-	cc.flow.add(int32(initialWindowSize))
+
+	var windowSize int32 = initialWindowSize
+	var headerTableSize uint32 = initialHeaderTableSize
+	for _, setting := range t.Settings {
+		switch setting.ID {
+		case http2.SettingMaxFrameSize:
+			cc.maxFrameSize = setting.Val
+		case http2.SettingMaxHeaderListSize:
+			t.MaxHeaderListSize = setting.Val
+		case http2.SettingHeaderTableSize:
+			headerTableSize = setting.Val
+		case http2.SettingInitialWindowSize:
+			windowSize = int32(setting.Val)
+		}
+	}
+
+	cc.flow.add(windowSize)
 
 	// TODO: adjust this writer size to account for frame size +
 	// MTU + crypto/tls record padding.
@@ -668,7 +684,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	if t.CountError != nil {
 		cc.fr.countError = t.CountError
 	}
-	cc.fr.ReadMetaHeaders = hpack.NewDecoder(initialHeaderTableSize, nil)
+	cc.fr.ReadMetaHeaders = hpack.NewDecoder(headerTableSize, nil)
 	cc.fr.MaxHeaderListSize = t.maxHeaderListSize()
 
 	// TODO: SetMaxDynamicTableSize, SetMaxDynamicTableSizeLimit on
@@ -710,7 +726,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.nextStreamID = p.StreamID + 2
 	}
 
-	cc.inflow.init(int32(connFlow) + initialWindowSize)
+	cc.inflow.init(int32(connFlow) + windowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {
 		cc.Close()
