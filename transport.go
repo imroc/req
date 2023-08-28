@@ -17,6 +17,20 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
+	"log"
+	"mime"
+	"net"
+	"net/http"
+	"net/http/httptrace"
+	"net/textproto"
+	"net/url"
+	"runtime"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
 	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/altsvcutil"
 	"github.com/imroc/req/v3/internal/ascii"
@@ -33,19 +47,6 @@ import (
 	reqtls "github.com/imroc/req/v3/pkg/tls"
 	htmlcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding/ianaindex"
-	"io"
-	"log"
-	"mime"
-	"net"
-	"net/http"
-	"net/http/httptrace"
-	"net/textproto"
-	"net/url"
-	"runtime"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
 
 	"golang.org/x/net/http/httpguts"
 )
@@ -688,7 +689,7 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 }
 
 func (t *Transport) autoDecodeResponseBody(res *http.Response) {
-	if t.disableAutoDecode {
+	if t.disableAutoDecode || res.Header.Get("Accept-Encoding") != "" {
 		return
 	}
 	contentType := res.Header.Get("Content-Type")
