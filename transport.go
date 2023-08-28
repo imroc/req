@@ -542,7 +542,9 @@ func (t *Transport) DisableH2C() *Transport {
 // (disabled by default).
 func (t *Transport) EnableForceHTTP3() *Transport {
 	t.EnableHTTP3()
-	t.forceHttpVersion = h3
+	if t.t3 != nil {
+		t.forceHttpVersion = h3
+	}
 	return t
 }
 
@@ -580,7 +582,7 @@ func (t *Transport) EnableHTTP3() {
 		}
 		return
 	}
-	if !(minorVersion >= 18 && minorVersion <= 20) {
+	if !(minorVersion >= 20 && minorVersion <= 21) {
 		if t.Debugf != nil {
 			t.Debugf("%s is not support http3", v)
 		}
