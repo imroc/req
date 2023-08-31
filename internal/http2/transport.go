@@ -654,7 +654,6 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 
 	cc.cond = sync.NewCond(&cc.mu)
 
-	var windowSize int32 = initialWindowSize
 	var headerTableSize uint32 = initialHeaderTableSize
 	for _, setting := range t.Settings {
 		switch setting.ID {
@@ -664,12 +663,10 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 			t.MaxHeaderListSize = setting.Val
 		case http2.SettingHeaderTableSize:
 			headerTableSize = setting.Val
-		case http2.SettingInitialWindowSize:
-			windowSize = int32(setting.Val)
 		}
 	}
 
-	cc.flow.add(windowSize)
+	cc.flow.add(initialWindowSize)
 
 	// TODO: adjust this writer size to account for frame size +
 	// MTU + crypto/tls record padding.
@@ -726,7 +723,7 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 		cc.nextStreamID = p.StreamID + 2
 	}
 
-	cc.inflow.init(int32(connFlow) + windowSize)
+	cc.inflow.init(int32(connFlow) + initialWindowSize)
 	cc.bw.Flush()
 	if cc.werr != nil {
 		cc.Close()
