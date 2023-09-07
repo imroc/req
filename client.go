@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	"github.com/imroc/req/v3/http2"
 	"io"
 	"net"
 	"net/http"
@@ -19,11 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"golang.org/x/net/publicsuffix"
-
+	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
 	utls "github.com/refraction-networking/utls"
+	"golang.org/x/net/publicsuffix"
 )
 
 // DefaultClient returns the global default Client.
@@ -1179,6 +1178,7 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 		hostname := addr[:colonPos]
 		utlsConfig := &utls.Config{
 			ServerName:         hostname,
+			RootCAs:            c.GetTLSClientConfig().RootCAs,
 			NextProtos:         c.GetTLSClientConfig().NextProtos,
 			InsecureSkipVerify: c.GetTLSClientConfig().InsecureSkipVerify,
 		}
