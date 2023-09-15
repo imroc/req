@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/go-multierror"
+
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
@@ -285,9 +286,11 @@ func (r *Request) SetFile(paramName, filePath string) *Request {
 	})
 }
 
-var errMissingParamName = errors.New("missing param name in multipart file upload")
-var errMissingFileName = errors.New("missing filename in multipart file upload")
-var errMissingFileContent = errors.New("missing file content in multipart file upload")
+var (
+	errMissingParamName   = errors.New("missing param name in multipart file upload")
+	errMissingFileName    = errors.New("missing filename in multipart file upload")
+	errMissingFileContent = errors.New("missing file content in multipart file upload")
+)
 
 // SetFileUpload set the fully custimized multipart file upload options.
 func (r *Request) SetFileUpload(uploads ...FileUpload) *Request {
@@ -695,8 +698,6 @@ func (r *Request) do() (resp *Response, err error) {
 		resp.result = nil
 		resp.error = nil
 	}
-
-	return
 }
 
 // Send fires http request with specified method and url, returns the
@@ -705,6 +706,9 @@ func (r *Request) Send(method, url string) (*Response, error) {
 	r.Method = method
 	r.RawURL = url
 	resp := r.Do()
+	if resp.Err != nil && r.client.onError != nil {
+		r.client.onError(r.client, r, resp, resp.Err)
+	}
 	return resp, resp.Err
 }
 

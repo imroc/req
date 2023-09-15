@@ -18,11 +18,12 @@ import (
 	"strings"
 	"time"
 
+	utls "github.com/refraction-networking/utls"
+	"golang.org/x/net/publicsuffix"
+
 	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
-	utls "github.com/refraction-networking/utls"
-	"golang.org/x/net/publicsuffix"
 )
 
 // DefaultClient returns the global default Client.
@@ -70,7 +71,10 @@ type Client struct {
 	roundTripWrappers       []RoundTripWrapper
 	responseBodyTransformer func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
 	resultStateCheckFunc    func(resp *Response) ResultState
+	onError                 ErrorHook
 }
+
+type ErrorHook func(client *Client, req *Request, resp *Response, err error)
 
 // R create a new request.
 func (c *Client) R() *Request {
@@ -978,6 +982,13 @@ func (c *Client) SetCommonDumpOptions(opt *DumpOptions) *Client {
 // SetProxy set the proxy function.
 func (c *Client) SetProxy(proxy func(*http.Request) (*urlpkg.URL, error)) *Client {
 	c.Transport.SetProxy(proxy)
+	return c
+}
+
+// OnError set the error hook which will be executed if any error returned,
+// even if the occurs before request is sent (e.g. invalid URL).
+func (c *Client) OnError(hook ErrorHook) *Client {
+	c.onError = hook
 	return c
 }
 
