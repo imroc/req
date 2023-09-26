@@ -2,11 +2,13 @@ package req
 
 import (
 	"errors"
-	"github.com/imroc/req/v3/internal/ascii"
-	"github.com/imroc/req/v3/internal/header"
-	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"strings"
+
+	"golang.org/x/net/http/httpguts"
+
+	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/imroc/req/v3/internal/header"
 )
 
 // Given a string of the form "host", "host:port", or "[ipv6::address]:port",
@@ -88,12 +90,13 @@ func closeRequestBody(r *http.Request) error {
 
 // Headers that Request.Write handles itself and should be skipped.
 var reqWriteExcludeHeader = map[string]bool{
-	"Host":               true, // not in Header map anyway
-	"User-Agent":         true,
-	"Content-Length":     true,
-	"Transfer-Encoding":  true,
-	"Trailer":            true,
-	header.HeaderOderKey: true,
+	"Host":                     true, // not in Header map anyway
+	"User-Agent":               true,
+	"Content-Length":           true,
+	"Transfer-Encoding":        true,
+	"Trailer":                  true,
+	header.HeaderOderKey:       true,
+	header.PseudoHeaderOderKey: true,
 }
 
 // requestMethodUsuallyLacksBody reports whether the given request

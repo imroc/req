@@ -1,14 +1,16 @@
 package req
 
 import (
-	"github.com/imroc/req/v3/internal/header"
-	"golang.org/x/net/http/httpguts"
 	"io"
 	"net/http"
 	"net/textproto"
 	"sort"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/http/httpguts"
+
+	"github.com/imroc/req/v3/internal/header"
 )
 
 var headerNewlineToSpace = strings.NewReplacer("\n", " ", "\r", " ")
