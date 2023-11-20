@@ -242,7 +242,14 @@ func (r *Request) SetFileReader(paramName, filename string, reader io.Reader) *R
 
 // SetFileBytes set up a multipart form with given []byte to upload.
 func (r *Request) SetFileBytes(paramName, filename string, content []byte) *Request {
-	return r.SetFileReader(paramName, filename, bytes.NewReader(content))
+	r.SetFileUpload(FileUpload{
+		ParamName: paramName,
+		FileName:  filename,
+		GetFileContent: func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(content)), nil
+		},
+	})
+	return r
 }
 
 // SetFiles set up a multipart form from a map to upload, which
