@@ -31,14 +31,14 @@ func versionToALPN(v quic.VersionNumber) string {
 
 type requestError struct {
 	err       error
-	streamErr errorCode
-	connErr   errorCode
+	streamErr ErrCode
+	connErr   ErrCode
 }
 
-func newStreamError(code errorCode, err error) requestError {
+func newStreamError(code ErrCode, err error) requestError {
 	return requestError{err: err, streamErr: code}
 }
 
-func newConnError(code errorCode, err error) requestError {
+func newConnError(code ErrCode, err error) requestError {
 	return requestError{err: err, connErr: code}
 }
