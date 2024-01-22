@@ -68,6 +68,7 @@ type Request struct {
 	dumpBuffer               *bytes.Buffer
 	responseReturnTime       time.Time
 	afterResponse            []ResponseMiddleware
+	contextData              map[string]any
 }
 
 type GetContentFunc func() (io.ReadCloser, error)
@@ -1206,4 +1207,19 @@ func (r *Request) GetClient() *Client {
 func (r *Request) EnableCloseConnection() *Request {
 	r.close = true
 	return r
+}
+
+func (r *Request) SetContextData(k string, v any) *Request {
+	if r.contextData == nil {
+		r.contextData = make(map[string]any)
+	}
+	r.contextData[k] = v
+	return r
+}
+
+func (r *Request) GetContextData(k string) any {
+	if r.contextData == nil {
+		return nil
+	}
+	return r.contextData[k]
 }
