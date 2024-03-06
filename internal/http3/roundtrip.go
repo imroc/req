@@ -42,8 +42,8 @@ type RoundTripper struct {
 
 	// Enable support for HTTP/3 datagrams.
 	// If set to true, QuicConfig.EnableDatagram will be set.
-	// 
-  // See https://datatracker.ietf.org/doc/html/rfc9297.
+	//
+	// See https://datatracker.ietf.org/doc/html/rfc9297.
 	EnableDatagrams bool
 
 	// Additional HTTP/3 settings.
@@ -223,6 +223,7 @@ func (r *RoundTripper) getClient(hostname string, onlyCached bool) (rtc *roundTr
 				StreamHijacker:     r.StreamHijacker,
 				UniStreamHijacker:  r.UniStreamHijacker,
 				dump:               r.Dump,
+				AdditionalSettings: r.AdditionalSettings,
 			},
 			r.QuicConfig,
 			dial,
