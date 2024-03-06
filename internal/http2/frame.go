@@ -10,15 +10,16 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/imroc/req/v3/http2"
-	"github.com/imroc/req/v3/internal/dump"
-	"golang.org/x/net/http/httpguts"
-	"golang.org/x/net/http2/hpack"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"sync"
+
+	"github.com/imroc/req/v3/http2"
+	"github.com/imroc/req/v3/internal/dump"
+	"golang.org/x/net/http/httpguts"
+	"golang.org/x/net/http2/hpack"
 )
 
 const frameHeaderLen = 9
@@ -1542,14 +1543,13 @@ func (mh *MetaHeadersFrame) checkPseudos() error {
 	return nil
 }
 
-func (h2f *Framer) maxHeaderStringLen() int {
-	v := h2f.maxHeaderListSize()
-	if uint32(int(v)) == v {
-		return int(v)
+func (fr *Framer) maxHeaderStringLen() int {
+	v := int(fr.maxHeaderListSize())
+	if v < 0 {
+		// If maxHeaderListSize overflows an int, use no limit (0).
+		return 0
 	}
-	// They had a crazy big number for MaxHeaderBytes anyway,
-	// so give them unlimited header lengths:
-	return 0
+	return v
 }
 
 // readMetaFrame returns 0 or more CONTINUATION frames from fr and
@@ -1562,7 +1562,7 @@ func (h2f *Framer) readMetaFrame(hf *HeadersFrame, dumps []*dump.Dumper) (*MetaH
 	mh := &MetaHeadersFrame{
 		HeadersFrame: hf,
 	}
-	var remainSize = h2f.maxHeaderListSize()
+	remainSize := h2f.maxHeaderListSize()
 	var sawRegular bool
 
 	var invalid error // pseudo header field errors

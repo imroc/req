@@ -19,6 +19,7 @@ import (
 	"io/fs"
 	"log"
 	"math"
+	"math/bits"
 	mathrand "math/rand"
 	"net"
 	"net/http"
@@ -177,8 +178,7 @@ func (t *Transport) initConnPool() {
 // HTTP/2 server.
 type ClientConn struct {
 	t             *Transport
-	tconn         net.Conn // usually TLSConn, except specialized impls
-	tconnClosed   bool
+	tconn         net.Conn             // usually TLSConn, except specialized impls
 	tlsState      *tls.ConnectionState // nil only for specialized impls
 	reused        uint32               // whether conn is being reused; atomic
 	singleUse     bool                 // whether being used for a single http.Request
@@ -410,11 +410,14 @@ func (t *Transport) RoundTripOnlyCachedConn(req *http.Request) (*http.Response, 
 func authorityAddr(scheme string, authority string) (addr string) {
 	host, port, err := net.SplitHostPort(authority)
 	if err != nil { // authority didn't have a port
+		host = authority
+		port = ""
+	}
+	if port == "" { // authority's port was empty
 		port = "443"
 		if scheme == "http" {
 			port = "80"
 		}
-		host = authority
 	}
 	if a, err := idna.ToASCII(host); err == nil {
 		host = a
@@ -956,19 +959,10 @@ func (cc *ClientConn) closeConn() {
 	cc.tconn.Close()
 }
 
-// netConnWrapper is the interface to get underlying connection, which is
-// introduced in go1.18 for *tls.Conn.
-type netConnWrapper interface {
-	// NetConn returns the underlying connection that is wrapped by c.
-	// Note that writing to or reading from this connection directly will corrupt the
-	// TLS session.
-	NetConn() net.Conn
-}
-
 // A tls.Conn.Close can hang for a long time if the peer is unresponsive.
 // Try to shut it down more aggressively.
 func (cc *ClientConn) forceCloseConn() {
-	tc, ok := cc.tconn.(netConnWrapper)
+	tc, ok := cc.tconn.(*tls.Conn)
 	if !ok {
 		return
 	}
@@ -1218,22 +1212,7 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 
 	cancelRequest := func(cs *clientStream, err error) error {
 		cs.cc.mu.Lock()
-		cs.abortStreamLocked(err)
 		bodyClosed := cs.reqBodyClosed
-		if cs.ID != 0 {
-			// This request may have failed because of a problem with the connection,
-			// or for some unrelated reason. (For example, the user might have canceled
-			// the request without waiting for a response.) Mark the connection as
-			// not reusable, since trying to reuse a dead connection is worse than
-			// unnecessarily creating a new one.
-			//
-			// If cs.ID is 0, then the request was never allocated a stream ID and
-			// whatever went wrong was unrelated to the connection. We might have
-			// timed out waiting for a stream slot when StrictMaxConcurrentStreams
-			// is set, for example, in which case retrying on a different connection
-			// will not help.
-			cs.cc.doNotReuse = true
-		}
 		cs.cc.mu.Unlock()
 		// Wait for the request body to be closed.
 		//
@@ -1268,11 +1247,14 @@ func (cc *ClientConn) RoundTrip(req *http.Request) (*http.Response, error) {
 				return handleResponseHeaders()
 			default:
 				waitDone()
-				return nil, cancelRequest(cs, cs.abortErr)
+				return nil, cs.abortErr
 			}
 		case <-ctx.Done():
-			return nil, cancelRequest(cs, ctx.Err())
+			err := ctx.Err()
+			cs.abortStream(err)
+			return nil, cancelRequest(cs, err)
 		case <-cs.reqCancel:
+			cs.abortStream(common.ErrRequestCanceled)
 			return nil, cancelRequest(cs, common.ErrRequestCanceled)
 		}
 	}
@@ -1654,7 +1636,27 @@ func (cs *clientStream) frameScratchBufferLen(maxFrameSize int) int {
 	return int(n) // doesn't truncate; max is 512K
 }
 
-var bufPool sync.Pool // of *[]byte
+// Seven bufPools manage different frame sizes. This helps to avoid scenarios where long-running
+// streaming requests using small frame sizes occupy large buffers initially allocated for prior
+// requests needing big buffers. The size ranges are as follows:
+// {0 KB, 16 KB], {16 KB, 32 KB], {32 KB, 64 KB], {64 KB, 128 KB], {128 KB, 256 KB],
+// {256 KB, 512 KB], {512 KB, infinity}
+// In practice, the maximum scratch buffer size should not exceed 512 KB due to
+// frameScratchBufferLen(maxFrameSize), thus the "infinity pool" should never be used.
+// It exists mainly as a safety measure, for potential future increases in max buffer size.
+var bufPools [7]sync.Pool // of *[]byte
+func bufPoolIndex(size int) int {
+	if size <= 16384 {
+		return 0
+	}
+	size -= 1
+	bits := bits.Len(uint(size))
+	index := bits - 14
+	if index >= len(bufPools) {
+		return len(bufPools) - 1
+	}
+	return index
+}
 
 func (cs *clientStream) writeRequestBody(req *http.Request, dumps []*dump.Dumper) (err error) {
 	cc := cs.cc
@@ -1672,12 +1674,13 @@ func (cs *clientStream) writeRequestBody(req *http.Request, dumps []*dump.Dumper
 	// Scratch buffer for reading into & writing from.
 	scratchLen := cs.frameScratchBufferLen(maxFrameSize)
 	var buf []byte
-	if bp, ok := bufPool.Get().(*[]byte); ok && len(*bp) >= scratchLen {
-		defer bufPool.Put(bp)
+	index := bufPoolIndex(scratchLen)
+	if bp, ok := bufPools[index].Get().(*[]byte); ok && len(*bp) >= scratchLen {
+		defer bufPools[index].Put(bp)
 		buf = *bp
 	} else {
 		buf = make([]byte, scratchLen)
-		defer bufPool.Put(&buf)
+		defer bufPools[index].Put(&buf)
 	}
 
 	writeData := cc.fr.WriteData
@@ -1853,6 +1856,9 @@ func (cc *ClientConn) encodeHeaders(req *http.Request, addGzipHeader bool, trail
 	host, err := httpguts.PunycodeHostPort(host)
 	if err != nil {
 		return nil, err
+	}
+	if !httpguts.ValidHostHeader(host) {
+		return nil, errors.New("http2: invalid Host header")
 	}
 
 	var path string
@@ -2964,6 +2970,15 @@ func (rl *clientConnReadLoop) processWindowUpdate(f *WindowUpdateFrame) error {
 		fl = &cs.flow
 	}
 	if !fl.add(int32(f.Increment)) {
+		// For stream, the sender sends RST_STREAM with an error code of FLOW_CONTROL_ERROR
+		if cs != nil {
+			rl.endStreamError(cs, StreamError{
+				StreamID: f.StreamID,
+				Code:     ErrCodeFlowControl,
+			})
+			return nil
+		}
+
 		return ConnectionError(ErrCodeFlowControl)
 	}
 	cc.cond.Broadcast()
