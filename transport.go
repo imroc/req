@@ -1583,6 +1583,13 @@ func (w *wantConn) waiting() bool {
 	}
 }
 
+// getCtxForDial returns context for dial or nil if connection was delivered or canceled.
+func (w *wantConn) getCtxForDial() context.Context {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.ctx
+}
+
 // tryDeliver attempts to deliver pc, err to w and reports whether it succeeded.
 func (w *wantConn) tryDeliver(pc *persistConn, err error) bool {
 	w.mu.Lock()
@@ -1592,6 +1599,7 @@ func (w *wantConn) tryDeliver(pc *persistConn, err error) bool {
 		return false
 	}
 
+	w.ctx = nil
 	w.pc = pc
 	w.err = err
 	if w.pc == nil && w.err == nil {
@@ -1609,6 +1617,7 @@ func (w *wantConn) cancel(t *Transport, err error) {
 		close(w.ready) // catch misbehavior in future delivery
 	}
 	pc := w.pc
+	w.ctx = nil
 	w.pc = nil
 	w.err = err
 	w.mu.Unlock()
@@ -1814,6 +1823,11 @@ func (t *Transport) queueForDial(w *wantConn) {
 // If the dial is canceled or unsuccessful, dialConnFor decrements t.connCount[w.cm.key()].
 func (t *Transport) dialConnFor(w *wantConn) {
 	defer w.afterDial()
+	ctx := w.getCtxForDial()
+	if ctx == nil {
+		t.decConnsPerHost(w.key)
+		return
+	}
 
 	pc, err := t.dialConn(w.ctx, w.cm)
 	delivered := w.tryDeliver(pc, err)
@@ -1882,7 +1896,6 @@ func (t *Transport) decConnsPerHost(key connectMethodKey) {
 // tunnel, this function establishes a nested TLS session inside the encrypted channel.
 // The remote endpoint's name may be overridden by TLSClientConfig.ServerName.
 func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace.ClientTrace, forProxy bool) error {
-
 	// Initiate TLS and check remote host name against certificate.
 	cfg := cloneTLSConfig(pc.t.TLSClientConfig)
 	if cfg.ServerName == "" {
@@ -1912,6 +1925,11 @@ func (pc *persistConn) addTLS(ctx context.Context, name string, trace *httptrace
 	}()
 	if err := <-errc; err != nil {
 		plainConn.Close()
+		if err == (tlsHandshakeTimeoutError{}) {
+			// Now that we have closed the connection,
+			// wait for the call to HandshakeContext to return.
+			<-errc
+		}
 		if trace != nil && trace.TLSHandshakeDone != nil {
 			trace.TLSHandshakeDone(tls.ConnectionState{}, err)
 		}
@@ -2148,6 +2166,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 		if t.OnProxyConnectResponse != nil {
 			err = t.OnProxyConnectResponse(ctx, cm.proxyURL, connectReq, resp)
 			if err != nil {
+				conn.Close()
 				return nil, err
 			}
 		}
@@ -2690,7 +2709,6 @@ func (pc *persistConn) readLoop() {
 				waitForBodyRead <- false
 				<-eofc // will be closed by deferred call at the end of the function
 				return nil
-
 			},
 			fn: func(err error) error {
 				isEOF := err == io.EOF
@@ -2737,7 +2755,7 @@ func (pc *persistConn) readLoop() {
 			}
 		case <-rc.req.Cancel:
 			alive = false
-			pc.t.CancelRequest(rc.req)
+			pc.t.cancelRequest(rc.cancelKey, common.ErrRequestCanceled)
 		case <-rc.req.Context().Done():
 			alive = false
 			pc.t.cancelRequest(rc.cancelKey, rc.req.Context().Err())
@@ -3227,16 +3245,18 @@ type writeRequest struct {
 	continueCh <-chan struct{}
 }
 
-type httpError struct {
-	err     string
-	timeout bool
+// httpTimeoutError represents a timeout.
+// It implements net.Error and wraps context.DeadlineExceeded.
+type timeoutError struct {
+	err string
 }
 
-func (e *httpError) Error() string   { return e.err }
-func (e *httpError) Timeout() bool   { return e.timeout }
-func (e *httpError) Temporary() bool { return true }
+func (e *timeoutError) Error() string     { return e.err }
+func (e *timeoutError) Timeout() bool     { return true }
+func (e *timeoutError) Temporary() bool   { return true }
+func (e *timeoutError) Is(err error) bool { return err == context.DeadlineExceeded }
 
-var errTimeout error = &httpError{err: "net/http: timeout awaiting response headers", timeout: true}
+var errTimeout error = &timeoutError{"net/http: timeout awaiting response headers"}
 
 var errRequestCanceledConn = errors.New("net/http: request canceled while waiting for connection") // TODO: unify?
 

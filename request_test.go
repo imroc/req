@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/tests"
 	"io"
 	"net/http"
 	"net/url"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/tests"
 )
 
 func TestMustSendMethods(t *testing.T) {
@@ -635,7 +636,6 @@ func testQueryParam(t *testing.T, c *Client) {
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5&key6=value6&key6=value66", resp.String())
-
 }
 
 func TestPathParam(t *testing.T) {
@@ -963,7 +963,7 @@ func (r *SlowReader) Read(p []byte) (int, error) {
 
 func TestUploadCallback(t *testing.T) {
 	r := tc().R()
-	file := "transport_test.go"
+	file := "transport.go"
 	fileInfo, err := os.Stat(file)
 	if err != nil {
 		t.Fatal(err)

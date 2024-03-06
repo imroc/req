@@ -9,9 +9,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/imroc/req/v3/internal"
-	"github.com/imroc/req/v3/internal/ascii"
-	"github.com/imroc/req/v3/internal/dump"
 	"io"
 	"net/http"
 	"net/textproto"
@@ -21,6 +18,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/imroc/req/v3/internal"
+	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/imroc/req/v3/internal/dump"
+	"github.com/imroc/req/v3/internal/godebug"
 
 	"golang.org/x/net/http/httpguts"
 )
@@ -317,7 +319,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dump.Dumper) (err error
 	// OS-level optimizations in the event that the body is an
 	// *os.File.
 	if t.Body != nil {
-		var body = t.unwrapBody()
+		body := t.unwrapBody()
 		if chunked(t.TransferEncoding) {
 			if bw, ok := rw.(*bufio.Writer); ok {
 				rw = &internal.FlushAfterChunkWriter{Writer: bw}
@@ -386,7 +388,9 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dump.Dumper) (err error
 //
 // This function is only intended for use in writeBody.
 func (t *transferWriter) doBodyCopy(dst io.Writer, src io.Reader) (n int64, err error) {
-	n, err = io.Copy(dst, src)
+	buf := getCopyBuf()
+	defer putCopyBuf(buf)
+	n, err = io.CopyBuffer(dst, src, buf)
 	if err != nil && err != io.EOF {
 		t.bodyReadError = err
 	}
@@ -478,7 +482,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		return err
 	}
 	if isResponse && t.RequestMethod == "HEAD" {
-		if n, err := parseContentLength(headerGet(t.Header, "Content-Length")); err != nil {
+		if n, err := parseContentLength(t.Header["Content-Length"]); err != nil {
 			return err
 		} else {
 			t.ContentLength = n
@@ -582,19 +586,6 @@ func (t *transferReader) parseTransferEncoding() error {
 		return &unsupportedTEError{fmt.Sprintf("unsupported transfer encoding: %q", raw[0])}
 	}
 
-	// RFC 7230 3.3.2 says "A sender MUST NOT send a Content-Length header field
-	// in any message that contains a Transfer-Encoding header field."
-	//
-	// but also: "If a message is received with both a Transfer-Encoding and a
-	// Content-Length header field, the Transfer-Encoding overrides the
-	// Content-Length. Such a message might indicate an attempt to perform
-	// request smuggling (Section 9.5) or response splitting (Section 9.4) and
-	// ought to be handled as an error. A sender MUST remove the received
-	// Content-Length field prior to forwarding such a message downstream."
-	//
-	// Reportedly, these appear in the wild.
-	delete(t.Header, "Content-Length")
-
 	t.Chunked = true
 	return nil
 }
@@ -602,7 +593,8 @@ func (t *transferReader) parseTransferEncoding() error {
 // Determine the expected body length, using RFC 7230 Section 3.3. This
 // function is not a method, because ultimately it should be shared by
 // ReadResponse and ReadRequest.
-func fixLength(isResponse bool, status int, requestMethod string, header http.Header, chunked bool) (int64, error) {
+func fixLength(isResponse bool, status int, requestMethod string, header http.Header, chunked bool) (n int64, err error) {
+	isRequest := !isResponse
 	contentLens := header["Content-Length"]
 
 	// Hardening against HTTP request smuggling
@@ -625,6 +617,14 @@ func fixLength(isResponse bool, status int, requestMethod string, header http.He
 		contentLens = header["Content-Length"]
 	}
 
+	// Reject requests with invalid Content-Length headers.
+	if len(contentLens) > 0 {
+		n, err = parseContentLength(contentLens)
+		if err != nil {
+			return -1, err
+		}
+	}
+
 	// Logic based on response type or status
 	if isResponse && noResponseBodyExpected(requestMethod) {
 		return 0, nil
@@ -637,25 +637,43 @@ func fixLength(isResponse bool, status int, requestMethod string, header http.He
 		return 0, nil
 	}
 
+	// According to RFC 9112, "If a message is received with both a
+	// Transfer-Encoding and a Content-Length header field, the Transfer-Encoding
+	// overrides the Content-Length. Such a message might indicate an attempt to
+	// perform request smuggling (Section 11.2) or response splitting (Section 11.1)
+	// and ought to be handled as an error. An intermediary that chooses to forward
+	// the message MUST first remove the received Content-Length field and process
+	// the Transfer-Encoding (as described below) prior to forwarding the message downstream."
+	//
+	// Chunked-encoding requests with either valid Content-Length
+	// headers or no Content-Length headers are accepted after removing
+	// the Content-Length field from header.
+	//
 	// Logic based on Transfer-Encoding
 	if chunked {
+		header.Del("Content-Length")
 		return -1, nil
 	}
 
 	// Logic based on Content-Length
-	var cl string
-	if len(contentLens) == 1 {
-		cl = textproto.TrimString(contentLens[0])
-	}
-	if cl != "" {
-		n, err := parseContentLength(cl)
-		if err != nil {
-			return -1, err
-		}
+	if len(contentLens) > 0 {
 		return n, nil
 	}
+
 	header.Del("Content-Length")
 
+	if isRequest {
+		// RFC 7230 neither explicitly permits nor forbids an
+		// entity-body on a GET request so we permit one if
+		// declared, but we default to 0 here (not -1 below)
+		// if there's no mention of a body.
+		// Likewise, all other request methods are assumed to have
+		// no body if neither Transfer-Encoding chunked nor a
+		// Content-Length are set.
+		return 0, nil
+	}
+
+	// Body-EOF logic based on other methods (like closing, or chunked coding)
 	return -1, nil
 }
 
@@ -955,19 +973,31 @@ func (bl bodyLocked) Read(p []byte) (n int, err error) {
 	return bl.b.readLocked(p)
 }
 
-// parseContentLength trims whitespace from s and returns -1 if no value
-// is set, or the value if it's >= 0.
-func parseContentLength(cl string) (int64, error) {
-	cl = textproto.TrimString(cl)
-	if cl == "" {
+var laxContentLength = godebug.New("httplaxcontentlength")
+
+// parseContentLength checks that the header is valid and then trims
+// whitespace. It returns -1 if no value is set otherwise the value
+// if it's >= 0.
+func parseContentLength(clHeaders []string) (int64, error) {
+	if len(clHeaders) == 0 {
 		return -1, nil
+	}
+	cl := textproto.TrimString(clHeaders[0])
+
+	// The Content-Length must be a valid numeric value.
+	// See: https://datatracker.ietf.org/doc/html/rfc2616/#section-14.13
+	if cl == "" {
+		if laxContentLength.Value() == "1" {
+			laxContentLength.IncNonDefault()
+			return -1, nil
+		}
+		return 0, badStringError("invalid empty Content-Length", cl)
 	}
 	n, err := strconv.ParseUint(cl, 10, 63)
 	if err != nil {
 		return 0, badStringError("bad Content-Length", cl)
 	}
 	return int64(n), nil
-
 }
 
 // finishAsyncByteRead finishes reading the 1-byte sniff
@@ -991,11 +1021,13 @@ func (fr finishAsyncByteRead) Read(p []byte) (n int, err error) {
 	return
 }
 
-var nopCloserType = reflect.TypeOf(io.NopCloser(nil))
-var nopCloserWriterToType = reflect.TypeOf(io.NopCloser(struct {
-	io.Reader
-	io.WriterTo
-}{}))
+var (
+	nopCloserType         = reflect.TypeOf(io.NopCloser(nil))
+	nopCloserWriterToType = reflect.TypeOf(io.NopCloser(struct {
+		io.Reader
+		io.WriterTo
+	}{}))
+)
 
 // unwrapNopCloser return the underlying reader and true if r is a NopCloser
 // else it return false.
