@@ -1102,7 +1102,7 @@ func (r *Request) EnableForceMultipart() *Request {
 
 // DisableForceMultipart disables force using multipart to upload form data.
 func (r *Request) DisableForceMultipart() *Request {
-	r.isMultiPart = true
+	r.isMultiPart = false
 	return r
 }
 
