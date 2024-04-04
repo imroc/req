@@ -20,7 +20,7 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
-func TestPassContext(t *testing.T) {
+func TestRetryCancelledContext(t *testing.T) {
 	cancelledCtx, done := context.WithCancel(context.Background())
 	done()
 
