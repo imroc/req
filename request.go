@@ -661,8 +661,8 @@ func (r *Request) do() (resp *Response, err error) {
 			resp, err = r.client.roundTrip(r)
 		}
 
-		// Determine if the error is from a cancelled context. Store it here so it doesn't get lost
-		// when processing the AfterRespon middleware.
+		// Determine if the error is from a canceled context.
+		// Store it here so it doesn't get lost when processing the AfterResponse middleware.
 		contextCanceled := errors.Is(err, context.Canceled)
 
 		for _, f := range r.afterResponse {
