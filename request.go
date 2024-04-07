@@ -635,7 +635,7 @@ func (r *Request) do() (resp *Response, err error) {
 		if resp == nil {
 			resp = &Response{Request: r}
 		}
-		if err != nil {
+		if err != nil && resp.Err == nil {
 			resp.Err = err
 		}
 	}()
