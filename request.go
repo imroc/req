@@ -661,13 +661,17 @@ func (r *Request) do() (resp *Response, err error) {
 			resp, err = r.client.roundTrip(r)
 		}
 
+		// Determine if the error is from a cancelled context. Store it here so it doesn't get lost
+		// when processing the AfterRespon middleware.
+		contextCanceled := errors.Is(err, context.Canceled)
+
 		for _, f := range r.afterResponse {
 			if err = f(r.client, resp); err != nil {
 				return
 			}
 		}
 
-		if r.retryOption == nil || (r.RetryAttempt >= r.retryOption.MaxRetries && r.retryOption.MaxRetries >= 0) { // absolutely cannot retry.
+		if contextCanceled || r.retryOption == nil || (r.RetryAttempt >= r.retryOption.MaxRetries && r.retryOption.MaxRetries >= 0) { // absolutely cannot retry.
 			return
 		}
 

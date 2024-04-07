@@ -5,9 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/tests"
-	"golang.org/x/net/publicsuffix"
 	"io"
 	"net"
 	"net/http"
@@ -17,7 +14,26 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/tests"
+	"golang.org/x/net/publicsuffix"
 )
+
+func TestRetryCancelledContext(t *testing.T) {
+	cancelledCtx, done := context.WithCancel(context.Background())
+	done()
+
+	client := tc().
+		SetCommonRetryCount(2).
+		SetCommonRetryBackoffInterval(1*time.Second, 5*time.Second)
+
+	res, err := client.R().SetContext(cancelledCtx).Get("/")
+
+	tests.AssertEqual(t, 0, res.Request.RetryAttempt)
+	tests.AssertNotNil(t, err)
+	tests.AssertErrorContains(t, err, "context canceled")
+}
 
 func TestWrapRoundTrip(t *testing.T) {
 	i, j, a, b := 0, 0, 0, 0
