@@ -19,6 +19,10 @@ func NewLogger(output io.Writer, prefix string, flag int) Logger {
 	return &logger{l: log.New(output, prefix, flag)}
 }
 
+func NewStandardLogger(l *log.Logger) Logger {
+	return &logger{l: l}
+}
+
 func createDefaultLogger() Logger {
 	return NewLogger(os.Stdout, "", log.Ldate|log.Lmicroseconds)
 }
