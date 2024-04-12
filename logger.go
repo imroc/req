@@ -19,7 +19,7 @@ func NewLogger(output io.Writer, prefix string, flag int) Logger {
 	return &logger{l: log.New(output, prefix, flag)}
 }
 
-func NewStandardLogger(l *log.Logger) Logger {
+func NewFromStandardLogger(l *log.Logger) Logger {
 	return &logger{l: l}
 }
 

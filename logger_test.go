@@ -19,9 +19,9 @@ func TestLogger(t *testing.T) {
 	tests.AssertContains(t, buf.String(), "warn", true)
 }
 
-func TestStandardLogger(t *testing.T) {
+func TestFromStandardLogger(t *testing.T) {
 	buf := new(bytes.Buffer)
-	l := NewStandardLogger(log.New(buf, "", log.Ldate|log.Lmicroseconds))
+	l := NewFromStandardLogger(log.New(buf, "", log.Ldate|log.Lmicroseconds))
 	c := tc().SetLogger(l)
 	c.SetProxyURL(":=\\<>ksfj&*&sf")
 	tests.AssertContains(t, buf.String(), "error", true)
