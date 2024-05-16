@@ -2,8 +2,6 @@ package req
 
 import (
 	"bytes"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/util"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -14,6 +12,9 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/util"
 )
 
 type (
@@ -489,7 +490,7 @@ func parseRequestHeader(c *Client, r *Request) error {
 }
 
 func parseRequestCookie(c *Client, r *Request) error {
-	if len(c.Cookies) == 0 {
+	if len(c.Cookies) == 0 || r.RetryAttempt > 0 {
 		return nil
 	}
 	r.Cookies = append(r.Cookies, c.Cookies...)
