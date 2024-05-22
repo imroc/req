@@ -100,7 +100,7 @@ func headerWriteSubset(h http.Header, exclude map[string]bool, writeHeader func(
 		}
 		for i, v := range kv.Values {
 			vv := headerNewlineToSpace.Replace(v)
-			vv = textproto.TrimString(v)
+			vv = textproto.TrimString(vv)
 			if vv != v {
 				kv.Values[i] = vv
 			}
