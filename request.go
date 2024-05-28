@@ -954,6 +954,18 @@ func (r *Request) SetContext(ctx context.Context) *Request {
 	return r
 }
 
+// SetContextData sets the key-value pair data for current Request, so you
+// can access some extra context info for current Request in hook or middleware.
+func (r *Request) SetContextData(key, val any) *Request {
+	r.ctx = context.WithValue(r.Context(), key, val)
+	return r
+}
+
+// GetContextData returns the context data of specified key, which set by SetContextData.
+func (r *Request) GetContextData(key any) any {
+	return r.Context().Value(key)
+}
+
 // DisableAutoReadResponse disable read response body automatically (enabled by default).
 func (r *Request) DisableAutoReadResponse() *Request {
 	r.disableAutoReadResponse = true
