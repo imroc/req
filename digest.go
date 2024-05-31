@@ -138,9 +138,9 @@ func parseChallenge(input string) (*challenge, error) {
 		case "opaque":
 			c.opaque = strings.Trim(r[1], qs)
 		case "stale":
-			c.stale = r[1]
+			c.stale = strings.Trim(r[1], qs)
 		case "algorithm":
-			c.algorithm = r[1]
+			c.algorithm = strings.Trim(r[1], qs)
 		case "qop":
 			c.qop = strings.Trim(r[1], qs)
 		case "charset":
