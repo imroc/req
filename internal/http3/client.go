@@ -500,6 +500,35 @@ func (c *client) doRequest(req *http.Request, conn quic.EarlyConnection, str qui
 		res.ContentLength = -1
 		res.Body = newGzipReader(respBody)
 		res.Uncompressed = true
+	} else if c.opt.AutoDecompression {
+		switch res.Header.Get("Content-Encoding") {
+		case "gzip":
+			res.Header.Del("Content-Encoding")
+			res.Header.Del("Content-Length")
+			res.ContentLength = -1
+			res.Body = newGzipReader(respBody)
+			res.Uncompressed = true
+		case "deflate":
+			res.Header.Del("Content-Encoding")
+			res.Header.Del("Content-Length")
+			res.ContentLength = -1
+			res.Body = newDeflateReader(respBody)
+			res.Uncompressed = true
+		case "br":
+			res.Header.Del("Content-Encoding")
+			res.Header.Del("Content-Length")
+			res.ContentLength = -1
+			res.Body = newBrotliReader(respBody)
+			res.Uncompressed = true
+		case "zstd":
+			res.Header.Del("Content-Encoding")
+			res.Header.Del("Content-Length")
+			res.ContentLength = -1
+			res.Body = newZstdReader(respBody)
+			res.Uncompressed = true
+		default:
+			res.Uncompressed = false
+		}
 	} else {
 		res.Body = respBody
 	}

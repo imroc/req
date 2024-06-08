@@ -381,6 +381,18 @@ func (c *Client) EnableCompression() *Client {
 	return c
 }
 
+// EnableAutoDecompress enables the automatic decompression (disabled by default).
+func (c *Client) EnableAutoDecompress() *Client {
+	c.Transport.AutoDecompression = true
+	return c
+}
+
+// DisableAutoDecompress disables the automatic decompression (disabled by default).
+func (c *Client) DisableAutoDecompress() *Client {
+	c.Transport.AutoDecompression = false
+	return c
+}
+
 // SetTLSClientConfig set the TLS client config. Be careful! Usually
 // you don't need this, you can directly set the tls configuration with
 // methods like EnableInsecureSkipVerify, SetCerts etc. Or you can call
