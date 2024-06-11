@@ -79,6 +79,12 @@ type Options struct {
 	// uncompressed.
 	DisableCompression bool
 
+	// AutoDecompression, if true, enables automatic decompression of
+	// compressed responses. It is equivalent to setting the Accept-Encoding
+	// header to "gzip, deflate, br, zstd" and the Transport will handle the
+	// decompression of the response transparently, returning the uncompressed.
+	AutoDecompression bool
+
 	// EnableH2C, if true, enables http2 over plain http without tls.
 	EnableH2C bool
 
