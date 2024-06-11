@@ -1,8 +1,9 @@
-package http3
+package compress
 
 import (
-	"github.com/andybalholm/brotli"
 	"io"
+
+	"github.com/andybalholm/brotli"
 )
 
 type BrotliReader struct {
@@ -11,7 +12,7 @@ type BrotliReader struct {
 	berr error         // sticky error
 }
 
-func newBrotliReader(body io.ReadCloser) io.ReadCloser {
+func NewBrotliReader(body io.ReadCloser) *BrotliReader {
 	return &BrotliReader{Body: body}
 }
 
@@ -27,4 +28,12 @@ func (br *BrotliReader) Read(p []byte) (n int, err error) {
 
 func (br *BrotliReader) Close() error {
 	return br.Body.Close()
+}
+
+func (br *BrotliReader) GetUnderlyingBody() io.ReadCloser {
+	return br.Body
+}
+
+func (br *BrotliReader) SetUnderlyingBody(body io.ReadCloser) {
+	br.Body = body
 }

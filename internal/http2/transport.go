@@ -9,14 +9,12 @@ package http2
 import (
 	"bufio"
 	"bytes"
-	"compress/gzip"
 	"context"
 	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"math"
 	"math/bits"
@@ -40,6 +38,7 @@ import (
 	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/ascii"
 	"github.com/imroc/req/v3/internal/common"
+	"github.com/imroc/req/v3/internal/compress"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/netutil"
@@ -2568,8 +2567,17 @@ func (rl *clientConnReadLoop) handleResponse(cs *clientStream, f *MetaHeadersFra
 		res.Header.Del("Content-Encoding")
 		res.Header.Del("Content-Length")
 		res.ContentLength = -1
-		res.Body = &GzipReader{Body: res.Body}
+		res.Body = compress.NewGzipReader(res.Body)
 		res.Uncompressed = true
+	} else if cs.cc.t.AutoDecompression {
+		contentEncoding := res.Header.Get("Content-Encoding")
+		if contentEncoding != "" {
+			res.Header.Del("Content-Encoding")
+			res.Header.Del("Content-Length")
+			res.ContentLength = -1
+			res.Uncompressed = true
+			res.Body = compress.NewCompressReader(res.Body, contentEncoding)
+		}
 	}
 
 	return res, nil
@@ -3143,37 +3151,6 @@ func (rt erringRoundTripper) RoundTripErr() error { return rt.err }
 
 func (rt erringRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
 	return nil, rt.err
-}
-
-// GzipReader wraps a response body so it can lazily
-// call gzip.NewReader on the first call to Read
-type GzipReader struct {
-	_    incomparable
-	Body io.ReadCloser // underlying Response.Body
-	zr   *gzip.Reader  // lazily-initialized gzip reader
-	zerr error         // sticky error
-}
-
-func (gz *GzipReader) Read(p []byte) (n int, err error) {
-	if gz.zerr != nil {
-		return 0, gz.zerr
-	}
-	if gz.zr == nil {
-		gz.zr, err = gzip.NewReader(gz.Body)
-		if err != nil {
-			gz.zerr = err
-			return 0, err
-		}
-	}
-	return gz.zr.Read(p)
-}
-
-func (gz *GzipReader) Close() error {
-	if err := gz.Body.Close(); err != nil {
-		return err
-	}
-	gz.zerr = fs.ErrClosed
-	return nil
 }
 
 // isConnectionCloseRequest reports whether req should use its own

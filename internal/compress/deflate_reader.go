@@ -1,4 +1,4 @@
-package http3
+package compress
 
 import (
 	"compress/flate"
@@ -11,7 +11,7 @@ type DeflateReader struct {
 	derr error         // sticky error
 }
 
-func newDeflateReader(body io.ReadCloser) io.ReadCloser {
+func NewDeflateReader(body io.ReadCloser) *DeflateReader {
 	return &DeflateReader{Body: body}
 }
 
@@ -21,20 +21,21 @@ func (df *DeflateReader) Read(p []byte) (n int, err error) {
 	}
 	if df.dr == nil {
 		df.dr = flate.NewReader(df.Body)
-		if df.dr == nil {
-			df.derr = io.ErrUnexpectedEOF
-			return 0, df.derr
-		}
 	}
 	return df.dr.Read(p)
 }
 
 func (df *DeflateReader) Close() error {
 	if df.dr != nil {
-		err := df.dr.Close()
-		if err != nil {
-			return err
-		}
+		return df.dr.Close()
 	}
 	return df.Body.Close()
+}
+
+func (df *DeflateReader) GetUnderlyingBody() io.ReadCloser {
+	return df.Body
+}
+
+func (df *DeflateReader) SetUnderlyingBody(body io.ReadCloser) {
+	df.Body = body
 }

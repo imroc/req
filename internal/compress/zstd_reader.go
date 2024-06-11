@@ -1,8 +1,9 @@
-package http3
+package compress
 
 import (
-	"github.com/klauspost/compress/zstd"
 	"io"
+
+	"github.com/klauspost/compress/zstd"
 )
 
 type ZstdReader struct {
@@ -11,7 +12,7 @@ type ZstdReader struct {
 	zerr error         // sticky error
 }
 
-func newZstdReader(body io.ReadCloser) io.ReadCloser {
+func NewZstdReader(body io.ReadCloser) *ZstdReader {
 	return &ZstdReader{Body: body}
 }
 
@@ -34,4 +35,12 @@ func (zr *ZstdReader) Close() error {
 		zr.zr.Close()
 	}
 	return zr.Body.Close()
+}
+
+func (zr *ZstdReader) GetUnderlyingBody() io.ReadCloser {
+	return zr.Body
+}
+
+func (zr *ZstdReader) SetUnderlyingBody(body io.ReadCloser) {
+	zr.Body = body
 }

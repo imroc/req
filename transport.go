@@ -35,6 +35,7 @@ import (
 	"github.com/imroc/req/v3/internal/altsvcutil"
 	"github.com/imroc/req/v3/internal/ascii"
 	"github.com/imroc/req/v3/internal/common"
+	"github.com/imroc/req/v3/internal/compress"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	h2internal "github.com/imroc/req/v3/internal/http2"
@@ -681,10 +682,8 @@ func (t *Transport) wrapResponseBody(res *http.Response, wrap wrapResponseBodyFu
 	switch b := res.Body.(type) {
 	case *gzipReader:
 		b.body.body = wrap(b.body.body)
-	case *h2internal.GzipReader:
-		b.Body = wrap(b.Body)
-	case *http3.GzipReader:
-		b.Body = wrap(b.Body)
+	case compress.CompressReader:
+		b.SetUnderlyingBody(wrap(b.GetUnderlyingBody()))
 	default:
 		res.Body = wrap(res.Body)
 	}
@@ -2731,6 +2730,15 @@ func (pc *persistConn) readLoop() {
 			resp.Header.Del("Content-Length")
 			resp.ContentLength = -1
 			resp.Uncompressed = true
+		} else if pc.t.AutoDecompression {
+			contentEncoding := resp.Header.Get("Content-Encoding")
+			if contentEncoding != "" {
+				resp.Header.Del("Content-Encoding")
+				resp.Header.Del("Content-Length")
+				resp.ContentLength = -1
+				resp.Uncompressed = true
+				resp.Body = compress.NewCompressReader(resp.Body, contentEncoding)
+			}
 		}
 
 		select {

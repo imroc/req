@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/imroc/req/v3/internal/compress"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
 	"github.com/imroc/req/v3/internal/transport"
@@ -498,36 +499,16 @@ func (c *client) doRequest(req *http.Request, conn quic.EarlyConnection, str qui
 		res.Header.Del("Content-Encoding")
 		res.Header.Del("Content-Length")
 		res.ContentLength = -1
-		res.Body = newGzipReader(respBody)
+		res.Body = compress.NewGzipReader(respBody)
 		res.Uncompressed = true
 	} else if c.opt.AutoDecompression {
-		switch res.Header.Get("Content-Encoding") {
-		case "gzip":
+		contentEncoding := res.Header.Get("Content-Encoding")
+		if contentEncoding != "" {
 			res.Header.Del("Content-Encoding")
 			res.Header.Del("Content-Length")
 			res.ContentLength = -1
-			res.Body = newGzipReader(respBody)
 			res.Uncompressed = true
-		case "deflate":
-			res.Header.Del("Content-Encoding")
-			res.Header.Del("Content-Length")
-			res.ContentLength = -1
-			res.Body = newDeflateReader(respBody)
-			res.Uncompressed = true
-		case "br":
-			res.Header.Del("Content-Encoding")
-			res.Header.Del("Content-Length")
-			res.ContentLength = -1
-			res.Body = newBrotliReader(respBody)
-			res.Uncompressed = true
-		case "zstd":
-			res.Header.Del("Content-Encoding")
-			res.Header.Del("Content-Length")
-			res.ContentLength = -1
-			res.Body = newZstdReader(respBody)
-			res.Uncompressed = true
-		default:
-			res.Uncompressed = false
+			res.Body = compress.NewCompressReader(respBody, contentEncoding)
 		}
 	} else {
 		res.Body = respBody

@@ -1,14 +1,12 @@
-package http3
+package compress
 
-// copied from net/transport.go
-
-// GzipReader wraps a response body so it can lazily
-// call gzip.NewReader on the first call to Read
 import (
 	"compress/gzip"
 	"io"
+	"io/fs"
 )
 
+// GzipReader wraps a response body so it can lazily
 // call gzip.NewReader on the first call to Read
 type GzipReader struct {
 	Body io.ReadCloser // underlying Response.Body
@@ -16,7 +14,7 @@ type GzipReader struct {
 	zerr error         // sticky error
 }
 
-func newGzipReader(body io.ReadCloser) io.ReadCloser {
+func NewGzipReader(body io.ReadCloser) *GzipReader {
 	return &GzipReader{Body: body}
 }
 
@@ -35,5 +33,17 @@ func (gz *GzipReader) Read(p []byte) (n int, err error) {
 }
 
 func (gz *GzipReader) Close() error {
-	return gz.Body.Close()
+	if err := gz.Body.Close(); err != nil {
+		return err
+	}
+	gz.zerr = fs.ErrClosed
+	return nil
+}
+
+func (gz *GzipReader) GetUnderlyingBody() io.ReadCloser {
+	return gz.Body
+}
+
+func (gz *GzipReader) SetUnderlyingBody(body io.ReadCloser) {
+	gz.Body = body
 }
