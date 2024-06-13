@@ -501,7 +501,6 @@ If you have questions, feel free to reach out to us in the following ways:
 
 * [Github Discussion](https://github.com/imroc/req/discussions)
 * [Slack](https://imroc-req.slack.com/archives/C03UFPGSNC8) | [Join](https://slack.req.cool/)
-* QQ Group (Chinese): 621411351 - <a href="https://qm.qq.com/cgi-bin/qm/qr?k=P8vOMuNytG-hhtPlgijwW6orJV765OAO&jump_from=webapi"><img src="https://pub.idqqimg.com/wpa/images/group.png"></a>
 
 ## Sponsors
 
