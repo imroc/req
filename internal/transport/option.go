@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/imroc/req/v3/internal/dump"
+	"github.com/quic-go/quic-go"
 	"net"
 	"net/http"
 	"net/url"
@@ -36,6 +37,14 @@ type Options struct {
 	// a connection dialed previously when the earlier connection
 	// becomes idle before the later DialContext completes.
 	DialContext func(ctx context.Context, network, addr string) (net.Conn, error)
+
+	// DialQuicContext specifies the dial function creating QUIC connections.
+	// If DialQuicContext is nil, a UDPConn will be created at the first request
+	// and will be reused for subsequent connections to other servers.
+	//
+	// If DialQuicContext is set, the DialContext and DialTLSContext hooks are not used
+	// for QUIC requests. The returned quic.EarlyConnection is assumed to already be past the QUIC handshake.
+	DialQuicContext func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)
 
 	// DialTLSContext specifies an optional dial function for creating
 	// TLS connections for non-proxied HTTPS requests.

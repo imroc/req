@@ -50,6 +50,7 @@ import (
 	"golang.org/x/text/encoding/ianaindex"
 
 	"golang.org/x/net/http/httpguts"
+	"github.com/quic-go/quic-go"
 )
 
 // httpVersion represents http version.
@@ -479,6 +480,15 @@ func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (
 	return t
 }
 
+// SetDialQuic set the custom DailQuicContext function, only valid for HTTP3, which specifies the dial
+// function for creating QUIC connections.
+//
+// If it is nil, then the default dial function is used.
+func (t *Transport) SetDialQuic(fn func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)) *Transport {
+	t.DialQuicContext = fn
+	return t
+}
+
 // SetDialTLS set the custom DialTLSContext function, only valid for HTTP1 and HTTP2, which specifies
 // an optional dial function for creating TLS connections for non-proxied HTTPS requests (proxy will
 // not work if set).
@@ -598,6 +608,7 @@ func (t *Transport) EnableHTTP3() {
 	}
 	t3 := &http3.RoundTripper{
 		Options: &t.Options,
+		Dial:    t.DialQuicContext,
 	}
 	t.t3 = t3
 }

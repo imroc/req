@@ -20,6 +20,7 @@ import (
 
 	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/publicsuffix"
+	"github.com/quic-go/quic-go"
 
 	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/header"
@@ -1111,6 +1112,12 @@ func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Cli
 // customized `conn` supports HTTP2.
 func (c *Client) SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	c.Transport.SetDialTLS(fn)
+	return c
+}
+
+// SetDialQuic set the customized `DialQuicContext` function to transport.
+func (c *Client) SetDialQuic(fn func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)) *Client {
+	c.Transport.SetDialQuic(fn)
 	return c
 }
 
