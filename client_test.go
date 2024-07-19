@@ -18,6 +18,7 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"golang.org/x/net/publicsuffix"
+	"github.com/quic-go/quic-go"
 )
 
 func TestRetryCancelledContext(t *testing.T) {
@@ -91,6 +92,16 @@ func TestSetDial(t *testing.T) {
 	}
 	c := tc().SetDial(testDial)
 	_, err := c.DialContext(nil, "", "")
+	tests.AssertEqual(t, testErr, err)
+}
+
+func TestSetDialQuic(t *testing.T) {
+	testErr := errors.New("test")
+	testDialQuic := func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+		return nil, testErr
+	}
+	c := tc().SetDialQuic(testDialQuic)
+	_, err := c.DialQuicContext(nil, "", &tls.Config{}, &quic.Config{})
 	tests.AssertEqual(t, testErr, err)
 }
 

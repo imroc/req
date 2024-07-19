@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"github.com/imroc/req/v3/http2"
+	"github.com/quic-go/quic-go"
 	utls "github.com/refraction-networking/utls"
 	"io"
 	"net"
@@ -582,6 +583,12 @@ func SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
 // to the default client's Client.SetDialTLS.
 func SetDialTLS(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Client {
 	return defaultClient.SetDialTLS(fn)
+}
+
+// SetDialQuic is a global wrapper method which delegated
+// to the default client's Client.SetDialQuic.
+func SetDialQuic(fn func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)) *Client {
+	return defaultClient.SetDialQuic(fn)
 }
 
 // SetDial is a global wrapper methods which delegated
