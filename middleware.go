@@ -490,9 +490,9 @@ func parseRequestHeader(c *Client, r *Request) error {
 }
 
 func parseRequestCookie(c *Client, r *Request) error {
-	if len(c.Cookies) == 0 || r.RetryAttempt > 0 {
-		return nil
+	if len(c.Cookies) > 0 || r.RetryAttempt <= 0 {
+		r.Cookies = append(r.Cookies, c.Cookies...)
 	}
-	r.Cookies = append(r.Cookies, c.Cookies...)
+
 	return nil
 }
