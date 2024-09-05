@@ -256,7 +256,6 @@ func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
 		}
 		return c.jsonUnmarshal(body, v)
 	}
-	return
 }
 
 func defaultResultStateChecker(resp *Response) ResultState {
