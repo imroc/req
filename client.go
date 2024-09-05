@@ -278,7 +278,6 @@ func (c *Client) appendRootCertData(data []byte) {
 		config.RootCAs = x509.NewCertPool()
 	}
 	config.RootCAs.AppendCertsFromPEM(data)
-	return
 }
 
 // SetRootCertFromString set root certificates from string.
