@@ -72,9 +72,9 @@ func AllowedHostRedirectPolicy(hosts ...string) RedirectPolicy {
 // AllowedDomainRedirectPolicy allows redirect only if the redirected domain
 // match one of the domain that specified.
 func AllowedDomainRedirectPolicy(hosts ...string) RedirectPolicy {
-	domains := make(map[string]bool)
+	domains := make(map[string]struct{})
 	for _, h := range hosts {
-		domains[strings.ToLower(getDomain(h))] = true
+		domains[strings.ToLower(getDomain(h))] = struct{}{}
 	}
 
 	return func(req *http.Request, via []*http.Request) error {
