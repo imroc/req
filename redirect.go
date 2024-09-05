@@ -55,9 +55,9 @@ func SameHostRedirectPolicy() RedirectPolicy {
 // AllowedHostRedirectPolicy allows redirect only if the redirected host
 // match one of the host that specified.
 func AllowedHostRedirectPolicy(hosts ...string) RedirectPolicy {
-	m := make(map[string]bool)
+	m := make(map[string]struct{})
 	for _, h := range hosts {
-		m[strings.ToLower(getHostname(h))] = true
+		m[strings.ToLower(getHostname(h))] = struct{}{}
 	}
 
 	return func(req *http.Request, via []*http.Request) error {
