@@ -79,7 +79,6 @@ func (p *altAvcParser) Parse() (as []*altsvc.AltSvc, err error) {
 			}
 		}
 	}
-	return
 }
 
 func (p *altAvcParser) parseKv() (key, value string, haveNextField bool, err error) {
