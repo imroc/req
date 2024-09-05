@@ -242,10 +242,7 @@ func TestAutoDecode(t *testing.T) {
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "我是roc", resp.String())
 	resp, err = c.SetAutoDecodeContentTypeFunc(func(contentType string) bool {
-		if strings.Contains(contentType, "text") {
-			return true
-		}
-		return false
+		return strings.Contains(contentType, "text")
 	}).R().Get("/gbk")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "我是roc", resp.String())
