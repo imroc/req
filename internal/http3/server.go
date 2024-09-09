@@ -19,7 +19,7 @@ const (
 	streamTypeQPACKDecoderStream = 3
 )
 
-func versionToALPN(v quic.VersionNumber) string {
+func versionToALPN(v quic.Version) string {
 	switch v {
 	case Version1, Version2:
 		return nextProtoH3

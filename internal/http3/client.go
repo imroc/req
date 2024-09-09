@@ -13,12 +13,13 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/quic-go/qpack"
+	"github.com/quic-go/quic-go"
+
 	"github.com/imroc/req/v3/internal/compress"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
 	"github.com/imroc/req/v3/internal/transport"
-	"github.com/quic-go/qpack"
-	"github.com/quic-go/quic-go"
 )
 
 // MethodGet0RTT allows a GET request to be sent using 0-RTT.
@@ -30,9 +31,9 @@ const (
 )
 
 const (
-	VersionDraft29 quic.VersionNumber = 0xff00001d
-	Version1       quic.VersionNumber = 0x1
-	Version2       quic.VersionNumber = 0x6b3343cf
+	VersionDraft29 quic.Version = 0xff00001d
+	Version1       quic.Version = 0x1
+	Version2       quic.Version = 0x6b3343cf
 )
 
 var defaultQuicConfig = &quic.Config{
@@ -82,7 +83,7 @@ func newClient(hostname string, tlsConf *tls.Config, opts *roundTripperOpts, con
 	}
 	if len(conf.Versions) == 0 {
 		conf = conf.Clone()
-		conf.Versions = []quic.VersionNumber{Version1}
+		conf.Versions = []quic.Version{Version1}
 	}
 	if len(conf.Versions) != 1 {
 		return nil, errors.New("can only use a single QUIC version for dialing a HTTP/3 connection")
