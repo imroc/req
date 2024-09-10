@@ -661,7 +661,7 @@ func (t *Transport) handlePendingAltSvc(u *url.URL, pas *pendingAltSvc) {
 		case "h3": // only support h3 in alt-svc for now
 			u2 := altsvcutil.ConvertURL(pas.Entries[i], u)
 			hostname := u2.Host
-			err := t.t3.AddConn(hostname)
+			err := t.t3.AddConn(context.Background(), hostname)
 			if err != nil {
 				if t.Debugf != nil {
 					t.Debugf("failed to get http3 connection: %s", err.Error())

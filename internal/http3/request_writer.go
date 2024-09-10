@@ -13,7 +13,7 @@ import (
 	"sync"
 
 	"github.com/imroc/req/v3/internal/dump"
-	"github.com/imroc/req/v3/internal/header"
+	reqheader "github.com/imroc/req/v3/internal/header"
 	"github.com/quic-go/qpack"
 
 	"github.com/quic-go/quic-go"
@@ -28,17 +28,14 @@ type requestWriter struct {
 	mutex     sync.Mutex
 	encoder   *qpack.Encoder
 	headerBuf *bytes.Buffer
-
-	debugf func(format string, v ...interface{})
 }
 
-func newRequestWriter(debugf func(format string, v ...interface{})) *requestWriter {
+func newRequestWriter() *requestWriter {
 	headerBuf := &bytes.Buffer{}
 	encoder := qpack.NewEncoder(headerBuf)
 	return &requestWriter{
 		encoder:   encoder,
 		headerBuf: headerBuf,
-		debugf:    debugf,
 	}
 }
 
@@ -71,6 +68,10 @@ func (w *requestWriter) writeHeaders(wr io.Writer, req *http.Request, gzip bool,
 	return err
 }
 
+func isExtendedConnectRequest(req *http.Request) bool {
+	return req.Method == http.MethodConnect && req.Proto != "" && req.Proto != "HTTP/1.1"
+}
+
 // copied from net/transport.go
 // Modified to support Extended CONNECT:
 // Contrary to what the godoc for the http.Request says,
@@ -89,7 +90,7 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 	}
 
 	// http.NewRequest sets this field to HTTP/1.1
-	isExtendedConnect := req.Method == http.MethodConnect && req.Proto != "" && req.Proto != "HTTP/1.1"
+	isExtendedConnect := isExtendedConnectRequest(req)
 
 	var path string
 	if req.Method != http.MethodConnect || isExtendedConnect {
@@ -123,11 +124,11 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 
 	enumerateHeaders := func(f func(name, value string)) {
 		var writeHeader func(name string, value ...string)
-		var kvs []header.KeyValues
+		var kvs []reqheader.KeyValues
 		sort := false
-		if req.Header != nil && len(req.Header[header.PseudoHeaderOderKey]) > 0 {
+		if req.Header != nil && len(req.Header[reqheader.PseudoHeaderOderKey]) > 0 {
 			writeHeader = func(name string, value ...string) {
-				kvs = append(kvs, header.KeyValues{
+				kvs = append(kvs, reqheader.KeyValues{
 					Key:    name,
 					Values: value,
 				})
@@ -156,7 +157,7 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 		}
 
 		if sort {
-			header.SortKeyValues(kvs, req.Header[header.PseudoHeaderOderKey])
+			reqheader.SortKeyValues(kvs, req.Header[reqheader.PseudoHeaderOderKey])
 			for _, kv := range kvs {
 				for _, v := range kv.Values {
 					f(kv.Key, v)
@@ -164,11 +165,11 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 			}
 		}
 
-		if req.Header != nil && len(req.Header[header.HeaderOderKey]) > 0 {
+		if req.Header != nil && len(req.Header[reqheader.HeaderOderKey]) > 0 {
 			sort = true
 			kvs = nil
 			writeHeader = func(name string, value ...string) {
-				kvs = append(kvs, header.KeyValues{
+				kvs = append(kvs, reqheader.KeyValues{
 					Key:    name,
 					Values: value,
 				})
@@ -188,7 +189,7 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 
 		var didUA bool
 		for k, vv := range req.Header {
-			if header.IsExcluded(k) {
+			if reqheader.IsExcluded(k) {
 				continue
 			} else if strings.EqualFold(k, "user-agent") {
 				// Match Go's http1 behavior: at most one
@@ -217,11 +218,11 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 			writeHeader("accept-encoding", "gzip")
 		}
 		if !didUA {
-			writeHeader("user-agent", header.DefaultUserAgent)
+			writeHeader("user-agent", reqheader.DefaultUserAgent)
 		}
 
 		if sort {
-			header.SortKeyValues(kvs, req.Header[header.HeaderOderKey])
+			reqheader.SortKeyValues(kvs, req.Header[reqheader.HeaderOderKey])
 			for _, kv := range kvs {
 				for _, v := range kv.Values {
 					f(kv.Key, v)
@@ -269,13 +270,10 @@ func (w *requestWriter) encodeHeaders(req *http.Request, addGzipHeader bool, tra
 
 // authorityAddr returns a given authority (a host/IP, or host:port / ip:port)
 // and returns a host:port. The port 443 is added if needed.
-func authorityAddr(scheme string, authority string) (addr string) {
+func authorityAddr(authority string) (addr string) {
 	host, port, err := net.SplitHostPort(authority)
 	if err != nil { // authority didn't have a port
 		port = "443"
-		if scheme == "http" {
-			port = "80"
-		}
 		host = authority
 	}
 	if a, err := idna.ToASCII(host); err == nil {

@@ -138,7 +138,6 @@ func NewDumper(opt Options) *Dumper {
 
 func (d *Dumper) SetOptions(opt Options) {
 	d.Options = opt
-	return
 }
 
 func (d *Dumper) Clone() *Dumper {

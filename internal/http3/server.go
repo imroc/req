@@ -1,16 +1,12 @@
 package http3
 
-import (
-	"github.com/quic-go/quic-go"
-)
+import "github.com/quic-go/quic-go"
 
-const (
-	nextProtoH3Draft29 = "h3-29"
-	nextProtoH3        = "h3"
-)
+// NextProtoH3 is the ALPN protocol negotiated during the TLS handshake, for QUIC v1 and v2.
+const NextProtoH3 = "h3"
 
 // StreamType is the stream type of a unidirectional stream.
-type StreamType uint64
+type ServerStreamType uint64
 
 const (
 	streamTypeControlStream      = 0
@@ -20,25 +16,11 @@ const (
 )
 
 func versionToALPN(v quic.Version) string {
+	//nolint:exhaustive // These are all the versions we care about.
 	switch v {
 	case Version1, Version2:
-		return nextProtoH3
-	case VersionDraft29:
-		return nextProtoH3Draft29
+		return NextProtoH3
+	default:
+		return ""
 	}
-	return ""
-}
-
-type requestError struct {
-	err       error
-	streamErr ErrCode
-	connErr   ErrCode
-}
-
-func newStreamError(code ErrCode, err error) requestError {
-	return requestError{err: err, streamErr: code}
-}
-
-func newConnError(code ErrCode, err error) requestError {
-	return requestError{err: err, connErr: code}
 }
