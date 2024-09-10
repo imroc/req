@@ -2,8 +2,6 @@ module github.com/imroc/req/v3
 
 go 1.22.0
 
-toolchain go1.23.1
-
 require (
 	github.com/andybalholm/brotli v1.1.0
 	github.com/hashicorp/go-multierror v1.1.1
