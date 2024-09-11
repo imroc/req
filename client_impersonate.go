@@ -81,7 +81,7 @@ var (
 // ImpersonateChrome impersonates Chrome browser (version 109).
 func (c *Client) ImpersonateChrome() *Client {
 	c.
-		SetTLSFingerprint(utls.HelloChrome_106_Shuffle). // Chrome 106~109 shares the same tls fingerprint.
+		SetTLSFingerprint(utls.HelloChrome_Auto). // Chrome 106~109 shares the same tls fingerprint.
 		SetHTTP2SettingsFrame(chromeHttp2Settings...).
 		SetHTTP2ConnectionFlow(15663105).
 		SetCommonPseudoHeaderOder(chromePseudoHeaderOrder...).
@@ -197,7 +197,7 @@ var (
 // ImpersonateFirefox impersonates Firefox browser (version 105).
 func (c *Client) ImpersonateFirefox() *Client {
 	c.
-		SetTLSFingerprint(utls.HelloFirefox_105).
+		SetTLSFingerprint(utls.HelloFirefox_Auto).
 		SetHTTP2SettingsFrame(firefoxHttp2Settings...).
 		SetHTTP2ConnectionFlow(12517377).
 		SetHTTP2PriorityFrames(firefoxPriorityFrames...).
@@ -258,7 +258,7 @@ var (
 // ImpersonateSafari impersonates Safari browser (version 16).
 func (c *Client) ImpersonateSafari() *Client {
 	c.
-		SetTLSFingerprint(utls.HelloSafari_16_0).
+		SetTLSFingerprint(utls.HelloSafari_Auto).
 		SetHTTP2SettingsFrame(safariHttp2Settings...).
 		SetHTTP2ConnectionFlow(10485760).
 		SetCommonPseudoHeaderOder(safariPseudoHeaderOrder...).
