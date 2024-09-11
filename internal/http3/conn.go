@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
 	"net"
 	"net/http"
 	"sync"
@@ -44,7 +43,6 @@ type connection struct {
 	ctx context.Context
 
 	perspective Perspective
-	logger      *slog.Logger
 
 	enableDatagrams bool
 
@@ -65,7 +63,6 @@ func newConnection(
 	quicConn quic.Connection,
 	enableDatagrams bool,
 	perspective Perspective,
-	logger *slog.Logger,
 	idleTimeout time.Duration,
 	options *transport.Options,
 ) *connection {
@@ -74,7 +71,6 @@ func newConnection(
 		Connection:       quicConn,
 		Options:          options,
 		perspective:      perspective,
-		logger:           logger,
 		idleTimeout:      idleTimeout,
 		enableDatagrams:  enableDatagrams,
 		decoder:          qpack.NewDecoder(func(hf qpack.HeaderField) {}),
@@ -183,8 +179,8 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 	for {
 		str, err := c.Connection.AcceptUniStream(context.Background())
 		if err != nil {
-			if c.logger != nil {
-				c.logger.Debug("accepting unidirectional stream failed", "error", err)
+			if c.Debugf != nil {
+				c.Debugf("accepting unidirectional stream failed: %s", err.Error())
 			}
 			return
 		}
@@ -196,8 +192,8 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 				if hijack != nil && hijack(ServerStreamType(streamType), id, str, err) {
 					return
 				}
-				if c.logger != nil {
-					c.logger.Debug("reading stream type on stream failed", "stream ID", str.StreamID(), "error", err)
+				if c.Debugf != nil {
+					c.Debugf("reading stream type on stream failed (id %v): %s", str.StreamID(), err.Error())
 				}
 				return
 			}
@@ -274,8 +270,8 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 			}
 			go func() {
 				if err := c.receiveDatagrams(); err != nil {
-					if c.logger != nil {
-						c.logger.Debug("receiving datagrams failed", "error", err)
+					if c.Debugf != nil {
+						c.Debugf("receiving datagrams failed: %s", err.Error())
 					}
 				}
 			}()

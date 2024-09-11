@@ -87,11 +87,6 @@ type RoundTripper struct {
 	// It is invalid to specify any settings defined by RFC 9114 (HTTP/3) and RFC 9297 (HTTP Datagrams).
 	AdditionalSettings map[uint64]uint64
 
-	// MaxResponseHeaderBytes specifies a limit on how many response bytes are
-	// allowed in the server's response header.
-	// Zero means to use a default limit.
-	MaxResponseHeaderBytes int64
-
 	initOnce sync.Once
 	initErr  error
 
@@ -197,11 +192,10 @@ func (r *RoundTripper) init() error {
 	if r.newClient == nil {
 		r.newClient = func(conn quic.EarlyConnection) singleRoundTripper {
 			return &SingleDestinationRoundTripper{
-				Options:                r.Options,
-				Connection:             conn,
-				EnableDatagrams:        r.EnableDatagrams,
-				AdditionalSettings:     r.AdditionalSettings,
-				MaxResponseHeaderBytes: r.MaxResponseHeaderBytes,
+				Options:            r.Options,
+				Connection:         conn,
+				EnableDatagrams:    r.EnableDatagrams,
+				AdditionalSettings: r.AdditionalSettings,
 			}
 		}
 	}

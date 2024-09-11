@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/http/httptrace"
 	"net/textproto"
@@ -53,8 +52,6 @@ type SingleDestinationRoundTripper struct {
 	StreamHijacker     func(FrameType, quic.ConnectionTracingID, quic.Stream, error) (hijacked bool, err error)
 	UniStreamHijacker  func(ServerStreamType, quic.ConnectionTracingID, quic.ReceiveStream, error) (hijacked bool)
 
-	Logger *slog.Logger
-
 	initOnce      sync.Once
 	hconn         *connection
 	requestWriter *requestWriter
@@ -76,15 +73,14 @@ func (c *SingleDestinationRoundTripper) init() {
 		c.Connection,
 		c.EnableDatagrams,
 		PerspectiveClient,
-		c.Logger,
 		0,
 		c.Options,
 	)
 	// send the SETTINGs frame, using 0-RTT data, if possible
 	go func() {
 		if err := c.setupConn(c.hconn); err != nil {
-			if c.Logger != nil {
-				c.Logger.Debug("Setting up connection failed", "error", err)
+			if c.Debugf != nil {
+				c.Debugf("Setting up connection failed: %s", err.Error())
 			}
 			c.hconn.CloseWithError(quic.ApplicationErrorCode(ErrCodeInternalError), "")
 		}
@@ -113,8 +109,8 @@ func (c *SingleDestinationRoundTripper) handleBidirectionalStreams() {
 	for {
 		str, err := c.hconn.AcceptStream(context.Background())
 		if err != nil {
-			if c.Logger != nil {
-				c.Logger.Debug("accepting bidirectional stream failed", "error", err)
+			if c.Debugf != nil {
+				c.Debugf("accepting bidirectional stream failed: %s", err.Error())
 			}
 			return
 		}
@@ -131,8 +127,8 @@ func (c *SingleDestinationRoundTripper) handleBidirectionalStreams() {
 				return
 			}
 			if err != nil {
-				if c.Logger != nil {
-					c.Logger.Debug("error handling stream", "error", err)
+				if c.Debugf != nil {
+					c.Debugf("error handling stream: %s", err.Error())
 				}
 			}
 			c.hconn.CloseWithError(quic.ApplicationErrorCode(ErrCodeFrameUnexpected), "received HTTP/3 frame on bidirectional stream")
@@ -283,8 +279,8 @@ func (c *SingleDestinationRoundTripper) doRequest(req *http.Request, str *reques
 		go func() {
 			dumps := dump.GetDumpers(req.Context(), c.Dump)
 			if err := c.sendRequestBody(str, req.Body, dumps); err != nil {
-				if c.Logger != nil {
-					c.Logger.Debug("error writing request", "error", err)
+				if c.Debugf != nil {
+					c.Debugf("error writing request: %s", err.Error())
 				}
 			}
 			str.Close()
