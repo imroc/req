@@ -53,11 +53,6 @@ type SingleDestinationRoundTripper struct {
 	StreamHijacker     func(FrameType, quic.ConnectionTracingID, quic.Stream, error) (hijacked bool, err error)
 	UniStreamHijacker  func(ServerStreamType, quic.ConnectionTracingID, quic.ReceiveStream, error) (hijacked bool)
 
-	// MaxResponseHeaderBytes specifies a limit on how many response bytes are
-	// allowed in the server's response header.
-	// Zero means to use a default limit.
-	MaxResponseHeaderBytes int64
-
 	Logger *slog.Logger
 
 	initOnce      sync.Once
