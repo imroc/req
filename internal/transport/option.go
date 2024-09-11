@@ -3,11 +3,12 @@ package transport
 import (
 	"context"
 	"crypto/tls"
-	"github.com/imroc/req/v3/internal/dump"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/imroc/req/v3/internal/dump"
 )
 
 // Options is transport's options.
@@ -17,8 +18,13 @@ type Options struct {
 	// request is aborted with the provided error.
 	//
 	// The proxy type is determined by the URL scheme. "http",
-	// "https", and "socks5" are supported. If the scheme is empty,
+	// "https", "socks5", and "socks5h" are supported. If the scheme is empty,
 	// "http" is assumed.
+	// "socks5" is treated the same as "socks5h".
+	//
+	// If the proxy URL contains a userinfo subcomponent,
+	// the proxy request will pass the username and password
+	// in a Proxy-Authorization header.
 	//
 	// If Proxy is nil or returns a nil *URL, no proxy is used.
 	Proxy func(*http.Request) (*url.URL, error)
