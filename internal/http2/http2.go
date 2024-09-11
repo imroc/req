@@ -7,13 +7,14 @@ package http2
 import (
 	"bufio"
 	"crypto/tls"
-	"golang.org/x/net/http/httpguts"
 	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
+
+	"golang.org/x/net/http/httpguts"
 )
 
 var (
@@ -50,9 +51,7 @@ const (
 	initialWindowSize = 65535 // 6.9.2 Initial Flow Control Window Size
 )
 
-var (
-	clientPreface = []byte(ClientPreface)
-)
+var clientPreface = []byte(ClientPreface)
 
 // validWireHeaderFieldName reports whether v is a valid header field
 // name (key). See httpguts.ValidHeaderName for the base rules.
