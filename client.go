@@ -1198,11 +1198,21 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 			colonPos = len(addr)
 		}
 		hostname := addr[:colonPos]
+		tlsConfig := c.GetTLSClientConfig()
 		utlsConfig := &utls.Config{
-			ServerName:         hostname,
-			RootCAs:            c.GetTLSClientConfig().RootCAs,
-			NextProtos:         c.GetTLSClientConfig().NextProtos,
-			InsecureSkipVerify: c.GetTLSClientConfig().InsecureSkipVerify,
+			ServerName:                  hostname,
+			Rand:                        tlsConfig.Rand,
+			Time:                        tlsConfig.Time,
+			RootCAs:                     tlsConfig.RootCAs,
+			NextProtos:                  tlsConfig.NextProtos,
+			ClientCAs:                   tlsConfig.ClientCAs,
+			InsecureSkipVerify:          tlsConfig.InsecureSkipVerify,
+			CipherSuites:                tlsConfig.CipherSuites,
+			SessionTicketsDisabled:      tlsConfig.SessionTicketsDisabled,
+			MinVersion:                  tlsConfig.MinVersion,
+			MaxVersion:                  tlsConfig.MaxVersion,
+			DynamicRecordSizingDisabled: tlsConfig.DynamicRecordSizingDisabled,
+			KeyLogWriter:                tlsConfig.KeyLogWriter,
 		}
 		uconn := &uTLSConn{utls.UClient(plainConn, utlsConfig, clientHelloID)}
 		err = uconn.HandshakeContext(ctx)
