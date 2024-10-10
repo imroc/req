@@ -26,6 +26,12 @@ func SetFormData(data map[string]string) *Request {
 	return defaultClient.R().SetFormData(data)
 }
 
+// SetOrderedFormData is a global wrapper methods which delegated
+// to the default client, create a request and SetOrderedFormData for request.
+func SetOrderedFormData(kvs ...string) *Request {
+	return defaultClient.R().SetOrderedFormData(kvs...)
+}
+
 // SetFormDataAnyType is a global wrapper methods which delegated
 // to the default client, create a request and SetFormDataAnyType for request.
 func SetFormDataAnyType(data map[string]interface{}) *Request {
