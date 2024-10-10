@@ -25,20 +25,21 @@ import (
 // req client. Request provides lots of chainable settings which can
 // override client level settings.
 type Request struct {
-	PathParams   map[string]string
-	QueryParams  urlpkg.Values
-	FormData     urlpkg.Values
-	Headers      http.Header
-	Cookies      []*http.Cookie
-	Result       interface{}
-	Error        interface{}
-	RawRequest   *http.Request
-	StartTime    time.Time
-	RetryAttempt int
-	RawURL       string // read only
-	Method       string
-	Body         []byte
-	GetBody      GetContentFunc
+	PathParams      map[string]string
+	QueryParams     urlpkg.Values
+	FormData        urlpkg.Values
+	OrderedFormData []string
+	Headers         http.Header
+	Cookies         []*http.Cookie
+	Result          interface{}
+	Error           interface{}
+	RawRequest      *http.Request
+	StartTime       time.Time
+	RetryAttempt    int
+	RawURL          string // read only
+	Method          string
+	Body            []byte
+	GetBody         GetContentFunc
 	// URL is an auto-generated field, and is nil in request middleware (OnBeforeRequest),
 	// consider using RawURL if you want, it's not nil in client middleware (WrapRoundTripFunc)
 	URL *urlpkg.URL
@@ -184,6 +185,12 @@ func (r *Request) SetFormData(data map[string]string) *Request {
 	for k, v := range data {
 		r.FormData.Set(k, v)
 	}
+	return r
+}
+
+// SetOrderedFormData set the ordered form data from key-values pairs.
+func (r *Request) SetOrderedFormData(kvs ...string) *Request {
+	r.OrderedFormData = append(r.OrderedFormData, kvs...)
 	return r
 }
 
