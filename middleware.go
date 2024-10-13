@@ -148,13 +148,21 @@ func writeMultiPart(r *Request, w *multipart.Writer) {
 	}
 }
 
-func handleMultiPart(r *Request) (err error) {
+func handleMultiPart(c *Client, r *Request) (err error) {
+	var b string
+	if c.multipartBoundaryFunc != nil {
+		b = c.multipartBoundaryFunc()
+	}
+
 	if r.forceChunkedEncoding {
 		pr, pw := io.Pipe()
 		r.GetBody = func() (io.ReadCloser, error) {
 			return pr, nil
 		}
 		w := multipart.NewWriter(pw)
+		if len(b) > 0 {
+			w.SetBoundary(b)
+		}
 		r.SetContentType(w.FormDataContentType())
 		go func() {
 			writeMultiPart(r, w)
@@ -163,6 +171,9 @@ func handleMultiPart(r *Request) (err error) {
 	} else {
 		buf := new(bytes.Buffer)
 		w := multipart.NewWriter(buf)
+		if len(b) > 0 {
+			w.SetBoundary(b)
+		}
 		writeMultiPart(r, w)
 		r.GetBody = func() (io.ReadCloser, error) {
 			return io.NopCloser(bytes.NewReader(buf.Bytes())), nil
@@ -242,7 +253,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 	}
 	// handle multipart
 	if r.isMultiPart {
-		return handleMultiPart(r)
+		return handleMultiPart(c, r)
 	}
 
 	// handle form data
