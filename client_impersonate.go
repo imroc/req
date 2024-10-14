@@ -1,9 +1,55 @@
 package req
 
 import (
+	"crypto/rand"
+	"encoding/binary"
+	"math/big"
+	"strconv"
+	"strings"
+
 	"github.com/imroc/req/v3/http2"
 	utls "github.com/refraction-networking/utls"
 )
+
+// Identical for both Blink-based browsers (Chrome, Chromium, etc.) and WebKit-based browsers (Safari, etc.)
+// Blink implementation: https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/platform/network/form_data_encoder.cc;drc=1d694679493c7b2f7b9df00e967b4f8699321093;l=130
+// WebKit implementation: https://github.com/WebKit/WebKit/blob/47eea119fe9462721e5cc75527a4280c6d5f5214/Source/WebCore/platform/network/FormDataBuilder.cpp#L120
+func webkitMultipartBoundaryFunc() string {
+	const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789AB"
+
+	sb := strings.Builder{}
+	sb.WriteString("----WebKitFormBoundary")
+
+	for i := 0; i < 16; i++ {
+		index, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters)-1)))
+		if err != nil {
+			panic(err)
+		}
+
+		sb.WriteByte(letters[index.Int64()])
+	}
+
+	return sb.String()
+}
+
+// Firefox implementation: https://searchfox.org/mozilla-central/source/dom/html/HTMLFormSubmission.cpp#355
+func firefoxMultipartBoundaryFunc() string {
+	sb := strings.Builder{}
+	sb.WriteString("-------------------------")
+
+	for i := 0; i < 3; i++ {
+		var b [8]byte
+		if _, err := rand.Read(b[:]); err != nil {
+			panic(err)
+		}
+		u32 := binary.LittleEndian.Uint32(b[:])
+		s := strconv.FormatUint(uint64(u32), 10)
+
+		sb.WriteString(s)
+	}
+
+	return sb.String()
+}
 
 var (
 	chromeHttp2Settings = []http2.Setting{
@@ -71,6 +117,7 @@ var (
 		"sec-fetch-dest":            "document",
 		"accept-language":           "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,it;q=0.6",
 	}
+
 	chromeHeaderPriority = http2.PriorityParam{
 		StreamDep: 0,
 		Exclusive: true,
@@ -87,7 +134,8 @@ func (c *Client) ImpersonateChrome() *Client {
 		SetCommonPseudoHeaderOder(chromePseudoHeaderOrder...).
 		SetCommonHeaderOrder(chromeHeaderOrder...).
 		SetCommonHeaders(chromeHeaders).
-		SetHTTP2HeaderPriority(chromeHeaderPriority)
+		SetHTTP2HeaderPriority(chromeHeaderPriority).
+		SetMultipartBoundaryFunc(webkitMultipartBoundaryFunc)
 	return c
 }
 
@@ -106,6 +154,7 @@ var (
 			Val: 16384,
 		},
 	}
+
 	firefoxPriorityFrames = []http2.PriorityFrame{
 		{
 			StreamID: 3,
@@ -156,12 +205,14 @@ var (
 			},
 		},
 	}
+
 	firefoxPseudoHeaderOrder = []string{
 		":method",
 		":path",
 		":authority",
 		":scheme",
 	}
+
 	firefoxHeaderOrder = []string{
 		"user-agent",
 		"accept",
@@ -176,6 +227,7 @@ var (
 		"sec-fetch-user",
 		"te",
 	}
+
 	firefoxHeaders = map[string]string{
 		"user-agent":                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:105.0) Gecko/20100101 Firefox/105.0",
 		"accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -187,6 +239,7 @@ var (
 		"sec-fetch-user":            "?1",
 		//"te":                        "trailers",
 	}
+
 	firefoxHeaderPriority = http2.PriorityParam{
 		StreamDep: 13,
 		Exclusive: false,
@@ -204,7 +257,8 @@ func (c *Client) ImpersonateFirefox() *Client {
 		SetCommonPseudoHeaderOder(firefoxPseudoHeaderOrder...).
 		SetCommonHeaderOrder(firefoxHeaderOrder...).
 		SetCommonHeaders(firefoxHeaders).
-		SetHTTP2HeaderPriority(firefoxHeaderPriority)
+		SetHTTP2HeaderPriority(firefoxHeaderPriority).
+		SetMultipartBoundaryFunc(firefoxMultipartBoundaryFunc)
 	return c
 }
 
@@ -264,6 +318,7 @@ func (c *Client) ImpersonateSafari() *Client {
 		SetCommonPseudoHeaderOder(safariPseudoHeaderOrder...).
 		SetCommonHeaderOrder(safariHeaderOrder...).
 		SetCommonHeaders(safariHeaders).
-		SetHTTP2HeaderPriority(safariHeaderPriority)
+		SetHTTP2HeaderPriority(safariHeaderPriority).
+		SetMultipartBoundaryFunc(webkitMultipartBoundaryFunc)
 	return c
 }

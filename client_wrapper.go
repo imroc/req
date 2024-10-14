@@ -3,13 +3,14 @@ package req
 import (
 	"context"
 	"crypto/tls"
-	"github.com/imroc/req/v3/http2"
-	utls "github.com/refraction-networking/utls"
 	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/imroc/req/v3/http2"
+	utls "github.com/refraction-networking/utls"
 )
 
 // WrapRoundTrip is a global wrapper methods which delegated
@@ -54,6 +55,12 @@ func SetCommonFormDataFromValues(data url.Values) *Client {
 // to the default client's Client.SetCommonFormData.
 func SetCommonFormData(data map[string]string) *Client {
 	return defaultClient.SetCommonFormData(data)
+}
+
+// SetMultipartBoundaryFunc is a global wrapper methods which delegated
+// to the default client's Client.SetMultipartBoundaryFunc.
+func SetMultipartBoundaryFunc(fn func() string) *Client {
+	return defaultClient.SetMultipartBoundaryFunc(fn)
 }
 
 // SetBaseURL is a global wrapper methods which delegated
@@ -480,6 +487,18 @@ func SetHTTP2WriteByteTimeout(timeout time.Duration) *Client {
 // to the default client's Client.ImpersonateChrome.
 func ImpersonateChrome() *Client {
 	return defaultClient.ImpersonateChrome()
+}
+
+// ImpersonateChrome is a global wrapper methods which delegated
+// to the default client's Client.ImpersonateChrome.
+func ImpersonateFirefox() *Client {
+	return defaultClient.ImpersonateFirefox()
+}
+
+// ImpersonateChrome is a global wrapper methods which delegated
+// to the default client's Client.ImpersonateChrome.
+func ImpersonateSafari() *Client {
+	return defaultClient.ImpersonateFirefox()
 }
 
 // SetCommonContentType is a global wrapper methods which delegated

@@ -5,12 +5,14 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -466,6 +468,35 @@ func TestSetCommonFormData(t *testing.T) {
 		Post("/form")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "test", form.Get("test"))
+}
+
+func TestSetMultipartBoundaryFunc(t *testing.T) {
+	delimiter := "test-delimiter"
+	expectedContentType := fmt.Sprintf("multipart/form-data; boundary=%s", delimiter)
+	resp, err := tc().
+		SetMultipartBoundaryFunc(func() string {
+			return delimiter
+		}).R().
+		EnableForceMultipart().
+		SetFormData(
+			map[string]string{
+				"test": "test",
+			}).
+		Post("/content-type")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, expectedContentType, resp.String())
+}
+
+func TestFirefoxMultipartBoundaryFunc(t *testing.T) {
+	r := regexp.MustCompile(`^-------------------------\d{1,10}\d{1,10}\d{1,10}$`)
+	b := firefoxMultipartBoundaryFunc()
+	tests.AssertEqual(t, true, r.MatchString(b))
+}
+
+func TestWebkitMultipartBoundaryFunc(t *testing.T) {
+	r := regexp.MustCompile(`^----WebKitFormBoundary[0-9a-zA-Z]{16}$`)
+	b := webkitMultipartBoundaryFunc()
+	tests.AssertEqual(t, true, r.MatchString(b))
 }
 
 func TestClientClone(t *testing.T) {

@@ -59,6 +59,7 @@ type Client struct {
 	jsonUnmarshal           func(data []byte, v interface{}) error
 	xmlMarshal              func(v interface{}) ([]byte, error)
 	xmlUnmarshal            func(data []byte, v interface{}) error
+	multipartBoundaryFunc   func() string
 	outputDirectory         string
 	scheme                  string
 	log                     Logger
@@ -236,6 +237,17 @@ func (c *Client) SetCommonFormData(data map[string]string) *Client {
 	for k, v := range data {
 		c.FormData.Set(k, v)
 	}
+	return c
+}
+
+// SetMultipartBoundaryFunc overrides the default function used to generate
+// boundary delimiters for "multipart/form-data" requests with a customized one,
+// which returns a boundary delimiter (without the two leading hyphens).
+//
+// Boundary delimiter may only contain certain ASCII characters, and must be
+// non-empty and at most 70 bytes long (see RFC 2046, Section 5.1.1).
+func (c *Client) SetMultipartBoundaryFunc(fn func() string) *Client {
+	c.multipartBoundaryFunc = fn
 	return c
 }
 
