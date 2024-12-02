@@ -369,6 +369,10 @@ func TestRedirect(t *testing.T) {
 	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "stopped after 3 redirects", true)
 
+	_, err = tc().SetRedirectPolicy(MaxRedirectPolicy(20)).SetRedirectPolicy(DefaultRedirectPolicy()).R().Get("/unlimited-redirect")
+	tests.AssertNotNil(t, err)
+	tests.AssertContains(t, err.Error(), "stopped after 10 redirects", true)
+
 	_, err = tc().SetRedirectPolicy(SameDomainRedirectPolicy()).R().Get("/redirect-to-other")
 	tests.AssertNotNil(t, err)
 	tests.AssertContains(t, err.Error(), "different domain name is not allowed", true)

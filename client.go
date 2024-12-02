@@ -321,20 +321,10 @@ func (c *Client) GetTLSClientConfig() *tls.Config {
 	return c.TLSClientConfig
 }
 
-func (c *Client) defaultCheckRedirect(req *http.Request, via []*http.Request) error {
-	if len(via) >= 10 {
-		return errors.New("stopped after 10 redirects")
-	}
-	if c.DebugLog {
-		c.log.Debugf("<redirect> %s %s", req.Method, req.URL.String())
-	}
-	return nil
-}
-
 // SetRedirectPolicy set the RedirectPolicy which controls the behavior of receiving redirect
 // responses (usually responses with 301 and 302 status code), see the predefined
-// AllowedDomainRedirectPolicy, AllowedHostRedirectPolicy, MaxRedirectPolicy, NoRedirectPolicy,
-// SameDomainRedirectPolicy and SameHostRedirectPolicy.
+// AllowedDomainRedirectPolicy, AllowedHostRedirectPolicy, DefaultRedirectPolicy, MaxRedirectPolicy,
+// NoRedirectPolicy, SameDomainRedirectPolicy and SameHostRedirectPolicy.
 func (c *Client) SetRedirectPolicy(policies ...RedirectPolicy) *Client {
 	if len(policies) == 0 {
 		return c
@@ -1565,7 +1555,7 @@ func C() *Client {
 		xmlUnmarshal:          xml.Unmarshal,
 		cookiejarFactory:      memoryCookieJarFactory,
 	}
-	httpClient.CheckRedirect = c.defaultCheckRedirect
+	c.SetRedirectPolicy(DefaultRedirectPolicy())
 	c.initCookieJar()
 
 	c.initTransport()

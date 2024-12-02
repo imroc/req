@@ -21,6 +21,11 @@ func MaxRedirectPolicy(noOfRedirect int) RedirectPolicy {
 	}
 }
 
+// DefaultRedirectPolicy allows up to 10 redirects
+func DefaultRedirectPolicy() RedirectPolicy {
+	return MaxRedirectPolicy(10)
+}
+
 // NoRedirectPolicy disable redirect behaviour
 func NoRedirectPolicy() RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
