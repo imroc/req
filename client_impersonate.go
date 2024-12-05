@@ -105,17 +105,17 @@ var (
 	chromeHeaders = map[string]string{
 		"pragma":                    "no-cache",
 		"cache-control":             "no-cache",
-		"sec-ch-ua":                 `"Not_A Brand";v="99", "Google Chrome";v="109", "Chromium";v="109"`,
+		"sec-ch-ua":                 `"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"`,
 		"sec-ch-ua-mobile":          "?0",
 		"sec-ch-ua-platform":        `"macOS"`,
 		"upgrade-insecure-requests": "1",
-		"user-agent":                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-		"accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+		"user-agent":                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+		"accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
 		"sec-fetch-site":            "none",
 		"sec-fetch-mode":            "navigate",
 		"sec-fetch-user":            "?1",
 		"sec-fetch-dest":            "document",
-		"accept-language":           "zh-CN,zh;q=0.9,en;q=0.8,zh-TW;q=0.7,it;q=0.6",
+		"accept-language":           "zh-CN,zh;q=0.9",
 	}
 
 	chromeHeaderPriority = http2.PriorityParam{
@@ -125,10 +125,10 @@ var (
 	}
 )
 
-// ImpersonateChrome impersonates Chrome browser (version 109).
+// ImpersonateChrome impersonates Chrome browser (version 120).
 func (c *Client) ImpersonateChrome() *Client {
 	c.
-		SetTLSFingerprint(utls.HelloChrome_Auto). // Chrome 106~109 shares the same tls fingerprint.
+		SetTLSFingerprint(utls.HelloChrome_120).
 		SetHTTP2SettingsFrame(chromeHttp2Settings...).
 		SetHTTP2ConnectionFlow(15663105).
 		SetCommonPseudoHeaderOder(chromePseudoHeaderOrder...).
@@ -229,7 +229,7 @@ var (
 	}
 
 	firefoxHeaders = map[string]string{
-		"user-agent":                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:105.0) Gecko/20100101 Firefox/105.0",
+		"user-agent":                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0",
 		"accept":                    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
 		"accept-language":           "zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2",
 		"upgrade-insecure-requests": "1",
@@ -247,10 +247,10 @@ var (
 	}
 )
 
-// ImpersonateFirefox impersonates Firefox browser (version 105).
+// ImpersonateFirefox impersonates Firefox browser (version 120).
 func (c *Client) ImpersonateFirefox() *Client {
 	c.
-		SetTLSFingerprint(utls.HelloFirefox_Auto).
+		SetTLSFingerprint(utls.HelloFirefox_120).
 		SetHTTP2SettingsFrame(firefoxHttp2Settings...).
 		SetHTTP2ConnectionFlow(12517377).
 		SetHTTP2PriorityFrames(firefoxPriorityFrames...).
@@ -309,10 +309,10 @@ var (
 	}
 )
 
-// ImpersonateSafari impersonates Safari browser (version 16).
+// ImpersonateSafari impersonates Safari browser (version 16.6).
 func (c *Client) ImpersonateSafari() *Client {
 	c.
-		SetTLSFingerprint(utls.HelloSafari_Auto).
+		SetTLSFingerprint(utls.HelloSafari_16_0).
 		SetHTTP2SettingsFrame(safariHttp2Settings...).
 		SetHTTP2ConnectionFlow(10485760).
 		SetCommonPseudoHeaderOder(safariPseudoHeaderOrder...).
