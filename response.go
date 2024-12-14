@@ -196,6 +196,16 @@ func (r *Response) Into(v interface{}) error {
 	return r.Unmarshal(v)
 }
 
+// Set response body with byte array content
+func (r *Response) SetBody(body []byte) {
+	r.body = body
+}
+
+// Set response body with string content
+func (r *Response) SetBodyStr(body string) {
+	r.body = []byte(body)
+}
+
 // Bytes return the response body as []bytes that have already been read, could be
 // nil if not read, the following cases are already read:
 //  1. `Request.SetResult` or `Request.SetError` is called.
