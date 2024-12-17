@@ -202,7 +202,7 @@ func (r *Response) SetBody(body []byte) {
 }
 
 // Set response body with string content
-func (r *Response) SetBodyStr(body string) {
+func (r *Response) SetBodyString(body string) {
 	r.body = []byte(body)
 }
 
