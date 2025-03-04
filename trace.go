@@ -102,6 +102,9 @@ type TraceInfo struct {
 
 	// RemoteAddr returns the remote network address.
 	RemoteAddr net.Addr
+
+	// LocalAddr returns the local network address.
+	LocalAddr net.Addr
 }
 
 type clientTrace struct {
