@@ -17,12 +17,14 @@ TLSHandshakeTime  : %v
 FirstResponseTime : %v
 ResponseTime      : %v
 IsConnReused:     : false
-RemoteAddr        : %v`
+RemoteAddr        : %v
+LocalAddr         : %v`
 	traceReusedFmt = `TotalTime         : %v
 FirstResponseTime : %v
 ResponseTime      : %v
 IsConnReused:     : true
-RemoteAddr        : %v`
+RemoteAddr        : %v
+LocalAddr         : %v`
 )
 
 // Blame return the human-readable reason of why request is slowing.
@@ -57,9 +59,9 @@ func (t TraceInfo) String() string {
 		return "trace is not enabled"
 	}
 	if t.IsConnReused {
-		return fmt.Sprintf(traceReusedFmt, t.TotalTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr)
+		return fmt.Sprintf(traceReusedFmt, t.TotalTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr, t.LocalAddr)
 	}
-	return fmt.Sprintf(traceFmt, t.TotalTime, t.DNSLookupTime, t.TCPConnectTime, t.TLSHandshakeTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr)
+	return fmt.Sprintf(traceFmt, t.TotalTime, t.DNSLookupTime, t.TCPConnectTime, t.TLSHandshakeTime, t.FirstResponseTime, t.ResponseTime, t.RemoteAddr, t.LocalAddr)
 }
 
 // TraceInfo represents the trace information.
