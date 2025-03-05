@@ -146,6 +146,7 @@ func (r *Request) TraceInfo() TraceInfo {
 	// Capture remote address info when connection is non-nil
 	if ct.gotConnInfo.Conn != nil {
 		ti.RemoteAddr = ct.gotConnInfo.Conn.RemoteAddr()
+		ti.LocalAddr = ct.gotConnInfo.Conn.LocalAddr()
 	}
 
 	return ti
