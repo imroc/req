@@ -5,6 +5,7 @@ go 1.22.0
 require (
 	github.com/andybalholm/brotli v1.1.1
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/hjson/hjson-go/v4 v4.4.0
 	github.com/klauspost/compress v1.17.11
 	github.com/quic-go/qpack v0.5.1
 	github.com/quic-go/quic-go v0.48.2

@@ -310,7 +310,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dump.Dumper) (err error
 	rw := w // raw writer
 	for _, dump := range dumps {
 		if dump.RequestBody() {
-			w = dump.WrapRequestBodyWriter(w)
+			w = dump.WrapRequestBodyWriter(w, t.Header)
 		}
 	}
 
@@ -327,7 +327,7 @@ func (t *transferWriter) writeBody(w io.Writer, dumps []*dump.Dumper) (err error
 			cw := internal.NewChunkedWriter(rw)
 			for _, dump := range dumps {
 				if dump.RequestBody() {
-					cw = dump.WrapRequestBodyWriteCloser(cw)
+					cw = dump.WrapRequestBodyWriteCloser(cw, t.Header)
 				}
 			}
 			_, err = t.doBodyCopy(cw, body)

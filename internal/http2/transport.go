@@ -1716,7 +1716,7 @@ func (cs *clientStream) writeRequestBody(req *http.Request, dumps []*dump.Dumper
 	if len(dumps) > 0 {
 		writeData = func(streamID uint32, endStream bool, data []byte) error {
 			for _, dump := range dumps {
-				dump.DumpRequestBody(data)
+				dump.DumpRequestBody(data, req.Header)
 			}
 			return cc.fr.WriteData(streamID, endStream, data)
 		}
