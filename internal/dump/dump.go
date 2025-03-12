@@ -6,13 +6,39 @@ import (
 	"net/http"
 )
 
+// BodyFormatter is the interface for body formatter.
+type BodyFormatter interface {
+	// BodyFormat formats the body and returns the formatted body and a boolean value indicating whether to dump immediately.
+	BodyFormat(p []byte, header http.Header) (formatted []byte, dumpImmediately bool)
+}
+
+// BodyFormatterFunc is a function that implements the BodyFormatter interface.
+type BodyFormatterFunc func(p []byte, header http.Header) (formatted []byte, dumpImmediately bool)
+
+// BodyFormat implements the BodyFormatter interface.
+func (f BodyFormatterFunc) BodyFormat(p []byte, header http.Header) (formatted []byte, dumpImmediately bool) {
+	return f(p, header)
+}
+
 // Options controls the dump behavior.
 type Options interface {
 	Output() io.Writer
 	RequestHeaderOutput() io.Writer
 	RequestBodyOutput() io.Writer
+
+	// RequestBodyFormatter returns the request body formatter.
+	// If nil, the request body will not be formatted.
+	// Here you can use a customized formatter like for JSON pretty format, JSON to HTML format, etc.
+	RequestBodyFormatter() BodyFormatter
+
 	ResponseHeaderOutput() io.Writer
 	ResponseBodyOutput() io.Writer
+
+	// ResponseBodyFormatter, as like RequestBodyFormatter, returns the response body formatter.
+	// If nil, the response body will not be formatted.
+	// Here you can use a customized formatter like for JSON pretty format, JSON to HTML format, etc.
+	ResponseBodyFormatter() BodyFormatter
+
 	RequestHeader() bool
 	RequestBody() bool
 	ResponseHeader() bool
@@ -21,36 +47,38 @@ type Options interface {
 	Clone() Options
 }
 
-func (d *Dumper) WrapResponseBodyReadCloser(rc io.ReadCloser) io.ReadCloser {
-	return &dumpResponseBodyReadCloser{rc, d}
+func (d *Dumper) WrapResponseBodyReadCloser(rc io.ReadCloser, header http.Header) io.ReadCloser {
+	return &dumpResponseBodyReadCloser{rc, d, header}
 }
 
 type dumpResponseBodyReadCloser struct {
 	io.ReadCloser
-	dump *Dumper
+	dump   *Dumper
+	header http.Header
 }
 
 func (r *dumpResponseBodyReadCloser) Read(p []byte) (n int, err error) {
 	n, err = r.ReadCloser.Read(p)
-	r.dump.DumpResponseBody(p[:n])
+	r.dump.DumpResponseBody(p[:n], r.header)
 	if err == io.EOF {
 		r.dump.DumpDefault([]byte("\r\n"))
 	}
 	return
 }
 
-func (d *Dumper) WrapRequestBodyWriteCloser(rc io.WriteCloser) io.WriteCloser {
-	return &dumpRequestBodyWriteCloser{rc, d}
+func (d *Dumper) WrapRequestBodyWriteCloser(rc io.WriteCloser, header http.Header) io.WriteCloser {
+	return &dumpRequestBodyWriteCloser{rc, d, header}
 }
 
 type dumpRequestBodyWriteCloser struct {
 	io.WriteCloser
-	dump *Dumper
+	dump   *Dumper
+	header http.Header
 }
 
 func (w *dumpRequestBodyWriteCloser) Write(p []byte) (n int, err error) {
 	n, err = w.WriteCloser.Write(p)
-	w.dump.DumpRequestBody(p[:n])
+	w.dump.DumpRequestBody(p[:n], w.header)
 	return
 }
 
@@ -73,20 +101,22 @@ func (d *Dumper) WrapRequestHeaderWriter(w io.Writer) io.Writer {
 }
 
 type dumpRequestBodyWriter struct {
-	w    io.Writer
-	dump *Dumper
+	w      io.Writer
+	dump   *Dumper
+	header http.Header
 }
 
 func (w *dumpRequestBodyWriter) Write(p []byte) (n int, err error) {
 	n, err = w.w.Write(p)
-	w.dump.DumpRequestBody(p[:n])
+	w.dump.DumpRequestBody(p[:n], w.header)
 	return
 }
 
-func (d *Dumper) WrapRequestBodyWriter(w io.Writer) io.Writer {
+func (d *Dumper) WrapRequestBodyWriter(w io.Writer, header http.Header) io.Writer {
 	return &dumpRequestBodyWriter{
-		w:    w,
-		dump: d,
+		w:      w,
+		dump:   d,
+		header: header,
 	}
 }
 
@@ -171,7 +201,15 @@ func (d *Dumper) DumpRequestHeader(p []byte) {
 	d.DumpTo(p, d.RequestHeaderOutput())
 }
 
-func (d *Dumper) DumpRequestBody(p []byte) {
+func (d *Dumper) DumpRequestBody(p []byte, header http.Header) {
+	if bd := d.RequestBodyFormatter(); bd != nil {
+		if pp, ok := bd.BodyFormat(p, header); ok {
+			p = pp
+		} else if !ok {
+			return
+		}
+	}
+
 	d.DumpTo(p, d.RequestBodyOutput())
 }
 
@@ -179,7 +217,15 @@ func (d *Dumper) DumpResponseHeader(p []byte) {
 	d.DumpTo(p, d.ResponseHeaderOutput())
 }
 
-func (d *Dumper) DumpResponseBody(p []byte) {
+func (d *Dumper) DumpResponseBody(p []byte, header http.Header) {
+	if bd := d.ResponseBodyFormatter(); bd != nil {
+		if pp, ok := bd.BodyFormat(p, header); ok {
+			p = pp
+		} else if !ok {
+			return
+		}
+	}
+
 	d.DumpTo(p, d.ResponseBodyOutput())
 }
 
@@ -218,7 +264,7 @@ func WrapResponseBodyIfNeeded(res *http.Response, req *http.Request, dump *Dumpe
 	dumps := GetDumpers(req.Context(), dump)
 	for _, d := range dumps {
 		if d.ResponseBody() {
-			res.Body = d.WrapResponseBodyReadCloser(res.Body)
+			res.Body = d.WrapResponseBodyReadCloser(res.Body, res.Header)
 		}
 	}
 }

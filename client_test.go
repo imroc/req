@@ -17,6 +17,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
 	"golang.org/x/net/publicsuffix"
@@ -536,6 +537,26 @@ func testDisableAutoReadResponse(t *testing.T, c *Client) {
 	assertSuccess(t, resp, err)
 	_, err = io.ReadAll(resp.Body)
 	tests.AssertNoError(t, err)
+}
+
+func TestDumpBodyFormat(t *testing.T) {
+	var buff bytes.Buffer
+	opt := NewDefaultDumpOptions()
+	opt.Output = &buff
+	opt.RequestBodyFormat = dump.BodyFormatterFunc(func(p []byte, header http.Header) (formatted []byte, dumpImmediately bool) {
+		return append(p, []byte(" request formatted")...), true
+	})
+	opt.ResponseBodyFormat = dump.BodyFormatterFunc(func(p []byte, header http.Header) (formatted []byte, dumpImmediately bool) {
+		return append(p, []byte(" response formatted")...), true
+	})
+
+	c := tc()
+	c.EnableDump(opt)
+	resp, err := c.R().SetBody("test body").Post("/")
+	assertSuccess(t, resp, err)
+	dump := buff.String()
+	tests.AssertContains(t, dump, " request formatted", true)
+	tests.AssertContains(t, dump, " response formatted", true)
 }
 
 func testEnableDumpAll(t *testing.T, fn func(c *Client) (de dumpExpected)) {

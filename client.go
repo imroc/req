@@ -565,7 +565,7 @@ func (c *Client) SetTimeout(d time.Duration) *Client {
 
 func (c *Client) getDumpOptions() *DumpOptions {
 	if c.dumpOptions == nil {
-		c.dumpOptions = newDefaultDumpOptions()
+		c.dumpOptions = NewDefaultDumpOptions()
 	}
 	return c.dumpOptions
 }
