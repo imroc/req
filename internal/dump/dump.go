@@ -22,15 +22,15 @@ type Options interface {
 }
 
 func (d *Dumper) WrapResponseBodyReadCloser(rc io.ReadCloser) io.ReadCloser {
-	return &dumpReponseBodyReadCloser{rc, d}
+	return &dumpResponseBodyReadCloser{rc, d}
 }
 
-type dumpReponseBodyReadCloser struct {
+type dumpResponseBodyReadCloser struct {
 	io.ReadCloser
 	dump *Dumper
 }
 
-func (r *dumpReponseBodyReadCloser) Read(p []byte) (n int, err error) {
+func (r *dumpResponseBodyReadCloser) Read(p []byte) (n int, err error) {
 	n, err = r.ReadCloser.Read(p)
 	r.dump.DumpResponseBody(p[:n])
 	if err == io.EOF {
