@@ -579,19 +579,6 @@ func (t *Transport) EnableHTTP3() {
 		}
 		return
 	}
-	minorVersion, err := strconv.Atoi(ss[1])
-	if err != nil {
-		if t.Debugf != nil {
-			t.Debugf("bad go minor version: %s", v)
-		}
-		return
-	}
-	if minorVersion < 22 || minorVersion > 23 {
-		if t.Debugf != nil {
-			t.Debugf("%s is not support http3", v)
-		}
-		return
-	}
 
 	if t.altSvcJar == nil {
 		t.altSvcJar = altsvc.NewAltSvcJar()
