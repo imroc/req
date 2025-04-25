@@ -132,7 +132,7 @@ type Transport struct {
 	transport.Options
 
 	t2 *h2internal.Transport // non-nil if http2 wired up
-	t3 *http3.RoundTripper
+	t3 *http3.Transport
 
 	// disableAutoDecode, if true, prevents auto detect response
 	// body's charset and decode it to utf-8
@@ -599,7 +599,7 @@ func (t *Transport) EnableHTTP3() {
 	if t.pendingAltSvcs == nil {
 		t.pendingAltSvcs = make(map[string]*pendingAltSvc)
 	}
-	t3 := &http3.RoundTripper{
+	t3 := &http3.Transport{
 		Options: &t.Options,
 	}
 	t.t3 = t3

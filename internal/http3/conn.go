@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
+	"net/http/httptrace"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -43,6 +45,7 @@ type connection struct {
 	ctx context.Context
 
 	perspective Perspective
+	logger      *slog.Logger
 
 	enableDatagrams bool
 
@@ -63,14 +66,15 @@ func newConnection(
 	quicConn quic.Connection,
 	enableDatagrams bool,
 	perspective Perspective,
+	logger *slog.Logger,
 	idleTimeout time.Duration,
 	options *transport.Options,
 ) *connection {
 	c := &connection{
 		ctx:              ctx,
 		Connection:       quicConn,
-		Options:          options,
 		perspective:      perspective,
+		logger:           logger,
 		idleTimeout:      idleTimeout,
 		enableDatagrams:  enableDatagrams,
 		decoder:          qpack.NewDecoder(func(hf qpack.HeaderField) {}),
@@ -104,7 +108,7 @@ func (c *connection) openRequestStream(
 	disableCompression bool,
 	maxHeaderBytes uint64,
 ) (*requestStream, error) {
-	str, err := c.Connection.OpenStreamSync(ctx)
+	str, err := c.OpenStreamSync(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +126,8 @@ func (c *connection) openRequestStream(
 		rsp.Trailer = hdr
 		return nil
 	})
-	return newRequestStream(ctx, c.Options, hstr, requestWriter, reqDone, c.decoder, disableCompression, maxHeaderBytes, rsp), nil
+	trace := httptrace.ContextClientTrace(ctx)
+	return newRequestStream(c.Options, hstr, requestWriter, reqDone, c.decoder, disableCompression, maxHeaderBytes, rsp, trace), nil
 }
 
 func (c *connection) decodeTrailers(r io.Reader, l, maxHeaderBytes uint64) (http.Header, error) {
@@ -169,7 +174,7 @@ func (c *connection) CloseWithError(code quic.ApplicationErrorCode, msg string) 
 	return c.Connection.CloseWithError(code, msg)
 }
 
-func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, quic.ConnectionTracingID, quic.ReceiveStream, error) (hijacked bool)) {
+func (c *connection) handleUnidirectionalStreams(hijack func(StreamType, quic.ConnectionTracingID, quic.ReceiveStream, error) (hijacked bool)) {
 	var (
 		rcvdControlStr      atomic.Bool
 		rcvdQPACKEncoderStr atomic.Bool
@@ -177,10 +182,10 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 	)
 
 	for {
-		str, err := c.Connection.AcceptUniStream(context.Background())
+		str, err := c.AcceptUniStream(context.Background())
 		if err != nil {
-			if c.Debugf != nil {
-				c.Debugf("accepting unidirectional stream failed: %s", err.Error())
+			if c.logger != nil {
+				c.logger.Debug("accepting unidirectional stream failed", "error", err)
 			}
 			return
 		}
@@ -188,12 +193,12 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 		go func(str quic.ReceiveStream) {
 			streamType, err := quicvarint.Read(quicvarint.NewReader(str))
 			if err != nil {
-				id := c.Connection.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID)
-				if hijack != nil && hijack(ServerStreamType(streamType), id, str, err) {
+				id := c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID)
+				if hijack != nil && hijack(StreamType(streamType), id, str, err) {
 					return
 				}
-				if c.Debugf != nil {
-					c.Debugf("reading stream type on stream failed (id %v): %s", str.StreamID(), err.Error())
+				if c.logger != nil {
+					c.logger.Debug("reading stream type on stream failed", "stream ID", str.StreamID(), "error", err)
 				}
 				return
 			}
@@ -202,13 +207,13 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 			case streamTypeControlStream:
 			case streamTypeQPACKEncoderStream:
 				if isFirst := rcvdQPACKEncoderStr.CompareAndSwap(false, true); !isFirst {
-					c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK encoder stream")
+					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK encoder stream")
 				}
 				// Our QPACK implementation doesn't use the dynamic table yet.
 				return
 			case streamTypeQPACKDecoderStream:
 				if isFirst := rcvdQPACKDecoderStr.CompareAndSwap(false, true); !isFirst {
-					c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK decoder stream")
+					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK decoder stream")
 				}
 				// Our QPACK implementation doesn't use the dynamic table yet.
 				return
@@ -216,17 +221,17 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 				switch c.perspective {
 				case PerspectiveClient:
 					// we never increased the Push ID, so we don't expect any push streams
-					c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
+					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
 				case PerspectiveServer:
 					// only the server can push
-					c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "")
+					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "")
 				}
 				return
 			default:
 				if hijack != nil {
 					if hijack(
-						ServerStreamType(streamType),
-						c.Connection.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID),
+						StreamType(streamType),
+						c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID),
 						str,
 						nil,
 					) {
@@ -264,14 +269,14 @@ func (c *connection) HandleUnidirectionalStreams(hijack func(ServerStreamType, q
 			// If datagram support was enabled on our side as well as on the server side,
 			// we can expect it to have been negotiated both on the transport and on the HTTP/3 layer.
 			// Note: ConnectionState() will block until the handshake is complete (relevant when using 0-RTT).
-			if c.enableDatagrams && !c.Connection.ConnectionState().SupportsDatagrams {
-				c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeSettingsError), "missing QUIC Datagram support")
+			if c.enableDatagrams && !c.ConnectionState().SupportsDatagrams {
+				c.CloseWithError(quic.ApplicationErrorCode(ErrCodeSettingsError), "missing QUIC Datagram support")
 				return
 			}
 			go func() {
 				if err := c.receiveDatagrams(); err != nil {
-					if c.Debugf != nil {
-						c.Debugf("receiving datagrams failed: %s", err.Error())
+					if c.logger != nil {
+						c.logger.Debug("receiving datagrams failed", "error", err)
 					}
 				}
 			}()
@@ -284,22 +289,22 @@ func (c *connection) sendDatagram(streamID quic.StreamID, b []byte) error {
 	data := make([]byte, 0, len(b)+8)
 	data = quicvarint.Append(data, uint64(streamID/4))
 	data = append(data, b...)
-	return c.Connection.SendDatagram(data)
+	return c.SendDatagram(data)
 }
 
 func (c *connection) receiveDatagrams() error {
 	for {
-		b, err := c.Connection.ReceiveDatagram(context.Background())
+		b, err := c.ReceiveDatagram(context.Background())
 		if err != nil {
 			return err
 		}
 		quarterStreamID, n, err := quicvarint.Parse(b)
 		if err != nil {
-			c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeDatagramError), "")
+			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeDatagramError), "")
 			return fmt.Errorf("could not read quarter stream id: %w", err)
 		}
 		if quarterStreamID > maxQuarterStreamID {
-			c.Connection.CloseWithError(quic.ApplicationErrorCode(ErrCodeDatagramError), "")
+			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeDatagramError), "")
 			return fmt.Errorf("invalid quarter stream id: %w", err)
 		}
 		streamID := quic.StreamID(4 * quarterStreamID)
@@ -315,10 +320,12 @@ func (c *connection) receiveDatagrams() error {
 }
 
 // ReceivedSettings returns a channel that is closed once the peer's SETTINGS frame was received.
+// Settings can be optained from the Settings method after the channel was closed.
 func (c *connection) ReceivedSettings() <-chan struct{} { return c.receivedSettings }
 
 // Settings returns the settings received on this connection.
 // It is only valid to call this function after the channel returned by ReceivedSettings was closed.
 func (c *connection) Settings() *Settings { return c.settings }
 
+// Context returns the context of the underlying QUIC connection.
 func (c *connection) Context() context.Context { return c.ctx }

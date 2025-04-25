@@ -45,8 +45,12 @@ func (w *requestWriter) WriteRequestHeader(str quic.Stream, req *http.Request, g
 	if err := w.writeHeaders(buf, req, gzip, dumps); err != nil {
 		return err
 	}
-	_, err := str.Write(buf.Bytes())
-	return err
+	if _, err := str.Write(buf.Bytes()); err != nil {
+		return err
+	}
+	trace := httptrace.ContextClientTrace(req.Context())
+	traceWroteHeaders(trace)
+	return nil
 }
 
 func (w *requestWriter) writeHeaders(wr io.Writer, req *http.Request, gzip bool, dumps []*dump.Dumper) error {
