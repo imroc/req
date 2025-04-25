@@ -86,6 +86,7 @@ func newClientConn(
 	logger *slog.Logger,
 ) *ClientConn {
 	c := &ClientConn{
+		Options:            opts,
 		enableDatagrams:    enableDatagrams,
 		additionalSettings: additionalSettings,
 		disableCompression: disableCompression,

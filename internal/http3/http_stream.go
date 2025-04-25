@@ -252,6 +252,13 @@ func (s *requestStream) ReadResponse() (*http.Response, error) {
 		s.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeGeneralProtocolError), "")
 		return nil, fmt.Errorf("http3: failed to decode response headers: %w", err)
 	}
+	ds := dump.GetResponseHeaderDumpers(s.ctx, s.Dump)
+	if ds.ShouldDump() {
+		for _, h := range hfs {
+			ds.DumpResponseHeader([]byte(fmt.Sprintf("%s: %s\r\n", h.Name, h.Value)))
+		}
+		ds.DumpResponseHeader([]byte("\r\n"))
+	}
 	res := s.response
 	if err := updateResponseFromHeaders(res, hfs); err != nil {
 		s.CancelRead(quic.StreamErrorCode(ErrCodeMessageError))

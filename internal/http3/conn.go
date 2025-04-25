@@ -80,6 +80,7 @@ func newConnection(
 		decoder:          qpack.NewDecoder(func(hf qpack.HeaderField) {}),
 		receivedSettings: make(chan struct{}),
 		streams:          make(map[quic.StreamID]*datagrammer),
+		Options:          options,
 	}
 	if idleTimeout > 0 {
 		c.idleTimer = time.AfterFunc(idleTimeout, c.onIdleTimer)
