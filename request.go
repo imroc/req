@@ -369,8 +369,7 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 // SetResult set the result that response Body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns SuccessState, by default
 // it requires HTTP status `code >= 200 && code <= 299`, you can also use
-// Request.SetResultStateCheckFunc or Client.SetResultStateCheckFunc to customize
-// the result state check logic.
+// Client.SetResultStateCheckFunc to customize the result state check logic.
 //
 // Deprecated: Use SetSuccessResult instead.
 func (r *Request) SetResult(result interface{}) *Request {
@@ -380,8 +379,7 @@ func (r *Request) SetResult(result interface{}) *Request {
 // SetSuccessResult set the result that response Body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns SuccessState, by default
 // it requires HTTP status `code >= 200 && code <= 299`, you can also use
-// Request.SetResultStateCheckFunc or Client.SetResultStateCheckFunc to customize
-// the result state check logic.
+// Client.SetResultStateCheckFunc to customize the result state check logic.
 func (r *Request) SetSuccessResult(result interface{}) *Request {
 	if result == nil {
 		return r
@@ -392,8 +390,8 @@ func (r *Request) SetSuccessResult(result interface{}) *Request {
 
 // SetError set the result that response body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns ErrorState, by default
-// it requires HTTP status `code >= 400`, you can also use Request.SetResultStateCheckFunc
-// or Client.SetResultStateCheckFunc to customize the result state check logic.
+// it requires HTTP status `code >= 400`, you can also use
+// Client.SetResultStateCheckFunc to customize the result state check logic.
 //
 // Deprecated: Use SetErrorResult result.
 func (r *Request) SetError(err interface{}) *Request {
@@ -402,8 +400,8 @@ func (r *Request) SetError(err interface{}) *Request {
 
 // SetErrorResult set the result that response body will be unmarshalled to if
 // no error occurs and Response.ResultState() returns ErrorState, by default
-// it requires HTTP status `code >= 400`, you can also use Request.SetResultStateCheckFunc
-// or Client.SetResultStateCheckFunc to customize the result state check logic.
+// it requires HTTP status `code >= 400`, you can also
+// use Client.SetResultStateCheckFunc to customize the result state check logic.
 func (r *Request) SetErrorResult(err interface{}) *Request {
 	if err == nil {
 		return r
