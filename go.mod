@@ -5,6 +5,7 @@ go 1.23.0
 require (
 	github.com/andybalholm/brotli v1.1.1
 	github.com/hashicorp/go-multierror v1.1.1
+	github.com/icholy/digest v1.1.0
 	github.com/klauspost/compress v1.18.0
 	github.com/quic-go/qpack v0.5.1
 	github.com/quic-go/quic-go v0.51.0
