@@ -1,33 +1,11 @@
 package req
 
 import (
-	"crypto/md5"
-	"crypto/sha256"
-	"crypto/sha512"
-	"errors"
-	"hash"
 	"net/http"
 
 	"github.com/icholy/digest"
 	"github.com/imroc/req/v3/internal/header"
 )
-
-var (
-	errDigestBadChallenge    = errors.New("digest: challenge is bad")
-	errDigestCharset         = errors.New("digest: unsupported charset")
-	errDigestAlgNotSupported = errors.New("digest: algorithm is not supported")
-	errDigestQopNotSupported = errors.New("digest: no supported qop in list")
-)
-
-var hashFuncs = map[string]func() hash.Hash{
-	"":                 md5.New,
-	"MD5":              md5.New,
-	"MD5-sess":         md5.New,
-	"SHA-256":          sha256.New,
-	"SHA-256-sess":     sha256.New,
-	"SHA-512-256":      sha512.New,
-	"SHA-512-256-sess": sha512.New,
-}
 
 // create response middleware for http digest authentication.
 func handleDigestAuthFunc(username, password string) ResponseMiddleware {
