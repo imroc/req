@@ -3,14 +3,14 @@ name: CI
 on:
   push:
     branches:
-      - master
+    - master
     paths-ignore:
-      - '**.md'
+    - '**.md'
   pull_request:
     branches:
-      - master
+    - master
     paths-ignore:
-      - '**.md'
+    - '**.md'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -19,15 +19,15 @@ jobs:
   test:
     strategy:
       matrix:
-        go: [ '1.22.x', '1.23.x' ]
-        os: [ ubuntu-latest ]
+        go: ['1.23.x', '1.24.x']
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: ${{ matrix.go }}
-      - name: Test
-        run: go test ./... -coverprofile=coverage.txt
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+    - name: Test
+      run: go test ./... -coverprofile=coverage.txt
