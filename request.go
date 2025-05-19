@@ -431,7 +431,7 @@ func (r *Request) SetBasicAuth(username, password string) *Request {
 //
 //	https://datatracker.ietf.org/doc/html/rfc7616
 //
-// This method overrides the username and password set by method `Client.SetCommonDigestAuth`.
+// Deprecated: Use Client.SetCommonDigestAuth instead. Request level digest auth is not recommended,
 func (r *Request) SetDigestAuth(username, password string) *Request {
 	r.OnAfterResponse(handleDigestAuthFunc(username, password))
 	return r
