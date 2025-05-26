@@ -1484,6 +1484,13 @@ func (c *Client) SetHTTP2WriteByteTimeout(timeout time.Duration) *Client {
 	return c
 }
 
+// Do is compatible with http.Client.Do, which can make req integration easier
+// in some scenarios.It should be noted that this will make some req features
+// not work properly, such as automatic retry, client middleware, etc.
+func (c *Client) Do(req *http.Request) (*http.Response, error) {
+	return c.httpClient.Do(req)
+}
+
 // NewClient is the alias of C
 func NewClient() *Client {
 	return C()
