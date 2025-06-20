@@ -491,6 +491,15 @@ func (c *GithubClient) GetUserProfile_Style2(ctx context.Context, username strin
 }
 ```
 
+## Go Version Compatibility Matrix
+
+| Req Version | Go Version |
+| ----------- | ---------- |
+| 3.53.0      | 1.24+      |
+| 3.51.0      | 1.23+      |
+| 3.43.0      | 1.21+      |
+| 3.41.0      | 1.20+      |
+
 ## Contributing
 
 If you have a bug report or feature request, you can [open an issue](https://github.com/imroc/req/issues/new), and [pull requests](https://github.com/imroc/req/pulls) are also welcome.
