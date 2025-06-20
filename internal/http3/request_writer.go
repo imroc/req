@@ -16,7 +16,6 @@ import (
 	reqheader "github.com/imroc/req/v3/internal/header"
 	"github.com/quic-go/qpack"
 
-	"github.com/quic-go/quic-go"
 	"golang.org/x/net/http/httpguts"
 	"golang.org/x/net/http2/hpack"
 	"golang.org/x/net/idna"
@@ -39,13 +38,13 @@ func newRequestWriter() *requestWriter {
 	}
 }
 
-func (w *requestWriter) WriteRequestHeader(str quic.Stream, req *http.Request, gzip bool, dumps []*dump.Dumper) error {
+func (w *requestWriter) WriteRequestHeader(wr io.Writer, req *http.Request, gzip bool, dumps []*dump.Dumper) error {
 	// TODO: figure out how to add support for trailers
 	buf := &bytes.Buffer{}
 	if err := w.writeHeaders(buf, req, gzip, dumps); err != nil {
 		return err
 	}
-	if _, err := str.Write(buf.Bytes()); err != nil {
+	if _, err := wr.Write(buf.Bytes()); err != nil {
 		return err
 	}
 	trace := httptrace.ContextClientTrace(req.Context())
