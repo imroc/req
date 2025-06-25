@@ -17,34 +17,11 @@ import (
 	"github.com/quic-go/qpack"
 )
 
-// A Stream is an HTTP/3 request stream.
+// A stream is an HTTP/3 request stream.
 // When writing to and reading from the stream, data is framed in HTTP/3 DATA frames.
-type Stream interface {
-	quic.Stream
-
-	SendDatagram([]byte) error
-	ReceiveDatagram(context.Context) ([]byte, error)
-}
-
-// A RequestStream is an HTTP/3 request stream.
-// When writing to and reading from the stream, data is framed in HTTP/3 DATA frames.
-type RequestStream interface {
-	Stream
-
-	// SendRequestHeader sends the HTTP request.
-	// It is invalid to call it more than once.
-	// It is invalid to call it after Write has been called.
-	SendRequestHeader(req *http.Request) error
-
-	// ReadResponse reads the HTTP response from the stream.
-	// It is invalid to call it more than once.
-	// It doesn't set Response.Request and Response.TLS.
-	// It is invalid to call it after Read has been called.
-	ReadResponse() (*http.Response, error)
-}
-
 type stream struct {
-	quic.Stream
+	*quic.Stream
+
 	conn *connection
 
 	buf []byte // used as a temporary buffer when writing the HTTP/3 frame headers
@@ -57,9 +34,7 @@ type stream struct {
 	parsedTrailer bool
 }
 
-var _ Stream = &stream{}
-
-func newStream(str quic.Stream, conn *connection, datagrams *datagrammer, parseTrailer func(io.Reader, uint64) error) *stream {
+func newStream(str *quic.Stream, conn *connection, datagrams *datagrammer, parseTrailer func(io.Reader, uint64) error) *stream {
 	return &stream{
 		Stream:       str,
 		conn:         conn,
@@ -72,7 +47,7 @@ func newStream(str quic.Stream, conn *connection, datagrams *datagrammer, parseT
 func (s *stream) Read(b []byte) (int, error) {
 	fp := &frameParser{
 		r:    s.Stream,
-		conn: s.conn,
+		conn: s.conn.Conn,
 	}
 	if s.bytesRemainingInFrame == 0 {
 	parseLoop:
@@ -161,8 +136,6 @@ type requestStream struct {
 	firstByte     bool
 }
 
-var _ RequestStream = &requestStream{}
-
 func newRequestStream(
 	options *transport.Options,
 	str *stream,
@@ -189,7 +162,7 @@ func newRequestStream(
 
 func (s *requestStream) Read(b []byte) (int, error) {
 	if s.responseBody == nil {
-		return 0, errors.New("http3: invalid use of RequestStream.Read: need to call ReadResponse first")
+		return 0, errors.New("http3: invalid use of requestStream.Read: need to call ReadResponse first")
 	}
 	return s.responseBody.Read(b)
 }
@@ -217,7 +190,7 @@ func (s *requestStream) SendRequestHeader(req *http.Request) error {
 
 func (s *requestStream) ReadResponse() (*http.Response, error) {
 	fp := &frameParser{
-		conn: s.conn,
+		conn: s.conn.Conn,
 		r: &tracingReader{
 			Reader: s.Stream,
 			first:  &s.firstByte,

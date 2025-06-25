@@ -21,7 +21,7 @@ var errHijacked = errors.New("hijacked")
 
 type frameParser struct {
 	r                   io.Reader
-	conn                quic.Connection
+	conn                *quic.Conn
 	unknownFrameHandler unknownFrameHandlerFunc
 }
 

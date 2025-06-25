@@ -9,8 +9,6 @@ import (
 	"github.com/quic-go/quic-go"
 )
 
-var _ quic.Stream = &stateTrackingStream{}
-
 // stateTrackingStream is an implementation of quic.Stream that delegates
 // to an underlying stream
 // it takes care of proxying send and receive errors onto an implementation of
@@ -19,7 +17,7 @@ var _ quic.Stream = &stateTrackingStream{}
 // parent connection, this is done through the streamClearer interface when
 // both the send and receive sides are closed
 type stateTrackingStream struct {
-	quic.Stream
+	*quic.Stream
 
 	mx      sync.Mutex
 	sendErr error
@@ -38,7 +36,7 @@ type errorSetter interface {
 	SetReceiveError(error)
 }
 
-func newStateTrackingStream(s quic.Stream, clearer streamClearer, setter errorSetter) *stateTrackingStream {
+func newStateTrackingStream(s *quic.Stream, clearer streamClearer, setter errorSetter) *stateTrackingStream {
 	t := &stateTrackingStream{
 		Stream:  s,
 		clearer: clearer,

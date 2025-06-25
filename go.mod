@@ -3,12 +3,12 @@ module github.com/imroc/req/v3
 go 1.24
 
 require (
-	github.com/andybalholm/brotli v1.1.1
+	github.com/andybalholm/brotli v1.2.0
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/icholy/digest v1.1.0
 	github.com/klauspost/compress v1.18.0
 	github.com/quic-go/qpack v0.5.1
-	github.com/quic-go/quic-go v0.52.0
+	github.com/quic-go/quic-go v0.53.0
 	github.com/refraction-networking/utls v1.7.3
 	golang.org/x/net v0.41.0
 	golang.org/x/text v0.26.0

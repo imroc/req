@@ -77,17 +77,13 @@ type ClientConn struct {
 
 var _ http.RoundTripper = &ClientConn{}
 
-// Deprecated: SingleDestinationRoundTripper was renamed to ClientConn.
-// It can be obtained by calling NewClientConn on a Transport.
-type SingleDestinationRoundTripper = ClientConn
-
 func newClientConn(
 	opts *transport.Options,
-	conn quic.Connection,
+	conn *quic.Conn,
 	enableDatagrams bool,
 	additionalSettings map[uint64]uint64,
-	streamHijacker func(FrameType, quic.ConnectionTracingID, quic.Stream, error) (hijacked bool, err error),
-	uniStreamHijacker func(StreamType, quic.ConnectionTracingID, quic.ReceiveStream, error) (hijacked bool),
+	streamHijacker func(FrameType, quic.ConnectionTracingID, *quic.Stream, error) (hijacked bool, err error),
+	uniStreamHijacker func(StreamType, quic.ConnectionTracingID, *quic.ReceiveStream, error) (hijacked bool),
 	maxResponseHeaderBytes int64,
 	disableCompression bool,
 	logger *slog.Logger,
@@ -132,7 +128,7 @@ func newClientConn(
 }
 
 // OpenRequestStream opens a new request stream on the HTTP/3 connection.
-func (c *ClientConn) OpenRequestStream(ctx context.Context) (RequestStream, error) {
+func (c *ClientConn) OpenRequestStream(ctx context.Context) (*requestStream, error) {
 	return c.openRequestStream(ctx, c.requestWriter, nil, c.disableCompression, c.maxResponseHeaderBytes)
 }
 
@@ -150,7 +146,7 @@ func (c *ClientConn) setupConn() error {
 	return err
 }
 
-func (c *ClientConn) handleBidirectionalStreams(streamHijacker func(FrameType, quic.ConnectionTracingID, quic.Stream, error) (hijacked bool, err error)) {
+func (c *ClientConn) handleBidirectionalStreams(streamHijacker func(FrameType, quic.ConnectionTracingID, *quic.Stream, error) (hijacked bool, err error)) {
 	for {
 		str, err := c.AcceptStream(context.Background())
 		if err != nil {
@@ -161,7 +157,7 @@ func (c *ClientConn) handleBidirectionalStreams(streamHijacker func(FrameType, q
 		}
 		fp := &frameParser{
 			r:    str,
-			conn: &c.connection,
+			conn: c.connection.Conn,
 			unknownFrameHandler: func(ft FrameType, e error) (processed bool, err error) {
 				id := c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID)
 				return streamHijacker(ft, id, str, e)
@@ -206,20 +202,19 @@ func (c *ClientConn) roundTrip(req *http.Request) (*http.Response, error) {
 		req.Method = http.MethodHead
 	default:
 		// wait for the handshake to complete
-		earlyConn, ok := c.Connection.(quic.EarlyConnection)
-		if ok {
-			select {
-			case <-earlyConn.HandshakeComplete():
-			case <-req.Context().Done():
-				return nil, req.Context().Err()
-			}
+		earlyConn := c.Conn
+		select {
+		case <-earlyConn.HandshakeComplete():
+		case <-req.Context().Done():
+			return nil, req.Context().Err()
 		}
+
 	}
 
 	// It is only possible to send an Extended CONNECT request once the SETTINGS were received.
 	// See section 3 of RFC 8441.
 	if isExtendedConnectRequest(req) {
-		connCtx := c.Connection.Context()
+		connCtx := c.Conn.Context()
 		// wait for the server's SETTINGS frame to arrive
 		select {
 		case <-c.ReceivedSettings():
@@ -270,7 +265,7 @@ func (c *ClientConn) roundTrip(req *http.Request) (*http.Response, error) {
 // It cancels writing on the stream if any error other than io.EOF occurs.
 type cancelingReader struct {
 	r   io.Reader
-	str Stream
+	str *stream
 }
 
 func (r *cancelingReader) Read(b []byte) (int, error) {
@@ -281,7 +276,7 @@ func (r *cancelingReader) Read(b []byte) (int, error) {
 	return n, err
 }
 
-func (c *ClientConn) sendRequestBody(str Stream, body io.ReadCloser, contentLength int64, dumps []*dump.Dumper) error {
+func (c *ClientConn) sendRequestBody(str *stream, body io.ReadCloser, contentLength int64, dumps []*dump.Dumper) error {
 	defer body.Close()
 	buf := make([]byte, bodyCopyBufferSize)
 	sr := &cancelingReader{str: str, r: body}
@@ -307,10 +302,10 @@ func (c *ClientConn) sendRequestBody(str Stream, body io.ReadCloser, contentLeng
 	// make sure we don't send more bytes than the content length
 	n, err := io.CopyBuffer(w, io.LimitReader(sr, contentLength), buf)
 	if err != nil {
-		if len(dumps) > 0 && err == nil && n > 0 {
-			writeTail()
-		}
 		return err
+	}
+	if len(dumps) > 0 && n > 0 {
+		writeTail()
 	}
 	var extra int64
 	extra, err = io.CopyBuffer(io.Discard, sr, buf)
@@ -341,7 +336,7 @@ func (c *ClientConn) doRequest(req *http.Request, str *requestStream) (*http.Res
 				contentLength = req.ContentLength
 			}
 			dumps := dump.GetDumpers(req.Context(), c.Dump)
-			err := c.sendRequestBody(str, req.Body, contentLength, dumps)
+			err := c.sendRequestBody(str.stream, req.Body, contentLength, dumps)
 			traceWroteRequest(trace, err)
 			if err != nil {
 				if c.Debugf != nil {
