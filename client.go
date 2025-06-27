@@ -55,10 +55,10 @@ type Client struct {
 	disableAutoReadResponse bool
 	commonErrorType         reflect.Type
 	retryOption             *retryOption
-	jsonMarshal             func(v interface{}) ([]byte, error)
-	jsonUnmarshal           func(data []byte, v interface{}) error
-	xmlMarshal              func(v interface{}) ([]byte, error)
-	xmlUnmarshal            func(data []byte, v interface{}) error
+	jsonMarshal             func(v any) ([]byte, error)
+	jsonUnmarshal           func(data []byte, v any) error
+	xmlMarshal              func(v any) ([]byte, error)
+	xmlUnmarshal            func(data []byte, v any) error
 	multipartBoundaryFunc   func() string
 	outputDirectory         string
 	scheme                  string
@@ -173,7 +173,7 @@ func (c *Client) SetResponseBodyTransformer(fn func(rawBody []byte, req *Request
 // to customize the result state check logic.
 //
 // Deprecated: Use SetCommonErrorResult instead.
-func (c *Client) SetCommonError(err interface{}) *Client {
+func (c *Client) SetCommonError(err any) *Client {
 	return c.SetCommonErrorResult(err)
 }
 
@@ -181,7 +181,7 @@ func (c *Client) SetCommonError(err interface{}) *Client {
 // if no error occurs but Response.ResultState returns ErrorState, by default it
 // is HTTP status `code >= 400`, you can also use SetCommonResultStateChecker
 // to customize the result state check logic.
-func (c *Client) SetCommonErrorResult(err interface{}) *Client {
+func (c *Client) SetCommonErrorResult(err any) *Client {
 	if err != nil {
 		c.commonErrorType = util.GetType(err)
 	}
@@ -1085,28 +1085,28 @@ func (c *Client) ClearCookies() *Client {
 
 // SetJsonMarshal set the JSON marshal function which will be used
 // to marshal request body.
-func (c *Client) SetJsonMarshal(fn func(v interface{}) ([]byte, error)) *Client {
+func (c *Client) SetJsonMarshal(fn func(v any) ([]byte, error)) *Client {
 	c.jsonMarshal = fn
 	return c
 }
 
 // SetJsonUnmarshal set the JSON unmarshal function which will be used
 // to unmarshal response body.
-func (c *Client) SetJsonUnmarshal(fn func(data []byte, v interface{}) error) *Client {
+func (c *Client) SetJsonUnmarshal(fn func(data []byte, v any) error) *Client {
 	c.jsonUnmarshal = fn
 	return c
 }
 
 // SetXmlMarshal set the XML marshal function which will be used
 // to marshal request body.
-func (c *Client) SetXmlMarshal(fn func(v interface{}) ([]byte, error)) *Client {
+func (c *Client) SetXmlMarshal(fn func(v any) ([]byte, error)) *Client {
 	c.xmlMarshal = fn
 	return c
 }
 
 // SetXmlUnmarshal set the XML unmarshal function which will be used
 // to unmarshal response body.
-func (c *Client) SetXmlUnmarshal(fn func(data []byte, v interface{}) error) *Client {
+func (c *Client) SetXmlUnmarshal(fn func(data []byte, v any) error) *Client {
 	c.xmlUnmarshal = fn
 	return c
 }
@@ -1594,7 +1594,7 @@ func (c *Client) initCookieJar() {
 }
 
 func (c *Client) initTransport() {
-	c.Debugf = func(format string, v ...interface{}) {
+	c.Debugf = func(format string, v ...any) {
 		if c.DebugLog {
 			c.log.Debugf(format, v...)
 		}

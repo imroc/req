@@ -223,7 +223,7 @@ func (h *FrameHeader) invalidate() { h.valid = false }
 // frame header bytes.
 // Used only by ReadFrameHeader.
 var fhBytes = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		buf := make([]byte, frameHeaderLen)
 		return &buf
 	},
@@ -331,8 +331,8 @@ type Framer struct {
 
 	debugFramer       *Framer // only use for logging written writes
 	debugFramerBuf    *bytes.Buffer
-	debugReadLoggerf  func(string, ...interface{})
-	debugWriteLoggerf func(string, ...interface{})
+	debugReadLoggerf  func(string, ...any)
+	debugWriteLoggerf func(string, ...any)
 
 	frameCache *frameCache // nil if frames aren't reused (default)
 }

@@ -4,11 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/tests"
 	"go/token"
-	"golang.org/x/text/encoding/simplifiedchinese"
-	"golang.org/x/text/transform"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -21,6 +17,11 @@ import (
 	"sync"
 	"testing"
 	"unsafe"
+
+	"github.com/imroc/req/v3/internal/header"
+	"github.com/imroc/req/v3/internal/tests"
+	"golang.org/x/text/encoding/simplifiedchinese"
+	"golang.org/x/text/transform"
 )
 
 func tc() *Client {
@@ -53,8 +54,10 @@ func handleHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var testServerMu sync.Mutex
-var testServer *httptest.Server
+var (
+	testServerMu sync.Mutex
+	testServer   *httptest.Server
+)
 
 func getTestServerURL() string {
 	if testServer != nil {
@@ -72,7 +75,7 @@ func getTestFileContent(t *testing.T, filename string) []byte {
 	return b
 }
 
-func assertClone(t *testing.T, e, g interface{}) {
+func assertClone(t *testing.T, e, g any) {
 	ev := reflect.ValueOf(e).Elem()
 	gv := reflect.ValueOf(g).Elem()
 	et := ev.Type()
@@ -81,7 +84,7 @@ func assertClone(t *testing.T, e, g interface{}) {
 		sf := ev.Field(i)
 		st := et.Field(i)
 
-		var ee, gg interface{}
+		var ee, gg any
 		if !token.IsExported(st.Name) {
 			ee = reflect.NewAt(sf.Type(), unsafe.Pointer(sf.UnsafeAddr())).Elem().Interface()
 			gg = reflect.NewAt(sf.Type(), unsafe.Pointer(gv.Field(i).UnsafeAddr())).Elem().Interface()
@@ -133,7 +136,7 @@ func handlePost(w http.ResponseWriter, r *http.Request) {
 		w.Write(ret)
 	case "/multipart":
 		r.ParseMultipartForm(10e6)
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		m["values"] = r.MultipartForm.Value
 		m["files"] = r.MultipartForm.File
 		ret, _ := json.Marshal(&m)
@@ -180,7 +183,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	username := r.FormValue("username")
 	tp := r.FormValue("type")
-	var marshalFunc func(v interface{}) ([]byte, error)
+	var marshalFunc func(v any) ([]byte, error)
 	if tp == "xml" {
 		w.Header().Set(header.ContentType, header.XmlContentType)
 		marshalFunc = xml.Marshal
@@ -188,7 +191,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(header.ContentType, header.JsonContentType)
 		marshalFunc = json.Marshal
 	}
-	var result interface{}
+	var result any
 	switch username {
 	case "":
 		w.WriteHeader(http.StatusBadRequest)

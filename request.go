@@ -31,8 +31,8 @@ type Request struct {
 	OrderedFormData []string
 	Headers         http.Header
 	Cookies         []*http.Cookie
-	Result          interface{}
-	Error           interface{}
+	Result          any
+	Error           any
 	RawRequest      *http.Request
 	StartTime       time.Time
 	RetryAttempt    int
@@ -59,7 +59,7 @@ type Request struct {
 	retryOption              *retryOption
 	bodyReadCloser           io.ReadCloser
 	dumpOptions              *DumpOptions
-	marshalBody              interface{}
+	marshalBody              any
 	ctx                      context.Context
 	uploadFiles              []*FileUpload
 	uploadReader             []io.ReadCloser
@@ -198,7 +198,7 @@ func (r *Request) SetOrderedFormData(kvs ...string) *Request {
 // SetFormDataAnyType set the form data from a map, which value could be any type,
 // will convert to string automatically.
 // It will not been used if request method does not allow payload.
-func (r *Request) SetFormDataAnyType(data map[string]interface{}) *Request {
+func (r *Request) SetFormDataAnyType(data map[string]any) *Request {
 	if r.FormData == nil {
 		r.FormData = urlpkg.Values{}
 	}
@@ -372,7 +372,7 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 // Client.SetResultStateCheckFunc to customize the result state check logic.
 //
 // Deprecated: Use SetSuccessResult instead.
-func (r *Request) SetResult(result interface{}) *Request {
+func (r *Request) SetResult(result any) *Request {
 	return r.SetSuccessResult(result)
 }
 
@@ -380,7 +380,7 @@ func (r *Request) SetResult(result interface{}) *Request {
 // no error occurs and Response.ResultState() returns SuccessState, by default
 // it requires HTTP status `code >= 200 && code <= 299`, you can also use
 // Client.SetResultStateCheckFunc to customize the result state check logic.
-func (r *Request) SetSuccessResult(result interface{}) *Request {
+func (r *Request) SetSuccessResult(result any) *Request {
 	if result == nil {
 		return r
 	}
@@ -394,7 +394,7 @@ func (r *Request) SetSuccessResult(result interface{}) *Request {
 // Client.SetResultStateCheckFunc to customize the result state check logic.
 //
 // Deprecated: Use SetErrorResult result.
-func (r *Request) SetError(err interface{}) *Request {
+func (r *Request) SetError(err any) *Request {
 	return r.SetErrorResult(err)
 }
 
@@ -402,7 +402,7 @@ func (r *Request) SetError(err interface{}) *Request {
 // no error occurs and Response.ResultState() returns ErrorState, by default
 // it requires HTTP status `code >= 400`, you can also
 // use Client.SetResultStateCheckFunc to customize the result state check logic.
-func (r *Request) SetErrorResult(err interface{}) *Request {
+func (r *Request) SetErrorResult(err any) *Request {
 	if err == nil {
 		return r
 	}
@@ -551,7 +551,7 @@ func (r *Request) SetQueryParams(params map[string]string) *Request {
 
 // SetQueryParamsAnyType set URL query parameters from a map for the request.
 // The value of map is any type, will be convert to string automatically.
-func (r *Request) SetQueryParamsAnyType(params map[string]interface{}) *Request {
+func (r *Request) SetQueryParamsAnyType(params map[string]any) *Request {
 	for k, v := range params {
 		r.SetQueryParam(k, fmt.Sprint(v))
 	}
@@ -835,7 +835,7 @@ func (r *Request) Head(url string) (*Response, error) {
 }
 
 // SetBody set the request Body, accepts string, []byte, io.Reader, map and struct.
-func (r *Request) SetBody(body interface{}) *Request {
+func (r *Request) SetBody(body any) *Request {
 	if body == nil {
 		return r
 	}
@@ -899,7 +899,7 @@ func (r *Request) SetBodyJsonBytes(body []byte) *Request {
 
 // SetBodyJsonMarshal set the request Body that marshaled from object, and
 // set Content-Type header as "application/json; charset=utf-8"
-func (r *Request) SetBodyJsonMarshal(v interface{}) *Request {
+func (r *Request) SetBodyJsonMarshal(v any) *Request {
 	b, err := r.client.jsonMarshal(v)
 	if err != nil {
 		r.appendError(err)
@@ -923,7 +923,7 @@ func (r *Request) SetBodyXmlBytes(body []byte) *Request {
 
 // SetBodyXmlMarshal set the request Body that marshaled from object, and
 // set Content-Type header as "text/xml; charset=utf-8"
-func (r *Request) SetBodyXmlMarshal(v interface{}) *Request {
+func (r *Request) SetBodyXmlMarshal(v any) *Request {
 	b, err := r.client.xmlMarshal(v)
 	if err != nil {
 		r.appendError(err)

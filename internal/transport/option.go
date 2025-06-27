@@ -163,7 +163,7 @@ type Options struct {
 	ReadBufferSize int
 
 	// Debugf is the optional debug function.
-	Debugf func(format string, v ...interface{})
+	Debugf func(format string, v ...any)
 
 	Dump *dump.Dumper
 }

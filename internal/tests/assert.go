@@ -8,25 +8,25 @@ import (
 	"unsafe"
 )
 
-func AssertIsNil(t *testing.T, v interface{}) {
+func AssertIsNil(t *testing.T, v any) {
 	if !isNil(v) {
 		t.Errorf("[%v] was expected to be nil", v)
 	}
 }
 
-func AssertAllNotNil(t *testing.T, vv ...interface{}) {
+func AssertAllNotNil(t *testing.T, vv ...any) {
 	for _, v := range vv {
 		AssertNotNil(t, v)
 	}
 }
 
-func AssertNotNil(t *testing.T, v interface{}) {
+func AssertNotNil(t *testing.T, v any) {
 	if isNil(v) {
 		t.Fatalf("[%v] was expected to be non-nil", v)
 	}
 }
 
-func AssertEqual(t *testing.T, e, g interface{}) {
+func AssertEqual(t *testing.T, e, g any) {
 	if !equal(e, g) {
 		t.Errorf("Expected [%+v], got [%+v]", e, g)
 	}
@@ -63,7 +63,7 @@ func AssertContains(t *testing.T, s, substr string, shouldContain bool) {
 	}
 }
 
-func AssertClone(t *testing.T, e, g interface{}) {
+func AssertClone(t *testing.T, e, g any) {
 	ev := reflect.ValueOf(e).Elem()
 	gv := reflect.ValueOf(g).Elem()
 	et := ev.Type()
@@ -72,7 +72,7 @@ func AssertClone(t *testing.T, e, g interface{}) {
 		sf := ev.Field(i)
 		st := et.Field(i)
 
-		var ee, gg interface{}
+		var ee, gg any
 		if !token.IsExported(st.Name) {
 			ee = reflect.NewAt(sf.Type(), unsafe.Pointer(sf.UnsafeAddr())).Elem().Interface()
 			gg = reflect.NewAt(sf.Type(), unsafe.Pointer(gv.Field(i).UnsafeAddr())).Elem().Interface()
@@ -94,11 +94,11 @@ func AssertClone(t *testing.T, e, g interface{}) {
 	}
 }
 
-func equal(expected, got interface{}) bool {
+func equal(expected, got any) bool {
 	return reflect.DeepEqual(expected, got)
 }
 
-func isNil(v interface{}) bool {
+func isNil(v any) bool {
 	if v == nil {
 		return true
 	}

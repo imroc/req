@@ -21,11 +21,11 @@ import (
 // improved enough that we can instead allocate chunks like this:
 // make([]byte, max(16<<10, expectedBytesRemaining))
 var dataChunkPools = [...]sync.Pool{
-	{New: func() interface{} { return new([1 << 10]byte) }},
-	{New: func() interface{} { return new([2 << 10]byte) }},
-	{New: func() interface{} { return new([4 << 10]byte) }},
-	{New: func() interface{} { return new([8 << 10]byte) }},
-	{New: func() interface{} { return new([16 << 10]byte) }},
+	{New: func() any { return new([1 << 10]byte) }},
+	{New: func() any { return new([2 << 10]byte) }},
+	{New: func() any { return new([4 << 10]byte) }},
+	{New: func() any { return new([8 << 10]byte) }},
+	{New: func() any { return new([16 << 10]byte) }},
 }
 
 func getDataBufferChunk(size int64) []byte {

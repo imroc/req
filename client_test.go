@@ -108,10 +108,10 @@ func TestSetDialTLS(t *testing.T) {
 
 func TestSetFuncs(t *testing.T) {
 	testErr := errors.New("test")
-	marshalFunc := func(v interface{}) ([]byte, error) {
+	marshalFunc := func(v any) ([]byte, error) {
 		return nil, testErr
 	}
-	unmarshalFunc := func(data []byte, v interface{}) error {
+	unmarshalFunc := func(data []byte, v any) error {
 		return testErr
 	}
 	c := tc().
@@ -395,7 +395,7 @@ func TestRedirect(t *testing.T) {
 	oldHeader.Set("Authorization", "test")
 	c.GetClient().CheckRedirect(&http.Request{
 		Header: newHeader,
-	}, []*http.Request{&http.Request{
+	}, []*http.Request{{
 		Header: oldHeader,
 	}})
 	tests.AssertEqual(t, "test", newHeader.Get("Authorization"))
@@ -682,6 +682,7 @@ func TestSetResultStateCheckFunc(t *testing.T) {
 	tests.AssertNoError(t, err)
 	tests.AssertEqual(t, ErrorState, resp.ResultState())
 }
+
 func TestCloneCookieJar(t *testing.T) {
 	c1 := C()
 	c2 := c1.Clone()

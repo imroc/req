@@ -36,7 +36,7 @@ func (s *headerSorter) Swap(i, j int)      { s.kvs[i], s.kvs[j] = s.kvs[j], s.kv
 func (s *headerSorter) Less(i, j int) bool { return s.kvs[i].Key < s.kvs[j].Key }
 
 var headerSorterPool = sync.Pool{
-	New: func() interface{} { return new(headerSorter) },
+	New: func() any { return new(headerSorter) },
 }
 
 // get is like Get, but key must already be in CanonicalHeaderKey form.

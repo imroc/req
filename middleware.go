@@ -53,7 +53,7 @@ func createMultipartHeader(file *FileUpload, contentType string) textproto.MIMEH
 	return hdr
 }
 
-func closeq(v interface{}) {
+func closeq(v any) {
 	if c, ok := v.(io.Closer); ok {
 		c.Close()
 	}
@@ -292,7 +292,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 	return
 }
 
-func unmarshalBody(c *Client, r *Response, v interface{}) (err error) {
+func unmarshalBody(c *Client, r *Response, v any) (err error) {
 	body, err := r.ToBytes() // in case req.SetResult or req.SetError with cient.DisalbeAutoReadResponse(true)
 	if err != nil {
 		return

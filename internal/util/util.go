@@ -19,7 +19,7 @@ func IsXMLType(ct string) bool {
 }
 
 // GetPointer return the pointer of the interface.
-func GetPointer(v interface{}) interface{} {
+func GetPointer(v any) any {
 	t := reflect.TypeOf(v)
 	if t.Kind() == reflect.Ptr {
 		if tt := t.Elem(); tt.Kind() == reflect.Ptr { // pointer of pointer
@@ -46,7 +46,7 @@ func GetPointer(v interface{}) interface{} {
 }
 
 // GetType return the underlying type.
-func GetType(v interface{}) reflect.Type {
+func GetType(v any) reflect.Type {
 	return reflect.Indirect(reflect.ValueOf(v)).Type()
 }
 
