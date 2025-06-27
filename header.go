@@ -65,7 +65,7 @@ func headerSortedKeyValues(h http.Header, exclude map[string]bool) (kvs []header
 	kvs = hs.kvs[:0]
 	for k, vv := range h {
 		if !exclude[k] {
-			kvs = append(kvs, header.KeyValues{k, vv})
+			kvs = append(kvs, header.KeyValues{Key: k, Values: vv})
 		}
 	}
 	hs.kvs = kvs
@@ -84,7 +84,7 @@ func headerWriteSubset(h http.Header, exclude map[string]bool, writeHeader func(
 		kvs = make([]header.KeyValues, 0, len(h))
 		for k, v := range h {
 			if !exclude[k] {
-				kvs = append(kvs, header.KeyValues{k, v})
+				kvs = append(kvs, header.KeyValues{Key: k, Values: v})
 			}
 		}
 	} else {

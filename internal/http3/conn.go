@@ -203,25 +203,6 @@ func (c *Conn) decodeTrailers(r io.Reader, l, maxHeaderBytes uint64) (http.Heade
 	return parseTrailers(fields)
 }
 
-// only used by the server
-func (c *Conn) acceptStream(ctx context.Context) (*stateTrackingStream, error) {
-	str, err := c.conn.AcceptStream(ctx)
-	if err != nil {
-		return nil, err
-	}
-	strID := str.StreamID()
-	hstr := newStateTrackingStream(str, c, func(b []byte) error { return c.sendDatagram(strID, b) })
-	c.streamMx.Lock()
-	c.streams[strID] = hstr
-	if c.idleTimeout > 0 {
-		if len(c.streams) == 1 {
-			c.idleTimer.Stop()
-		}
-	}
-	c.streamMx.Unlock()
-	return hstr, nil
-}
-
 func (c *Conn) CloseWithError(code quic.ApplicationErrorCode, msg string) error {
 	if c.idleTimer != nil {
 		c.idleTimer.Stop()

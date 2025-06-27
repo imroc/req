@@ -81,15 +81,6 @@ type requestBody struct {
 
 var _ io.ReadCloser = &requestBody{}
 
-func newRequestBody(str *Stream, contentLength int64, connCtx context.Context, rcvdSettings <-chan struct{}, getSettings func() *Settings) *requestBody {
-	return &requestBody{
-		body:         *newBody(str, contentLength),
-		connCtx:      connCtx,
-		rcvdSettings: rcvdSettings,
-		getSettings:  getSettings,
-	}
-}
-
 type hijackableBody struct {
 	body body
 

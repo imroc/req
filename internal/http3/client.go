@@ -323,10 +323,11 @@ func (c *ClientConn) sendRequestBody(str *RequestStream, body io.ReadCloser, con
 	// make sure we don't send more bytes than the content length
 	n, err := io.CopyBuffer(str, io.LimitReader(sr, contentLength), buf)
 	if err != nil {
-		if len(dumps) > 0 && err == nil && n > 0 {
+		return err
+	} else {
+		if len(dumps) > 0 && n > 0 {
 			writeTail()
 		}
-		return err
 	}
 	var extra int64
 	extra, err = io.CopyBuffer(io.Discard, sr, buf)

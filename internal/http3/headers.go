@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/textproto"
-	"net/url"
 	"strconv"
 	"strings"
 
@@ -139,76 +138,6 @@ func parseTrailers(headers []qpack.HeaderField) (http.Header, error) {
 		h.Add(field.Name, field.Value)
 	}
 	return h, nil
-}
-
-func requestFromHeaders(headerFields []qpack.HeaderField) (*http.Request, error) {
-	hdr, err := parseHeaders(headerFields, true)
-	if err != nil {
-		return nil, err
-	}
-	// concatenate cookie headers, see https://tools.ietf.org/html/rfc6265#section-5.4
-	if len(hdr.Headers["Cookie"]) > 0 {
-		hdr.Headers.Set("Cookie", strings.Join(hdr.Headers["Cookie"], "; "))
-	}
-
-	isConnect := hdr.Method == http.MethodConnect
-	// Extended CONNECT, see https://datatracker.ietf.org/doc/html/rfc8441#section-4
-	isExtendedConnected := isConnect && hdr.Protocol != ""
-	if isExtendedConnected {
-		if hdr.Scheme == "" || hdr.Path == "" || hdr.Authority == "" {
-			return nil, errors.New("extended CONNECT: :scheme, :path and :authority must not be empty")
-		}
-	} else if isConnect {
-		if hdr.Path != "" || hdr.Authority == "" { // normal CONNECT
-			return nil, errors.New(":path must be empty and :authority must not be empty")
-		}
-	} else if len(hdr.Path) == 0 || len(hdr.Authority) == 0 || len(hdr.Method) == 0 {
-		return nil, errors.New(":path, :authority and :method must not be empty")
-	}
-
-	if !isExtendedConnected && len(hdr.Protocol) > 0 {
-		return nil, errors.New(":protocol must be empty")
-	}
-
-	var u *url.URL
-	var requestURI string
-
-	protocol := "HTTP/3.0"
-
-	if isConnect {
-		u = &url.URL{}
-		if isExtendedConnected {
-			u, err = url.ParseRequestURI(hdr.Path)
-			if err != nil {
-				return nil, err
-			}
-			protocol = hdr.Protocol
-		} else {
-			u.Path = hdr.Path
-		}
-		u.Scheme = hdr.Scheme
-		u.Host = hdr.Authority
-		requestURI = hdr.Authority
-	} else {
-		u, err = url.ParseRequestURI(hdr.Path)
-		if err != nil {
-			return nil, fmt.Errorf("invalid content length: %w", err)
-		}
-		requestURI = hdr.Path
-	}
-
-	return &http.Request{
-		Method:        hdr.Method,
-		URL:           u,
-		Proto:         protocol,
-		ProtoMajor:    3,
-		ProtoMinor:    0,
-		Header:        hdr.Headers,
-		Body:          nil,
-		ContentLength: hdr.ContentLength,
-		Host:          hdr.Authority,
-		RequestURI:    requestURI,
-	}, nil
 }
 
 // updateResponseFromHeaders sets up http.Response as an HTTP/3 response,

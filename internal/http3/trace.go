@@ -62,12 +62,6 @@ func traceHasWroteHeaderField(trace *httptrace.ClientTrace) bool {
 	return trace != nil && trace.WroteHeaderField != nil
 }
 
-func traceWroteHeaderField(trace *httptrace.ClientTrace, k, v string) {
-	if trace != nil && trace.WroteHeaderField != nil {
-		trace.WroteHeaderField(k, []string{v})
-	}
-}
-
 func traceWroteHeaders(trace *httptrace.ClientTrace) {
 	if trace != nil && trace.WroteHeaders != nil {
 		trace.WroteHeaders()

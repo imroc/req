@@ -889,16 +889,6 @@ func mergeSetHeader(dst *http.Header, src http.Header) {
 	}
 }
 
-// unreadDataSizeLocked returns the number of bytes of unread input.
-// It returns -1 if unknown.
-// b.mu must be held.
-func (b *body) unreadDataSizeLocked() int64 {
-	if lr, ok := b.src.(*io.LimitedReader); ok {
-		return lr.N
-	}
-	return -1
-}
-
 func (b *body) Close() error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -938,26 +928,6 @@ func (b *body) Close() error {
 	}
 	b.closed = true
 	return err
-}
-
-func (b *body) didEarlyClose() bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return b.earlyClose
-}
-
-// bodyRemains reports whether future Read calls might
-// yield data.
-func (b *body) bodyRemains() bool {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return !b.sawEOF
-}
-
-func (b *body) registerOnHitEOF(fn func()) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.onHitEOF = fn
 }
 
 // bodyLocked is an io.Reader reading from a *body when its mutex is

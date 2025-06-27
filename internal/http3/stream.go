@@ -122,10 +122,6 @@ func (s *Stream) Write(b []byte) (int, error) {
 	return s.datagramStream.Write(b)
 }
 
-func (s *Stream) writeUnframed(b []byte) (int, error) {
-	return s.datagramStream.Write(b)
-}
-
 func (s *Stream) StreamID() quic.StreamID {
 	return s.datagramStream.StreamID()
 }
@@ -347,7 +343,7 @@ func (s *RequestStream) ReadResponse() (*http.Response, error) {
 	ds := dump.GetResponseHeaderDumpers(s.ctx, s.Dump)
 	if ds.ShouldDump() {
 		for _, h := range hfs {
-			ds.DumpResponseHeader([]byte(fmt.Sprintf("%s: %s\r\n", h.Name, h.Value)))
+			ds.DumpResponseHeader(fmt.Appendf([]byte{}, "%s: %s\r\n", h.Name, h.Value))
 		}
 		ds.DumpResponseHeader([]byte("\r\n"))
 	}
