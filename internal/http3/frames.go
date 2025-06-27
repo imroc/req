@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/imroc/req/v3/internal/quic-go/quicvarint"
 	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/quicvarint"
 )
 
 // FrameType is the frame type of a HTTP/3 frame
@@ -21,7 +21,7 @@ var errHijacked = errors.New("hijacked")
 
 type frameParser struct {
 	r                   io.Reader
-	conn                quic.Connection
+	closeConn           func(quic.ApplicationErrorCode, string) error
 	unknownFrameHandler unknownFrameHandlerFunc
 }
 
@@ -66,11 +66,11 @@ func (p *frameParser) ParseNext() (frame, error) {
 			return parseSettingsFrame(p.r, l)
 		case 0x3: // CANCEL_PUSH
 		case 0x5: // PUSH_PROMISE
-		case 0x7: // GOAWAY
+		case 0x7:
 			return parseGoAwayFrame(qr, l)
 		case 0xd: // MAX_PUSH_ID
 		case 0x2, 0x6, 0x8, 0x9:
-			p.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeFrameUnexpected), "")
+			p.closeConn(quic.ApplicationErrorCode(ErrCodeFrameUnexpected), "")
 			return nil, fmt.Errorf("http3: reserved frame type: %d", t)
 		}
 		// skip over unknown frames

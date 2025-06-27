@@ -15,10 +15,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"golang.org/x/net/http/httpguts"
+
 	"github.com/imroc/req/v3/internal/transport"
 	"github.com/quic-go/quic-go"
-
-	"golang.org/x/net/http/httpguts"
 )
 
 // Settings are HTTP/3 settings that apply to the underlying connection.
@@ -39,7 +39,7 @@ type RoundTripOpt struct {
 }
 
 type clientConn interface {
-	OpenRequestStream(context.Context) (RequestStream, error)
+	OpenRequestStream(context.Context) (*RequestStream, error)
 	RoundTrip(*http.Request) (*http.Response, error)
 }
 
@@ -47,7 +47,7 @@ type roundTripperWithCount struct {
 	cancel     context.CancelFunc
 	dialing    chan struct{} // closed as soon as quic.Dial(Early) returned
 	dialErr    error
-	conn       quic.EarlyConnection
+	conn       *quic.Conn
 	clientConn clientConn
 
 	useCount atomic.Int64
@@ -77,7 +77,7 @@ type Transport struct {
 	// connections for requests.
 	// If Dial is nil, a UDPConn will be created at the first request
 	// and will be reused for subsequent connections to other servers.
-	Dial func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error)
+	Dial func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error)
 
 	// Enable support for HTTP/3 datagrams (RFC 9297).
 	// If a QUICConfig is set, datagram support also needs to be enabled on the QUIC layer by setting EnableDatagrams.
@@ -99,8 +99,8 @@ type Transport struct {
 	// However, if the user explicitly requested gzip it is not automatically uncompressed.
 	DisableCompression bool
 
-	StreamHijacker    func(FrameType, quic.ConnectionTracingID, quic.Stream, error) (hijacked bool, err error)
-	UniStreamHijacker func(StreamType, quic.ConnectionTracingID, quic.ReceiveStream, error) (hijacked bool)
+	StreamHijacker    func(FrameType, quic.ConnectionTracingID, *quic.Stream, error) (hijacked bool, err error)
+	UniStreamHijacker func(StreamType, quic.ConnectionTracingID, *quic.ReceiveStream, error) (hijacked bool)
 
 	Logger *slog.Logger
 
@@ -109,7 +109,7 @@ type Transport struct {
 	initOnce sync.Once
 	initErr  error
 
-	newClientConn func(quic.EarlyConnection) clientConn
+	newClientConn func(*quic.Conn) clientConn
 
 	clients   map[string]*roundTripperWithCount
 	transport *quic.Transport
@@ -120,15 +120,12 @@ var (
 	_ io.Closer         = &Transport{}
 )
 
-// Deprecated: RoundTripper was renamed to Transport.
-type RoundTripper = Transport
-
 // ErrNoCachedConn is returned when Transport.OnlyCachedConn is set
 var ErrNoCachedConn = errors.New("http3: no cached connection was available")
 
 func (t *Transport) init() error {
 	if t.newClientConn == nil {
-		t.newClientConn = func(conn quic.EarlyConnection) clientConn {
+		t.newClientConn = func(conn *quic.Conn) clientConn {
 			return newClientConn(
 				t.Options,
 				conn,
@@ -355,7 +352,7 @@ func (t *Transport) getClient(ctx context.Context, hostname string, onlyCached b
 	return cl, isReused, nil
 }
 
-func (t *Transport) dial(ctx context.Context, hostname string) (quic.EarlyConnection, clientConn, error) {
+func (t *Transport) dial(ctx context.Context, hostname string) (*quic.Conn, clientConn, error) {
 	var tlsConf *tls.Config
 	if t.TLSClientConfig == nil {
 		tlsConf = &tls.Config{}
@@ -382,7 +379,7 @@ func (t *Transport) dial(ctx context.Context, hostname string) (quic.EarlyConnec
 			}
 			t.transport = &quic.Transport{Conn: udpConn}
 		}
-		dial = func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (quic.EarlyConnection, error) {
+		dial = func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
 			network := "udp"
 			udpAddr, err := t.resolveUDPAddr(ctx, network, addr)
 			if err != nil {
@@ -442,7 +439,7 @@ func (t *Transport) removeClient(hostname string) {
 //
 // Obtaining a ClientConn is only needed for more advanced use cases, such as
 // using Extended CONNECT for WebTransport or the various MASQUE protocols.
-func (t *Transport) NewClientConn(conn quic.Connection) *ClientConn {
+func (t *Transport) NewClientConn(conn *quic.Conn) *ClientConn {
 	return newClientConn(
 		t.Options,
 		conn,
