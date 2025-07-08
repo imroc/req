@@ -73,6 +73,7 @@ type Client struct {
 	responseBodyTransformer func(rawBody []byte, req *Request, resp *Response) (transformedBody []byte, err error)
 	resultStateCheckFunc    func(resp *Response) ResultState
 	onError                 ErrorHook
+	ctx                     *clientContext // 使Client拥有携带上下文信息的能力
 }
 
 type ErrorHook func(client *Client, req *Request, resp *Response, err error)
@@ -82,6 +83,7 @@ func (c *Client) R() *Request {
 	return &Request{
 		client:      c,
 		retryOption: c.retryOption.Clone(),
+		ctx:         c.Context(), // 继承 Client 的上下文
 	}
 }
 
@@ -1527,6 +1529,12 @@ func (c *Client) Clone() *Client {
 	cc.afterResponse = cloneSlice(c.afterResponse)
 	cc.dumpOptions = c.dumpOptions.Clone()
 	cc.retryOption = c.retryOption.Clone()
+
+	// clone context and clientContext
+	cc.ctx = &clientContext{
+		context: c.ctx.context,
+	}
+
 	return &cc
 }
 
@@ -1565,6 +1573,9 @@ func C() *Client {
 		xmlMarshal:            xml.Marshal,
 		xmlUnmarshal:          xml.Unmarshal,
 		cookiejarFactory:      memoryCookieJarFactory,
+		ctx: &clientContext{
+			context: context.Background(),
+		},
 	}
 	c.SetRedirectPolicy(DefaultRedirectPolicy())
 	c.initCookieJar()
