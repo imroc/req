@@ -17,7 +17,7 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 
-	"github.com/imroc/req/v3/internal/transport"
+	"github.com/0xobjc/req/v3/internal/transport"
 	"github.com/quic-go/quic-go"
 )
 

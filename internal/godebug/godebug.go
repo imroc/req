@@ -38,8 +38,8 @@ import (
 	"sync/atomic"
 	_ "unsafe" // go:linkname
 
-	"github.com/imroc/req/v3/internal/bisect"
-	"github.com/imroc/req/v3/internal/godebugs"
+	"github.com/0xobjc/req/v3/internal/bisect"
+	"github.com/0xobjc/req/v3/internal/godebugs"
 )
 
 // A Setting is a single setting in the $GODEBUG environment variable.

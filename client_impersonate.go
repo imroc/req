@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/imroc/req/v3/http2"
+	"github.com/0xobjc/req/v3/http2"
 	utls "github.com/refraction-networking/utls"
 )
 

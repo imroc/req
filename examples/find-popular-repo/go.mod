@@ -1,12 +1,12 @@
 module find-popular-repo
 
-go 1.22.0
+go 1.24
 
-toolchain go1.22.3
+toolchain go1.24.3
 
-replace github.com/imroc/req/v3 => ../../
+replace github.com/0xobjc/req/v3 => ../../
 
-require github.com/imroc/req/v3 v3.0.0
+require github.com/0xobjc/req/v3 v3.0.0
 
 require (
 	github.com/cheekybits/genny v1.0.0 // indirect
@@ -21,11 +21,11 @@ require (
 	github.com/marten-seemann/qtls-go1-19 v0.1.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
-	golang.org/x/crypto v0.29.0 // indirect
-	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/net v0.31.0 // indirect
-	golang.org/x/sys v0.27.0 // indirect
-	golang.org/x/text v0.20.0 // indirect
-	golang.org/x/tools v0.27.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
+	golang.org/x/mod v0.25.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 )

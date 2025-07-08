@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	"github.com/0xobjc/req/v3"
 	"io"
 	"time"
-	"github.com/imroc/req/v3"
 )
 
 type SlowReader struct {

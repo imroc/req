@@ -18,8 +18,8 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/0xobjc/req/v3/internal/header"
+	"github.com/0xobjc/req/v3/internal/tests"
 	"golang.org/x/text/encoding/simplifiedchinese"
 	"golang.org/x/text/transform"
 )

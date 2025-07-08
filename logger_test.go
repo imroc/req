@@ -5,7 +5,7 @@ import (
 	"log"
 	"testing"
 
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/0xobjc/req/v3/internal/tests"
 )
 
 func TestLogger(t *testing.T) {

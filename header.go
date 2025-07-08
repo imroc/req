@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 
-	"github.com/imroc/req/v3/internal/header"
+	"github.com/0xobjc/req/v3/internal/header"
 )
 
 var headerNewlineToSpace = strings.NewReplacer("\n", " ", "\r", " ")

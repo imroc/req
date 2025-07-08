@@ -1,7 +1,7 @@
 package req
 
 import (
-	"github.com/imroc/req/v3/internal/charsets"
+	"github.com/0xobjc/req/v3/internal/charsets"
 	"io"
 	"strings"
 )
