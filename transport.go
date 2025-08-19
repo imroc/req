@@ -846,7 +846,9 @@ func (t *Transport) checkAltSvc(req *http.Request) (resp *http.Response, err err
 		return
 	}
 	addr := netutil.AuthorityKey(req.URL)
+	t.pendingAltSvcsMu.Lock()
 	pas, ok := t.pendingAltSvcs[addr]
+	t.pendingAltSvcsMu.Unlock()
 	if ok && pas.Transport != nil {
 		pas.Mu.Lock()
 		if pas.Transport != nil {
@@ -862,7 +864,9 @@ func (t *Transport) checkAltSvc(req *http.Request) (resp *http.Response, err err
 				}
 			} else {
 				t.altSvcJar.SetAltSvc(addr, pas.Entries[pas.CurrentIndex])
+				t.pendingAltSvcsMu.Lock()
 				delete(t.pendingAltSvcs, addr)
+				t.pendingAltSvcsMu.Unlock()
 			}
 		}
 		pas.Mu.Unlock()
