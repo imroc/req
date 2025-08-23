@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/go-multierror"
-
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
@@ -605,7 +603,7 @@ func (r *Request) SetPathParam(key, value string) *Request {
 }
 
 func (r *Request) appendError(err error) {
-	r.error = multierror.Append(r.error, err)
+	r.error = errors.Join(r.error, err)
 }
 
 var errRetryableWithUnReplayableBody = errors.New("retryable request should not have unreplayable Body (io.Reader)")
