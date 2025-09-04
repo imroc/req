@@ -50,6 +50,18 @@ func SetQueryString(query string) *Request {
 	return defaultClient.R().SetQueryString(query)
 }
 
+// SetQueryParamsFromValues is a global wrapper methods which delegated
+// to the default client, create a request and SetQueryParamsFromValues for request.
+func SetQueryParamsFromValues(params url.Values) *Request {
+	return defaultClient.R().SetQueryParamsFromValues(params)
+}
+
+// SetQueryParamsFromStruct is a global wrapper methods which delegated
+// to the default client, create a request and SetQueryParamsFromStruct for request.
+func SetQueryParamsFromStruct(v any) *Request {
+	return defaultClient.R().SetQueryParamsFromStruct(v)
+}
+
 // SetFileReader is a global wrapper methods which delegated
 // to the default client, create a request and SetFileReader for request.
 func SetFileReader(paramName, filePath string, reader io.Reader) *Request {

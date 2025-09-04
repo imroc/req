@@ -24,6 +24,8 @@ import (
 	"github.com/imroc/req/v3/http2"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
+
+	"github.com/google/go-querystring/query"
 )
 
 // DefaultClient returns the global default Client.
@@ -499,6 +501,31 @@ func (c *Client) SetCommonQueryString(query string) *Client {
 		}
 	}
 	return c
+}
+
+// SetCommonQueryParamsFromValues set URL query parameters from a url.Values map
+// for requests fired from the client.
+func (c *Client) SetCommonQueryParamsFromValues(params urlpkg.Values) *Client {
+	if c.QueryParams == nil {
+		c.QueryParams = make(urlpkg.Values)
+	}
+	for p, v := range params {
+		for _, pv := range v {
+			c.QueryParams.Add(p, pv)
+		}
+	}
+	return c
+}
+
+// SetCommonQueryParamsFromStruct set URL query parameters from a struct using go-querystring
+// for requests fired from the client.
+func (c *Client) SetCommonQueryParamsFromStruct(v any) *Client {
+	values, err := query.Values(v)
+	if err != nil {
+		c.log.Warnf("failed to convert struct to query parameters: %v", err)
+		return c
+	}
+	return c.SetCommonQueryParamsFromValues(values)
 }
 
 // SetCommonCookies set HTTP cookies for requests fired from the client.

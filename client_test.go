@@ -331,6 +331,29 @@ func TestSetCommonQueryParams(t *testing.T) {
 	tests.AssertEqual(t, "test=test", resp.String())
 }
 
+func TestSetCommonQueryParamsFromValues(t *testing.T) {
+	values := url.Values{}
+	values.Add("test", "test")
+	values.Add("key", "value")
+	resp, err := tc().SetCommonQueryParamsFromValues(values).R().Get("/query-parameter")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "key=value&test=test", resp.String())
+}
+
+func TestSetCommonQueryParamsFromStruct(t *testing.T) {
+	type QueryParams struct {
+		Test string `url:"test"`
+		Key  string `url:"key"`
+	}
+	params := QueryParams{
+		Test: "test",
+		Key:  "value",
+	}
+	resp, err := tc().SetCommonQueryParamsFromStruct(params).R().Get("/query-parameter")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "key=value&test=test", resp.String())
+}
+
 func TestInsecureSkipVerify(t *testing.T) {
 	c := tc().EnableInsecureSkipVerify()
 	tests.AssertEqual(t, true, c.TLSClientConfig.InsecureSkipVerify)

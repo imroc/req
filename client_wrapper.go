@@ -195,6 +195,18 @@ func SetCommonQueryString(query string) *Client {
 	return defaultClient.SetCommonQueryString(query)
 }
 
+// SetCommonQueryParamsFromValues is a global wrapper methods which delegated
+// to the default client's Client.SetCommonQueryParamsFromValues.
+func SetCommonQueryParamsFromValues(params url.Values) *Client {
+	return defaultClient.SetCommonQueryParamsFromValues(params)
+}
+
+// SetCommonQueryParamsFromStruct is a global wrapper methods which delegated
+// to the default client's Client.SetCommonQueryParamsFromStruct.
+func SetCommonQueryParamsFromStruct(v any) *Client {
+	return defaultClient.SetCommonQueryParamsFromStruct(v)
+}
+
 // SetCommonCookies is a global wrapper methods which delegated
 // to the default client's Client.SetCommonCookies.
 func SetCommonCookies(cookies ...*http.Cookie) *Client {

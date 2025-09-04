@@ -1,0 +1,14 @@
+:authority: 127.0.0.1:62895
+:method: GET
+:path: /
+:scheme: https
+accept-encoding: gzip
+user-agent: req/v3 (https://github.com/imroc/req)
+
+:status: 200
+method: GET
+content-type: text/plain; charset=utf-8
+content-length: 22
+date: Thu, 04 Sep 2025 18:21:57 GMT
+
+TestGet: text response
