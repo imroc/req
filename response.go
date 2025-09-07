@@ -73,7 +73,7 @@ func (r *Response) GetContentType() string {
 }
 
 // ResultState returns the result state.
-// By default, it returns SuccessState if HTTP status `code >= 400`, and returns
+// By default, it returns SuccessState if HTTP status `code >= 200 && code <= 299`, and returns
 // ErrorState if HTTP status `code >= 400`, otherwise returns UnknownState.
 // You can also use Client.SetResultStateCheckFunc to customize the result
 // state check logic.
