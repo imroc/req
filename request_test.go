@@ -636,6 +636,49 @@ func testQueryParam(t *testing.T, c *Client) {
 		Get("/query-parameter")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, "key1=value1&key1=value11&key2=value2&key2=value22&key3=value3&key4=value4&key4=value44&key5=value5&key6=value6&key6=value66", resp.String())
+
+	// SetQueryParamsFromValues
+	values := url.Values{}
+	values.Add("key1", "value1")
+	values.Add("key2", "value2")
+	values.Add("key3", "value3")
+	resp, err = c.R().
+		SetQueryParamsFromValues(values).
+		Get("/query-parameter")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
+
+	// SetQueryParamsFromStruct
+	type QueryParams struct {
+		Key1 string `url:"key1"`
+		Key2 string `url:"key2"`
+		Key3 string `url:"key3"`
+	}
+	params := QueryParams{
+		Key1: "value1",
+		Key2: "value2",
+		Key3: "value3",
+	}
+	resp, err = c.R().
+		SetQueryParamsFromStruct(params).
+		Get("/query-parameter")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "key1=value1&key2=value2&key3=value3&key4=client&key5=client&key5=extra", resp.String())
+
+	// SetQueryParamsFromStruct with slice
+	type QueryParamsWithSlice struct {
+		Key1 string   `url:"key1"`
+		Tags []string `url:"tags"`
+	}
+	paramsWithSlice := QueryParamsWithSlice{
+		Key1: "value1",
+		Tags: []string{"tag1", "tag2"},
+	}
+	resp, err = c.R().
+		SetQueryParamsFromStruct(paramsWithSlice).
+		Get("/query-parameter")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "key1=value1&key2=client&key3=client&key4=client&key5=client&key5=extra&tags=tag1&tags=tag2", resp.String())
 }
 
 func TestPathParam(t *testing.T) {

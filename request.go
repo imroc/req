@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-querystring/query"
 	"github.com/imroc/req/v3/internal/dump"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
@@ -229,6 +230,34 @@ func (r *Request) SetQueryString(query string) *Request {
 		}
 	}
 	return r
+}
+
+// SetQueryParamsFromValues sets query parameters from a url.Values map.
+// This method allows direct configuration of query parameters from url.Values,
+// which is commonly used with libraries like go-querystring.
+func (r *Request) SetQueryParamsFromValues(params urlpkg.Values) *Request {
+	if r.QueryParams == nil {
+		r.QueryParams = make(urlpkg.Values)
+	}
+	for p, v := range params {
+		for _, pv := range v {
+			r.QueryParams.Add(p, pv)
+		}
+	}
+	return r
+}
+
+// SetQueryParamsFromStruct sets query parameters from a struct using go-querystring.
+// This method provides a higher-level abstraction by allowing users to directly pass
+// a struct to configure query parameters. The struct should use `url` tags to specify
+// parameter names.
+func (r *Request) SetQueryParamsFromStruct(v any) *Request {
+	values, err := query.Values(v)
+	if err != nil {
+		r.client.log.Warnf("failed to convert struct to query parameters: %v", err)
+		return r
+	}
+	return r.SetQueryParamsFromValues(values)
 }
 
 // SetFileReader set up a multipart form with a reader to upload file.
