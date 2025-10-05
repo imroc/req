@@ -72,7 +72,7 @@ const defaultMaxIdleConnsPerHost = 2
 // Transport is an implementation of http.RoundTripper that supports HTTP,
 // HTTPS, and HTTP proxies (for either HTTP or HTTPS with CONNECT).
 //
-// By default, Transport caches connections for future re-use.
+// By default, Transport caches connections for future reuse.
 // This may leave many open connections when accessing many hosts.
 // This behavior can be managed using Transport's CloseIdleConnections method
 // and the MaxIdleConnsPerHost and DisableKeepAlives fields.
@@ -987,12 +987,12 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 	//     RoundTripper returns.
 	ctx, cancel := context.WithCancelCause(req.Context())
 
-	// Convert Request.Cancel into context cancelation.
+	// Convert Request.Cancel into context cancellation.
 	if origReq.Cancel != nil {
 		go awaitLegacyCancel(ctx, cancel, origReq)
 	}
 
-	// Convert Transport.CancelRequest into context cancelation.
+	// Convert Transport.CancelRequest into context cancellation.
 	//
 	// This is lamentably expensive. CancelRequest has been deprecated for a long time
 	// and doesn't work on HTTP/2 requests. Perhaps we should drop support for it entirely.
@@ -1224,7 +1224,7 @@ func (t *Transport) CloseIdleConnections() {
 	}
 }
 
-// prepareTransportCancel sets up state to convert Transport.CancelRequest into context cancelation.
+// prepareTransportCancel sets up state to convert Transport.CancelRequest into context cancellation.
 func (t *Transport) prepareTransportCancel(req *http.Request, origCancel context.CancelCauseFunc) context.CancelCauseFunc {
 	// Historically, RoundTrip has not modified the Request in any way.
 	// We could avoid the need to keep a map of all in-flight requests by adding
@@ -3293,7 +3293,7 @@ func (pc *persistConn) wroteRequest() bool {
 		// Issue 7569, where the writer is still writing (or stalled),
 		// but the server has already replied. In this case, we don't
 		// want to wait too long, and we want to return false so this
-		// connection isn't re-used.
+		// connection isn't reused.
 		t := time.NewTimer(maxWriteWaitBeforeConnReuse)
 		defer t.Stop()
 		select {

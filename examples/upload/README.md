@@ -1,6 +1,6 @@
 # upload
 
-This is a upload exmaple for `req`
+This is a upload example for `req`
 
 ## How to Run
 

@@ -334,7 +334,7 @@ var (
 	errMissingFileContent = errors.New("missing file content in multipart file upload")
 )
 
-// SetFileUpload set the fully custimized multipart file upload options.
+// SetFileUpload set the fully customized multipart file upload options.
 func (r *Request) SetFileUpload(uploads ...FileUpload) *Request {
 	r.isMultiPart = true
 	for _, upload := range uploads {
@@ -1246,7 +1246,7 @@ func (r *Request) GetClient() *Client {
 // request and reading its response if set to true in HTTP/1.1 and
 // HTTP/2.
 //
-// Setting this field prevents re-use of TCP connections between
+// Setting this field prevents reuse of TCP connections between
 // requests to the same hosts event if EnableKeepAlives() were called.
 func (r *Request) EnableCloseConnection() *Request {
 	r.close = true

@@ -48,7 +48,7 @@ func MarshalAuthReply(ver int, m AuthMethod) ([]byte, error) {
 	return []byte{byte(ver), byte(m)}, nil
 }
 
-// A CmdRequest repesents a command request.
+// A CmdRequest represents a command request.
 type CmdRequest struct {
 	Version int
 	Cmd     Command
@@ -122,7 +122,7 @@ func MarshalCmdReply(ver int, reply Reply, a *Addr) ([]byte, error) {
 	return b, nil
 }
 
-// A Server repesents a server for handshake testing.
+// A Server represents a server for handshake testing.
 type Server struct {
 	ln net.Listener
 }

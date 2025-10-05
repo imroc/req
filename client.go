@@ -407,14 +407,14 @@ func (c *Client) SetTLSClientConfig(conf *tls.Config) *Client {
 	return c
 }
 
-// EnableInsecureSkipVerify enable send https without verifing
+// EnableInsecureSkipVerify enable send https without verifying
 // the server's certificates (disabled by default).
 func (c *Client) EnableInsecureSkipVerify() *Client {
 	c.GetTLSClientConfig().InsecureSkipVerify = true
 	return c
 }
 
-// DisableInsecureSkipVerify disable send https without verifing
+// DisableInsecureSkipVerify disable send https without verifying
 // the server's certificates (disabled by default).
 func (c *Client) DisableInsecureSkipVerify() *Client {
 	c.GetTLSClientConfig().InsecureSkipVerify = false
