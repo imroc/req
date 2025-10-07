@@ -29,7 +29,7 @@ var errMessageTooLarge = errors.New("message too large")
 // or responses from a text protocol network connection.
 type textprotoReader struct {
 	R        *bufio.Reader
-	buf      []byte // a re-usable buffer for readContinuedLineSlice
+	buf      []byte // a reusable buffer for readContinuedLineSlice
 	readLine func() (line []byte, isPrefix bool, err error)
 }
 

@@ -293,7 +293,7 @@ func parseRequestBody(c *Client, r *Request) (err error) {
 }
 
 func unmarshalBody(c *Client, r *Response, v any) (err error) {
-	body, err := r.ToBytes() // in case req.SetResult or req.SetError with cient.DisalbeAutoReadResponse(true)
+	body, err := r.ToBytes() // in case req.SetResult or req.SetError with client.DisableAutoReadResponse(true)
 	if err != nil {
 		return
 	}

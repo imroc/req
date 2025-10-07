@@ -1,6 +1,6 @@
 package http2
 
-// PriorityParam are the stream prioritzation parameters.
+// PriorityParam are the stream prioritization parameters.
 type PriorityParam struct {
 	// StreamDep is a 31-bit stream identifier for the
 	// stream that this stream depends on. Zero means no

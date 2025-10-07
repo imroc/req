@@ -153,7 +153,7 @@ func testMethod(t *testing.T, c *Client, sendReq func(*Request) *Response, expec
 	if expectPanic {
 		defer func() {
 			if err := recover(); err == nil {
-				t.Errorf("Must mehod %s should panic", expectMethod)
+				t.Errorf("Must method %s should panic", expectMethod)
 			}
 		}()
 	}

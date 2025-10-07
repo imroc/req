@@ -1,6 +1,6 @@
 # uploadcallback
 
-This is a upload callback exmaple for `req`
+This is a upload callback example for `req`
 
 ## How to Run
 

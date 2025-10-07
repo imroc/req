@@ -10,7 +10,7 @@ go run .
 
 ## Modify it
 
-Change the global `username` vairable to your own github username:
+Change the global `username` variable to your own github username:
 
 ```go
 var username = "imroc"
