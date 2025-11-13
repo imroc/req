@@ -15,6 +15,8 @@ import (
 
 	"github.com/imroc/req/v3/internal/transport"
 	"github.com/quic-go/quic-go"
+	"github.com/quic-go/quic-go/http3/qlog"
+	"github.com/quic-go/quic-go/qlogwriter"
 	"github.com/quic-go/quic-go/quicvarint"
 
 	"github.com/quic-go/qpack"
@@ -23,6 +25,9 @@ import (
 const maxQuarterStreamID = 1<<60 - 1
 
 var errGoAway = errors.New("connection in graceful shutdown")
+
+// invalidStreamID is a stream ID that is invalid. The first valid stream ID in QUIC is 0.
+const invalidStreamID = quic.StreamID(-1)
 
 // Conn is an HTTP/3 connection.
 // It has all methods from the quic.Conn expect for AcceptStream, AcceptUniStream,
@@ -33,8 +38,8 @@ type Conn struct {
 
 	ctx context.Context
 
-	perspective Perspective
-	logger      *slog.Logger
+	isServer bool
+	logger   *slog.Logger
 
 	enableDatagrams bool
 
@@ -50,22 +55,28 @@ type Conn struct {
 
 	idleTimeout time.Duration
 	idleTimer   *time.Timer
+
+	qlogger qlogwriter.Recorder
 }
 
 func newConnection(
 	ctx context.Context,
 	quicConn *quic.Conn,
 	enableDatagrams bool,
-	perspective Perspective,
+	isServer bool,
 	logger *slog.Logger,
 	idleTimeout time.Duration,
 	options *transport.Options,
 ) *Conn {
+	var qlogger qlogwriter.Recorder
+	if qlogTrace := quicConn.QlogTrace(); qlogTrace != nil && qlogTrace.SupportsSchemas(qlog.EventSchema) {
+		qlogger = qlogTrace.AddProducer()
+	}
 	c := &Conn{
 		ctx:              ctx,
 		conn:             quicConn,
 		Options:          options,
-		perspective:      perspective,
+		isServer:         isServer,
 		logger:           logger,
 		idleTimeout:      idleTimeout,
 		enableDatagrams:  enableDatagrams,
@@ -74,6 +85,7 @@ func newConnection(
 		streams:          make(map[quic.StreamID]*stateTrackingStream),
 		maxStreamID:      InvalidStreamID,
 		lastStreamID:     InvalidStreamID,
+		qlogger:          qlogger,
 	}
 	if idleTimeout > 0 {
 		c.idleTimer = time.AfterFunc(idleTimeout, c.onIdleTimer)
@@ -127,7 +139,7 @@ func (c *Conn) clearStream(id quic.StreamID) {
 	}
 	// The server is performing a graceful shutdown.
 	// If no more streams are remaining, close the connection.
-	if c.maxStreamID != InvalidStreamID {
+	if c.maxStreamID != invalidStreamID {
 		if len(c.streams) == 0 {
 			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeNoError), "")
 		}
@@ -144,7 +156,7 @@ func (c *Conn) openRequestStream(
 	c.streamMx.Lock()
 	maxStreamID := c.maxStreamID
 	var nextStreamID quic.StreamID
-	if c.lastStreamID == InvalidStreamID {
+	if c.lastStreamID == invalidStreamID {
 		nextStreamID = 0
 	} else {
 		nextStreamID = c.lastStreamID + 4
@@ -152,7 +164,7 @@ func (c *Conn) openRequestStream(
 	c.streamMx.Unlock()
 	// Streams with stream ID equal to or greater than the stream ID carried in the GOAWAY frame
 	// will be rejected, see section 5.2 of RFC 9114.
-	if maxStreamID != InvalidStreamID && nextStreamID >= maxStreamID {
+	if maxStreamID != invalidStreamID && nextStreamID >= maxStreamID {
 		return nil, errGoAway
 	}
 
@@ -170,14 +182,14 @@ func (c *Conn) openRequestStream(
 	return newRequestStream(
 		ctx,
 		c.Options,
-		newStream(hstr, c, trace, func(r io.Reader, l uint64) error {
-			hdr, err := c.decodeTrailers(r, l, maxHeaderBytes)
+		newStream(hstr, c, trace, func(r io.Reader, hf *headersFrame) error {
+			hdr, err := c.decodeTrailers(r, str.StreamID(), hf, maxHeaderBytes)
 			if err != nil {
 				return err
 			}
 			rsp.Trailer = hdr
 			return nil
-		}),
+		}, c.qlogger),
 		requestWriter,
 		reqDone,
 		c.decoder,
@@ -187,18 +199,23 @@ func (c *Conn) openRequestStream(
 	), nil
 }
 
-func (c *Conn) decodeTrailers(r io.Reader, l, maxHeaderBytes uint64) (http.Header, error) {
-	if l > maxHeaderBytes {
-		return nil, fmt.Errorf("HEADERS frame too large: %d bytes (max: %d)", l, maxHeaderBytes)
+func (c *Conn) decodeTrailers(r io.Reader, streamID quic.StreamID, hf *headersFrame, maxHeaderBytes uint64) (http.Header, error) {
+	if hf.Length > maxHeaderBytes {
+		maybeQlogInvalidHeadersFrame(c.qlogger, streamID, hf.Length)
+		return nil, fmt.Errorf("HEADERS frame too large: %d bytes (max: %d)", hf.Length, maxHeaderBytes)
 	}
 
-	b := make([]byte, l)
+	b := make([]byte, hf.Length)
 	if _, err := io.ReadFull(r, b); err != nil {
 		return nil, err
 	}
 	fields, err := c.decoder.DecodeFull(b)
 	if err != nil {
+		maybeQlogInvalidHeadersFrame(c.qlogger, streamID, hf.Length)
 		return nil, err
+	}
+	if c.qlogger != nil {
+		qlogParsedHeadersFrame(c.qlogger, streamID, hf, fields)
 	}
 	return parseTrailers(fields)
 }
@@ -254,13 +271,12 @@ func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.Connecti
 				// Our QPACK implementation doesn't use the dynamic table yet.
 				return
 			case streamTypePushStream:
-				switch c.perspective {
-				case PerspectiveClient:
-					// we never increased the Push ID, so we don't expect any push streams
-					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
-				case PerspectiveServer:
+				if c.isServer {
 					// only the server can push
 					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "")
+				} else {
+					// we never increased the Push ID, so we don't expect any push streams
+					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
 				}
 				return
 			default:
@@ -288,8 +304,8 @@ func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.Connecti
 }
 
 func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
-	fp := &frameParser{closeConn: c.conn.CloseWithError, r: str}
-	f, err := fp.ParseNext()
+	fp := &frameParser{closeConn: c.conn.CloseWithError, r: str, streamID: str.StreamID()}
+	f, err := fp.ParseNext(c.qlogger)
 	if err != nil {
 		var serr *quic.StreamError
 		if err == io.EOF || errors.As(err, &serr) {
@@ -328,12 +344,12 @@ func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
 	}
 
 	// we don't support server push, hence we don't expect any GOAWAY frames from the client
-	if c.perspective == PerspectiveServer {
+	if c.isServer {
 		return
 	}
 
 	for {
-		f, err := fp.ParseNext()
+		f, err := fp.ParseNext(c.qlogger)
 		if err != nil {
 			var serr *quic.StreamError
 			if err == io.EOF || errors.As(err, &serr) {
@@ -356,7 +372,7 @@ func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
 			return
 		}
 		c.streamMx.Lock()
-		if c.maxStreamID != InvalidStreamID && goaway.StreamID > c.maxStreamID {
+		if c.maxStreamID != invalidStreamID && goaway.StreamID > c.maxStreamID {
 			c.streamMx.Unlock()
 			c.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
 			return
@@ -376,8 +392,18 @@ func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
 func (c *Conn) sendDatagram(streamID quic.StreamID, b []byte) error {
 	// TODO: this creates a lot of garbage and an additional copy
 	data := make([]byte, 0, len(b)+8)
+	quarterStreamID := uint64(streamID / 4)
 	data = quicvarint.Append(data, uint64(streamID/4))
 	data = append(data, b...)
+	if c.qlogger != nil {
+		c.qlogger.RecordEvent(qlog.DatagramCreated{
+			QuaterStreamID: quarterStreamID,
+			Raw: qlog.RawInfo{
+				Length:        len(data),
+				PayloadLength: len(b),
+			},
+		})
+	}
 	return c.conn.SendDatagram(data)
 }
 
@@ -391,6 +417,15 @@ func (c *Conn) receiveDatagrams() error {
 		if err != nil {
 			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeDatagramError), "")
 			return fmt.Errorf("could not read quarter stream id: %w", err)
+		}
+		if c.qlogger != nil {
+			c.qlogger.RecordEvent(qlog.DatagramParsed{
+				QuaterStreamID: quarterStreamID,
+				Raw: qlog.RawInfo{
+					Length:        len(b),
+					PayloadLength: len(b) - n,
+				},
+			})
 		}
 		if quarterStreamID > maxQuarterStreamID {
 			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeDatagramError), "")

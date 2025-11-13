@@ -39,10 +39,6 @@ const (
 	Version2       quic.Version = 0x6b3343cf
 )
 
-// SupportedVersions lists the versions that the server supports
-// must be in sorted descending order
-var SupportedVersions = []quic.Version{Version1, Version2}
-
 // StreamType encodes if this is a unidirectional or bidirectional stream
 type StreamType uint8
 
