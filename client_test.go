@@ -724,7 +724,7 @@ func TestCloneCookieJar(t *testing.T) {
 func TestUTLSConnApply(t *testing.T) {
 	c1 := C()
 
-	c1.SetTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
+	c1.setTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
 		tt, _ := utls.UTLSIdToSpec(utls.HelloQQ_Auto)
 		//"github.com/Danny-Dasilva/CycleTLS/cycletls"
 		//cycletls.StringToSpec("771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0", false)
