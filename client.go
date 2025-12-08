@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Danny-Dasilva/CycleTLS/cycletls"
 	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/publicsuffix"
 
@@ -1289,6 +1290,15 @@ func (c *Client) setTLSFingerprint(clientHelloID utls.ClientHelloID, uTLSConnApp
 func (c *Client) SetTLSFingerprintSpec(clientHelloID *utls.ClientHelloSpec) *Client {
 	c.setTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
 		err := conn.ApplyPreset(clientHelloID)
+		return err
+	})
+	return c
+}
+
+func (c *Client) SetTLSFingerprintJA3(ja3 string, userAgent string, forceHTTP1 bool) *Client {
+	c.setTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
+		clientHelloID, err := cycletls.StringToSpec(ja3, userAgent, forceHTTP1)
+		err = conn.ApplyPreset(clientHelloID)
 		return err
 	})
 	return c
