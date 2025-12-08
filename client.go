@@ -1278,6 +1278,10 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID, uTLSConnApp
 	c.Transport.SetTLSHandshake(fn)
 	return c
 }
+
+// SetTLSFingerprintSpec set the tls fingerprint for tls handshake, will use utls
+// (https://github.com/refraction-networking/utls) to perform the tls handshake,
+// which uses the specified clientHelloID to simulate the tls fingerprint.
 func (c *Client) SetTLSFingerprintSpec(clientHelloID *utls.ClientHelloSpec) *Client {
 	c.SetTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
 		err := conn.ApplyPreset(clientHelloID)
