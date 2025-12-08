@@ -1278,6 +1278,13 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID, uTLSConnApp
 	c.Transport.SetTLSHandshake(fn)
 	return c
 }
+func (c *Client) SetTLSFingerprintSpec(clientHelloID *utls.ClientHelloSpec) *Client {
+	c.SetTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
+		err := conn.ApplyPreset(clientHelloID)
+		return err
+	})
+	return c
+}
 
 // SetTLSHandshake set the custom tls handshake function, only valid for HTTP1 and HTTP2, not HTTP3,
 // it specifies an optional dial function for tls handshake, it works even if a proxy is set, can be

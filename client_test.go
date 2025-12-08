@@ -740,3 +740,14 @@ func TestUTLSConnApply(t *testing.T) {
 	//println(string(bodyJson.Ja3NText))
 	tests.AssertEqual(t, true, bodyJson.Ja3NText == "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0")
 }
+func TestSetTLSFingerprintSpec(t *testing.T) {
+	c1 := C()
+	tt, _ := utls.UTLSIdToSpec(utls.HelloQQ_Auto)
+	c1.SetTLSFingerprintSpec(&tt)
+	bodyJson := &struct {
+		Ja3NText string `json:"ja3n_text"`
+	}{}
+	_ = c1.Get("https://tls.browserleaks.com/json").Do().Into(bodyJson)
+	//println(string(bodyJson.Ja3NText))
+	tests.AssertEqual(t, true, bodyJson.Ja3NText == "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0")
+}
