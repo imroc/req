@@ -3,7 +3,7 @@ module github.com/imroc/req/v3
 go 1.24.0
 
 require (
-	github.com/Danny-Dasilva/CycleTLS/cycletls v1.0.30 // indirect
+	github.com/Danny-Dasilva/CycleTLS/cycletls v1.0.30
 	github.com/andybalholm/brotli v1.2.0
 	github.com/google/go-querystring v1.1.0
 	github.com/icholy/digest v1.1.0
