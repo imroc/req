@@ -7,8 +7,8 @@ require (
 	github.com/google/go-querystring v1.1.0
 	github.com/icholy/digest v1.1.0
 	github.com/klauspost/compress v1.18.1
-	github.com/quic-go/qpack v0.5.1
-	github.com/quic-go/quic-go v0.56.0
+	github.com/quic-go/qpack v0.6.0
+	github.com/quic-go/quic-go v0.57.1
 	github.com/refraction-networking/utls v1.8.1
 	golang.org/x/net v0.47.0
 	golang.org/x/text v0.31.0

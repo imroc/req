@@ -80,7 +80,7 @@ func newConnection(
 		logger:           logger,
 		idleTimeout:      idleTimeout,
 		enableDatagrams:  enableDatagrams,
-		decoder:          qpack.NewDecoder(func(hf qpack.HeaderField) {}),
+		decoder:          qpack.NewDecoder(),
 		receivedSettings: make(chan struct{}),
 		streams:          make(map[quic.StreamID]*stateTrackingStream),
 		maxStreamID:      InvalidStreamID,
@@ -209,10 +209,18 @@ func (c *Conn) decodeTrailers(r io.Reader, streamID quic.StreamID, hf *headersFr
 	if _, err := io.ReadFull(r, b); err != nil {
 		return nil, err
 	}
-	fields, err := c.decoder.DecodeFull(b)
-	if err != nil {
-		maybeQlogInvalidHeadersFrame(c.qlogger, streamID, hf.Length)
-		return nil, err
+	var fields []qpack.HeaderField
+	decode := c.decoder.Decode(b)
+	for {
+		f, err := decode()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			maybeQlogInvalidHeadersFrame(c.qlogger, streamID, hf.Length)
+			return nil, err
+		}
+		fields = append(fields, f)
 	}
 	if c.qlogger != nil {
 		qlogParsedHeadersFrame(c.qlogger, streamID, hf, fields)

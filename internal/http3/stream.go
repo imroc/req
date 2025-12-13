@@ -355,12 +355,19 @@ func (s *RequestStream) ReadResponse() (*http.Response, error) {
 		s.str.CancelWrite(quic.StreamErrorCode(ErrCodeRequestIncomplete))
 		return nil, fmt.Errorf("http3: failed to read response headers: %w", err)
 	}
-	hfs, err := s.decoder.DecodeFull(headerBlock)
-	if err != nil {
-		maybeQlogInvalidHeadersFrame(s.str.qlogger, s.str.StreamID(), hf.Length)
-		// TODO: use the right error code
-		s.str.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeGeneralProtocolError), "")
-		return nil, fmt.Errorf("http3: failed to decode response headers: %w", err)
+	var hfs []qpack.HeaderField
+	decode := s.decoder.Decode(headerBlock)
+	for {
+		f, err := decode()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			maybeQlogInvalidHeadersFrame(s.str.qlogger, s.str.StreamID(), hf.Length)
+			s.str.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeGeneralProtocolError), "")
+			return nil, fmt.Errorf("http3: failed to decode response headers: %w", err)
+		}
+		hfs = append(hfs, f)
 	}
 	if s.str.qlogger != nil {
 		qlogParsedHeadersFrame(s.str.qlogger, s.str.StreamID(), hf, hfs)

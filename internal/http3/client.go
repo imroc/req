@@ -102,7 +102,7 @@ func newClientConn(
 	} else {
 		c.maxResponseHeaderBytes = uint64(maxResponseHeaderBytes)
 	}
-	c.decoder = qpack.NewDecoder(func(hf qpack.HeaderField) {})
+	c.decoder = qpack.NewDecoder()
 	c.requestWriter = newRequestWriter()
 	c.conn = newConnection(
 		conn.Context(),
