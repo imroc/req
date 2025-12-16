@@ -62,7 +62,7 @@ type ClientConn struct {
 
 	// maxResponseHeaderBytes specifies a limit on how many response bytes are
 	// allowed in the server's response header.
-	maxResponseHeaderBytes uint64
+	maxResponseHeaderBytes int
 
 	// disableCompression, if true, prevents the Transport from requesting compression with an
 	// "Accept-Encoding: gzip" request header when the Request contains no existing Accept-Encoding value.
@@ -86,7 +86,7 @@ func newClientConn(
 	additionalSettings map[uint64]uint64,
 	streamHijacker func(FrameType, quic.ConnectionTracingID, *quic.Stream, error) (hijacked bool, err error),
 	uniStreamHijacker func(StreamType, quic.ConnectionTracingID, *quic.ReceiveStream, error) (hijacked bool),
-	maxResponseHeaderBytes int64,
+	maxResponseHeaderBytes int,
 	disableCompression bool,
 	logger *slog.Logger,
 ) *ClientConn {
@@ -100,9 +100,9 @@ func newClientConn(
 	if maxResponseHeaderBytes <= 0 {
 		c.maxResponseHeaderBytes = defaultMaxResponseHeaderBytes
 	} else {
-		c.maxResponseHeaderBytes = uint64(maxResponseHeaderBytes)
+		c.maxResponseHeaderBytes = maxResponseHeaderBytes
 	}
-	c.decoder = qpack.NewDecoder(func(hf qpack.HeaderField) {})
+	c.decoder = qpack.NewDecoder()
 	c.requestWriter = newRequestWriter()
 	c.conn = newConnection(
 		conn.Context(),
@@ -143,10 +143,15 @@ func (c *ClientConn) setupConn() error {
 	b := make([]byte, 0, 64)
 	b = quicvarint.Append(b, streamTypeControlStream)
 	// send the SETTINGS frame
-	b = (&settingsFrame{Datagram: c.enableDatagrams, Other: c.additionalSettings}).Append(b)
+	b = (&settingsFrame{
+		Datagram:            c.enableDatagrams,
+		Other:               c.additionalSettings,
+		MaxFieldSectionSize: int64(c.maxResponseHeaderBytes),
+	}).Append(b)
 	if c.conn.qlogger != nil {
 		sf := qlog.SettingsFrame{
-			Other: maps.Clone(c.additionalSettings),
+			MaxFieldSectionSize: int64(c.maxResponseHeaderBytes),
+			Other:               maps.Clone(c.additionalSettings),
 		}
 		if c.enableDatagrams {
 			sf.Datagram = pointer(true)
@@ -356,32 +361,38 @@ func (c *ClientConn) sendRequestBody(str *RequestStream, body io.ReadCloser, con
 
 func (c *ClientConn) doRequest(req *http.Request, str *RequestStream) (*http.Response, error) {
 	trace := httptrace.ContextClientTrace(req.Context())
+	var sendingReqFailed bool
 	if err := str.sendRequestHeader(req); err != nil {
 		traceWroteRequest(trace, err)
-		return nil, err
+		if c.logger != nil {
+			c.logger.Debug("error writing request", "error", err)
+		}
+		sendingReqFailed = true
 	}
-	if req.Body == nil {
-		traceWroteRequest(trace, nil)
-		str.Close()
-	} else {
-		// send the request body asynchronously
-		go func() {
-			contentLength := int64(-1)
-			// According to the documentation for http.Request.ContentLength,
-			// a value of 0 with a non-nil Body is also treated as unknown content length.
-			if req.ContentLength > 0 {
-				contentLength = req.ContentLength
-			}
-			dumps := dump.GetDumpers(req.Context(), c.Dump)
-			err := c.sendRequestBody(str, req.Body, contentLength, dumps)
-			traceWroteRequest(trace, err)
-			if err != nil {
-				if c.Debugf != nil {
-					c.Debugf("error writing request: %s", err.Error())
-				}
-			}
+	if !sendingReqFailed {
+		if req.Body == nil {
+			traceWroteRequest(trace, nil)
 			str.Close()
-		}()
+		} else {
+			// send the request body asynchronously
+			go func() {
+				contentLength := int64(-1)
+				// According to the documentation for http.Request.ContentLength,
+				// a value of 0 with a non-nil Body is also treated as unknown content length.
+				if req.ContentLength > 0 {
+					contentLength = req.ContentLength
+				}
+			  dumps := dump.GetDumpers(req.Context(), c.Dump)
+				err := c.sendRequestBody(str, req.Body, contentLength, dumps)
+				traceWroteRequest(trace, err)
+				if err != nil {
+					if c.logger != nil {
+						c.logger.Debug("error writing request", "error", err)
+					}
+				}
+				str.Close()
+			}()
+		}
 	}
 
 	// copy from net/http: support 1xx responses
