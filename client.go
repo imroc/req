@@ -1225,6 +1225,10 @@ func (conn *uTLSConn) ConnectionState() tls.ConnectionState {
 // which uses the specified clientHelloID to simulate the tls fingerprint.
 // Note this is valid for HTTP1 and HTTP2, not HTTP3.
 func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
+	c.setTLSFingerprint(clientHelloID, nil)
+	return c
+}
+func (c *Client) setTLSFingerprint(clientHelloID utls.ClientHelloID, uTLSConnApply func(*uTLSConn) error) *Client {
 	fn := func(ctx context.Context, addr string, plainConn net.Conn) (conn net.Conn, tlsState *tls.ConnectionState, err error) {
 		colonPos := strings.LastIndex(addr, ":")
 		if colonPos == -1 {
@@ -1248,6 +1252,11 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 			KeyLogWriter:                tlsConfig.KeyLogWriter,
 		}
 		uconn := &uTLSConn{utls.UClient(plainConn, utlsConfig, clientHelloID)}
+		if uTLSConnApply != nil {
+			if err = uTLSConnApply(uconn); err != nil {
+				return
+			}
+		}
 		err = uconn.HandshakeContext(ctx)
 		if err != nil {
 			return
@@ -1271,6 +1280,17 @@ func (c *Client) SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {
 		return
 	}
 	c.Transport.SetTLSHandshake(fn)
+	return c
+}
+
+// SetTLSFingerprintSpec set the tls fingerprint for tls handshake, will use utls
+// (https://github.com/refraction-networking/utls) to perform the tls handshake,
+// which uses the specified clientHelloID to simulate the tls fingerprint.
+func (c *Client) SetTLSFingerprintSpec(clientHelloID *utls.ClientHelloSpec) *Client {
+	c.setTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
+		err := conn.ApplyPreset(clientHelloID)
+		return err
+	})
 	return c
 }
 
