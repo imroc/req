@@ -17,8 +17,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Danny-Dasilva/CycleTLS/cycletls"
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
+	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -719,4 +721,47 @@ func TestCloneCookieJar(t *testing.T) {
 	c2.SetCookieJar(nil)
 	tests.AssertEqual(t, true, c2.cookiejarFactory == nil)
 	tests.AssertEqual(t, true, c2.httpClient.Jar == nil)
+}
+func TestUTLSConnApply(t *testing.T) {
+	c1 := C()
+
+	c1.setTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
+		//tt, _ := utls.UTLSIdToSpec(utls.HelloQQ_Auto)
+		//"github.com/Danny-Dasilva/CycleTLS/cycletls"
+		tt, _ := cycletls.StringToSpec("771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0", false)
+		err := conn.ApplyPreset(tt)
+		return err
+	})
+
+	//c1.SetTLSFingerprintQQ()
+	bodyJson := &struct {
+		Ja3NText string `json:"ja3n_text"`
+	}{}
+	_ = c1.Get("https://tls.browserleaks.com/json").Do().Into(bodyJson)
+	//println(string(bodyJson.Ja3NText))
+	tests.AssertEqual(t, true, bodyJson.Ja3NText == "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0")
+}
+func TestSetTLSFingerprintSpec(t *testing.T) {
+	c1 := C()
+	tt, _ := utls.UTLSIdToSpec(utls.HelloQQ_Auto)
+	c1.SetTLSFingerprintSpec(&tt)
+	bodyJson := &struct {
+		Ja3NText string `json:"ja3n_text"`
+	}{}
+	_ = c1.Get("https://tls.browserleaks.com/json").Do().Into(bodyJson)
+	//println(string(bodyJson.Ja3NText))
+	tests.AssertEqual(t, true, bodyJson.Ja3NText == "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0")
+}
+func TestSetTLSFingerprintJA3(t *testing.T) {
+	c1 := C()
+	ja3 := "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-5-10-11-13-16-18-21-23-27-35-43-45-51-17513-65281,29-23-24,0"
+	c1.SetTLSFingerprintJA3(ja3, "", false)
+	bodyJson := &struct {
+		Ja3NText string `json:"ja3n_text"`
+	}{}
+	_ = c1.Get("https://tls.browserleaks.com/json").Do().Into(bodyJson)
+
+	//println(string(bodyJson.Ja3NText))
+	tests.AssertEqual(t, true, bodyJson.Ja3NText == ja3)
+
 }
