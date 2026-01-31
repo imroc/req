@@ -52,7 +52,7 @@ type Client struct {
 	AllowGetMethodPayload bool
 	*Transport
 	digestAuth              *digestAuth
-	cookiejarFactory        func() *cookiejar.Jar
+	cookiejarFactory        func() http.CookieJar
 	trace                   bool
 	disableAutoReadResponse bool
 	commonErrorType         reflect.Type
@@ -1557,7 +1557,7 @@ func (c *Client) Clone() *Client {
 	return &cc
 }
 
-func memoryCookieJarFactory() *cookiejar.Jar {
+func memoryCookieJarFactory() http.CookieJar {
 	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	return jar
 }
@@ -1604,7 +1604,7 @@ func C() *Client {
 // cookie jar that store cookies for underlying `http.Client`. After client clone,
 // the cookie jar of the new client will also be regenerated using this factory
 // function.
-func (c *Client) SetCookieJarFactory(factory func() *cookiejar.Jar) *Client {
+func (c *Client) SetCookieJarFactory(factory func() http.CookieJar) *Client {
 	c.cookiejarFactory = factory
 	c.initCookieJar()
 	return c
