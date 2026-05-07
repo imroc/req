@@ -4,9 +4,9 @@ go 1.24
 
 toolchain go1.24.4
 
-replace github.com/imroc/req/v3 => ../../../
+replace github.com/bertold/req/v3 => ../../../
 
-require github.com/imroc/req/v3 v3.0.0
+require github.com/bertold/req/v3 v3.0.0
 
 require (
 	github.com/andybalholm/brotli v1.2.0 // indirect

@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/bertold/req/v3/internal/header"
+	"github.com/bertold/req/v3/internal/tests"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -213,7 +213,7 @@ func TestSetCommonHeadersNonCanonical(t *testing.T) {
 }
 
 func TestSetCommonBasicAuth(t *testing.T) {
-	c := tc().SetCommonBasicAuth("imroc", "123456")
+	c := tc().SetCommonBasicAuth("bertold", "123456")
 	tests.AssertEqual(t, "Basic aW1yb2M6MTIzNDU2", c.Headers.Get("Authorization"))
 }
 
@@ -678,7 +678,7 @@ func TestSetResponseBodyTransformer(t *testing.T) {
 	resp, err := c.R().SetSuccessResult(user).Get("/urlencode")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, user.Username, "我是roc")
-	tests.AssertEqual(t, user.Email, "roc@imroc.cc")
+	tests.AssertEqual(t, user.Email, "roc@bertold.cc")
 }
 
 func TestSetResultStateCheckFunc(t *testing.T) {

@@ -3,7 +3,7 @@ package header
 import "strings"
 
 const (
-	DefaultUserAgent     = "req/v3 (https://github.com/imroc/req)"
+	DefaultUserAgent     = "req/v3 (https://github.com/bertold/req)"
 	UserAgent            = "User-Agent"
 	Location             = "Location"
 	ContentType          = "Content-Type"

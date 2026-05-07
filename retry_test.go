@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/bertold/req/v3/internal/tests"
 )
 
 func TestRetryBackOff(t *testing.T) {

@@ -6,4 +6,4 @@ req version >= `v3.43.x`
 
 ## Reporting a Vulnerability
 
-Email: roc@imroc.cc
+Email: roc@bertold.cc

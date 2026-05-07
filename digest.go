@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/icholy/digest"
-	"github.com/imroc/req/v3/internal/header"
+	"github.com/bertold/req/v3/internal/header"
 )
 
 // cchal is a cached challenge and the number of times it's been used.
