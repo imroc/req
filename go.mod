@@ -1,4 +1,4 @@
-module github.com/imroc/req/v3
+module github.com/bertold/req/v3
 
 go 1.24.0
 
@@ -15,8 +15,6 @@ require (
 )
 
 require (
-	github.com/google/go-cmp v0.7.0 // indirect
-	go.uber.org/mock v0.6.0 // indirect
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/sys v0.39.0 // indirect
 )

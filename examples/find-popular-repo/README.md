@@ -13,5 +13,5 @@ go run .
 Change the global `username` variable to your own github username:
 
 ```go
-var username = "imroc"
+var username = "bertold"
 ```

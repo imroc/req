@@ -11,7 +11,7 @@ import (
 
 	"golang.org/x/net/http/httpguts"
 
-	"github.com/imroc/req/v3/internal/dump"
+	"github.com/bertold/req/v3/internal/dump"
 	"github.com/quic-go/qpack"
 )
 

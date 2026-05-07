@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/imroc/req/v3"
+	"github.com/bertold/req/v3"
 )
 
 // Change the name if you want
-var username = "imroc"
+var username = "bertold"
 
 func main() {
 	repo, star, err := findTheMostPopularRepo(username)

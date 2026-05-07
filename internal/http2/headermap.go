@@ -5,7 +5,7 @@
 package http2
 
 import (
-	"github.com/imroc/req/v3/internal/ascii"
+	"github.com/bertold/req/v3/internal/ascii"
 	"net/http"
 	"sync"
 )

@@ -17,12 +17,12 @@ go run .
 Please give a github username: 
 ```
 
-Input a github username, e.g. `imroc`:
+Input a github username, e.g. `bertold`:
 
 ```bash
 $ go run .
-Please give a github username: imroc
-The moust popular repo of roc (https://imroc.cc) is req, which have 2500 stars
+Please give a github username: bertold
+The moust popular repo of roc (https://bertold.cc) is req, which have 2500 stars
 ```
 
 Then enter the Jaeger UI with browser (`http://127.0.0.1:16686/`), checkout the tracing details.

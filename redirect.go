@@ -34,8 +34,8 @@ func NoRedirectPolicy() RedirectPolicy {
 }
 
 // SameDomainRedirectPolicy allows redirect only if the redirected domain
-// is the same as original domain, e.g. redirect to "www.imroc.cc" from
-// "imroc.cc" is allowed, but redirect to "google.com" is not allowed.
+// is the same as original domain, e.g. redirect to "www.bertold.cc" from
+// "bertold.cc" is allowed, but redirect to "google.com" is not allowed.
 func SameDomainRedirectPolicy() RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
 		if getDomain(req.URL.Host) != getDomain(via[0].URL.Host) {
@@ -46,8 +46,8 @@ func SameDomainRedirectPolicy() RedirectPolicy {
 }
 
 // SameHostRedirectPolicy allows redirect only if the redirected host
-// is the same as original host, e.g. redirect to "www.imroc.cc" from
-// "imroc.cc" is not the allowed.
+// is the same as original host, e.g. redirect to "www.bertold.cc" from
+// "bertold.cc" is not the allowed.
 func SameHostRedirectPolicy() RedirectPolicy {
 	return func(req *http.Request, via []*http.Request) error {
 		if getHostname(req.URL.Host) != getHostname(via[0].URL.Host) {

@@ -3,7 +3,7 @@ package socks
 import (
 	"bytes"
 	"context"
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/bertold/req/v3/internal/tests"
 	"strings"
 	"testing"
 )
@@ -23,7 +23,7 @@ func TestReply(t *testing.T) {
 
 func TestAuthenticate(t *testing.T) {
 	auth := &UsernamePassword{
-		Username: "imroc",
+		Username: "bertold",
 		Password: "123456",
 	}
 	buf := bytes.NewBuffer([]byte{byte(0x01), byte(0x00)})
@@ -33,7 +33,7 @@ func TestAuthenticate(t *testing.T) {
 	err = auth.Authenticate(context.Background(), buf, AuthMethodUsernamePassword)
 	tests.AssertErrorContains(t, err, "invalid")
 
-	auth.Username = "imroc"
+	auth.Username = "bertold"
 	buf = bytes.NewBuffer([]byte{byte(0x03), byte(0x00)})
 	err = auth.Authenticate(context.Background(), buf, AuthMethodUsernamePassword)
 	tests.AssertErrorContains(t, err, "invalid username/password version")

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/imroc/req/v3/internal/header"
-	"github.com/imroc/req/v3/internal/tests"
+	"github.com/bertold/req/v3/internal/header"
+	"github.com/bertold/req/v3/internal/tests"
 )
 
 func TestMustSendMethods(t *testing.T) {
@@ -274,7 +274,7 @@ func TestBadRequest(t *testing.T) {
 }
 
 func TestSetBodyMarshal(t *testing.T) {
-	username := "imroc"
+	username := "bertold"
 	type User struct {
 		Username string `json:"username" xml:"username"`
 	}
@@ -362,31 +362,31 @@ func TestSetBodyMarshal(t *testing.T) {
 func TestDoAPIStyle(t *testing.T) {
 	c := tc()
 	user := &UserInfo{}
-	url := "/search?username=imroc&type=json"
+	url := "/search?username=bertold&type=json"
 
 	err := c.Get().SetURL(url).Do().Into(user)
 	tests.AssertEqual(t, true, err == nil)
-	tests.AssertEqual(t, "imroc", user.Username)
+	tests.AssertEqual(t, "bertold", user.Username)
 }
 
 func TestSetSuccessResult(t *testing.T) {
 	c := tc()
 	var user *UserInfo
-	url := "/search?username=imroc&type=json"
+	url := "/search?username=bertold&type=json"
 
 	resp, err := c.R().SetSuccessResult(&user).Get(url)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "imroc", user.Username)
+	tests.AssertEqual(t, "bertold", user.Username)
 
 	user = &UserInfo{}
 	resp, err = c.R().SetSuccessResult(user).Get(url)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "imroc", user.Username)
+	tests.AssertEqual(t, "bertold", user.Username)
 
 	user = nil
 	resp, err = c.R().SetSuccessResult(user).Get(url)
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "imroc", resp.Result().(*UserInfo).Username)
+	tests.AssertEqual(t, "bertold", resp.Result().(*UserInfo).Username)
 }
 
 func TestSetBody(t *testing.T) {
@@ -498,7 +498,7 @@ func TestCookie(t *testing.T) {
 func TestSetBasicAuth(t *testing.T) {
 	headers := make(http.Header)
 	resp, err := tc().R().
-		SetBasicAuth("imroc", "123456").
+		SetBasicAuth("bertold", "123456").
 		SetSuccessResult(&headers).
 		Get("/header")
 	assertSuccess(t, resp, err)
@@ -687,7 +687,7 @@ func TestPathParam(t *testing.T) {
 }
 
 func testPathParam(t *testing.T, c *Client) {
-	username := "imroc"
+	username := "bertold"
 	resp, err := c.R().
 		SetPathParam("username", username).
 		Get("/user/{username}/profile")
@@ -702,20 +702,20 @@ func TestSuccess(t *testing.T) {
 func testSuccess(t *testing.T, c *Client) {
 	var userInfo UserInfo
 	resp, err := c.R().
-		SetQueryParam("username", "imroc").
+		SetQueryParam("username", "bertold").
 		SetSuccessResult(&userInfo).
 		Get("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	tests.AssertEqual(t, "roc@bertold.cc", userInfo.Email)
 
 	userInfo = UserInfo{}
 	resp, err = c.R().
-		SetQueryParam("username", "imroc").
+		SetQueryParam("username", "bertold").
 		SetQueryParam("type", "xml"). // auto unmarshal to xml
 		SetSuccessResult(&userInfo).EnableDump().
 		Get("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	tests.AssertEqual(t, "roc@bertold.cc", userInfo.Email)
 }
 
 func TestError(t *testing.T) {
@@ -766,23 +766,23 @@ func testForm(t *testing.T, c *Client) {
 	var userInfo UserInfo
 	resp, err := c.R().
 		SetFormData(map[string]string{
-			"username": "imroc",
+			"username": "bertold",
 			"type":     "xml",
 		}).
 		SetSuccessResult(&userInfo).
 		Post("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	tests.AssertEqual(t, "roc@bertold.cc", userInfo.Email)
 
 	v := make(url.Values)
-	v.Add("username", "imroc")
+	v.Add("username", "bertold")
 	v.Add("type", "xml")
 	resp, err = c.R().
 		SetFormDataFromValues(v).
 		SetSuccessResult(&userInfo).
 		Post("/search")
 	assertSuccess(t, resp, err)
-	tests.AssertEqual(t, "roc@imroc.cc", userInfo.Email)
+	tests.AssertEqual(t, "roc@bertold.cc", userInfo.Email)
 }
 
 func TestHostHeaderOverride(t *testing.T) {
