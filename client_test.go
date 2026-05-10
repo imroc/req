@@ -214,7 +214,7 @@ func TestSetCommonHeadersNonCanonical(t *testing.T) {
 
 func TestSetCommonBasicAuth(t *testing.T) {
 	c := tc().SetCommonBasicAuth("bertold", "123456")
-	tests.AssertEqual(t, "Basic aW1yb2M6MTIzNDU2", c.Headers.Get("Authorization"))
+	tests.AssertEqual(t, "Basic YmVydG9sZDoxMjM0NTY=", c.Headers.Get("Authorization"))
 }
 
 func TestSetCommonBearerAuthToken(t *testing.T) {
