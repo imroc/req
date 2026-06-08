@@ -13,11 +13,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ennismore/req/v3/internal/transport"
 	"github.com/quic-go/quic-go"
 	"github.com/quic-go/quic-go/http3/qlog"
 	"github.com/quic-go/quic-go/qlogwriter"
 	"github.com/quic-go/quic-go/quicvarint"
+
+	"github.com/ennismore/req/v3/internal/transport"
 
 	"github.com/quic-go/qpack"
 )
@@ -375,7 +376,7 @@ func (c *Conn) sendDatagram(streamID quic.StreamID, b []byte) error {
 	data = append(data, b...)
 	if c.qlogger != nil {
 		c.qlogger.RecordEvent(qlog.DatagramCreated{
-			QuaterStreamID: quarterStreamID,
+			QuarterStreamID: quarterStreamID,
 			Raw: qlog.RawInfo{
 				Length:        len(data),
 				PayloadLength: len(b),
@@ -398,7 +399,7 @@ func (c *Conn) receiveDatagrams() error {
 		}
 		if c.qlogger != nil {
 			c.qlogger.RecordEvent(qlog.DatagramParsed{
-				QuaterStreamID: quarterStreamID,
+				QuarterStreamID: quarterStreamID,
 				Raw: qlog.RawInfo{
 					Length:        len(b),
 					PayloadLength: len(b) - n,
