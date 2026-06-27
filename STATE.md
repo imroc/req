@@ -28,35 +28,45 @@ All loops read from here and write back after execution. State is external, not 
 ## Issue Triage Loop
 
 ### Run History
-- 2026-06-27: First run — triaged 10 open issues, applied 14 labels, created 4 labels (security, performance, quic-go, tls-fingerprint), posted 3 comments (#496, #481, #464)
+- 2026-06-27 (run 1): Triaged 10 open issues, applied 14 labels, created 4 labels (security, performance, quic-go, tls-fingerprint), posted 3 comments (#496, #481, #464)
+- 2026-06-27 (run 2): Triaged 15 unlabeled issues (#459–#423), applied 38 labels, created 6 labels (http2, modified-stdlib, priority:critical, priority:high, priority:medium, priority:low), posted 1 comment (#457)
 
 ### Last Run
-- Date: 2026-06-27
-- Result: success — 10 issues triaged
+- Date: 2026-06-27 (run 2)
+- Result: success — 15 issues triaged, 38 labels applied, 1 comment posted
 
-### Triage Details (2026-06-27)
-| # | Title | Type | Extra | Comment |
-|---|---|---|---|---|
-| #496 | gin dependency conflict (quic-go v0.59.0 API break) | bug | quic-go | Yes — explained modified-code root cause, workaround |
-| #495 | dialConn memory overusage | bug | performance | No — already self-answered |
-| #494 | client vs request timeout precedence | question | — | No — already answered |
-| #484 | OnAfterResponse full-iteration design question | question | — | No — design question for maintainer |
-| #481 | TLS fingerprint with Transport only | question | tls-fingerprint | Yes — pointed to SetTLSHandshake |
-| #475 | Expose retryOption in middleware | enhancement | — | No |
-| #473 | Socks4 proxy support | enhancement | — | No — has working code example |
-| #468 | Disable auto header injection | question | — | No — answered by maintainer |
-| #464 | ForceHTTP1 + TLS random fingerprint | question | tls-fingerprint | Yes — explained they work together |
-| #460 | Replace quic-go with x/net QUIC | enhancement | quic-go | No — active discussion |
+### Triage Details (2026-06-27, run 2)
+| # | Title | Type | Extra | Priority | Comment |
+|---|---|---|---|---|---|
+| #459 | utls fingerprint update to 133 | enhancement | tls-fingerprint | low | No |
+| #457 | HTTP/3 AddConn/RoundTrip race | bug | quic-go | high | Yes — noted modified-code caveat, high priority |
+| #454 | Support firefox133/chrome133 | enhancement | tls-fingerprint | low | No |
+| #453 | Better performance than resty | question | — | low | No |
+| #452 | Rotating proxy best practices | question | — | low | No |
+| #446 | Win7 compatibility (quic-go) | question | quic-go | low | No |
+| #445 | Proxy set but connects to localhost | bug | — | medium | No |
+| #444 | Put without body: Content-Length: 0 | question | — | low | No |
+| #437 | Switching proxy after connection not working | bug | modified-stdlib | medium | No |
+| #436 | Retry limit reached but no error returned | question | — | low | No |
+| #433 | Large file upload buffered in memory | bug | performance, modified-stdlib | high | No |
+| #431 | jsonrpc2 support | enhancement | — | low | No |
+| #425 | zstd content encoding support | enhancement | — | low | No |
+| #424 | Content-Type charset not applied in headers | bug | — | medium | No |
+| #423 | SetSuccessResult for raw response | question | — | low | No |
 
-### Labels Created This Run
-- `security` (b60205) — Security vulnerability or concern
-- `performance` (fbca04) — Performance-related issue
-- `quic-go` (5319e7) — Involves quic-go, HTTP/3, or internal/http3 modified code
-- `tls-fingerprint` (1d76db) — Involves TLS fingerprinting or utls
+### Labels Created This Run (run 2)
+- `http2` (0052cc) — Involves HTTP/2 or internal/http2 modified code
+- `modified-stdlib` (c5def5) — Involves modified Go stdlib files (transport.go, transfer.go, etc.)
+- `priority:critical` (b60205) — Security vulnerability or compilation failure affecting all users
+- `priority:high` (d93f0b) — Data loss, memory leak, or panic in production
+- `priority:medium` (fbca04) — Bug with available workaround
+- `priority:low` (0e8a16) — Minor issue or feature request
 
 ### Needs Human Attention
 - **#496** — Compilation failure: gin v1.12.0 pulls quic-go v0.59.0, but internal/http3/ uses removed `quic.ConnectionTracingID` API. High priority, breaks user builds.
 - **#484** — Inconsistent error handling between client-level and request-level afterResponse middleware loops (request-level stops on first error, client-level doesn't). May warrant code change.
+- **#457** — HTTP/3 race condition between AddConn and RoundTrip in modified `internal/http3/` code. Potential panic in high-traffic environments. Needs investigation of initOnce bypass.
+- **#433** — Large file upload (100MB+) causes entire file to be buffered in memory (2x+ memory usage). Likely fix needed in middleware.go upload path.
 
 ---
 
@@ -110,4 +120,4 @@ All loops read from here and write back after execution. State is external, not 
 - #397: concurrent map read/write in parseRequestHeader — needs locking
 - #457: HTTP/3 AddConn/RoundTrip race condition
 - #376: HTTP/2 frequent errors (9 comments)
-- 50 open issues total, mostly feature requests and usage questions
+- 65 open issues total (25 now labeled), mostly feature requests and usage questions
