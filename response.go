@@ -1,6 +1,7 @@
 package req
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -179,6 +180,10 @@ func (r *Response) UnmarshalXml(v any) error {
 func (r *Response) Unmarshal(v any) error {
 	if r.Err != nil {
 		return r.Err
+	}
+	// error by status-code
+	if r.IsErrorState() {
+		return errors.New(r.Status)
 	}
 	v = util.GetPointer(v)
 	contentType := r.Header.Get("Content-Type")
