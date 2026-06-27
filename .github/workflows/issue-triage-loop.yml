@@ -10,7 +10,7 @@ on:
 jobs:
   triage:
     runs-on: ubuntu-latest
-    if: github.repository == 'imroc/req'
+    if: github.repository == 'imroc/req' && vars.CODEBUDDY_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v4
 
