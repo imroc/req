@@ -57,6 +57,11 @@ type Conn struct {
 	idleTimer   *time.Timer
 
 	qlogger qlogwriter.Recorder
+
+	// Track received unidirectional streams (only one of each type allowed)
+	rcvdControlStr      atomic.Bool
+	rcvdQPACKEncoderStr atomic.Bool
+	rcvdQPACKDecoderStr atomic.Bool
 }
 
 func newConnection(
@@ -232,80 +237,48 @@ func (c *Conn) CloseWithError(code quic.ApplicationErrorCode, msg string) error 
 	return c.conn.CloseWithError(code, msg)
 }
 
-func (c *Conn) handleUnidirectionalStreams(hijack func(StreamType, quic.ConnectionTracingID, *quic.ReceiveStream, error) (hijacked bool)) {
-	var (
-		rcvdControlStr      atomic.Bool
-		rcvdQPACKEncoderStr atomic.Bool
-		rcvdQPACKDecoderStr atomic.Bool
-	)
-
-	for {
-		str, err := c.conn.AcceptUniStream(context.Background())
-		if err != nil {
-			if c.logger != nil {
-				c.logger.Debug("accepting unidirectional stream failed", "error", err)
-			}
-			return
+func (c *Conn) handleUnidirectionalStream(str *quic.ReceiveStream) {
+	streamType, err := quicvarint.Read(quicvarint.NewReader(str))
+	if err != nil {
+		if c.logger != nil {
+			c.logger.Debug("reading stream type on stream failed", "stream ID", str.StreamID(), "error", err)
 		}
-
-		go func(str *quic.ReceiveStream) {
-			streamType, err := quicvarint.Read(quicvarint.NewReader(str))
-			if err != nil {
-				id := c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID)
-				if hijack != nil && hijack(StreamType(streamType), id, str, err) {
-					return
-				}
-				if c.logger != nil {
-					c.logger.Debug("reading stream type on stream failed", "stream ID", str.StreamID(), "error", err)
-				}
-				return
-			}
-			// We're only interested in the control stream here.
-			switch streamType {
-			case streamTypeControlStream:
-			case streamTypeQPACKEncoderStream:
-				if isFirst := rcvdQPACKEncoderStr.CompareAndSwap(false, true); !isFirst {
-					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK encoder stream")
-				}
-				// Our QPACK implementation doesn't use the dynamic table yet.
-				return
-			case streamTypeQPACKDecoderStream:
-				if isFirst := rcvdQPACKDecoderStr.CompareAndSwap(false, true); !isFirst {
-					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK decoder stream")
-				}
-				// Our QPACK implementation doesn't use the dynamic table yet.
-				return
-			case streamTypePushStream:
-				if c.isServer {
-					// only the server can push
-					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "")
-				} else {
-					// we never increased the Push ID, so we don't expect any push streams
-					c.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
-				}
-				return
-			default:
-				if hijack != nil {
-					if hijack(
-						StreamType(streamType),
-						c.Context().Value(quic.ConnectionTracingKey).(quic.ConnectionTracingID),
-						str,
-						nil,
-					) {
-						return
-					}
-				}
-				str.CancelRead(quic.StreamErrorCode(ErrCodeStreamCreationError))
-				return
-			}
-			// Only a single control stream is allowed.
-			if isFirstControlStr := rcvdControlStr.CompareAndSwap(false, true); !isFirstControlStr {
-				c.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate control stream")
-				return
-			}
-			c.handleControlStream(str)
-		}(str)
+		return
 	}
+	// We're only interested in the control stream here.
+	switch streamType {
+	case streamTypeControlStream:
+	case streamTypeQPACKEncoderStream:
+		if isFirst := c.rcvdQPACKEncoderStr.CompareAndSwap(false, true); !isFirst {
+			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK encoder stream")
+		}
+		// Our QPACK implementation doesn't use the dynamic table yet.
+		return
+	case streamTypeQPACKDecoderStream:
+		if isFirst := c.rcvdQPACKDecoderStr.CompareAndSwap(false, true); !isFirst {
+			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate QPACK decoder stream")
+		}
+		// Our QPACK implementation doesn't use the dynamic table yet.
+		return
+	case streamTypePushStream:
+		if c.isServer {
+			// only the server can push
+			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "")
+		} else {
+			// we never increased the Push ID, so we don't expect any push streams
+			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeIDError), "")
+		}
+		return
+	default:
+		str.CancelRead(quic.StreamErrorCode(ErrCodeStreamCreationError))
+		return
+	}
+	// Only a single control stream is allowed.
+	if isFirstControlStr := c.rcvdControlStr.CompareAndSwap(false, true); !isFirstControlStr {
+		c.conn.CloseWithError(quic.ApplicationErrorCode(ErrCodeStreamCreationError), "duplicate control stream")
+		return
+	}
+	c.handleControlStream(str)
 }
 
 func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
@@ -335,7 +308,7 @@ func (c *Conn) handleControlStream(str *quic.ReceiveStream) {
 		// If datagram support was enabled on our side as well as on the server side,
 		// we can expect it to have been negotiated both on the transport and on the HTTP/3 layer.
 		// Note: ConnectionState() will block until the handshake is complete (relevant when using 0-RTT).
-		if c.enableDatagrams && !c.ConnectionState().SupportsDatagrams {
+		if c.enableDatagrams && !c.ConnectionState().SupportsDatagrams.Remote {
 			c.CloseWithError(quic.ApplicationErrorCode(ErrCodeSettingsError), "missing QUIC Datagram support")
 			return
 		}

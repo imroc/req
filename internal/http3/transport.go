@@ -41,6 +41,7 @@ type RoundTripOpt struct {
 type clientConn interface {
 	OpenRequestStream(context.Context) (*RequestStream, error)
 	RoundTrip(*http.Request) (*http.Response, error)
+	handleUnidirectionalStream(*quic.ReceiveStream)
 }
 
 type roundTripperWithCount struct {
@@ -99,9 +100,6 @@ type Transport struct {
 	// However, if the user explicitly requested gzip it is not automatically uncompressed.
 	DisableCompression bool
 
-	StreamHijacker    func(FrameType, quic.ConnectionTracingID, *quic.Stream, error) (hijacked bool, err error)
-	UniStreamHijacker func(StreamType, quic.ConnectionTracingID, *quic.ReceiveStream, error) (hijacked bool)
-
 	Logger *slog.Logger
 
 	mutex sync.Mutex
@@ -131,17 +129,17 @@ var (
 func (t *Transport) init() error {
 	if t.newClientConn == nil {
 		t.newClientConn = func(conn *quic.Conn) clientConn {
-			return newClientConn(
+			c := newClientConn(
 				t.Options,
 				conn,
 				t.EnableDatagrams,
 				t.AdditionalSettings,
-				t.StreamHijacker,
-				t.UniStreamHijacker,
 				t.MaxResponseHeaderBytes,
 				t.DisableCompression,
 				t.Logger,
 			)
+			startUnidirectionalStreamAcceptLoop(conn, c)
+			return c
 		}
 	}
 	if t.QUICConfig == nil {
@@ -448,17 +446,48 @@ func (t *Transport) removeClient(hostname string) {
 // Obtaining a ClientConn is only needed for more advanced use cases, such as
 // using Extended CONNECT for WebTransport or the various MASQUE protocols.
 func (t *Transport) NewClientConn(conn *quic.Conn) *ClientConn {
-	return newClientConn(
+	c := newClientConn(
 		t.Options,
 		conn,
 		t.EnableDatagrams,
 		t.AdditionalSettings,
-		t.StreamHijacker,
-		t.UniStreamHijacker,
 		t.MaxResponseHeaderBytes,
 		t.DisableCompression,
 		t.Logger,
 	)
+	startUnidirectionalStreamAcceptLoop(conn, c)
+	return c
+}
+
+// NewRawClientConn creates a new low-level HTTP/3 client connection on top of a QUIC connection.
+// Unlike NewClientConn, the returned RawClientConn allows the application to take control
+// of the stream accept loops, by calling HandleUnidirectionalStream for incoming unidirectional
+// streams and HandleBidirectionalStream for incoming bidirectional streams.
+func (t *Transport) NewRawClientConn(conn *quic.Conn) *RawClientConn {
+	return &RawClientConn{
+		ClientConn: newClientConn(
+			t.Options,
+			conn,
+			t.EnableDatagrams,
+			t.AdditionalSettings,
+			t.MaxResponseHeaderBytes,
+			t.DisableCompression,
+			t.Logger,
+		),
+	}
+}
+
+// startUnidirectionalStreamAcceptLoop starts the accept loop for unidirectional streams.
+func startUnidirectionalStreamAcceptLoop(conn *quic.Conn, cc clientConn) {
+	go func() {
+		for {
+			str, err := conn.AcceptUniStream(context.Background())
+			if err != nil {
+				return
+			}
+			go cc.handleUnidirectionalStream(str)
+		}
+	}()
 }
 
 // Close closes the QUIC connections that this Transport has used.
