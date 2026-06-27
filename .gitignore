@@ -31,4 +31,4 @@ Session.vim
 *.swp
 
 # OSX trash
-.DS_Store
+.DS_Store.codebuddy/scheduled_tasks.lock
