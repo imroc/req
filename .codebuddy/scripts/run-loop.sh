@@ -6,13 +6,6 @@
 #
 # Usage: ./run-loop.sh <loop_type>
 #   loop_type: ci-fix | issue-triage | pr-review | dependency-upgrade | upstream-sync
-#
-# Crontab example (Beijing time, UTC+8):
-#   0 1 * * * <repo-root>/.codebuddy/scripts/run-loop.sh upstream-sync
-#   0 2 * * * <repo-root>/.codebuddy/scripts/run-loop.sh dependency-upgrade
-#   0 3 * * * <repo-root>/.codebuddy/scripts/run-loop.sh ci-fix
-#   0 4 * * * <repo-root>/.codebuddy/scripts/run-loop.sh issue-triage
-#   0 5 * * * <repo-root>/.codebuddy/scripts/run-loop.sh pr-review
 
 set -euo pipefail
 
@@ -32,24 +25,19 @@ git pull --ff-only origin master >> "$LOG_FILE" 2>&1 || true
 
 case "$LOOP_TYPE" in
   ci-fix)
-    PROMPT='Use the ci-fixer agent to check for failed CI runs. Run: gh run list --status failure --limit 3 --workflow ci.yml -R imroc/req. For each failure, use gh run view to get logs, apply ci-triage skill to classify. Fix auto-fixable issues on a branch fix/ci-<run-id>-<date>. Run go build ./... && go vet ./... && go test ./... to verify. Use code-reviewer agent to review changes. If approved, create PR with gh pr create. Update STATE.md CI Fix Loop section. Commit and push STATE.md to master.'
-    TOOLS="Read,Bash,Grep,Edit"
+    PROMPT='Check for failed CI runs: gh run list --status failure --limit 3 --workflow ci.yml -R imroc/req. If there are failures, for each: use gh run view <id> --log-failed to get logs, analyze the failure, and fix auto-fixable issues. Create a branch fix/ci-<run-id>, make the fix, run go build ./... && go vet ./... && go test ./... to verify. If tests pass, create a PR with gh pr create. If not fixable, note it. Finally, update the "CI Fix Loop" section in STATE.md with the date and result, then commit and push STATE.md to master.'
     ;;
   issue-triage)
-    PROMPT='Use the issue-triager agent to triage recent issues. Run: gh issue list -R imroc/req --state open --limit 10 --json number,title,labels,createdAt. For issues without type labels, fetch with gh issue view, classify by type (bug/enhancement/security/question/performance), apply labels with gh issue edit --add-label. Flag quic-go related issues with quic-go label and note modified-code caveat. Post initial response if appropriate. Update STATE.md Issue Triage Loop section. Commit and push STATE.md to master.'
-    TOOLS="Read,Bash,Grep,WebFetch"
+    PROMPT='Triage recent issues: run gh issue list -R imroc/req --state open --limit 10 --json number,title,labels,createdAt. For issues without labels, fetch details with gh issue view, classify as bug/enhancement/security/question/performance, and apply labels with gh issue edit --add-label. For quic-go or HTTP/3 related issues, add the quic-go label. Post a brief initial response if appropriate. Finally, update the "Issue Triage Loop" section in STATE.md with the date and result, then commit and push STATE.md to master.'
     ;;
   pr-review)
-    PROMPT='Use the pr-reviewer agent to review open PRs. Run: gh pr list -R imroc/req --state open --limit 5 --json number,title,files. For each PR, fetch diff with gh pr diff, apply pr-review skill checklist. Be extra cautious with PRs touching internal/http3/ or internal/http2/ or modified stdlib files. Post review with gh pr review. Update STATE.md PR Review Loop section. Commit and push STATE.md to master.'
-    TOOLS="Read,Bash,Grep"
+    PROMPT='Review open PRs: run gh pr list -R imroc/req --state open --limit 5 --json number,title,files. For each PR, fetch diff with gh pr diff and review the changes. Pay extra attention to PRs touching internal/http3/ or internal/http2/ — these are modified upstream code and need careful review. Post review comments with gh pr review. Finally, update the "PR Review Loop" section in STATE.md with the date and result, then commit and push STATE.md to master.'
     ;;
   dependency-upgrade)
-    PROMPT='Use the dependency-upgrader agent to check for dependency upgrades. Run: go list -u -m all 2>/dev/null | grep "\[". Upgrade non-sensitive deps with go get -u ./... && go mod tidy. For sensitive deps (utls, x/net, x/crypto, x/text), upgrade individually and test. Do NOT touch modified code in internal/http3/ or internal/http2/. Run go build ./... && go vet ./... && go test ./... after upgrade. If tests pass, create branch chore/upgrade-deps-<date>, commit, and create PR with gh pr create. Update STATE.md Dependency Upgrade Loop section. Commit and push STATE.md to master.'
-    TOOLS="Read,Bash,Grep,Edit"
+    PROMPT='Check for dependency upgrades: run go list -u -m all and look for upgradable modules. Upgrade non-sensitive deps with go get -u ./... && go mod tidy. For sensitive deps (utls, x/net, x/crypto, x/text), upgrade individually and test. Do NOT modify files in internal/http3/ or internal/http2/ — those are modified upstream code. Run go build ./... && go vet ./... && go test ./... after upgrade. If tests pass, create branch chore/upgrade-deps-<date>, commit, and create PR with gh pr create. Finally, update the "Dependency Upgrade Loop" section in STATE.md with the date and result, then commit and push STATE.md to master.'
     ;;
   upstream-sync)
-    PROMPT='Use the upstream-tracker agent to check upstream changes. Read STATE.md for current baselines. Check Go stdlib net/http (https://github.com/golang/go/commits/master/src/net/http), golang.org/x/net/http2 (https://github.com/golang/net/commits/master/http2), and quic-go releases (https://github.com/quic-go/quic-go/releases) for new changes since last sync. Generate a sync report. If breaking changes or security fixes found, open an issue with gh issue create. Update STATE.md Upstream Sync Tracking Loop section with new baselines. Commit and push STATE.md to master.'
-    TOOLS="Read,Bash,Grep,WebFetch"
+    PROMPT='Check upstream changes: read STATE.md for current baselines (Go stdlib net/http, golang.org/x/net/http2, quic-go). Check https://github.com/quic-go/quic-go/releases for new quic-go releases. Check https://github.com/golang/go/commits/master/src/net/http for stdlib changes. Check https://github.com/golang/net/commits/master/http2 for http2 changes. Generate a sync report summarizing what changed. If breaking changes or security fixes are found, open an issue with gh issue create. Finally, update the "Upstream Sync Tracking Loop" section in STATE.md with new baselines, then commit and push STATE.md to master.'
     ;;
   *)
     echo "Unknown loop type: $LOOP_TYPE" | tee -a "$LOG_FILE"
@@ -60,9 +48,8 @@ esac
 
 echo "=== Loop: $LOOP_TYPE at $(date) ===" >> "$LOG_FILE"
 
-# Run codebuddy in headless mode
+# Run codebuddy in headless mode (-y bypasses permissions for non-interactive use)
 timeout 600 codebuddy -p -y \
-  --allowedTools "$TOOLS" \
   "$PROMPT" >> "$LOG_FILE" 2>&1 || true
 
 EXIT_CODE=$?
