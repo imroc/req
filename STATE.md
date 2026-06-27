@@ -1,142 +1,124 @@
 # Loop State
 
-本文件是 Loop Engineering 自动维护循环的持久化状态。
-所有循环从这里读取上次状态，执行后写回。不依赖模型上下文记忆。
+This file is the persistent state for Loop Engineering automated maintenance loops.
+All loops read from here and write back after execution. State is external, not in model context.
 
-## 依赖升级循环
+## Dependency Upgrade Loop
 
-### 运行历史
-（首次运行，暂无记录）
+### Run History
+(first run pending)
 
-### 待处理
-- [ ] 首次运行：全量扫描可升级依赖
+### Pending
+- [ ] First run: scan all upgradable dependencies
 
-### 最近一次运行
-- 日期：N/A
-- 结果：未运行
+### Last Run
+- Date: N/A
+- Result: not run
 
 ---
 
-## Issue 分流状态（人工分析，2026-06-27）
+## CI Fix Loop
 
-### 需优先处理
+### Run History
+(first run pending)
 
-| # | 标题 | 类型 | 说明 |
+### Pending Human Action
+(none)
+
+### Last Run
+- Date: N/A
+- Result: not run
+
+---
+
+## Issue Triage Loop
+
+### Run History
+(first run pending)
+
+### Last Run
+- Date: N/A
+- Result: not run
+
+---
+
+## PR Review Loop
+
+### Run History
+(first run pending)
+
+### Last Run
+- Date: N/A
+- Result: not run
+
+---
+
+## Upstream Sync Tracking Loop
+
+### Current Baselines
+- Go stdlib net/http: 2024-09-10 (ad6ee2)
+- golang.org/x/net/http2: 2024-09-06 (3c333c)
+- quic-go: v0.57.1
+
+### Run History
+(first run pending)
+
+### Last Run
+- Date: N/A
+- Result: not run
+
+---
+
+## Issue Analysis Snapshot (manual, 2026-06-27)
+
+### Priority — Needs Immediate Action
+
+| # | Title | Type | Notes |
 |---|------|------|------|
-| #482 | Adapt to quic-go v0.59.0 (ConnectionTracingID 移除) | **魔改同步·紧急** | quic-go v0.59.0 移除了 `ConnectionTracingID`/`ConnectionTracingKey`，导致编译失败。已有 PR #485，**需谨慎审查**——contributor 可能未完全考虑魔改兼容性。涉及 `internal/http3/transport.go`、`client.go`、`conn.go`。这是 quic-go 魔改同步，不能直接 merge |
-| #489 | Security: 自定义 auth header 跨域重定向泄露 | **安全漏洞·高** | `SetCommonHeader` 设置的自定义 auth header（X-API-Key 等）在跨域重定向时不被剥离。CWE-200, CVSS 7.4。根因在 `middleware.go:528-540` 和 `client.go:334` |
-| #485 | PR: upgrade quic-go to v0.59.0 | **PR 审查·谨慎** | 对应 #482。改动 260+/124-，涉及移除 deprecated API、替换 hijacker 回调为 RawClientConn、修复 SupportsDatagrams 检查。**必须人工逐文件比对魔改逻辑** |
+| #482 | Adapt to quic-go v0.59.0 (ConnectionTracingID removed) | **modified-code sync·urgent** | quic-go v0.59.0 removed `ConnectionTracingID`/`ConnectionTracingKey`, breaks compilation. PR #485 exists, **review cautiously** — contributor may not understand modified-code implications. Affects `internal/http3/transport.go`, `client.go`, `conn.go`. Cannot merge directly |
+| #489 | Security: custom auth header leak on cross-domain redirect | **security·high** | `SetCommonHeader` auth headers (X-API-Key etc.) not stripped on cross-domain redirect. CWE-200, CVSS 7.4. Root cause: `middleware.go:528-540`, `client.go:334` |
+| #485 | PR: upgrade quic-go to v0.59.0 | **PR review·caution** | Corresponds to #482. 260+/124- lines. Removes deprecated API, replaces hijacker callbacks with RawClientConn, fixes SupportsDatagrams check. **Must manually verify modified-code compatibility** |
 
-### quic-go 相关（需谨慎）
+### quic-go Related (Caution Required)
 
-| # | 标题 | 说明 |
+| # | Title | Notes |
 |---|------|------|
-| #460 | 建议用 x/net 的 quic 替换 quic-go | 作者已回复：等标准库成熟后切换。长期跟踪 |
-| #457 | HTTP/3 AddConn 和 RoundTrip 竞态 | `internal/http3/transport.go` 中 `t.newClientConn` 初始化竞态，高并发下 panic。有复现堆栈和修复建议 |
-| #372 | http3 是否支持 SetTLSFingerprint | 功能咨询，涉及 HTTP/3 + TLS 指纹 |
+| #460 | Suggest using x/net quic instead of quic-go | Author replied: switch when stdlib matures. Long-term tracking |
+| #457 | HTTP/3 AddConn and RoundTrip race | `internal/http3/transport.go` `t.newClientConn` init race, panic under high concurrency. Has repro stacktrace and fix suggestion |
+| #372 | Does http3 support SetTLSFingerprint? | Feature question, involves HTTP/3 + TLS fingerprint |
 
-### Bug/性能问题
+### Bug/Performance
 
-| # | 标题 | 说明 |
+| # | Title | Notes |
 |---|------|------|
-| #495 | dialConn 内存暴涨 | 无限连接池导致，建议设 MaxConnsPerHost。可考虑设默认上限 |
-| #433 | 大文件上传全量缓冲到内存 | `middleware.go:122-123` multipart CreatePart 触发全量缓冲，670MB 文件吃 1.7GB 内存 |
-| #397 | concurrent map read and map write | `middleware.go:537` parseRequestHeader 并发读写 client headers map。请求过程中修改 client header 导致 |
-| #436 | 重试达上限不返回 error | 行为不符合预期 |
-| #419 | Keep-Alive 长连接下 SetTimeout 错误断开 | |
-| #416 | ParallelDownload 未关闭输出文件 | |
-| #376 | HTTP/2 经常触发错误 | 9 条评论，可能涉及魔改的 `internal/http2/` |
+| #495 | dialConn memory overusage | Unlimited connection pool, suggest MaxConnsPerHost default |
+| #433 | Large file upload buffers entire file in memory | `middleware.go:122-123` multipart CreatePart triggers full buffering, 670MB file uses 1.7GB |
+| #397 | concurrent map read and map write | `middleware.go:537` parseRequestHeader concurrent read/write of client headers map |
+| #436 | Retry limit reached but no error returned | Unexpected behavior |
+| #419 | Keep-alive long connection SetTimeout incorrectly disconnects | |
+| #416 | ParallelDownload does not close output file | |
+| #376 | HTTP/2 frequent errors | 9 comments, may involve modified `internal/http2/` |
 
-### 功能请求
+### Feature Requests
 
-| # | 标题 | 说明 |
+| # | Title | Notes |
 |---|------|------|
-| #475 | 中间件中读取 retryOption | |
-| #473 | Socks4 代理支持 | |
-| #459/#454 | utls 指纹更新到 133 / 支持 Chrome133、Firefox133/135 | utls 版本升级 |
-| #431 | jsonrpc2 支持 | |
-| #425 | zstd 内容编码支持 | |
-| #406 | response body size limit | |
-| #404 | 生成 cURL 调试代码 | |
-| #394 | graphql 请求支持 | |
-| #369 | SSE (Server-Sent Events) 支持 | |
+| #475 | Read retryOption in middleware | |
+| #473 | Socks4 proxy support | |
+| #459/#454 | utls fingerprint update to 133 / Chrome133, Firefox133/135 | utls version upgrade |
+| #431 | jsonrpc2 support | |
+| #425 | zstd content encoding support | |
+| #406 | Response body size limit | |
+| #404 | Generate cURL debug code | |
+| #394 | GraphQL request support | |
+| #369 | SSE (Server-Sent Events) support | |
 
-### 待审查 PR（非 quic-go）
+### Pending PR Review (non-quic-go)
 
-| PR | 标题 | 说明 |
+| PR | Title | Notes |
 |----|------|------|
-| #491 | fix: retry on GOAWAY errors (HTTP/2 缓存连接) | 涉及魔改 HTTP/2，需验证 |
-| #486 | fix: SetCookieJarFactory 返回 http.CookieJar | 对应 #415 |
-| #478/#477 | JA3 支持 / ClientHelloSpec 设置 | TLS 指纹相关 |
-| #472 | chrome headers accept 添加 application/json | 对应 #471，小改动 |
-| #465 | Unmarshal 应根据 status-code 检查 error |
-
----
-
-## CI 修复循环
-
-### 运行历史
-（首次运行，暂无记录）
-
-### 待人工处理
-（无）
-
-### 最近一次运行
-- 日期：N/A
-- 结果：未运行
-
----
-
-## Issue 分流状态（人工分析，2026-06-27）
-
-### 需优先处理
-
-| # | 标题 | 类型 | 说明 |
-|---|------|------|------|
-| #482 | Adapt to quic-go v0.59.0 (ConnectionTracingID 移除) | **魔改同步·紧急** | quic-go v0.59.0 移除了 `ConnectionTracingID`/`ConnectionTracingKey`，导致编译失败。已有 PR #485，**需谨慎审查**——contributor 可能未完全考虑魔改兼容性。涉及 `internal/http3/transport.go`、`client.go`、`conn.go`。这是 quic-go 魔改同步，不能直接 merge |
-| #489 | Security: 自定义 auth header 跨域重定向泄露 | **安全漏洞·高** | `SetCommonHeader` 设置的自定义 auth header（X-API-Key 等）在跨域重定向时不被剥离。CWE-200, CVSS 7.4。根因在 `middleware.go:528-540` 和 `client.go:334` |
-| #485 | PR: upgrade quic-go to v0.59.0 | **PR 审查·谨慎** | 对应 #482。改动 260+/124-，涉及移除 deprecated API、替换 hijacker 回调为 RawClientConn、修复 SupportsDatagrams 检查。**必须人工逐文件比对魔改逻辑** |
-
-### quic-go 相关（需谨慎）
-
-| # | 标题 | 说明 |
-|---|------|------|
-| #460 | 建议用 x/net 的 quic 替换 quic-go | 作者已回复：等标准库成熟后切换。长期跟踪 |
-| #457 | HTTP/3 AddConn 和 RoundTrip 竞态 | `internal/http3/transport.go` 中 `t.newClientConn` 初始化竞态，高并发下 panic。有复现堆栈和修复建议 |
-| #372 | http3 是否支持 SetTLSFingerprint | 功能咨询，涉及 HTTP/3 + TLS 指纹 |
-
-### Bug/性能问题
-
-| # | 标题 | 说明 |
-|---|------|------|
-| #495 | dialConn 内存暴涨 | 无限连接池导致，建议设 MaxConnsPerHost。可考虑设默认上限 |
-| #433 | 大文件上传全量缓冲到内存 | `middleware.go:122-123` multipart CreatePart 触发全量缓冲，670MB 文件吃 1.7GB 内存 |
-| #397 | concurrent map read and map write | `middleware.go:537` parseRequestHeader 并发读写 client headers map。请求过程中修改 client header 导致 |
-| #436 | 重试达上限不返回 error | 行为不符合预期 |
-| #419 | Keep-Alive 长连接下 SetTimeout 错误断开 | |
-| #416 | ParallelDownload 未关闭输出文件 | |
-| #376 | HTTP/2 经常触发错误 | 9 条评论，可能涉及魔改的 `internal/http2/` |
-
-### 功能请求
-
-| # | 标题 | 说明 |
-|---|------|------|
-| #475 | 中间件中读取 retryOption | |
-| #473 | Socks4 代理支持 | |
-| #459/#454 | utls 指纹更新到 133 / 支持 Chrome133、Firefox133/135 | utls 版本升级 |
-| #431 | jsonrpc2 支持 | |
-| #425 | zstd 内容编码支持 | |
-| #406 | response body size limit | |
-| #404 | 生成 cURL 调试代码 | |
-| #394 | graphql 请求支持 | |
-| #369 | SSE (Server-Sent Events) 支持 | |
-
-### 待审查 PR（非 quic-go）
-
-| PR | 标题 | 说明 |
-|----|------|------|
-| #491 | fix: retry on GOAWAY errors (HTTP/2 缓存连接) | 涉及魔改 HTTP/2，需验证 |
-| #486 | fix: SetCookieJarFactory 返回 http.CookieJar | 对应 #415 |
-| #478/#477 | JA3 支持 / ClientHelloSpec 设置 | TLS 指纹相关 |
-| #472 | chrome headers accept 添加 application/json | 对应 #471，小改动 |
-| #465 | Unmarshal 应根据 status-code 检查 error |
+| #491 | fix: retry on GOAWAY errors (HTTP/2 cached conn) | Involves modified HTTP/2, verify |
+| #486 | fix: SetCookieJarFactory return http.CookieJar | Corresponds to #415 |
+| #478/#477 | JA3 support / ClientHelloSpec setting | TLS fingerprint related |
+| #472 | chrome headers accept add application/json | Corresponds to #471, small change |
+| #465 | Unmarshal should check error by status-code |

@@ -1,0 +1,38 @@
+name: PR Review Loop
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  workflow_dispatch: {}
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    if: github.repository == 'imroc/req'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: Install CodeBuddy Code
+        run: npm install -g @tencent-ai/codebuddy-code
+
+      - name: Run PR review loop
+        env:
+          CODEBUDDY_API_KEY: ${{ secrets.CODEBUDDY_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          codebuddy -p -y \
+            --output-format json \
+            --allowedTools "Read,Bash,Grep" \
+            "Use the pr-reviewer agent to review PR #${{ github.event.pull_request.number }}. \
+             Read STATE.md for context. \
+             Fetch PR details with gh pr view and gh pr diff. \
+             Apply the pr-review skill checklist. \
+             Pay special attention to internal/http3/ (quic-go), internal/http2/, and modified stdlib files. \
+             Post review with gh pr review. \
+             Update STATE.md PR review section and commit."

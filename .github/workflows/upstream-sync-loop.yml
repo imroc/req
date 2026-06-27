@@ -1,0 +1,40 @@
+name: Upstream Sync Tracking Loop
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly Monday 02:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    if: github.repository == 'imroc/req'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install CodeBuddy Code
+        run: npm install -g @tencent-ai/codebuddy-code
+
+      - name: Run upstream sync tracking loop
+        env:
+          CODEBUDDY_API_KEY: ${{ secrets.CODEBUDDY_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          codebuddy -p -y \
+            --output-format json \
+            --allowedTools "Read,Bash,Grep,WebFetch" \
+            "Use the upstream-tracker agent to check upstream changes. \
+             Read STATE.md for last sync baselines. \
+             Check Go stdlib net/http, golang.org/x/net/http2, and quic-go for new changes since last sync. \
+             Generate a sync report. If breaking changes or security fixes found, open an issue with gh issue create. \
+             Update STATE.md upstream sync section and commit."
+
+      - name: Commit state
+        run: |
+          git config --local user.email "ai-bot@req.cool"
+          git config --local user.name "req-loop-bot"
+          git add STATE.md 2>/dev/null || true
+          git commit -m "chore: update upstream sync state" || true
+          git push origin master 2>/dev/null || true

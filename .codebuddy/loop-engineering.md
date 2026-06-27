@@ -1,72 +1,106 @@
-# Loop Engineering 设计说明
+# Loop Engineering Design
 
-本项目使用 Loop Engineering 理念实现自动化维护。核心理念：从"逐次提示 AI"转为"设计自循环系统"，人变成规则制定者，AI 系统自运行达成目标。
+This project uses Loop Engineering for automated maintenance. Core idea: shift from "prompting AI step by step" to "designing self-running loops". Humans become rule-makers, AI systems run autonomously to achieve goals.
 
-## 四层架构
+## Four-Layer Architecture
 
-| 层 | 作用 | 本项目实现 |
-|----|------|-----------|
-| Prompt 层 | 怎么问 | 每个 agent 的系统提示 |
-| Context 层 | 让 AI 看到什么 | `CODEBUDDY.md`、`STATE.md` |
-| Harness 层 | AI 工作环境 | skills（项目知识）、allowed-tools（权限约束） |
-| Loop 层 | 做完一步怎么办 | GitHub Actions 触发、agent 五阶段迭代 |
+| Layer | Purpose | Implementation |
+|-------|---------|---------------|
+| Prompt | How to ask | Each agent's system prompt |
+| Context | What AI sees | `CODEBUDDY.md`, `STATE.md` |
+| Harness | AI work environment | skills (project knowledge), allowed-tools (permission constraints) |
+| Loop | What to do after each step | GitHub Actions triggers, agent five-phase iteration |
 
-## 已实现的循环
+## Implemented Loops
 
-### 1. 依赖升级循环（闭环）
-- **触发**：每周一 03:00 UTC，或手动
-- **目标**：安全升级所有可升级的 Go 依赖
-- **五阶段**：发现(`go list -u`) → 分级 → 升级 → 测试 → 回滚重试
-- **停止条件**：所有依赖处理完 / 测试连续失败 3 次 / 迭代 5 次
-- **文件**：
+### 1. Dependency Upgrade Loop (closed-loop)
+- **Trigger**: Weekly Monday 03:00 UTC, or manual
+- **Goal**: Safely upgrade all upgradable Go dependencies (non-modified-code only)
+- **Five phases**: Discover (`go list -u`) → Risk-classify → Upgrade → Test → Rollback-retry
+- **Stop conditions**: All deps processed / 3 consecutive test failures / 5 iterations max
+- **Files**:
   - skill: `skills/dependency-upgrade/SKILL.md`
   - agent: `agents/dependency-upgrader.md`
   - workflow: `.github/workflows/dependency-upgrade-loop.yml`
-- **验证分离**：dependency-upgrader 执行升级 → code-reviewer 审查 → 通过才出 PR
+- **Separation**: dependency-upgrader executes → code-reviewer reviews → PR only after approval
 
-### 2. CI 失败自修复循环（闭环）
-- **触发**：CI workflow 失败时，或手动
-- **目标**：自动修复可修复的 CI 失败
-- **五阶段**：发现(`gh run list`) → 分类(ci-triage) → 修复(ci-fix) → 本地验证 → 重试
-- **停止条件**：所有可修复失败已修复 / 修复尝试 3 次 / 无失败 CI
-- **文件**：
-  - skills: `skills/ci-triage/SKILL.md`、`skills/ci-fix/SKILL.md`
-  - agents: `agents/ci-fixer.md`、`agents/code-reviewer.md`
+### 2. CI Fix Loop (closed-loop)
+- **Trigger**: On CI workflow failure, or manual
+- **Goal**: Auto-fix fixable CI failures
+- **Five phases**: Discover (`gh run list`) → Classify (ci-triage) → Fix (ci-fix) → Local verify → Retry
+- **Stop conditions**: All fixable failures resolved / 3 fix attempts / No failed CI runs
+- **Files**:
+  - skills: `skills/ci-triage/SKILL.md`, `skills/ci-fix/SKILL.md`
+  - agents: `agents/ci-fixer.md`, `agents/code-reviewer.md`
   - workflow: `.github/workflows/ci-fix-loop.yml`
-- **验证分离**：ci-fixer 修复 → code-reviewer 审查 → 通过才出 PR
+- **Separation**: ci-fixer fixes → code-reviewer reviews → PR only after approval
 
-## 状态管理
+### 3. Issue Triage Loop (closed-loop)
+- **Trigger**: On new issue, or daily 04:00 UTC batch
+- **Goal**: Classify, label, and respond to issues; flag quic-go/modified-code issues for caution
+- **Five phases**: Discover (untriaged issues) → Classify → Apply labels → Post response → Verify
+- **Stop conditions**: All recent issues triaged / 10 issues processed / Needs human judgment
+- **Files**:
+  - skill: `skills/issue-triage/SKILL.md`
+  - agent: `agents/issue-triager.md`
+  - workflow: `.github/workflows/issue-triage-loop.yml`
+- **Special**: quic-go issues get `quic-go` label and modified-code caveat note
 
-`STATE.md`（项目根目录）是所有循环的共享状态文件，每次循环迭代后更新。这是 Loop Engineering 的核心原则——**状态存于外部，不依赖模型上下文**。
+### 4. PR Review Loop (closed-loop)
+- **Trigger**: On new PR or PR update
+- **Goal**: Review PRs with special caution for modified stdlib, quic-go, and HTTP/2 code
+- **Five phases**: Discover (open PRs) → Fetch diff → Review checklist → Post review → Verify
+- **Stop conditions**: All open PRs reviewed / 5 PRs reviewed / Needs human judgment
+- **Files**:
+  - skill: `skills/pr-review/SKILL.md`
+  - agent: `agents/pr-reviewer.md`
+  - workflow: `.github/workflows/pr-review-loop.yml`
+- **Special**: PRs touching `internal/http3/` never auto-approved; quic-go version compatibility required
 
-## 成本控制
+### 5. Upstream Sync Tracking Loop (semi-closed-loop)
+- **Trigger**: Weekly Monday 02:00 UTC
+- **Goal**: Track Go stdlib net/http, golang.org/x/net/http2, and quic-go upstream changes; generate sync reports
+- **Five phases**: Discover (check baselines) → Fetch upstream changes → Identify affected files → Generate report → Open issue if needed
+- **Stop conditions**: Report generated for all 3 sources / Critical change found
+- **Files**:
+  - skill: `skills/upstream-sync/SKILL.md`
+  - agent: `agents/upstream-tracker.md`
+  - workflow: `.github/workflows/upstream-sync-loop.yml`
+- **Note**: This loop only tracks and reports. Sync of modified code is manual human work — cannot `go get -u` modified code.
 
-- 每个循环设最大迭代次数（依赖升级 5 次，CI 修复 3 次）
-- 使用 `model: inherit` 复用主会话模型，避免重复加载
-- 循环只在需要时运行（事件触发或定时），非常驻
-- GitHub Actions 提供执行环境，无额外服务成本
+## State Management
 
-## 自主权边界
+`STATE.md` (project root) is the shared state file for all loops. This is the core Loop Engineering principle — **state is external, not in model context**.
 
-- **循环可自行做日常维护决断**：升级依赖、修 CI、出 PR 等，无需人工逐步确认
-- **禁止打 tag 发版**：`git tag`、`gh release create` 等发版操作始终由人决定。自动化只到出 PR 为止
-- code-reviewer agent 对任何包含发版操作的改动一律 block
+## Cost Control
 
-## 如何新增循环
+- Each loop has max iteration limits (dep upgrade 5, CI fix 3, issue triage 10, PR review 5)
+- Uses `model: inherit` to reuse main session model
+- Loops run only when needed (event-triggered or scheduled), not always-on
+- GitHub Actions provides execution environment, no extra service cost
 
-1. 在 `skills/` 下创建新 skill 目录和 `SKILL.md`（编码项目知识）
-2. 在 `agents/` 下创建 agent（定义职责、停止条件、工具权限）
-3. 在 `.github/workflows/` 下创建触发工作流（定时或事件触发）
-4. 在 `STATE.md` 添加对应章节
-5. 复用 `code-reviewer` agent 实现验证分离
-6. 涉及 GitHub 操作的 agent 在 `skills` 字段声明 `gh-cli`
-7. agent 安全约束中写明禁止发版
+## Autonomy Boundary
 
-## 未来可扩展的循环
+- **Loops can make daily maintenance decisions autonomously**: upgrade deps, fix CI, triage issues, review PRs — no step-by-step human confirmation needed
+- **No tagging or releasing**: `git tag`, `gh release create` are always human decisions. Automation stops at PR creation.
+- code-reviewer and pr-reviewer agents block any PR that includes release operations
+- All commit messages in English
 
-| 循环 | 触发 | 价值 |
-|------|------|------|
-| Issue 分流 | 新 Issue | 自动分类、打标签、初步回复 |
-| 测试覆盖提升 | 定时 | 找低覆盖文件、补测试 |
-| CHANGELOG 生成 | tag/定时 | 汇总变更、生成发布说明 |
-| 安全扫描 | 定时 | 检查已知漏洞依赖 |
+## How to Add a New Loop
+
+1. Create a skill directory and `SKILL.md` under `skills/` (encode project knowledge)
+2. Create an agent under `agents/` (define responsibilities, stop conditions, tool permissions)
+3. Create a trigger workflow under `.github/workflows/` (scheduled or event-triggered)
+4. Add a section to `STATE.md`
+5. Reuse `code-reviewer` agent for implementation/review separation
+6. Agents involving GitHub operations must declare `gh-cli` in `skills` field
+7. Agent safety constraints must include no-tag/no-release rule
+8. All skills must be project-level (under `.codebuddy/skills/`), never global
+
+## Future Expandable Loops
+
+| Loop | Trigger | Value |
+|------|---------|-------|
+| Test coverage improvement | Scheduled | Find low-coverage files, add tests |
+| CHANGELOG generation | Tag/scheduled | Summarize changes, generate release notes |
+| Security scan | Scheduled | Check known vulnerable dependencies |

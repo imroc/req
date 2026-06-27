@@ -1,0 +1,34 @@
+name: Issue Triage Loop
+
+on:
+  issues:
+    types: [opened]
+  schedule:
+    - cron: '0 4 * * *'  # Daily 04:00 UTC for batch triage
+  workflow_dispatch: {}
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    if: github.repository == 'imroc/req'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CodeBuddy Code
+        run: npm install -g @tencent-ai/codebuddy-code
+
+      - name: Run issue triage loop
+        env:
+          CODEBUDDY_API_KEY: ${{ secrets.CODEBUDDY_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          codebuddy -p -y \
+            --output-format json \
+            --allowedTools "Read,Bash,Grep,WebFetch" \
+            "Use the issue-triager agent to triage issues. \
+             Read STATE.md for last state. \
+             Use gh issue list -R imroc/req --state open --limit 10 to find untriaged issues. \
+             For each: fetch with gh issue view, classify, apply labels with gh issue edit --add-label, \
+             post initial response with gh issue comment if appropriate. \
+             Pay special attention to quic-go and modified-stdlib related issues. \
+             Update STATE.md issue triage section and commit."
