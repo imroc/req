@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="/data/git/req/.codebuddy/scripts"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_SCRIPT="${SCRIPT_DIR}/run-loop.sh"
 MARKER="# loop-engineering-req"
 
@@ -70,7 +70,7 @@ echo "  03:00  ci-fix"
 echo "  04:00  issue-triage"
 echo "  05:00  pr-review"
 echo ""
-echo "Logs: /tmp/loop-logs/"
+echo "Logs: \$LOOP_LOG_DIR (default: /tmp/loop-logs/)"
 echo "Uninstall: ${SCRIPT_DIR}/install-cron.sh --remove"
 echo ""
 echo "Current crontab:"

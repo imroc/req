@@ -8,17 +8,18 @@
 #   loop_type: ci-fix | issue-triage | pr-review | dependency-upgrade | upstream-sync
 #
 # Crontab example (Beijing time, UTC+8):
-#   0 3 * * * /data/git/req/.codebuddy/scripts/run-loop.sh ci-fix
-#   0 4 * * * /data/git/req/.codebuddy/scripts/run-loop.sh issue-triage
-#   0 5 * * * /data/git/req/.codebuddy/scripts/run-loop.sh pr-review
-#   0 2 * * * /data/git/req/.codebuddy/scripts/run-loop.sh dependency-upgrade
-#   0 1 * * * /data/git/req/.codebuddy/scripts/run-loop.sh upstream-sync
+#   0 1 * * * <repo-root>/.codebuddy/scripts/run-loop.sh upstream-sync
+#   0 2 * * * <repo-root>/.codebuddy/scripts/run-loop.sh dependency-upgrade
+#   0 3 * * * <repo-root>/.codebuddy/scripts/run-loop.sh ci-fix
+#   0 4 * * * <repo-root>/.codebuddy/scripts/run-loop.sh issue-triage
+#   0 5 * * * <repo-root>/.codebuddy/scripts/run-loop.sh pr-review
 
 set -euo pipefail
 
 LOOP_TYPE="${1:?Usage: run-loop.sh <ci-fix|issue-triage|pr-review|dependency-upgrade|upstream-sync>}"
-REPO_DIR="/data/git/req"
-LOG_DIR="/tmp/loop-logs"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOG_DIR="${LOOP_LOG_DIR:-/tmp/loop-logs}"
 mkdir -p "$LOG_DIR"
 
 cd "$REPO_DIR"

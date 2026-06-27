@@ -27,7 +27,7 @@ Each loop runs as a system cron job that invokes `codebuddy -p` (headless mode).
 
 **Install:**
 ```bash
-cd /data/git/req
+cd <repo-root>
 .codebuddy/scripts/install-cron.sh
 ```
 
@@ -44,8 +44,8 @@ cd /data/git/req
 
 **View logs:**
 ```bash
-ls /tmp/loop-logs/
-cat /tmp/loop-logs/ci-fix-*.log
+ls $LOOP_LOG_DIR  # default: /tmp/loop-logs/
+cat $LOOP_LOG_DIR/ci-fix-*.log
 ```
 
 **Schedule (daily, Beijing time, staggered to avoid API rate limits):**
@@ -69,7 +69,7 @@ system cron (daily, e.g. 03:00)
       → write STATE.md                       # persist state
       → git push                             # push state changes
     → 10 min timeout protection
-    → log to /tmp/loop-logs/
+    → log to $LOOP_LOG_DIR (default: /tmp/loop-logs/)
 ```
 
 ### Mode 2: GitHub Actions (Optional, for public API)
