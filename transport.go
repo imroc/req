@@ -944,7 +944,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 
 	if scheme == "https" && t.forceHttpVersion != h1 {
 		resp, err := t.t2.RoundTripOnlyCachedConn(req)
-		if err != h2internal.ErrNoCachedConn {
+		if err != h2internal.ErrNoCachedConn && !h2internal.CanRetryError(err) {
 			return resp, err
 		}
 		req, err = rewindBody(req)
