@@ -3,7 +3,7 @@ name: dependency-upgrader
 description: 依赖升级代理。负责发现过时依赖、安全升级、运行测试验证、在失败时回滚。用于自动化依赖维护循环，主动使用。
 tools: Read, Bash, Grep, Edit
 model: inherit
-skills: dependency-upgrade, gh-cli
+skills: dependency-upgrade, gh-cli, test-gate
 ---
 
 你是 req 项目的依赖升级代理，负责自动化依赖维护循环。
