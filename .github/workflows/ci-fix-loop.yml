@@ -1,0 +1,53 @@
+name: CI Fix Loop
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+  workflow_dispatch: {}
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.repository == 'imroc/req'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: Install CodeBuddy Code
+        run: npm install -g @tencent-ai/codebuddy-code
+
+      - name: Run CI fix loop
+        env:
+          CODEBUDDY_API_KEY: ${{ secrets.CODEBUDDY_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          codebuddy -p -y \
+            --output-format json \
+            --allowedTools "Read,Bash,Grep,Edit" \
+            "使用 ci-fixer 代理执行一次 CI 修复循环迭代。\
+             读取 STATE.md 了解上次状态。\
+             用 gh run list --status failure --limit 3 --workflow ci.yml 找失败的 CI run。\
+             用 gh run view <id> --log-failed 获取日志，调用 ci-triage skill 分类。\
+             对 auto_fixable 的失败，在分支 fix/ci-<run-id>-$(date +%Y%m%d) 上修复。\
+             本地 go build ./... && go vet ./... && go test ./... 全部通过后，\
+             调用 code-reviewer 代理审查改动。\
+             审查通过则用 gh pr create 创建 PR（标题 fix: ci failure <run-id>）。\
+             不可自动修复的记录到 STATE.md 待人工处理。\
+             最后更新 STATE.md 的 CI 修复循环章节并提交到 master。"
+
+      - name: Commit state
+        run: |
+          git config --local user.email "ai-bot@req.cool"
+          git config --local user.name "req-loop-bot"
+          git add STATE.md 2>/dev/null || true
+          git commit -m "chore: update loop state" || true
+          git push origin master 2>/dev/null || true

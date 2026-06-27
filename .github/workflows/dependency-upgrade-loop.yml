@@ -1,0 +1,45 @@
+name: Dependency Upgrade Loop
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'  # 每周一 03:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    if: github.repository == 'imroc/req'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+
+      - name: Install CodeBuddy Code
+        run: npm install -g @tencent-ai/codebuddy-code
+
+      - name: Run dependency upgrade loop
+        env:
+          CODEBUDDY_API_KEY: ${{ secrets.CODEBUDDY_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          codebuddy -p -y \
+            --output-format json \
+            --allowedTools "Read,Bash,Grep,Edit" \
+            "使用 dependency-upgrader 代理执行一次依赖升级循环迭代。\
+             读取 STATE.md 了解上次状态。\
+             升级依赖后在分支 chore/upgrade-deps-$(date +%Y%m%d) 上提交。\
+             本地 go test ./... 通过后，调用 code-reviewer 代理审查改动。\
+             审查通过则用 gh pr create 创建 PR（标题 chore: upgrade dependencies，body 含升级列表）。\
+             最后更新 STATE.md 的依赖升级循环章节并提交到 master。"
+
+      - name: Commit state
+        run: |
+          git config --local user.email "ai-bot@req.cool"
+          git config --local user.name "req-loop-bot"
+          git add STATE.md 2>/dev/null || true
+          git commit -m "chore: update loop state" || true
+          git push origin master 2>/dev/null || true
