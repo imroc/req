@@ -67,6 +67,8 @@ go list -u -m all
 
 本项目采用 Loop Engineering 理念进行自动化维护。循环配置位于 `.codebuddy/`，总体设计见 [loop-engineering.md](./loop-engineering.md)。
 
+**运行方式**：通过系统 cron + `codebuddy -p`（headless）每天凌晨自动运行，无需保持会话。安装：`.codebuddy/scripts/install-cron.sh`，手动触发：`.codebuddy/scripts/run-loop.sh <类型>`，日志：`/tmp/loop-logs/`。
+
 - 所有循环状态持久化到 `STATE.md`（项目根目录），不依赖模型上下文记忆
 - 每个循环遵循五阶段：Discover → Plan → Execute → Verify → Iterate
 - 实现与验证分离：不同 agent 负责修复和审查
