@@ -199,7 +199,7 @@ func updateResponseFromHeaders(rsp *http.Response, decodeFn qpack.DecodeFunc, si
 	rsp.Proto = "HTTP/3.0"
 	rsp.ProtoMajor = 3
 	rsp.Header = hdr.Headers
-	processTrailers(rsp)
+	rsp.Trailer = extractAnnouncedTrailers(rsp.Header)
 	rsp.ContentLength = hdr.ContentLength
 
 	status, err := strconv.Atoi(hdr.Status)
@@ -211,26 +211,27 @@ func updateResponseFromHeaders(rsp *http.Response, decodeFn qpack.DecodeFunc, si
 	return nil
 }
 
-// processTrailers initializes the rsp.Trailer map, and adds keys for every announced header value.
-// The Trailer header is removed from the http.Response.Header map.
+// extractAnnouncedTrailers extracts trailer keys from the "Trailer" header.
+// It returns a map with the announced keys set to nil values, and removes the "Trailer" header.
 // It handles both duplicate as well as comma-separated values for the Trailer header.
 // For example:
 //
 //	Trailer: Trailer1, Trailer2
 //	Trailer: Trailer3
 //
-// Will result in a http.Response.Trailer map containing the keys "Trailer1", "Trailer2", "Trailer3".
-func processTrailers(rsp *http.Response) {
-	rawTrailers, ok := rsp.Header["Trailer"]
+// Will result in a map containing the keys "Trailer1", "Trailer2", "Trailer3" with nil values.
+func extractAnnouncedTrailers(header http.Header) http.Header {
+	rawTrailers, ok := header["Trailer"]
 	if !ok {
-		return
+		return nil
 	}
 
-	rsp.Trailer = make(http.Header)
+	trailers := make(http.Header)
 	for _, rawVal := range rawTrailers {
 		for _, val := range strings.Split(rawVal, ",") {
-			rsp.Trailer[http.CanonicalHeaderKey(textproto.TrimString(val))] = nil
+			trailers[http.CanonicalHeaderKey(textproto.TrimString(val))] = nil
 		}
 	}
-	delete(rsp.Header, "Trailer")
+	delete(header, "Trailer")
+	return trailers
 }

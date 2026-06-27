@@ -42,7 +42,6 @@ func newRequestWriter() *requestWriter {
 }
 
 func (w *requestWriter) WriteRequestHeader(wr io.Writer, req *http.Request, gzip bool, streamID quic.StreamID, qlogger qlogwriter.Recorder, dumps []*dump.Dumper) error {
-	// TODO: figure out how to add support for trailers
 	buf := &bytes.Buffer{}
 	if err := w.writeHeaders(buf, req, gzip, streamID, qlogger, dumps); err != nil {
 		return err
@@ -61,7 +60,18 @@ func (w *requestWriter) writeHeaders(wr io.Writer, req *http.Request, gzip bool,
 	defer w.encoder.Close()
 	defer w.headerBuf.Reset()
 
-	headerFields, err := w.encodeHeaders(req, gzip, "", actualContentLength(req), qlogger != nil, dumps)
+	var trailers string
+	if len(req.Trailer) > 0 {
+		keys := make([]string, 0, len(req.Trailer))
+		for k := range req.Trailer {
+			if httpguts.ValidTrailerHeader(k) {
+				keys = append(keys, k)
+			}
+		}
+		trailers = strings.Join(keys, ", ")
+	}
+
+	headerFields, err := w.encodeHeaders(req, gzip, trailers, actualContentLength(req), qlogger != nil, dumps)
 	if err != nil {
 		return err
 	}
