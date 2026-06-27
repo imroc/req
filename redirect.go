@@ -132,3 +132,32 @@ func AlwaysCopyHeaderRedirectPolicy(headers ...string) RedirectPolicy {
 		return nil
 	}
 }
+
+// SensitiveHeadersRedirectPolicy strips the given sensitive headers when the
+// redirect target is a different domain. This is useful for custom authentication
+// headers (e.g. "X-API-Key", "X-Auth-Token") that are not automatically stripped
+// by the standard library on cross-domain redirects.
+//
+// By default, Go's net/http only strips "Authorization", "Cookie", and
+// "Proxy-Authorization" on cross-domain redirects. Custom headers set via
+// SetCommonHeader or SetHeader are forwarded to the redirect target, which can
+// lead to credential leakage (CWE-200).
+//
+// For example:
+//
+//	client.SetRedirectPolicy(req.SensitiveHeadersRedirectPolicy("X-API-Key", "X-Auth-Token"))
+func SensitiveHeadersRedirectPolicy(headers ...string) RedirectPolicy {
+	return func(req *http.Request, via []*http.Request) error {
+		if len(via) == 0 {
+			return nil
+		}
+		// Only strip headers when redirecting to a different domain.
+		if getDomain(req.URL.Host) == getDomain(via[0].URL.Host) {
+			return nil
+		}
+		for _, header := range headers {
+			req.Header.Del(header)
+		}
+		return nil
+	}
+}

@@ -424,6 +424,38 @@ func TestRedirect(t *testing.T) {
 	tests.AssertEqual(t, "test", newHeader.Get("Authorization"))
 }
 
+func TestSensitiveHeadersRedirectPolicy(t *testing.T) {
+	// Cross-domain redirect: sensitive header should be stripped
+	crossDomainReq := &http.Request{
+		Header: http.Header{},
+		URL:    &url.URL{Host: "evil.com"},
+	}
+	crossDomainReq.Header.Set("X-API-Key", "secret")
+	via := []*http.Request{{
+		Header: http.Header{},
+		URL:    &url.URL{Host: "api.example.com"},
+	}}
+	via[0].Header.Set("X-API-Key", "secret")
+
+	tc().SetRedirectPolicy(SensitiveHeadersRedirectPolicy("X-API-Key")).GetClient().CheckRedirect(crossDomainReq, via)
+	tests.AssertEqual(t, "", crossDomainReq.Header.Get("X-API-Key"))
+
+	// Same-domain redirect: sensitive header should be kept
+	sameDomainReq := &http.Request{
+		Header: http.Header{},
+		URL:    &url.URL{Host: "sub.example.com"},
+	}
+	sameDomainReq.Header.Set("X-API-Key", "secret")
+	viaSame := []*http.Request{{
+		Header: http.Header{},
+		URL:    &url.URL{Host: "api.example.com"},
+	}}
+	viaSame[0].Header.Set("X-API-Key", "secret")
+
+	tc().SetRedirectPolicy(SensitiveHeadersRedirectPolicy("X-API-Key")).GetClient().CheckRedirect(sameDomainReq, viaSame)
+	tests.AssertEqual(t, "secret", sameDomainReq.Header.Get("X-API-Key"))
+}
+
 func TestGetTLSClientConfig(t *testing.T) {
 	c := tc()
 	config := c.GetTLSClientConfig()
