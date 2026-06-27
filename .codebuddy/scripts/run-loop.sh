@@ -5,17 +5,36 @@
 # reads STATE.md for context, executes the loop, writes back STATE.md.
 #
 # Usage: ./run-loop.sh <loop_type>
-#   loop_type: ci-fix | issue-triage | pr-review | dependency-upgrade | upstream-sync
+#   loop_type: ci-fix | issue-triage | pr-review | dependency-upgrade | upstream-sync | all
+#
+# When "all" is specified, runs all 5 loops sequentially:
+#   upstream-sync -> dependency-upgrade -> ci-fix -> issue-triage -> pr-review
+#
+# Crontab example (Beijing time, UTC+8):
+#   0 1 * * * <repo-root>/.codebuddy/scripts/run-loop.sh all
 
 set -euo pipefail
 
-LOOP_TYPE="${1:?Usage: run-loop.sh <ci-fix|issue-triage|pr-review|dependency-upgrade|upstream-sync>}"
+LOOP_TYPE="${1:?Usage: run-loop.sh <ci-fix|issue-triage|pr-review|dependency-upgrade|upstream-sync|all>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LOG_DIR="${LOOP_LOG_DIR:-/tmp/loop-logs}"
 mkdir -p "$LOG_DIR"
 
 cd "$REPO_DIR"
+
+# "all" mode: run all loops sequentially
+if [[ "$LOOP_TYPE" == "all" ]]; then
+  echo "=== Running all loops sequentially at $(date) ==="
+  for lt in upstream-sync dependency-upgrade ci-fix issue-triage pr-review; do
+    echo "--- Starting: $lt ---"
+    "$0" "$lt" || echo "WARNING: $lt exited with error, continuing..."
+    echo "--- Finished: $lt ---"
+    sleep 10  # brief pause between loops to avoid API rate limits
+  done
+  echo "=== All loops completed at $(date) ==="
+  exit 0
+fi
 
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 LOG_FILE="$LOG_DIR/${LOOP_TYPE}-${TIMESTAMP}.log"
@@ -41,7 +60,7 @@ case "$LOOP_TYPE" in
     ;;
   *)
     echo "Unknown loop type: $LOOP_TYPE" | tee -a "$LOG_FILE"
-    echo "Valid types: ci-fix, issue-triage, pr-review, dependency-upgrade, upstream-sync"
+    echo "Valid types: ci-fix, issue-triage, pr-review, dependency-upgrade, upstream-sync, all"
     exit 1
     ;;
 esac

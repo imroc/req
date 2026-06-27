@@ -1,15 +1,8 @@
 #!/usr/bin/env bash
 #
-# Install cron jobs for Loop Engineering
-# All loops run once daily during nighttime (Beijing time, UTC+8),
-# staggered to avoid API rate limits.
-#
-# Schedule (Beijing time):
-#   01:00  upstream-sync     (check upstream changes first)
-#   02:00  dependency-upgrade
-#   03:00  ci-fix            (fix any CI failures)
-#   04:00  issue-triage      (triage new issues)
-#   05:00  pr-review         (review open PRs)
+# Install cron job for Loop Engineering
+# Runs all 5 loops sequentially once daily at 01:00 (Beijing time, UTC+8).
+# Loops run in order: upstream-sync -> dependency-upgrade -> ci-fix -> issue-triage -> pr-review
 #
 # Usage: ./install-cron.sh
 # To uninstall: ./install-cron.sh --remove
@@ -51,24 +44,16 @@ fi
 
 remove_existing
 
-# Add new cron jobs (Beijing time = UTC+8)
+# Add cron job — runs all loops sequentially at 01:00 Beijing time
 # Cron uses system local timezone — ensure server is in CST/Asia-Shanghai
 (
   crontab -l 2>/dev/null || true
   echo "$MARKER"
-  echo "0 1 * * * ${RUN_SCRIPT} upstream-sync $MARKER"
-  echo "0 2 * * * ${RUN_SCRIPT} dependency-upgrade $MARKER"
-  echo "0 3 * * * ${RUN_SCRIPT} ci-fix $MARKER"
-  echo "0 4 * * * ${RUN_SCRIPT} issue-triage $MARKER"
-  echo "0 5 * * * ${RUN_SCRIPT} pr-review $MARKER"
+  echo "0 1 * * * ${RUN_SCRIPT} all $MARKER"
 ) | crontab -
 
-echo "Installed 5 loop cron jobs (daily, Beijing time):"
-echo "  01:00  upstream-sync"
-echo "  02:00  dependency-upgrade"
-echo "  03:00  ci-fix"
-echo "  04:00  issue-triage"
-echo "  05:00  pr-review"
+echo "Installed loop cron job (daily, Beijing time):"
+echo "  01:00  all (upstream-sync -> dependency-upgrade -> ci-fix -> issue-triage -> pr-review)"
 echo ""
 echo "Logs: \$LOOP_LOG_DIR (default: /tmp/loop-logs/)"
 echo "Uninstall: ${SCRIPT_DIR}/install-cron.sh --remove"
