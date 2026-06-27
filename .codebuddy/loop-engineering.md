@@ -25,9 +25,14 @@ Each loop runs as a system cron job that invokes `codebuddy -p` (headless mode).
 - Each run is isolated (fresh context, no drift)
 - Works with TKE internal API (runs locally)
 
-**Install:**
+**Start (also use on container/host restart):**
 ```bash
 cd <repo-root>
+.codebuddy/scripts/start-loops.sh   # starts cron daemon + installs crontab
+```
+
+**Install crontab only (if cron daemon already running):**
+```bash
 .codebuddy/scripts/install-cron.sh
 ```
 
@@ -35,6 +40,12 @@ cd <repo-root>
 ```bash
 .codebuddy/scripts/install-cron.sh --remove
 ```
+
+**Container restart:**
+On container or host restart, cron daemon may not be running. Either:
+1. Run `start-loops.sh` manually after restart, or
+2. Add `start-loops.sh` to shell profile (`~/.bashrc`) for auto-start on login, or
+3. Add `start-loops.sh` to container entrypoint for fully automatic startup
 
 **Manual trigger:**
 ```bash
