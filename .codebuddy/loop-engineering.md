@@ -96,6 +96,26 @@ This project uses Loop Engineering for automated maintenance. Core idea: shift f
 6. Agents involving GitHub operations must declare `gh-cli` in `skills` field
 7. Agent safety constraints must include no-tag/no-release rule
 8. All skills must be project-level (under `.codebuddy/skills/`), never global
+9. Set explicit max iteration limits (turn limits) to prevent infinite loops
+10. All commit messages in English
+
+## Inner Loop vs Outer Loop
+
+This project follows the two-layer loop model from Loop Engineering:
+
+- **Inner Loop** = each agent's ReAct-style execution (think → act → observe within one task)
+- **Outer Loop** = the orchestration layer that manages task lifecycle (Discover → Plan → Execute → Verify → Iterate)
+
+The code-reviewer agent provides **adversarial verification** — a different agent/perspective reviews the executor's work, avoiding the self-confirmation bias of single-agent self-review.
+
+## Cognitive Surrender Risk
+
+Loop Engineering can accelerate "understanding debt" — the gap between the codebase's real state and the developer's mental model grows as AI makes more changes autonomously. Mitigations:
+
+- Regularly review AI-generated changes (diff review before merge)
+- Maintain STATE.md as a shared source of truth
+- Treat AI as a collaborator, not authority — question every change
+- Key changes (quic-go port, stdlib sync, security fixes) always require human review
 
 ## Future Expandable Loops
 
