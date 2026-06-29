@@ -15,6 +15,14 @@
 
 set -euo pipefail
 
+# cron has a minimal PATH — set full PATH so codebuddy, gh, go, etc. are found
+export PATH="/root/.linuxbrew/bin:/root/.linuxbrew/sbin:/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:/root/.bin:/root/.local/bin:/root/.cargo/bin:/root/go/bin:/root/.krew/bin:/root/.fzf/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
+# Also load NVM, Cargo, Go env if available
+export HOME="${HOME:-/root}"
+export GOPATH="${GOPATH:-/root/go}"
+[ -f /root/.cargo/env ] && . /root/.cargo/env 2>/dev/null || true
+
 LOOP_TYPE="${1:?Usage: run-loop.sh <ci-fix|issue-triage|pr-review|dependency-upgrade|upstream-sync|all>}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
