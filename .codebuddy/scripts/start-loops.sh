@@ -8,7 +8,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PERSIST_FILE="/root/.local/share/loop-crontab"
+PERSIST_FILE="${HOME}/.local/share/loop-crontab"
 
 # 1. Ensure cron daemon is running
 if ! pgrep -x cron >/dev/null 2>&1; then

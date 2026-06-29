@@ -3,7 +3,7 @@
 # Install cron job for Loop Engineering
 # Runs all 5 loops sequentially once daily at 01:00 (Beijing time, UTC+8).
 #
-# The crontab is written to a persistent path (/root/.local/share/loop-crontab)
+# The crontab is written to a persistent path ($HOME/.local/share/loop-crontab)
 # so it survives container restarts. rc.local loads it on boot.
 #
 # Usage: ./install-cron.sh
@@ -14,7 +14,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RUN_SCRIPT="${SCRIPT_DIR}/run-loop.sh"
 MARKER="# loop-engineering-req"
-PERSIST_DIR="/root/.local/share"
+PERSIST_DIR="${HOME}/.local/share"
 PERSIST_FILE="${PERSIST_DIR}/loop-crontab"
 
 # Remove existing loop cron jobs from current crontab
