@@ -30,10 +30,11 @@ All loops read from here and write back after execution. State is external, not 
 ### Run History
 - 2026-06-27 (run 1): Triaged 10 open issues, applied 14 labels, created 4 labels (security, performance, quic-go, tls-fingerprint), posted 3 comments (#496, #481, #464)
 - 2026-06-27 (run 2): Triaged 15 unlabeled issues (#459–#423), applied 38 labels, created 6 labels (http2, modified-stdlib, priority:critical, priority:high, priority:medium, priority:low), posted 1 comment (#457)
+- 2026-06-29: Triaged 10 open issues, found 2 unlabeled (#406, #404), applied 4 labels (enhancement, priority:low), posted 2 comments (#406, #404). No quic-go/HTTP/3 issues found in this batch.
 
 ### Last Run
-- Date: 2026-06-27 (run 2)
-- Result: success — 15 issues triaged, 38 labels applied, 1 comment posted
+- Date: 2026-06-29
+- Result: success — 2 issues labeled (#406, #404), 2 comments posted, 0 quic-go related
 
 ### Triage Details (2026-06-27, run 2)
 | # | Title | Type | Extra | Priority | Comment |
