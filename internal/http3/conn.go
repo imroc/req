@@ -216,10 +216,12 @@ func (c *Conn) decodeTrailers(r io.Reader, streamID quic.StreamID, hf *headersFr
 	}
 	decodeFn := c.decoder.Decode(b)
 	var fields []qpack.HeaderField
+	var headerFields *[]qpack.HeaderField
 	if c.qlogger != nil {
 		fields = make([]qpack.HeaderField, 0, 16)
+		headerFields = &fields
 	}
-	trailers, err := parseTrailers(decodeFn, &fields)
+	trailers, err := parseTrailers(decodeFn, maxHeaderBytes, headerFields)
 	if err != nil {
 		maybeQlogInvalidHeadersFrame(c.qlogger, streamID, hf.Length)
 		return nil, err
