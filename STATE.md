@@ -17,11 +17,11 @@ All loops read from here and write back after execution. State is external, not 
 ## CI Fix Loop
 
 ### Run History
-(first run pending — cron installed, will run at 03:00 daily)
+- 2026-07-03: Checked `gh run list --status failure --limit 3 --workflow ci.yml -R imroc/req` — no failed runs. Recent 5 runs all success (quic-go v0.60.0 compat fix, dependency upgrade PR #503, master merge #501). No action needed.
 
 ### Last Run
-- Date: N/A
-- Result: not run
+- Date: 2026-07-03
+- Result: success — no failed CI runs found, all recent runs passing
 
 ---
 
