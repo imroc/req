@@ -2,6 +2,7 @@ package req
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"math"
 	"net/http"
@@ -159,6 +160,65 @@ func TestRetryWithModify(t *testing.T) {
 		Get("/protected")
 	assertSuccess(t, resp, err)
 	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
+}
+
+func TestRetryOnBeforeRequestError(t *testing.T) {
+	failCount := 0
+	retryHookCount := 0
+	c := tc().OnBeforeRequest(func(client *Client, request *Request) error {
+		failCount++
+		if failCount < 3 {
+			return errors.New("temporary before-request error")
+		}
+		return nil
+	})
+	resp, err := c.R().
+		SetRetryCount(2).
+		SetRetryFixedInterval(1 * time.Millisecond).
+		SetRetryCondition(func(resp *Response, err error) bool {
+			return err != nil && err.Error() == "temporary before-request error"
+		}).
+		SetRetryHook(func(resp *Response, err error) {
+			retryHookCount++
+		}).
+		Get("/")
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 2, retryHookCount)
+	tests.AssertEqual(t, 3, failCount)
+}
+
+func TestRetryConditionHasRequestOnBeforeRequestError(t *testing.T) {
+	c := tc().OnBeforeRequest(func(client *Client, request *Request) error {
+		return errors.New("before-request error")
+	})
+	resp, err := c.R().
+		SetRetryCount(0).
+		SetRetryCondition(func(resp *Response, err error) bool {
+			tests.AssertNotNil(t, resp)
+			tests.AssertNotNil(t, resp.Request)
+			tests.AssertEqual(t, "/header", resp.Request.RawURL)
+			tests.AssertEqual(t, http.MethodGet, resp.Request.Method)
+			tests.AssertEqual(t, err, resp.Err)
+			return false
+		}).
+		Get("/header")
+	tests.AssertNotNil(t, err)
+	tests.AssertNotNil(t, resp.Request)
+}
+
+func TestNoRetryOnBeforeRequestErrorWhenConditionFalse(t *testing.T) {
+	c := tc().OnBeforeRequest(func(client *Client, request *Request) error {
+		return errors.New("not retryable")
+	})
+	resp, err := c.R().
+		SetRetryCount(3).
+		SetRetryCondition(func(resp *Response, err error) bool {
+			return false
+		}).
+		Get("/")
+	tests.AssertNotNil(t, err)
+	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
 }
 
 func TestRetryFalse(t *testing.T) {
