@@ -216,10 +216,12 @@ func (c *Conn) decodeTrailers(r io.Reader, streamID quic.StreamID, hf *headersFr
 	}
 	decodeFn := c.decoder.Decode(b)
 	var fields []qpack.HeaderField
+	var headerFields *[]qpack.HeaderField
 	if c.qlogger != nil {
 		fields = make([]qpack.HeaderField, 0, 16)
+		headerFields = &fields
 	}
-	trailers, err := parseTrailers(decodeFn, &fields)
+	trailers, err := parseTrailers(decodeFn, maxHeaderBytes, headerFields)
 	if err != nil {
 		maybeQlogInvalidHeadersFrame(c.qlogger, streamID, hf.Length)
 		return nil, err
@@ -375,7 +377,7 @@ func (c *Conn) sendDatagram(streamID quic.StreamID, b []byte) error {
 	data = append(data, b...)
 	if c.qlogger != nil {
 		c.qlogger.RecordEvent(qlog.DatagramCreated{
-			QuaterStreamID: quarterStreamID,
+			QuarterStreamID: quarterStreamID,
 			Raw: qlog.RawInfo{
 				Length:        len(data),
 				PayloadLength: len(b),
@@ -397,8 +399,8 @@ func (c *Conn) receiveDatagrams() error {
 			return fmt.Errorf("could not read quarter stream id: %w", err)
 		}
 		if c.qlogger != nil {
-			c.qlogger.RecordEvent(qlog.DatagramParsed{
-				QuaterStreamID: quarterStreamID,
+		c.qlogger.RecordEvent(qlog.DatagramParsed{
+			QuarterStreamID: quarterStreamID,
 				Raw: qlog.RawInfo{
 					Length:        len(b),
 					PayloadLength: len(b) - n,
