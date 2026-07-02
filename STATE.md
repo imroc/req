@@ -86,17 +86,17 @@ All loops read from here and write back after execution. State is external, not 
 ## Upstream Sync Tracking Loop
 
 ### Current Baselines
-- Go stdlib net/http: 2024-09-10 (ad6ee2)
-- golang.org/x/net/http2: 2024-09-06 (3c333c)
-- quic-go: v0.59.0
+- Go stdlib net/http: 2026-07-02 (aa44f96)
+- golang.org/x/net/http2: 2026-07-01 (bd5f1dc)
+- quic-go: v0.60.0
 - utls: v1.8.2
 
 ### Run History
-(first run pending — cron installed, will run at 01:00 daily)
+- 2026-07-03: Checked all 3 upstreams. Found 70+ commits since last baselines. 11 security fixes (CVE-2026-33814, CVE-2026-56853, header injection via trailers, sensitive header leakage on redirect, HTTP/2 DoS/deadlock fixes). quic-go v0.60.0 released (Go 1.25+, FIPS 140-3). x/net/http2 major architectural change (Go 1.27 wrapping). Opened issue #502 with full sync report.
 
 ### Last Run
-- Date: N/A
-- Result: not run
+- Date: 2026-07-03
+- Result: success — issue #502 created with full sync report, baselines updated, STATE.md committed
 
 ---
 
