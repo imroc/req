@@ -32,10 +32,11 @@ All loops read from here and write back after execution. State is external, not 
 - 2026-06-27 (run 2): Triaged 15 unlabeled issues (#459–#423), applied 38 labels, created 6 labels (http2, modified-stdlib, priority:critical, priority:high, priority:medium, priority:low), posted 1 comment (#457)
 - 2026-06-29: Triaged 10 open issues, found 2 unlabeled (#406, #404), applied 4 labels (enhancement, priority:low), posted 2 comments (#406, #404). No quic-go/HTTP/3 issues found in this batch.
 - 2026-06-29 (run 2): Triaged 10 open issues (#475–#404), all already labeled — 0 unlabeled, 0 labels applied. 2 quic-go related (#460, #457) already correctly tagged. Posted 2 initial responses (#475, #431) on previously unanswered issues.
+- 2026-07-03: Triaged 10 recent open issues (#502–#404), all already labeled. Found 8 older unlabeled issues (#397–#236), applied 22 labels, posted 2 comments (#397, #308). No quic-go/HTTP/3 issues among unlabeled. Reclassified #369 from question to enhancement (maintainer confirmed SSE not supported).
 
 ### Last Run
-- Date: 2026-06-29 (run 2)
-- Result: success — all 10 issues already labeled, 0 labels applied, 2 comments posted (#475, #431), 2 quic-go related (#460, #457) confirmed labeled
+- Date: 2026-07-03
+- Result: success — 10 recent issues all already labeled, found and labeled 8 older unlabeled issues (#397, #394, #369, #308, #305, #281, #276, #236), applied 22 labels total, posted 2 comments (#397, #308), reclassified #369 question→enhancement
 
 ### Triage Details (2026-06-27, run 2)
 | # | Title | Type | Extra | Priority | Comment |
