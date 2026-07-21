@@ -132,6 +132,12 @@ func TestSendMethods(t *testing.T) {
 		},
 		{
 			SendReq: func(req *Request) (resp *Response, err error) {
+				return req.Query("/")
+			},
+			ExpectMethod: "QUERY",
+		},
+		{
+			SendReq: func(req *Request) (resp *Response, err error) {
 				return req.Send("GET", "/")
 			},
 			ExpectMethod: "GET",
