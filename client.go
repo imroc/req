@@ -586,6 +586,10 @@ func (c *Client) SetLogger(log Logger) *Client {
 
 // SetTimeout set timeout for requests fired from the client.
 func (c *Client) SetTimeout(d time.Duration) *Client {
+	if d < 0 {
+		// Treat negative like zero (no timeout); negative is undefined for http.Client.
+		d = 0
+	}
 	c.httpClient.Timeout = d
 	return c
 }
