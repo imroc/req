@@ -303,6 +303,43 @@ func TestSocks4InvalidUserID(t *testing.T) {
 	}
 }
 
+func TestSocks4aInvalidDomain(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	d := NewDialer("tcp", "127.0.0.1:1")
+	d.Version = Version4
+	d.Socks4A = true
+
+	_, err := d.DialWithConn(context.Background(), client, "tcp", "bad\x00host:80")
+	if err == nil {
+		t.Fatal("expected error for NUL in domain")
+	}
+	if !strings.Contains(err.Error(), "NUL") {
+		t.Fatalf("error = %v; want NUL mention", err)
+	}
+}
+
+func TestSocks4aDomainTooLong(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	d := NewDialer("tcp", "127.0.0.1:1")
+	d.Version = Version4
+	d.Socks4A = true
+
+	longHost := strings.Repeat("a", maxSocks4aDomainLen+1) + ":80"
+	_, err := d.DialWithConn(context.Background(), client, "tcp", longHost)
+	if err == nil {
+		t.Fatal("expected error for long domain")
+	}
+	if !strings.Contains(err.Error(), "too long") {
+		t.Fatalf("error = %v; want too long", err)
+	}
+}
+
 func TestSocks4LocalResolve(t *testing.T) {
 	got := make(chan socks4Request, 1)
 	addr, closeFn := startSocks4Server(t, func(req socks4Request) (Reply, string) {

@@ -463,6 +463,9 @@ func (t *Transport) SetDebug(debugf func(format string, v ...any)) *Transport {
 // The proxy type is determined by the URL scheme. "http",
 // "https", "socks5", "socks5h", "socks4", and "socks4a" are
 // supported. If the scheme is empty, "http" is assumed.
+// "socks5" is treated the same as "socks5h".
+// "socks4" resolves domain names locally to IPv4; "socks4a" lets the
+// proxy resolve domain names. SOCKS4 only supports IPv4 destinations.
 //
 // If Proxy is nil or returns a nil *URL, no proxy is used.
 func (t *Transport) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Transport {

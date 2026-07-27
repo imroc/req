@@ -30,36 +30,7 @@ func TestSocks4ProxyE2E(t *testing.T) {
 	}
 	defer proxyLn.Close()
 
-	var wg sync.WaitGroup
-	done := make(chan struct{})
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			conn, err := proxyLn.Accept()
-			if err != nil {
-				select {
-				case <-done:
-					return
-				default:
-					return
-				}
-			}
-			wg.Add(1)
-			go func(c net.Conn) {
-				defer wg.Done()
-				defer c.Close()
-				if err := handleSocks4Connect(c); err != nil {
-					return
-				}
-			}(conn)
-		}
-	}()
-	defer func() {
-		close(done)
-		proxyLn.Close()
-		wg.Wait()
-	}()
+	stop := startSocks4Proxy(t, proxyLn, nil)
 
 	proxyURL := "socks4://userid@" + proxyLn.Addr().String()
 	client := C().SetProxyURL(proxyURL).DisableKeepAlives()
@@ -77,14 +48,24 @@ func TestSocks4ProxyE2E(t *testing.T) {
 	if resp.String() != "hello-socks4" {
 		t.Fatalf("body = %q; want hello-socks4", resp.String())
 	}
+	stop()
 }
 
-// TestSocks4aProxyE2E verifies socks4a scheme with domain-style target.
+// TestSocks4aProxyE2E verifies the socks4a scheme sends a domain name to the
+// proxy (SOCKS4a extension) and successfully relays the HTTP request.
 func TestSocks4aProxyE2E(t *testing.T) {
 	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("hello-socks4a"))
 	}))
 	defer backend.Close()
+
+	backendAddr := backend.Listener.Addr().String()
+	_, backendPort, err := net.SplitHostPort(backendAddr)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const fakeDomain = "backend.socks4a.test"
 
 	proxyLn, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -92,13 +73,53 @@ func TestSocks4aProxyE2E(t *testing.T) {
 	}
 	defer proxyLn.Close()
 
+	gotDomain := make(chan string, 1)
+	stop := startSocks4Proxy(t, proxyLn, func(domain string) string {
+		select {
+		case gotDomain <- domain:
+		default:
+		}
+		if domain == fakeDomain {
+			return backendAddr
+		}
+		return ""
+	})
+
+	// Request a non-resolvable domain name so the client must use SOCKS4a
+	// remote DNS rather than an IPv4 literal path.
+	client := C().SetProxyURL("socks4a://" + proxyLn.Addr().String()).DisableKeepAlives()
+	url := "http://" + net.JoinHostPort(fakeDomain, backendPort) + "/"
+	resp, err := client.R().Get(url)
+	if err != nil {
+		t.Fatalf("request via socks4a proxy failed: %v", err)
+	}
+	if resp.String() != "hello-socks4a" {
+		t.Fatalf("body = %q; want hello-socks4a", resp.String())
+	}
+
+	select {
+	case domain := <-gotDomain:
+		if domain != fakeDomain {
+			t.Fatalf("proxy domain = %q; want %q", domain, fakeDomain)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("proxy did not receive a SOCKS4a domain name")
+	}
+	stop()
+}
+
+// startSocks4Proxy accepts SOCKS4/4a CONNECT requests and relays to the target.
+// If resolveDomain is non-nil and the request uses SOCKS4a, resolveDomain is
+// called with the domain; a non-empty return value is dialed instead of the domain.
+func startSocks4Proxy(t *testing.T, ln net.Listener, resolveDomain func(string) string) (stop func()) {
+	t.Helper()
 	var wg sync.WaitGroup
 	done := make(chan struct{})
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		for {
-			conn, err := proxyLn.Accept()
+			conn, err := ln.Accept()
 			if err != nil {
 				select {
 				case <-done:
@@ -111,31 +132,19 @@ func TestSocks4aProxyE2E(t *testing.T) {
 			go func(c net.Conn) {
 				defer wg.Done()
 				defer c.Close()
-				_ = handleSocks4Connect(c)
+				_ = handleSocks4Connect(c, resolveDomain)
 			}(conn)
 		}
 	}()
-	defer func() {
+	return func() {
 		close(done)
-		proxyLn.Close()
+		ln.Close()
 		wg.Wait()
-	}()
-
-	// Use 127.0.0.1 in the backend URL so the target address is IPv4;
-	// socks4a still works when the host is an IP (no domain extension needed).
-	client := C().SetProxyURL("socks4a://" + proxyLn.Addr().String()).DisableKeepAlives()
-
-	resp, err := client.R().Get(backend.URL)
-	if err != nil {
-		t.Fatalf("request via socks4a proxy failed: %v", err)
-	}
-	if resp.String() != "hello-socks4a" {
-		t.Fatalf("body = %q; want hello-socks4a", resp.String())
 	}
 }
 
 // handleSocks4Connect performs a SOCKS4/4a CONNECT handshake and relays.
-func handleSocks4Connect(c net.Conn) error {
+func handleSocks4Connect(c net.Conn, resolveDomain func(string) string) error {
 	_ = c.SetDeadline(time.Now().Add(5 * time.Second))
 
 	var hdr [8]byte
@@ -155,19 +164,29 @@ func handleSocks4Connect(c net.Conn) error {
 		return err
 	}
 
-	var host string
+	var target string
 	// SOCKS4a domain when IP is 0.0.0.x with x != 0
 	if hdr[4] == 0 && hdr[5] == 0 && hdr[6] == 0 && hdr[7] != 0 {
 		domain, err := readNULString(c)
 		if err != nil {
 			return err
 		}
-		host = domain
+		if resolveDomain != nil {
+			if mapped := resolveDomain(domain); mapped != "" {
+				target = mapped
+			}
+		}
+		if target == "" {
+			target = net.JoinHostPort(domain, itoa(port))
+		}
 	} else {
-		host = ip.String()
+		target = net.JoinHostPort(ip.String(), itoa(port))
+		if resolveDomain != nil {
+			// Still report empty domain for IP-literal path.
+			resolveDomain("")
+		}
 	}
 
-	target := net.JoinHostPort(host, itoa(port))
 	upstream, err := net.DialTimeout("tcp", target, 2*time.Second)
 	if err != nil {
 		_, _ = c.Write([]byte{0, 91, 0, 0, 0, 0, 0, 0})

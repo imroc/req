@@ -56,9 +56,13 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 	return addr, ctxErr
 }
 
+// maxSocks4aDomainLen is the maximum domain name length accepted for SOCKS4a.
+// Matches the practical FQDN limit used by SOCKS5 in this package.
+const maxSocks4aDomainLen = 255
+
 // connect4 implements the SOCKS4 and SOCKS4a CONNECT handshake.
 func (d *Dialer) connect4(ctx context.Context, c net.Conn, host string, port int) (net.Addr, error) {
-	if err := validateUserID(d.UserID); err != nil {
+	if err := validateSocks4CString(d.UserID, "user ID"); err != nil {
 		return nil, err
 	}
 
@@ -74,6 +78,15 @@ func (d *Dialer) connect4(ctx context.Context, c net.Conn, host string, port int
 		ip = ip4
 	} else if d.Socks4A {
 		// SOCKS4a: use invalid IP 0.0.0.x (x != 0) and append domain after userid.
+		if host == "" {
+			return nil, errors.New("SOCKS4a domain name is empty")
+		}
+		if len(host) > maxSocks4aDomainLen {
+			return nil, errors.New("SOCKS4a domain name too long")
+		}
+		if err := validateSocks4CString(host, "domain name"); err != nil {
+			return nil, err
+		}
 		ip = net.IPv4(0, 0, 0, 1).To4()
 		domain = host
 	} else {
@@ -125,10 +138,11 @@ func (d *Dialer) connect4(ctx context.Context, c net.Conn, host string, port int
 	return a, nil
 }
 
-func validateUserID(userID string) error {
-	for i := 0; i < len(userID); i++ {
-		if userID[i] == 0 {
-			return errors.New("invalid SOCKS4 user ID: contains NUL")
+// validateSocks4CString rejects strings that would truncate a SOCKS4 C-string field.
+func validateSocks4CString(s, field string) error {
+	for i := 0; i < len(s); i++ {
+		if s[i] == 0 {
+			return errors.New("invalid SOCKS4 " + field + ": contains NUL")
 		}
 	}
 	return nil
