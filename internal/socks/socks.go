@@ -2,7 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package socks provides a SOCKS version 5 client implementation.
+// Package socks provides SOCKS version 4/4a and 5 client implementations.
+//
+// SOCKS protocol version 4 is described in:
+//
+//	https://www.openssh.org/txt/socks4.protocol
+//
+// SOCKS protocol version 4a (domain name extension) is described in:
+//
+//	https://www.openssh.org/txt/socks4a.protocol
 //
 // SOCKS protocol version 5 is defined in RFC 1928.
 // Username/Password authentication for SOCKS version 5 is defined in
@@ -39,6 +47,7 @@ type Reply int
 
 func (code Reply) String() string {
 	switch code {
+	// SOCKS5 reply codes
 	case StatusSucceeded:
 		return "succeeded"
 	case 0x01:
@@ -57,6 +66,15 @@ func (code Reply) String() string {
 		return "command not supported"
 	case 0x08:
 		return "address type not supported"
+	// SOCKS4 reply codes
+	case Status4Granted:
+		return "request granted"
+	case Status4Rejected:
+		return "request rejected or failed"
+	case Status4IdentdFailed:
+		return "request rejected because SOCKS server cannot connect to identd on the client"
+	case Status4IdentdMismatch:
+		return "request rejected because the client program and identd report different user-ids"
 	default:
 		return "unknown code: " + strconv.Itoa(int(code))
 	}
@@ -64,6 +82,7 @@ func (code Reply) String() string {
 
 // Wire protocol constants.
 const (
+	Version4 = 0x04
 	Version5 = 0x05
 
 	AddrTypeIPv4 = 0x01
@@ -77,7 +96,14 @@ const (
 	AuthMethodUsernamePassword    AuthMethod = 0x02 // use username/password
 	AuthMethodNoAcceptableMethods AuthMethod = 0xff // no acceptable authentication methods
 
+	// SOCKS5 reply codes
 	StatusSucceeded Reply = 0x00
+
+	// SOCKS4 reply codes
+	Status4Granted        Reply = 90
+	Status4Rejected       Reply = 91
+	Status4IdentdFailed   Reply = 92
+	Status4IdentdMismatch Reply = 93
 )
 
 // An Addr represents a SOCKS-specific address.
@@ -124,19 +150,41 @@ type Dialer struct {
 	proxyNetwork string  // network between a proxy server and a client
 	proxyAddress string  // proxy server address
 
+	// Version specifies the SOCKS protocol version.
+	// Supported values are Version4 and Version5.
+	// If zero, Version5 is used.
+	Version int
+
+	// Socks4A enables the SOCKS4a extension so domain names are
+	// resolved by the proxy instead of the client.
+	// Only used when Version is Version4.
+	Socks4A bool
+
+	// UserID is the SOCKS4 user identity string sent to the proxy.
+	// Only used when Version is Version4. Empty UserID is allowed.
+	UserID string
+
 	// ProxyDial specifies the optional dial function for
 	// establishing the transport connection.
 	ProxyDial func(context.Context, string, string) (net.Conn, error)
 
 	// AuthMethods specifies the list of request authentication
-	// methods.
+	// methods. Only used when Version is Version5.
 	// If empty, SOCKS client requests only AuthMethodNotRequired.
 	AuthMethods []AuthMethod
 
 	// Authenticate specifies the optional authentication
 	// function. It must be non-nil when AuthMethods is not empty.
 	// It must return an error when the authentication is failed.
+	// Only used when Version is Version5.
 	Authenticate func(context.Context, io.ReadWriter, AuthMethod) error
+}
+
+func (d *Dialer) version() int {
+	if d.Version == 0 {
+		return Version5
+	}
+	return d.Version
 }
 
 // DialContext connects to the provided address on the provided
@@ -237,9 +285,14 @@ func (d *Dialer) pathAddrs(address string) (proxy, dst net.Addr, err error) {
 }
 
 // NewDialer returns a new Dialer that dials through the provided
-// proxy server's network and address.
+// proxy server's network and address using SOCKS5 by default.
 func NewDialer(network, address string) *Dialer {
-	return &Dialer{proxyNetwork: network, proxyAddress: address, cmd: CmdConnect}
+	return &Dialer{
+		proxyNetwork: network,
+		proxyAddress: address,
+		cmd:          CmdConnect,
+		Version:      Version5,
+	}
 }
 
 const (
