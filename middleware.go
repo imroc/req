@@ -473,6 +473,11 @@ func handleDownload(c *Client, r *Response) (err error) {
 	if r.Response == nil || !r.Request.isSaveResponse {
 		return nil
 	}
+	// Do not start a download when an earlier step already failed (e.g. response
+	// body size limit exceeded based on Content-Length).
+	if r.Err != nil {
+		return nil
+	}
 	var body io.ReadCloser
 
 	if r.body != nil { // already read

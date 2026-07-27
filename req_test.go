@@ -1,6 +1,7 @@
 package req
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -329,6 +330,53 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			i += n
+		}
+	case "/fixed-size":
+		// Returns a body of exactly the given size with Content-Length set.
+		// Query: size (default 1024), content (default "x" repeated).
+		r.ParseForm()
+		size := 1024
+		if s := r.FormValue("size"); s != "" {
+			if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+				size = n
+			}
+		}
+		w.Header().Set("Content-Length", strconv.Itoa(size))
+		w.Header().Set(header.ContentType, "application/octet-stream")
+		if size == 0 {
+			return
+		}
+		buf := bytes.Repeat([]byte{'x'}, min(size, 4096))
+		for written := 0; written < size; {
+			n := min(len(buf), size-written)
+			wn, err := w.Write(buf[:n])
+			if err != nil {
+				return
+			}
+			written += wn
+		}
+	case "/chunked-size":
+		// Returns a body of the given size without Content-Length (chunked).
+		r.ParseForm()
+		size := 1024
+		if s := r.FormValue("size"); s != "" {
+			if n, err := strconv.Atoi(s); err == nil && n >= 0 {
+				size = n
+			}
+		}
+		w.Header().Set(header.ContentType, "application/octet-stream")
+		// Ensure chunked encoding by not setting Content-Length and flushing.
+		flusher, _ := w.(http.Flusher)
+		buf := bytes.Repeat([]byte{'y'}, min(size, 4096))
+		for written := 0; written < size; {
+			n := min(len(buf), size-written)
+			if _, err := w.Write(buf[:n]); err != nil {
+				return
+			}
+			if flusher != nil {
+				flusher.Flush()
+			}
+			written += n
 		}
 	case "/protected":
 		auth := r.Header.Get("Authorization")
