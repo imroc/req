@@ -48,7 +48,7 @@ func createTestServer() *httptest.Server {
 func handleHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Method", r.Method)
 	switch r.Method {
-	case http.MethodGet:
+	case http.MethodGet, http.MethodHead:
 		handleGet(w, r)
 	case http.MethodPost:
 		handlePost(w, r)
@@ -333,7 +333,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		}
 	case "/fixed-size":
 		// Returns a body of exactly the given size with Content-Length set.
-		// Query: size (default 1024), content (default "x" repeated).
+		// Query: size (default 1024). HEAD advertises Content-Length without a body.
 		r.ParseForm()
 		size := 1024
 		if s := r.FormValue("size"); s != "" {
@@ -343,7 +343,7 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Length", strconv.Itoa(size))
 		w.Header().Set(header.ContentType, "application/octet-stream")
-		if size == 0 {
+		if r.Method == http.MethodHead || size == 0 {
 			return
 		}
 		buf := bytes.Repeat([]byte{'x'}, min(size, 4096))
@@ -365,6 +365,9 @@ func handleGet(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.Header().Set(header.ContentType, "application/octet-stream")
+		if r.Method == http.MethodHead {
+			return
+		}
 		// Ensure chunked encoding by not setting Content-Length and flushing.
 		flusher, _ := w.(http.Flusher)
 		buf := bytes.Repeat([]byte{'y'}, min(size, 4096))

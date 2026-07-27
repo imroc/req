@@ -812,13 +812,22 @@ func (c *Client) EnableAutoReadResponse() *Client {
 }
 
 // SetMaxResponseSize sets the maximum allowed size of a response body in bytes.
-// Responses whose Content-Length exceeds the limit are rejected without reading
-// the body. When Content-Length is unknown, reading stops once the limit is
-// exceeded and an error is returned. A value of 0 or less disables the limit
-// (default).
 //
-// This is useful for bounding memory use and network bandwidth when talking to
-// untrusted or unexpectedly large endpoints.
+// Enforcement:
+//   - When Response.ContentLength is known and greater than the limit, the body
+//     is closed without reading and a ResponseBodyTooLargeError is returned.
+//     Closing early may prevent connection reuse for that request.
+//   - Otherwise the body is wrapped so application reads stop at the limit.
+//   - HEAD requests never fail the Content-Length early check (there is no body).
+//
+// The limit is applied to bytes delivered to the application after the transport
+// has handled Content-Encoding (e.g. gzip decompression). For auto-decompressed
+// responses ContentLength is typically -1, so only the streaming limit applies.
+// Charset auto-decode, if enabled, also runs underneath the limit.
+//
+// A value of 0 or less disables the limit (default). This is useful for bounding
+// memory use and network bandwidth when talking to untrusted or unexpectedly
+// large endpoints.
 func (c *Client) SetMaxResponseSize(max int64) *Client {
 	if max < 0 {
 		max = 0
@@ -1849,12 +1858,17 @@ func applyMaxResponseSize(r *Request, resp *Response) error {
 		return nil
 	}
 
-	// Known Content-Length over the limit: reject without reading the body so
-	// bandwidth and memory are not wasted.
-	if cl := resp.ContentLength; cl > max {
-		_ = resp.Body.Close()
-		resp.Body = http.NoBody
-		return &ResponseBodyTooLargeError{Limit: max, ContentLength: cl}
+	// HEAD keeps Content-Length from the resource header but has no body
+	// (see transfer.go). Do not treat that advertised length as a body limit
+	// violation — ParallelDownload relies on Head() + ContentLength for sizing.
+	if r.Method != http.MethodHead {
+		// Known Content-Length over the limit: reject without reading the body so
+		// bandwidth and memory are not wasted. Early close may prevent keep-alive reuse.
+		if cl := resp.ContentLength; cl > max {
+			_ = resp.Body.Close()
+			resp.Body = http.NoBody
+			return &ResponseBodyTooLargeError{Limit: max, ContentLength: cl}
+		}
 	}
 
 	resp.Body = &maxResponseBodyReader{

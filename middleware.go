@@ -473,9 +473,11 @@ func handleDownload(c *Client, r *Response) (err error) {
 	if r.Response == nil || !r.Request.isSaveResponse {
 		return nil
 	}
-	// Do not start a download when an earlier step already failed (e.g. response
-	// body size limit exceeded based on Content-Length).
-	if r.Err != nil {
+	// Content-Length early reject replaces the body with http.NoBody. Skip
+	// download in that case so we do not create an empty output file. Other
+	// prior errors (e.g. result unmarshalling) still allow the download path
+	// when the body was already buffered.
+	if errors.Is(r.Err, ErrResponseBodyTooLarge) && r.body == nil {
 		return nil
 	}
 	var body io.ReadCloser

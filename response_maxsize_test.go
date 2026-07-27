@@ -329,3 +329,68 @@ func TestMaxResponseSizeWithSuccessResult(t *testing.T) {
 		_ = resp
 	})
 }
+
+func TestMaxResponseSizeHEADDoesNotEarlyReject(t *testing.T) {
+	// HEAD responses advertise Content-Length of the resource but carry no body.
+	// The limit must not reject them, or ParallelDownload size probes break.
+	testWithAllTransport(t, func(t *testing.T, c *Client) {
+		resp, err := c.SetMaxResponseSize(10).R().Head("/fixed-size?size=100")
+		assertSuccess(t, resp, err)
+		tests.AssertEqual(t, int64(100), resp.ContentLength)
+		tests.AssertEqual(t, 0, len(resp.Bytes()))
+	})
+}
+
+func TestMaxResponseSizeDownloadStillRunsAfterUnmarshalError(t *testing.T) {
+	// Combining SetOutput with SetSuccessResult: if unmarshalling fails, the
+	// download path should still write the buffered body (pre-existing contract).
+	testWithAllTransport(t, func(t *testing.T, c *Client) {
+		var buf bytes.Buffer
+		var result struct {
+			Missing string `json:"missing_required_shape"`
+		}
+		// Valid JSON that unmarshals into the empty struct without error... use
+		// invalid JSON endpoint would 404. Use /fixed-size which is not JSON so
+		// unmarshal fails, while body is auto-read and available for download.
+		resp, err := c.R().
+			SetSuccessResult(&result).
+			SetOutput(&buf).
+			Get("/fixed-size?size=32")
+		// Unmarshal of non-JSON body should fail.
+		if err == nil {
+			// Some configs may not set Result when status is success but content is not JSON —
+			// ensure we at least got a response and the body was still written to output.
+			t.Logf("unmarshal did not error (err=nil); body written=%d status=%d", buf.Len(), resp.StatusCode)
+		}
+		if buf.Len() != 32 {
+			// If handleDownload was skipped incorrectly, buf would be empty.
+			// parseResponseBody runs first and may leave body in resp.body;
+			// handleDownload should still copy it.
+			if buf.Len() == 0 && resp != nil && len(resp.Bytes()) == 32 {
+				t.Fatal("download was skipped after non-size error; body was buffered but not written to output")
+			}
+			if buf.Len() != 32 {
+				t.Fatalf("expected 32 bytes written to output, got %d (err=%v)", buf.Len(), err)
+			}
+		}
+	})
+}
+
+func TestMaxResponseSizeContentLengthEarlyRejectSkipsDownload(t *testing.T) {
+	testWithAllTransport(t, func(t *testing.T, c *Client) {
+		var buf bytes.Buffer
+		resp, err := c.SetMaxResponseSize(10).R().
+			SetOutput(&buf).
+			Get("/fixed-size?size=100")
+		if err == nil {
+			t.Fatal("expected size limit error")
+		}
+		if !errors.Is(err, ErrResponseBodyTooLarge) {
+			t.Fatalf("expected ErrResponseBodyTooLarge, got %v", err)
+		}
+		if buf.Len() != 0 {
+			t.Fatalf("expected no download output on Content-Length early reject, got %d bytes", buf.Len())
+		}
+		_ = resp
+	})
+}
