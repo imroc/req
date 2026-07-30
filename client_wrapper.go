@@ -363,6 +363,12 @@ func EnableAutoReadResponse() *Client {
 	return defaultClient.EnableAutoReadResponse()
 }
 
+// SetMaxResponseSize is a global wrapper methods which delegated
+// to the default client's Client.SetMaxResponseSize.
+func SetMaxResponseSize(max int64) *Client {
+	return defaultClient.SetMaxResponseSize(max)
+}
+
 // SetAutoDecodeContentType is a global wrapper methods which delegated
 // to the default client's Client.SetAutoDecodeContentType.
 func SetAutoDecodeContentType(contentTypes ...string) *Client {

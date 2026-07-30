@@ -55,6 +55,7 @@ type Client struct {
 	cookiejarFactory        func() http.CookieJar
 	trace                   bool
 	disableAutoReadResponse bool
+	maxResponseSize         int64 // 0 means no limit
 	commonErrorType         reflect.Type
 	retryOption             *retryOption
 	jsonMarshal             func(v any) ([]byte, error)
@@ -807,6 +808,31 @@ func (c *Client) DisableAutoReadResponse() *Client {
 // EnableAutoReadResponse enable read response body automatically (enabled by default).
 func (c *Client) EnableAutoReadResponse() *Client {
 	c.disableAutoReadResponse = false
+	return c
+}
+
+// SetMaxResponseSize sets the maximum allowed size of a response body in bytes.
+//
+// Enforcement:
+//   - When Response.ContentLength is known and greater than the limit, the body
+//     is closed without reading and a ResponseBodyTooLargeError is returned.
+//     Closing early may prevent connection reuse for that request.
+//   - Otherwise the body is wrapped so application reads stop at the limit.
+//   - HEAD requests never fail the Content-Length early check (there is no body).
+//
+// The limit is applied to bytes delivered to the application after the transport
+// has handled Content-Encoding (e.g. gzip decompression). For auto-decompressed
+// responses ContentLength is typically -1, so only the streaming limit applies.
+// Charset auto-decode, if enabled, also runs underneath the limit.
+//
+// A value of 0 or less disables the limit (default). This is useful for bounding
+// memory use and network bandwidth when talking to untrusted or unexpectedly
+// large endpoints.
+func (c *Client) SetMaxResponseSize(max int64) *Client {
+	if max < 0 {
+		max = 0
+	}
+	c.maxResponseSize = max
 	return c
 }
 
@@ -1803,6 +1829,13 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	httpResponse, resp.Err = c.httpClient.Do(r.RawRequest)
 	resp.Response = httpResponse
 
+	// Enforce response body size limit before any body consumption.
+	if resp.Err == nil {
+		if err := applyMaxResponseSize(r, resp); err != nil {
+			resp.Err = err
+		}
+	}
+
 	// auto-read response body if possible
 	if resp.Err == nil && !c.disableAutoReadResponse && !r.isSaveResponse && !r.disableAutoReadResponse && resp.StatusCode > 199 {
 		resp.ToBytes()
@@ -1816,4 +1849,33 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 		}
 	}
 	return
+}
+
+// applyMaxResponseSize rejects oversized responses early when Content-Length is
+// known, and otherwise wraps the body so reads stop at the configured limit.
+func applyMaxResponseSize(r *Request, resp *Response) error {
+	max := r.getMaxResponseSize()
+	if max <= 0 || resp.Response == nil || resp.Body == nil {
+		return nil
+	}
+
+	// HEAD keeps Content-Length from the resource header but has no body
+	// (see transfer.go). Do not treat that advertised length as a body limit
+	// violation — ParallelDownload relies on Head() + ContentLength for sizing.
+	if r.Method != http.MethodHead {
+		// Known Content-Length over the limit: reject without reading the body so
+		// bandwidth and memory are not wasted. Early close may prevent keep-alive reuse.
+		if cl := resp.ContentLength; cl > max {
+			_ = resp.Body.Close()
+			resp.Body = http.NoBody
+			return &ResponseBodyTooLargeError{Limit: max, ContentLength: cl}
+		}
+	}
+
+	resp.Body = &maxResponseBodyReader{
+		r:     resp.Body,
+		n:     max,
+		limit: max,
+	}
+	return nil
 }

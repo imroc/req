@@ -55,20 +55,23 @@ type Request struct {
 	uploadCallbackInterval   time.Duration
 	downloadCallback         DownloadCallback
 	downloadCallbackInterval time.Duration
-	unReplayableBody         io.ReadCloser
-	retryOption              *retryOption
-	bodyReadCloser           io.ReadCloser
-	dumpOptions              *DumpOptions
-	marshalBody              any
-	ctx                      context.Context
-	uploadFiles              []*FileUpload
-	uploadReader             []io.ReadCloser
-	outputFile               string
-	output                   io.Writer
-	trace                    *clientTrace
-	dumpBuffer               *bytes.Buffer
-	responseReturnTime       time.Time
-	afterResponse            []ResponseMiddleware
+	// maxResponseSize, when non-nil, overrides Client.maxResponseSize for this
+	// request. A pointed-to value of 0 means no limit for this request.
+	maxResponseSize    *int64
+	unReplayableBody   io.ReadCloser
+	retryOption        *retryOption
+	bodyReadCloser     io.ReadCloser
+	dumpOptions        *DumpOptions
+	marshalBody        any
+	ctx                context.Context
+	uploadFiles        []*FileUpload
+	uploadReader       []io.ReadCloser
+	outputFile         string
+	output             io.Writer
+	trace              *clientTrace
+	dumpBuffer         *bytes.Buffer
+	responseReturnTime time.Time
+	afterResponse      []ResponseMiddleware
 }
 
 type GetContentFunc func() (io.ReadCloser, error)
@@ -1062,6 +1065,31 @@ func (r *Request) DisableAutoReadResponse() *Request {
 func (r *Request) EnableAutoReadResponse() *Request {
 	r.disableAutoReadResponse = false
 	return r
+}
+
+// SetMaxResponseSize sets the maximum allowed size of the response body in bytes
+// for this request, overriding Client.SetMaxResponseSize. A value of 0 or less
+// disables the limit for this request even if the client has a limit configured.
+//
+// See Client.SetMaxResponseSize for behavior details.
+func (r *Request) SetMaxResponseSize(max int64) *Request {
+	if max < 0 {
+		max = 0
+	}
+	r.maxResponseSize = &max
+	return r
+}
+
+// getMaxResponseSize returns the effective max response body size for this
+// request (request override, else client setting). 0 means no limit.
+func (r *Request) getMaxResponseSize() int64 {
+	if r.maxResponseSize != nil {
+		return *r.maxResponseSize
+	}
+	if r.client != nil {
+		return r.client.maxResponseSize
+	}
+	return 0
 }
 
 // DisableTrace disables trace.

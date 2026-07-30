@@ -2,6 +2,7 @@ package req
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -10,6 +11,73 @@ import (
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/util"
 )
+
+// ErrResponseBodyTooLarge is returned when a response body exceeds the limit
+// configured via Client.SetMaxResponseSize or Request.SetMaxResponseSize.
+// Use errors.Is(err, ErrResponseBodyTooLarge) or errors.As with
+// *ResponseBodyTooLargeError for inspection.
+var ErrResponseBodyTooLarge = errors.New("req: response body too large")
+
+// ResponseBodyTooLargeError is returned when a response body exceeds the
+// configured maximum size. Limit is the configured max in bytes. ContentLength
+// is the response's Content-Length when the body was rejected based on headers
+// without reading; it is -1 when the limit was exceeded while reading.
+type ResponseBodyTooLargeError struct {
+	Limit         int64
+	ContentLength int64
+}
+
+func (e *ResponseBodyTooLargeError) Error() string {
+	if e.ContentLength >= 0 {
+		return fmt.Sprintf("req: response body too large: Content-Length %d exceeds limit %d", e.ContentLength, e.Limit)
+	}
+	return fmt.Sprintf("req: response body too large: exceeds limit of %d bytes", e.Limit)
+}
+
+// Is reports whether target is ErrResponseBodyTooLarge.
+func (e *ResponseBodyTooLargeError) Is(target error) bool {
+	return target == ErrResponseBodyTooLarge
+}
+
+// maxResponseBodyReader limits how many bytes can be read from a response body.
+// It is similar in spirit to http.MaxBytesReader but for client response bodies:
+// when the limit is exceeded it returns *ResponseBodyTooLargeError and subsequent
+// reads return the same sticky error. Close closes the underlying body.
+type maxResponseBodyReader struct {
+	r     io.ReadCloser
+	n     int64 // bytes remaining
+	limit int64 // original limit, for the error
+	err   error // sticky error
+}
+
+func (l *maxResponseBodyReader) Read(p []byte) (n int, err error) {
+	if l.err != nil {
+		return 0, l.err
+	}
+	if len(p) == 0 {
+		return 0, nil
+	}
+	// Read at most remaining+1 so we can detect crossing the limit.
+	if int64(len(p))-1 > l.n {
+		p = p[:l.n+1]
+	}
+	n, err = l.r.Read(p)
+
+	if int64(n) <= l.n {
+		l.n -= int64(n)
+		l.err = err
+		return n, err
+	}
+
+	n = int(l.n)
+	l.n = 0
+	l.err = &ResponseBodyTooLargeError{Limit: l.limit, ContentLength: -1}
+	return n, l.err
+}
+
+func (l *maxResponseBodyReader) Close() error {
+	return l.r.Close()
+}
 
 // Response is the http response.
 type Response struct {
