@@ -897,6 +897,23 @@ func (r *Request) Head(url string) (*Response, error) {
 	return r.Send(http.MethodHead, url)
 }
 
+// MustQuery like Query, panic if error happens, should only be used
+// to test without error handling.
+func (r *Request) MustQuery(url string) *Response {
+	resp, err := r.Query(url)
+	if err != nil {
+		panic(err)
+	}
+	return resp
+}
+
+// Query fires http request with QUERY method and the specified URL. QUERY is a
+// safe, idempotent method that carries the query as request content, defined in
+// RFC 10008.
+func (r *Request) Query(url string) (*Response, error) {
+	return r.Send("QUERY", url)
+}
+
 // SetBody set the request Body, accepts string, []byte, io.Reader, map and struct.
 func (r *Request) SetBody(body any) *Request {
 	if body == nil {
