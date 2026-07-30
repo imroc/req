@@ -129,6 +129,10 @@ type Transport struct {
 	// Force using specific http version
 	forceHttpVersion httpVersion
 
+	// rejectProxyWithSetHosts prevents proxy-side DNS from bypassing the
+	// fail-closed static host mapping installed by Client.SetHosts.
+	rejectProxyWithSetHosts bool
+
 	transport.Options
 
 	t2 *h2internal.Transport // non-nil if http2 wired up
@@ -482,6 +486,7 @@ func (t *Transport) SetProxy(proxy func(*http.Request) (*url.URL, error)) *Trans
 // earlier connection becomes idle before the later dial function completes.
 func (t *Transport) SetDial(fn func(ctx context.Context, network, addr string) (net.Conn, error)) *Transport {
 	t.DialContext = fn
+	t.rejectProxyWithSetHosts = false
 	return t
 }
 
@@ -743,13 +748,14 @@ func (t *Transport) readBufferSize() int {
 // Clone returns a deep copy of t's exported fields.
 func (t *Transport) Clone() *Transport {
 	tt := &Transport{
-		Headers:               t.Headers.Clone(),
-		Cookies:               cloneSlice(t.Cookies),
-		Options:               t.Options.Clone(),
-		disableAutoDecode:     t.disableAutoDecode,
-		autoDecodeContentType: t.autoDecodeContentType,
-		forceHttpVersion:      t.forceHttpVersion,
-		httpRoundTripWrappers: t.httpRoundTripWrappers,
+		Headers:                 t.Headers.Clone(),
+		Cookies:                 cloneSlice(t.Cookies),
+		Options:                 t.Options.Clone(),
+		disableAutoDecode:       t.disableAutoDecode,
+		autoDecodeContentType:   t.autoDecodeContentType,
+		forceHttpVersion:        t.forceHttpVersion,
+		rejectProxyWithSetHosts: t.rejectProxyWithSetHosts,
+		httpRoundTripWrappers:   t.httpRoundTripWrappers,
 	}
 	if len(tt.httpRoundTripWrappers) > 0 { // clone transport middleware
 		fn := func(req *http.Request) (*http.Response, error) {
@@ -1274,6 +1280,9 @@ func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectM
 	cm.targetAddr = canonicalAddr(treq.URL)
 	if t.Proxy != nil {
 		cm.proxyURL, err = t.Proxy(treq.Request)
+		if err == nil && cm.proxyURL != nil && t.rejectProxyWithSetHosts {
+			err = errors.New("req: SetHosts cannot be used with a proxy")
+		}
 	}
 	cm.onlyH1 = t.forceHttpVersion == h1 || requestRequiresHTTP1(treq.Request)
 	return cm, err

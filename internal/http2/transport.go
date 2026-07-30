@@ -606,16 +606,30 @@ func (tlsHandshakeTimeoutError) Timeout() bool   { return true }
 func (tlsHandshakeTimeoutError) Temporary() bool { return true }
 func (tlsHandshakeTimeoutError) Error() string   { return "net/http: TLS handshake timeout" }
 
+// dialTCP dials a TCP connection, preferring a custom DialContext when set.
+func (t *Transport) dialTCP(ctx context.Context, network, addr string) (net.Conn, error) {
+	if t.DialContext != nil {
+		c, err := t.DialContext(ctx, network, addr)
+		if c == nil && err == nil {
+			err = errors.New("net/http: Transport.DialContext hook returned (nil, nil)")
+		}
+		return c, err
+	}
+	return zeroDialer.DialContext(ctx, network, addr)
+}
+
 // dialTLSWithContext uses tls.Dialer, added in Go 1.15, to open a TLS
-// connection.
+// connection. When DialContext is set (e.g. via Client.SetDial / SetResolver /
+// SetHosts), the custom dialer is used for the underlying TCP connection.
 func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string, cfg *tls.Config) (reqtls.Conn, error) {
 	if t.TLSHandshakeContext != nil {
-		conn, err := zeroDialer.DialContext(ctx, network, addr)
+		conn, err := t.dialTCP(ctx, network, addr)
 		if err != nil {
 			return nil, err
 		}
 		var firstTLSHost string
 		if firstTLSHost, _, err = net.SplitHostPort(addr); err != nil {
+			conn.Close()
 			return nil, err
 		}
 		trace := httptrace.ContextClientTrace(ctx)
@@ -653,17 +667,61 @@ func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string
 			tlsCn := conn.(reqtls.Conn)
 			return tlsCn, nil
 		}
-	} else {
-		dialer := &tls.Dialer{
-			Config: cfg,
-		}
-		conn, err := dialer.DialContext(ctx, network, addr)
+	}
+
+	// Custom DialContext: dial TCP first, then perform TLS handshake so
+	// SetResolver / SetHosts / SetDial apply to HTTP/2 as well.
+	// Handshake timeout / trace handling matches HTTP/1 persistConn.addTLS.
+	if t.DialContext != nil {
+		conn, err := t.dialTCP(ctx, network, addr)
 		if err != nil {
 			return nil, err
 		}
-		tlsCn := conn.(reqtls.Conn)
+		tlsCn := tls.Client(conn, cfg)
+		trace := httptrace.ContextClientTrace(ctx)
+		errc := make(chan error, 2)
+		var timer *time.Timer
+		if d := t.TLSHandshakeTimeout; d != 0 {
+			timer = time.AfterFunc(d, func() {
+				errc <- tlsHandshakeTimeoutError{}
+			})
+		}
+		go func() {
+			if trace != nil && trace.TLSHandshakeStart != nil {
+				trace.TLSHandshakeStart()
+			}
+			err := tlsCn.HandshakeContext(ctx)
+			if timer != nil {
+				timer.Stop()
+			}
+			errc <- err
+		}()
+		if err := <-errc; err != nil {
+			conn.Close()
+			if err == (tlsHandshakeTimeoutError{}) {
+				// Wait for HandshakeContext to return after close.
+				<-errc
+			}
+			if trace != nil && trace.TLSHandshakeDone != nil {
+				trace.TLSHandshakeDone(tls.ConnectionState{}, err)
+			}
+			return nil, err
+		}
+		if trace != nil && trace.TLSHandshakeDone != nil {
+			trace.TLSHandshakeDone(tlsCn.ConnectionState(), nil)
+		}
 		return tlsCn, nil
 	}
+
+	dialer := &tls.Dialer{
+		Config: cfg,
+	}
+	conn, err := dialer.DialContext(ctx, network, addr)
+	if err != nil {
+		return nil, err
+	}
+	tlsCn := conn.(reqtls.Conn)
+	return tlsCn, nil
 }
 
 func (t *Transport) dialTLS(ctx context.Context) func(string, string, *tls.Config) (net.Conn, error) {
