@@ -47,6 +47,109 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 		}()
 	}
 
+	var addr net.Addr
+	if d.version() == Version4 {
+		addr, ctxErr = d.connect4(ctx, c, host, port)
+	} else {
+		addr, ctxErr = d.connect5(ctx, c, host, port)
+	}
+	return addr, ctxErr
+}
+
+// maxSocks4aDomainLen is the maximum domain name length accepted for SOCKS4a.
+// Matches the practical FQDN limit used by SOCKS5 in this package.
+const maxSocks4aDomainLen = 255
+
+// connect4 implements the SOCKS4 and SOCKS4a CONNECT handshake.
+func (d *Dialer) connect4(ctx context.Context, c net.Conn, host string, port int) (net.Addr, error) {
+	if err := validateSocks4CString(d.UserID, "user ID"); err != nil {
+		return nil, err
+	}
+
+	var (
+		ip     net.IP
+		domain string
+	)
+	if parsed := net.ParseIP(host); parsed != nil {
+		ip4 := parsed.To4()
+		if ip4 == nil {
+			return nil, errors.New("SOCKS4 does not support IPv6 addresses")
+		}
+		ip = ip4
+	} else if d.Socks4A {
+		// SOCKS4a: use invalid IP 0.0.0.x (x != 0) and append domain after userid.
+		if host == "" {
+			return nil, errors.New("SOCKS4a domain name is empty")
+		}
+		if len(host) > maxSocks4aDomainLen {
+			return nil, errors.New("SOCKS4a domain name too long")
+		}
+		if err := validateSocks4CString(host, "domain name"); err != nil {
+			return nil, err
+		}
+		ip = net.IPv4(0, 0, 0, 1).To4()
+		domain = host
+	} else {
+		ips, err := net.DefaultResolver.LookupIP(ctx, "ip4", host)
+		if err != nil {
+			return nil, err
+		}
+		if len(ips) == 0 {
+			return nil, errors.New("no IPv4 address found for host")
+		}
+		ip = ips[0].To4()
+		if ip == nil {
+			return nil, errors.New("no IPv4 address found for host")
+		}
+	}
+
+	// VN | CD | DSTPORT | DSTIP | USERID | NULL [| DOMAIN | NULL]
+	b := make([]byte, 0, 9+len(d.UserID)+len(domain)+1)
+	b = append(b, Version4, byte(d.cmd))
+	b = append(b, byte(port>>8), byte(port))
+	b = append(b, ip...)
+	b = append(b, d.UserID...)
+	b = append(b, 0)
+	if domain != "" {
+		b = append(b, domain...)
+		b = append(b, 0)
+	}
+	if _, err := c.Write(b); err != nil {
+		return nil, err
+	}
+
+	// Reply is always 8 bytes: VN | CD | DSTPORT | DSTIP
+	var resp [8]byte
+	if _, err := io.ReadFull(c, resp[:]); err != nil {
+		return nil, err
+	}
+	// Spec says VN should be 0; some servers incorrectly echo 4.
+	if resp[0] != 0 && resp[0] != Version4 {
+		return nil, errors.New("unexpected protocol version " + strconv.Itoa(int(resp[0])))
+	}
+	if code := Reply(resp[1]); code != Status4Granted {
+		return nil, errors.New(code.String())
+	}
+
+	a := &Addr{
+		IP:   net.IPv4(resp[4], resp[5], resp[6], resp[7]),
+		Port: int(resp[2])<<8 | int(resp[3]),
+	}
+	return a, nil
+}
+
+// validateSocks4CString rejects strings that would truncate a SOCKS4 C-string field.
+func validateSocks4CString(s, field string) error {
+	for i := 0; i < len(s); i++ {
+		if s[i] == 0 {
+			return errors.New("invalid SOCKS4 " + field + ": contains NUL")
+		}
+	}
+	return nil
+}
+
+// connect5 implements the SOCKS5 CONNECT handshake.
+func (d *Dialer) connect5(ctx context.Context, c net.Conn, host string, port int) (net.Addr, error) {
 	b := make([]byte, 0, 6+len(host)) // the size here is just an estimate
 	b = append(b, Version5)
 	if len(d.AuthMethods) == 0 || d.Authenticate == nil {
@@ -61,12 +164,12 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 			b = append(b, byte(am))
 		}
 	}
-	if _, ctxErr = c.Write(b); ctxErr != nil {
-		return
+	if _, err := c.Write(b); err != nil {
+		return nil, err
 	}
 
-	if _, ctxErr = io.ReadFull(c, b[:2]); ctxErr != nil {
-		return
+	if _, err := io.ReadFull(c, b[:2]); err != nil {
+		return nil, err
 	}
 	if b[0] != Version5 {
 		return nil, errors.New("unexpected protocol version " + strconv.Itoa(int(b[0])))
@@ -76,8 +179,8 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 		return nil, errors.New("no acceptable authentication methods")
 	}
 	if d.Authenticate != nil {
-		if ctxErr = d.Authenticate(ctx, c, am); ctxErr != nil {
-			return
+		if err := d.Authenticate(ctx, c, am); err != nil {
+			return nil, err
 		}
 	}
 
@@ -102,12 +205,12 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 		b = append(b, host...)
 	}
 	b = append(b, byte(port>>8), byte(port))
-	if _, ctxErr = c.Write(b); ctxErr != nil {
-		return
+	if _, err := c.Write(b); err != nil {
+		return nil, err
 	}
 
-	if _, ctxErr = io.ReadFull(c, b[:4]); ctxErr != nil {
-		return
+	if _, err := io.ReadFull(c, b[:4]); err != nil {
+		return nil, err
 	}
 	if b[0] != Version5 {
 		return nil, errors.New("unexpected protocol version " + strconv.Itoa(int(b[0])))
@@ -140,8 +243,8 @@ func (d *Dialer) connect(ctx context.Context, c net.Conn, address string) (_ net
 	} else {
 		b = b[:l]
 	}
-	if _, ctxErr = io.ReadFull(c, b); ctxErr != nil {
-		return
+	if _, err := io.ReadFull(c, b); err != nil {
+		return nil, err
 	}
 	if a.IP != nil {
 		copy(a.IP, b)

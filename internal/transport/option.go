@@ -18,13 +18,16 @@ type Options struct {
 	// request is aborted with the provided error.
 	//
 	// The proxy type is determined by the URL scheme. "http",
-	// "https", "socks5", and "socks5h" are supported. If the scheme is empty,
-	// "http" is assumed.
+	// "https", "socks5", "socks5h", "socks4", and "socks4a" are supported.
+	// If the scheme is empty, "http" is assumed.
 	// "socks5" is treated the same as "socks5h".
+	// "socks4" resolves domain names locally to IPv4; "socks4a" lets the
+	// proxy resolve domain names. SOCKS4 only supports IPv4 destinations.
 	//
 	// If the proxy URL contains a userinfo subcomponent,
 	// the proxy request will pass the username and password
-	// in a Proxy-Authorization header.
+	// in a Proxy-Authorization header for HTTP proxies, or the username
+	// as the SOCKS4 user ID / SOCKS5 credentials for SOCKS proxies.
 	//
 	// If Proxy is nil or returns a nil *URL, no proxy is used.
 	Proxy func(*http.Request) (*url.URL, error)
