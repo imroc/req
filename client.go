@@ -1288,9 +1288,10 @@ func (c *Client) setTLSFingerprint(clientHelloID utls.ClientHelloID, uTLSConnApp
 // (e.g. for JA3/JA4 customization). Uses utls
 // (https://github.com/refraction-networking/utls) to perform the tls handshake.
 // Note this is valid for HTTP1 and HTTP2, not HTTP3.
-func (c *Client) SetTLSFingerprintSpec(clientHelloID *utls.ClientHelloSpec) *Client {
+func (c *Client) SetTLSFingerprintSpec(fn func() utls.ClientHelloSpec) *Client {
 	c.setTLSFingerprint(utls.HelloCustom, func(conn *uTLSConn) error {
-		return conn.ApplyPreset(clientHelloID)
+		spec := fn()
+		return conn.ApplyPreset(&spec)
 	})
 	return c
 }

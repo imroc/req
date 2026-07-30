@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"regexp"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/imroc/req/v3/internal/header"
 	"github.com/imroc/req/v3/internal/tests"
+	utls "github.com/refraction-networking/utls"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -751,4 +753,49 @@ func TestCloneCookieJar(t *testing.T) {
 	c2.SetCookieJar(nil)
 	tests.AssertEqual(t, true, c2.cookiejarFactory == nil)
 	tests.AssertEqual(t, true, c2.httpClient.Jar == nil)
+}
+
+func TestSetTLSFingerprintSpec(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}
+	server1 := httptest.NewTLSServer(http.HandlerFunc(handler))
+	defer server1.Close()
+
+	c := tc().SetTLSFingerprintSpec(func() utls.ClientHelloSpec {
+		return utls.ClientHelloSpec{
+			CipherSuites: []uint16{
+				utls.TLS_AES_128_GCM_SHA256,
+				utls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			},
+			CompressionMethods: []byte{0x00},
+			Extensions: []utls.TLSExtension{
+				&utls.SNIExtension{},
+				&utls.SupportedCurvesExtension{Curves: []utls.CurveID{
+					utls.X25519,
+					utls.CurveP256,
+				}},
+				&utls.SupportedPointsExtension{SupportedPoints: []byte{0x00}},
+				&utls.ALPNExtension{AlpnProtocols: []string{"h2", "http/1.1"}},
+				&utls.SignatureAlgorithmsExtension{SupportedSignatureAlgorithms: []utls.SignatureScheme{
+					utls.ECDSAWithP256AndSHA256,
+					utls.PSSWithSHA256,
+					utls.PKCS1WithSHA256,
+				}},
+				&utls.KeyShareExtension{KeyShares: []utls.KeyShare{
+					{Group: utls.X25519},
+				}},
+				&utls.SupportedVersionsExtension{Versions: []uint16{
+					utls.VersionTLS13,
+					utls.VersionTLS12,
+				}},
+			},
+		}
+	})
+	if _, err := c.R().Get("/"); err != nil {
+		t.Errorf("TestSetTLSFingerprintSpec failed on first handshake: %v", err)
+	}
+	if _, err := c.R().Get(server1.URL); err != nil {
+		t.Errorf("TestSetTLSFingerprintSpec failed on consecutive handshake to different host: %v", err)
+	}
 }
