@@ -32,24 +32,33 @@ func backoffInterval(min, max time.Duration) GetRetryIntervalFunc {
 	}
 }
 
-func newDefaultRetryOption() *retryOption {
-	return &retryOption{
+func newDefaultRetryOption() *RetryOption {
+	return &RetryOption{
 		GetRetryInterval: defaultGetRetryInterval,
 	}
 }
 
-type retryOption struct {
+// RetryOption controls the retry behavior of a request.
+// It is typically configured via Client.SetCommonRetry* or Request.SetRetry*
+// methods and can be read from middleware with Request.GetRetryOption.
+//
+// MaxRetries is the maximum number of retries (not including the initial
+// attempt). A negative value means retry infinitely. Zero means no retries.
+// GetRetryOption may still return a non-nil option if only non-count setters
+// (interval, condition, or hook) were used while leaving MaxRetries at zero.
+type RetryOption struct {
 	MaxRetries       int
 	GetRetryInterval GetRetryIntervalFunc
 	RetryConditions  []RetryConditionFunc
 	RetryHooks       []RetryHookFunc
 }
 
-func (ro *retryOption) Clone() *retryOption {
+// Clone returns a deep copy of RetryOption.
+func (ro *RetryOption) Clone() *RetryOption {
 	if ro == nil {
 		return nil
 	}
-	o := &retryOption{
+	o := &RetryOption{
 		MaxRetries:       ro.MaxRetries,
 		GetRetryInterval: ro.GetRetryInterval,
 	}

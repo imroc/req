@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -255,4 +256,148 @@ func TestRetryTurnedOffWhenRetryCountEqZero(t *testing.T) {
 	tests.AssertNotNil(t, err)
 	tests.AssertIsNil(t, resp.Response)
 	tests.AssertEqual(t, 0, resp.Request.RetryAttempt)
+}
+
+func TestGetRetryOptionNilWhenNotConfigured(t *testing.T) {
+	r := tc().R()
+	tests.AssertIsNil(t, r.GetRetryOption())
+}
+
+func TestGetRetryOptionFromRequest(t *testing.T) {
+	r := tc().R().SetRetryCount(5)
+	ro := r.GetRetryOption()
+	tests.AssertNotNil(t, ro)
+	tests.AssertEqual(t, 5, ro.MaxRetries)
+}
+
+func TestGetRetryOptionFromClient(t *testing.T) {
+	c := tc().SetCommonRetryCount(4)
+	r := c.R()
+	ro := r.GetRetryOption()
+	tests.AssertNotNil(t, ro)
+	tests.AssertEqual(t, 4, ro.MaxRetries)
+}
+
+func TestGetRetryOptionRequestOverridesClient(t *testing.T) {
+	c := tc().SetCommonRetryCount(4)
+	r := c.R().SetRetryCount(1)
+	ro := r.GetRetryOption()
+	tests.AssertNotNil(t, ro)
+	tests.AssertEqual(t, 1, ro.MaxRetries)
+	// Client-level option remains unchanged
+	tests.AssertEqual(t, 4, c.getRetryOption().MaxRetries)
+}
+
+// TestGetRetryOptionInMiddleware covers the #475 use case: middleware reads
+// MaxRetries so exception reporting only runs after all retries are exhausted.
+func TestGetRetryOptionInMiddleware(t *testing.T) {
+	reportCount := 0
+	middlewareCalls := 0
+	var seenMaxRetries int
+
+	c := tc().
+		SetCommonRetryCount(2).
+		SetCommonRetryFixedInterval(1 * time.Millisecond).
+		SetCommonRetryCondition(func(resp *Response, err error) bool {
+			return err != nil || resp.StatusCode == http.StatusTooManyRequests
+		}).
+		OnAfterResponse(func(client *Client, resp *Response) error {
+			middlewareCalls++
+			ro := resp.Request.GetRetryOption()
+			tests.AssertNotNil(t, ro)
+			seenMaxRetries = ro.MaxRetries
+
+			// Report only when retry budget is exhausted and the attempt failed
+			// (HTTP error status or transport error).
+			failed := resp.IsErrorState() || resp.Err != nil
+			if failed &&
+				resp.Request.RetryAttempt >= ro.MaxRetries &&
+				ro.MaxRetries >= 0 {
+				reportCount++
+			}
+			return nil
+		})
+
+	resp, err := c.R().Get("/too-many")
+
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, 2, seenMaxRetries)
+	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
+	// Initial attempt + 2 retries => 3 middleware invocations
+	tests.AssertEqual(t, 3, middlewareCalls)
+	// Only the final exhausted attempt should report once
+	tests.AssertEqual(t, 1, reportCount)
+}
+
+func TestGetRetryOptionInMiddlewareTransportError(t *testing.T) {
+	// Transport failures leave resp.Response nil so IsErrorState is false;
+	// reporting must also consider resp.Err.
+	reportCount := 0
+	middlewareCalls := 0
+	c := C().
+		SetTimeout(500 * time.Millisecond).
+		SetCommonRetryCount(1).
+		SetCommonRetryFixedInterval(1 * time.Millisecond).
+		OnAfterResponse(func(client *Client, resp *Response) error {
+			middlewareCalls++
+			ro := resp.Request.GetRetryOption()
+			tests.AssertNotNil(t, ro)
+			failed := resp.IsErrorState() || resp.Err != nil
+			if failed &&
+				resp.Request.RetryAttempt >= ro.MaxRetries &&
+				ro.MaxRetries >= 0 {
+				reportCount++
+			}
+			return nil
+		})
+
+	resp, err := c.R().Get("https://non-exists-host.com.cn")
+	tests.AssertNotNil(t, err)
+	tests.AssertEqual(t, 1, resp.Request.RetryAttempt)
+	tests.AssertEqual(t, 2, middlewareCalls) // initial + 1 retry
+	tests.AssertEqual(t, 1, reportCount)
+}
+
+func TestGetRetryOptionInMiddlewareNoReportOnEventualSuccess(t *testing.T) {
+	// Server fails twice then succeeds; middleware must not report after success.
+	attempt := 0
+	reportCount := 0
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempt++
+		if attempt <= 2 {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	c := C().
+		SetCommonRetryCount(3).
+		SetCommonRetryFixedInterval(1 * time.Millisecond).
+		SetCommonRetryCondition(func(resp *Response, err error) bool {
+			return err != nil || resp.StatusCode == http.StatusServiceUnavailable
+		})
+
+	resp, err := c.R().
+		OnAfterResponse(func(client *Client, resp *Response) error {
+			ro := resp.Request.GetRetryOption()
+			if ro == nil {
+				return nil
+			}
+			failed := resp.IsErrorState() || resp.Err != nil
+			if failed &&
+				resp.Request.RetryAttempt >= ro.MaxRetries &&
+				ro.MaxRetries >= 0 {
+				reportCount++
+			}
+			return nil
+		}).
+		Get(ts.URL)
+
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, http.StatusOK, resp.StatusCode)
+	tests.AssertEqual(t, 0, reportCount)
+	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
 }
