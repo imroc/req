@@ -59,7 +59,7 @@ type Request struct {
 	// request. A pointed-to value of 0 means no limit for this request.
 	maxResponseSize    *int64
 	unReplayableBody   io.ReadCloser
-	retryOption        *retryOption
+	retryOption        *RetryOption
 	bodyReadCloser     io.ReadCloser
 	dumpOptions        *DumpOptions
 	marshalBody        any
@@ -1236,10 +1236,43 @@ func (r *Request) DisableForceMultipart() *Request {
 	return r
 }
 
-func (r *Request) getRetryOption() *retryOption {
+func (r *Request) getRetryOption() *RetryOption {
 	if r.retryOption == nil {
 		r.retryOption = newDefaultRetryOption()
 	}
+	return r.retryOption
+}
+
+// GetRetryOption returns the retry configuration of this request.
+// It returns nil if retry has not been configured (neither via
+// Client.SetCommonRetry* nor Request.SetRetry*).
+//
+// The returned value is the live option used by this request: mutations
+// affect subsequent retries on the same request. Treat it as read-only
+// unless you intentionally want to change retry behavior from middleware.
+//
+// This is useful in middleware to inspect MaxRetries together with
+// Request.RetryAttempt, e.g. to report errors only after the configured
+// retry budget is exhausted:
+//
+//	client.OnAfterResponse(func(c *req.Client, resp *req.Response) error {
+//	    ro := resp.Request.GetRetryOption()
+//	    if ro == nil {
+//	        return nil
+//	    }
+//	    // Cover HTTP error statuses and transport failures (resp.Err with
+//	    // no Response). Client OnAfterResponse still runs after failed Do.
+//	    failed := resp.IsErrorState() || resp.Err != nil
+//	    // RetryAttempt >= MaxRetries only detects budget exhaustion. Retries
+//	    // may also stop earlier when a RetryCondition returns false; in that
+//	    // case RetryAttempt can be less than MaxRetries on a terminal failure.
+//	    if failed && ro.MaxRetries >= 0 &&
+//	        resp.Request.RetryAttempt >= ro.MaxRetries {
+//	        // report once after final failure
+//	    }
+//	    return nil
+//	})
+func (r *Request) GetRetryOption() *RetryOption {
 	return r.retryOption
 }
 

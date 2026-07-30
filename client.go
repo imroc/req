@@ -57,7 +57,7 @@ type Client struct {
 	disableAutoReadResponse bool
 	maxResponseSize         int64 // 0 means no limit
 	commonErrorType         reflect.Type
-	retryOption             *retryOption
+	retryOption             *RetryOption
 	jsonMarshal             func(v any) ([]byte, error)
 	jsonUnmarshal           func(data []byte, v any) error
 	xmlMarshal              func(v any) ([]byte, error)
@@ -1403,7 +1403,7 @@ func (c *Client) GetClient() *http.Client {
 	return c.httpClient
 }
 
-func (c *Client) getRetryOption() *retryOption {
+func (c *Client) getRetryOption() *RetryOption {
 	if c.retryOption == nil {
 		c.retryOption = newDefaultRetryOption()
 	}
