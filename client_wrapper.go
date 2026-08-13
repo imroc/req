@@ -747,6 +747,18 @@ func SetUnixSocket(file string) *Client {
 	return defaultClient.SetUnixSocket(file)
 }
 
+// SetResolver is a global wrapper methods which delegated
+// to the default client's Client.SetResolver.
+func SetResolver(r *net.Resolver) *Client {
+	return defaultClient.SetResolver(r)
+}
+
+// SetHosts is a global wrapper methods which delegated
+// to the default client's Client.SetHosts.
+func SetHosts(hosts map[string]string) *Client {
+	return defaultClient.SetHosts(hosts)
+}
+
 // SetTLSFingerprint is a global wrapper methods which delegated
 // to the default client's Client.SetTLSFingerprint.
 func SetTLSFingerprint(clientHelloID utls.ClientHelloID) *Client {

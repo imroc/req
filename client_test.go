@@ -108,6 +108,282 @@ func TestSetDialTLS(t *testing.T) {
 	tests.AssertEqual(t, testErr, err)
 }
 
+func TestSetResolver(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	// Broken custom resolver: hostname lookups fail, but IP literals still work.
+	r := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			return nil, errors.New("custom resolver down")
+		},
+	}
+	c := C().SetResolver(r).EnableInsecureSkipVerify()
+	tests.AssertNotNil(t, c.DialContext)
+
+	resp, err := c.R().Get(ts.URL)
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "ok", resp.String())
+
+	// Hostname must go through the custom resolver and fail.
+	_, err = c.SetTimeout(3 * time.Second).R().Get("https://example.invalid/")
+	tests.AssertNotNil(t, err)
+	tests.AssertErrorContains(t, err, "custom resolver down")
+
+	// nil resolver uses the default resolver (still installs a dialer).
+	c2 := C().SetResolver(nil)
+	tests.AssertNotNil(t, c2.DialContext)
+}
+
+func TestSetHosts(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("hosts-ok"))
+	}))
+	defer ts.Close()
+
+	ip, port, err := net.SplitHostPort(ts.Listener.Addr().String())
+	tests.AssertNoError(t, err)
+
+	c := C().
+		EnableInsecureSkipVerify().
+		EnableForceHTTP1().
+		SetHosts(map[string]string{
+			"Custom.Example": ip, // case-insensitive match
+		})
+
+	resp, err := c.R().Get(fmt.Sprintf("https://custom.example:%s/", port))
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "hosts-ok", resp.String())
+}
+
+func TestSetHostsHTTP2(t *testing.T) {
+	ts := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("h2-ok"))
+	}))
+	ts.EnableHTTP2 = true
+	ts.StartTLS()
+	defer ts.Close()
+
+	ip, port, err := net.SplitHostPort(ts.Listener.Addr().String())
+	tests.AssertNoError(t, err)
+
+	c := C().
+		EnableInsecureSkipVerify().
+		EnableForceHTTP2().
+		SetHosts(map[string]string{
+			"h2.example": ip,
+		})
+
+	resp, err := c.R().Get(fmt.Sprintf("https://h2.example:%s/", port))
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "h2-ok", resp.String())
+	tests.AssertEqual(t, "HTTP/2.0", resp.Proto)
+}
+
+func TestSetHostsUnknownHostFailsFast(t *testing.T) {
+	c := C().
+		EnableInsecureSkipVerify().
+		SetTimeout(5 * time.Second).
+		SetHosts(map[string]string{
+			"known.example": "127.0.0.1",
+		})
+
+	start := time.Now()
+	_, err := c.R().Get("https://unknown.example/")
+	elapsed := time.Since(start)
+
+	tests.AssertNotNil(t, err)
+	tests.AssertErrorContains(t, err, "no such host")
+	// Must not wait on system DNS timeouts.
+	if elapsed > 2*time.Second {
+		t.Fatalf("unknown host took too long: %v", elapsed)
+	}
+}
+
+func TestSetHostsEmptyMapFailsFast(t *testing.T) {
+	for _, hosts := range []map[string]string{nil, {}} {
+		c := C().SetHosts(hosts).SetTimeout(2 * time.Second)
+		start := time.Now()
+		_, err := c.DialContext(context.Background(), "tcp", "any.example:80")
+		elapsed := time.Since(start)
+		tests.AssertNotNil(t, err)
+		tests.AssertErrorContains(t, err, "no such host")
+		if elapsed > time.Second {
+			t.Fatalf("empty hosts map dial took too long: %v (hosts=%v)", elapsed, hosts)
+		}
+	}
+}
+
+func TestSetHostsIgnoresCallerMapMutation(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer ts.Close()
+
+	ip, port, err := net.SplitHostPort(ts.Listener.Addr().String())
+	tests.AssertNoError(t, err)
+
+	hosts := map[string]string{"static.example": ip}
+	c := C().EnableInsecureSkipVerify().EnableForceHTTP1().SetHosts(hosts)
+	// Mutating the original map after SetHosts must not affect the client.
+	delete(hosts, "static.example")
+	hosts["static.example"] = "0.0.0.0"
+
+	resp, err := c.R().Get(fmt.Sprintf("https://static.example:%s/", port))
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "ok", resp.String())
+}
+
+func TestSetHostsReplacedBySetDial(t *testing.T) {
+	called := false
+	c := C().
+		SetTimeout(2 * time.Second).
+		SetHosts(map[string]string{"x.example": "127.0.0.1"}).
+		SetDial(func(ctx context.Context, network, addr string) (net.Conn, error) {
+			called = true
+			return nil, errors.New("custom dial")
+		})
+
+	_, err := c.R().Get("https://x.example/")
+	tests.AssertNotNil(t, err)
+	tests.AssertEqual(t, true, called)
+	tests.AssertErrorContains(t, err, "custom dial")
+}
+
+func TestSetHostsIPLiteralPassthrough(t *testing.T) {
+	ts := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte("literal-ok"))
+	}))
+	defer ts.Close()
+
+	// Map does not include the server IP; IP-literal URLs must still work.
+	c := C().
+		EnableInsecureSkipVerify().
+		SetHosts(map[string]string{
+			"only.example": "10.0.0.1",
+		})
+
+	resp, err := c.R().Get(ts.URL)
+	assertSuccess(t, resp, err)
+	tests.AssertEqual(t, "literal-ok", resp.String())
+}
+
+func TestSetHostsScopedIPv6LiteralPassthrough(t *testing.T) {
+	c := C().SetHosts(nil)
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := c.DialContext(ctx, "tcp", "[fe80::1%eth0]:443")
+	tests.AssertNotNil(t, err)
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("scoped IPv6 literal was not dialed directly: %v", err)
+	}
+}
+
+func TestSetHostsRejectsProxy(t *testing.T) {
+	proxyURL := "http://127.0.0.1:1"
+	cases := []struct {
+		name   string
+		client *Client
+	}{
+		{
+			name: "proxy configured before SetHosts",
+			client: C().
+				SetProxyURL(proxyURL).
+				SetHosts(map[string]string{"allowed.example": "127.0.0.1"}),
+		},
+		{
+			name: "proxy configured after SetHosts",
+			client: C().
+				SetHosts(map[string]string{"allowed.example": "127.0.0.1"}).
+				SetProxyURL(proxyURL),
+		},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			for _, target := range []string{"http://allowed.example/", "http://unknown.example/"} {
+				_, err := tt.client.R().Get(target)
+				tests.AssertNotNil(t, err)
+				tests.AssertErrorContains(t, err, "SetHosts cannot be used with a proxy")
+			}
+		})
+	}
+}
+
+func TestSetHostsInvalidIPNoDNS(t *testing.T) {
+	c := C().SetHosts(map[string]string{
+		"bad.example": "not-an-ip",
+	})
+
+	start := time.Now()
+	_, err := c.DialContext(context.Background(), "tcp", "bad.example:80")
+	elapsed := time.Since(start)
+
+	tests.AssertNotNil(t, err)
+	tests.AssertErrorContains(t, err, "invalid IP address")
+	tests.AssertErrorContains(t, err, "not-an-ip")
+	if elapsed > time.Second {
+		t.Fatalf("invalid IP dial took too long (possible DNS fallback): %v", elapsed)
+	}
+}
+
+func TestSetHostsIPv6BracketedValue(t *testing.T) {
+	// Bracketed values must normalize to a single JoinHostPort form, not [[::1]]:port.
+	ip := net.ParseIP(strings.Trim("[::1]", "[]"))
+	tests.AssertNotNil(t, ip)
+	tests.AssertEqual(t, "[::1]:443", net.JoinHostPort(ip.String(), "443"))
+
+	// Dial with bracketed and plain map values must not produce address-parse errors.
+	// Connection may fail (no listener / no IPv6), but the address form must be valid.
+	for _, value := range []string{"[::1]", "::1"} {
+		c := C().SetHosts(map[string]string{"v6.example": value})
+		_, err := c.DialContext(context.Background(), "tcp", "v6.example:1")
+		if err != nil {
+			msg := err.Error()
+			if strings.Contains(msg, "too many colons") ||
+				strings.Contains(msg, "invalid IP") ||
+				strings.Contains(msg, "[[") {
+				t.Fatalf("value %q produced bad address form: %v", value, err)
+			}
+		}
+	}
+
+	// If IPv6 loopback is available, do a full connect as well.
+	ln, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Logf("skipping live IPv6 connect: %v", err)
+		return
+	}
+	defer ln.Close()
+	_, port, err := net.SplitHostPort(ln.Addr().String())
+	tests.AssertNoError(t, err)
+	go func() {
+		conn, err := ln.Accept()
+		if err == nil {
+			_ = conn.Close()
+		}
+	}()
+	c := C().SetHosts(map[string]string{"v6.example": "[::1]"})
+	conn, err := c.DialContext(context.Background(), "tcp", net.JoinHostPort("v6.example", port))
+	tests.AssertNoError(t, err)
+	_ = conn.Close()
+}
+
+func TestHostsMapKeyIDNA(t *testing.T) {
+	// Non-ASCII host should normalize to the same key as its punycode form.
+	unicodeHost := "bücher.example"
+	asciiHost, err := idnaASCII(unicodeHost)
+	tests.AssertNoError(t, err)
+	tests.AssertEqual(t, hostsMapKey(unicodeHost), hostsMapKey(asciiHost))
+	tests.AssertEqual(t, hostsMapKey(asciiHost), strings.ToLower(asciiHost))
+}
+
 func TestSetFuncs(t *testing.T) {
 	testErr := errors.New("test")
 	marshalFunc := func(v any) ([]byte, error) {
