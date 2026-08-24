@@ -534,6 +534,18 @@ func SetDownloadCallbackWithInterval(callback DownloadCallback, minInterval time
 	return defaultClient.R().SetDownloadCallbackWithInterval(callback, minInterval)
 }
 
+// SetUploadLimit is a global wrapper methods which delegated
+// to the default client, create a request and SetUploadLimit for request.
+func SetUploadLimit(bytesPerSecond int64) *Request {
+	return defaultClient.R().SetUploadLimit(bytesPerSecond)
+}
+
+// SetDownloadLimit is a global wrapper methods which delegated
+// to the default client, create a request and SetDownloadLimit for request.
+func SetDownloadLimit(bytesPerSecond int64) *Request {
+	return defaultClient.R().SetDownloadLimit(bytesPerSecond)
+}
+
 // EnableCloseConnection is a global wrapper methods which delegated
 // to the default client, create a request and EnableCloseConnection for request.
 func EnableCloseConnection() *Request {

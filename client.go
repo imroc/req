@@ -1898,6 +1898,22 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	if r.unReplayableBody != nil {
 		getBody = nil
 	}
+	if r.uploadLimit > 0 {
+		limit := r.uploadLimit
+		if reqBody != nil {
+			reqBody = newRateLimitedReadCloser(reqBody, limit)
+		}
+		if getBody != nil {
+			inner := getBody
+			getBody = func() (io.ReadCloser, error) {
+				rc, err := inner()
+				if err != nil || rc == nil {
+					return rc, err
+				}
+				return newRateLimitedReadCloser(rc, limit), nil
+			}
+		}
+	}
 	req := &http.Request{
 		Method:        r.Method,
 		Header:        r.Headers.Clone(),
@@ -1914,8 +1930,15 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 	for _, cookie := range r.Cookies {
 		req.AddCookie(cookie)
 	}
+	var bodyWraps []wrapResponseBodyFunc
+	if r.downloadLimit > 0 {
+		limit := r.downloadLimit
+		bodyWraps = append(bodyWraps, func(rc io.ReadCloser) io.ReadCloser {
+			return newRateLimitedReadCloser(rc, limit)
+		})
+	}
 	if r.isSaveResponse && r.downloadCallback != nil {
-		var wrap wrapResponseBodyFunc = func(rc io.ReadCloser) io.ReadCloser {
+		bodyWraps = append(bodyWraps, func(rc io.ReadCloser) io.ReadCloser {
 			return &callbackReader{
 				ReadCloser: rc,
 				callback: func(read int64) {
@@ -1927,6 +1950,14 @@ func (c *Client) roundTrip(r *Request) (resp *Response, err error) {
 				lastTime: time.Now(),
 				interval: r.downloadCallbackInterval,
 			}
+		})
+	}
+	if len(bodyWraps) > 0 {
+		var wrap wrapResponseBodyFunc = func(rc io.ReadCloser) io.ReadCloser {
+			for _, w := range bodyWraps {
+				rc = w(rc)
+			}
+			return rc
 		}
 		if ctx == nil {
 			ctx = context.Background()
