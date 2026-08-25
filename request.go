@@ -55,6 +55,8 @@ type Request struct {
 	uploadCallbackInterval   time.Duration
 	downloadCallback         DownloadCallback
 	downloadCallbackInterval time.Duration
+	uploadLimit              int64
+	downloadLimit            int64
 	// maxResponseSize, when non-nil, overrides Client.maxResponseSize for this
 	// request. A pointed-to value of 0 means no limit for this request.
 	maxResponseSize    *int64
@@ -402,6 +404,33 @@ func (r *Request) SetDownloadCallbackWithInterval(callback DownloadCallback, min
 	}
 	r.downloadCallback = callback
 	r.downloadCallbackInterval = minInterval
+	return r
+}
+
+// SetUploadLimit limits the request body upload speed to at most
+// bytesPerSecond, which is useful to avoid saturating the network. The limit
+// is applied to the raw bytes sent over the wire and is reapplied when a
+// request body is replayed on retry or redirect. A value of 0 or less removes
+// the limit.
+func (r *Request) SetUploadLimit(bytesPerSecond int64) *Request {
+	if bytesPerSecond <= 0 {
+		r.uploadLimit = 0
+		return r
+	}
+	r.uploadLimit = bytesPerSecond
+	return r
+}
+
+// SetDownloadLimit limits the response body download speed to at most
+// bytesPerSecond. The limit is applied to the raw bytes received from the
+// server, before any content decoding, so it reflects actual network usage. A
+// value of 0 or less removes the limit.
+func (r *Request) SetDownloadLimit(bytesPerSecond int64) *Request {
+	if bytesPerSecond <= 0 {
+		r.downloadLimit = 0
+		return r
+	}
+	r.downloadLimit = bytesPerSecond
 	return r
 }
 
