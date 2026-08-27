@@ -3,7 +3,7 @@ module github.com/imroc/req/v3
 go 1.25.0
 
 require (
-	github.com/andybalholm/brotli v1.2.2
+	github.com/andybalholm/brotli v1.2.3
 	github.com/google/go-querystring v1.2.0
 	github.com/icholy/digest v1.2.0
 	github.com/klauspost/compress v1.19.2
