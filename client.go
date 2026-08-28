@@ -1018,6 +1018,16 @@ func (c *Client) SetHTTP2PriorityFrames(frames ...http2.PriorityFrame) *Client {
 	return c
 }
 
+// SetHTTP2NextStreamID sets the stream ID of the first client-initiated
+// stream on new HTTP/2 connections (default 1). Some clients use a
+// different starting value (e.g. OkHttp starts at 3), which is part of
+// their HTTP/2 fingerprint. The value must be odd and fit into 31 bits
+// (RFC 9113); invalid values are ignored.
+func (c *Client) SetHTTP2NextStreamID(id uint32) *Client {
+	c.Transport.SetHTTP2NextStreamID(id)
+	return c
+}
+
 // SetCommonContentType set the `Content-Type` header for requests fired
 // from the client.
 func (c *Client) SetCommonContentType(ct string) *Client {

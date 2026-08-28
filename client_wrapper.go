@@ -471,6 +471,12 @@ func SetHTTP2PriorityFrames(frames ...http2.PriorityFrame) *Client {
 	return defaultClient.SetHTTP2PriorityFrames(frames...)
 }
 
+// SetHTTP2NextStreamID is a global wrapper methods which delegated
+// to the default client's Client.SetHTTP2NextStreamID.
+func SetHTTP2NextStreamID(id uint32) *Client {
+	return defaultClient.SetHTTP2NextStreamID(id)
+}
+
 // SetHTTP2MaxHeaderListSize is a global wrapper methods which delegated
 // to the default client's Client.SetHTTP2MaxHeaderListSize.
 func SetHTTP2MaxHeaderListSize(max uint32) *Client {

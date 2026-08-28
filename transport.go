@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"mime"
 	"net"
 	"net/http"
@@ -445,6 +446,22 @@ func (t *Transport) SetHTTP2PriorityFrames(frames ...http2.PriorityFrame) *Trans
 	return t
 }
 
+// SetHTTP2NextStreamID sets the stream ID of the first client-initiated
+// stream on new HTTP/2 connections (default 1). Some clients use a
+// different starting value (e.g. OkHttp starts at 3), which is part of
+// their HTTP/2 fingerprint. The value must be odd and fit into 31 bits
+// (RFC 9113); invalid values are ignored. If priority frames are also
+// configured (see SetHTTP2PriorityFrames), the counter advances past the
+// stream IDs they claim, so their stream IDs should be greater than or
+// equal to this value and given in increasing order.
+func (t *Transport) SetHTTP2NextStreamID(id uint32) *Transport {
+	if id%2 == 0 || id > math.MaxInt32 {
+		return t
+	}
+	t.t2.NextStreamID = id
+	return t
+}
+
 // SetTLSClientConfig set the custom TLSClientConfig, which specifies the TLS configuration to
 // use with tls.Client.
 // If nil, the default configuration is used.
@@ -778,6 +795,7 @@ func (t *Transport) Clone() *Transport {
 			Settings:                   cloneSlice(t.t2.Settings),
 			HeaderPriority:             t.t2.HeaderPriority,
 			PriorityFrames:             cloneSlice(t.t2.PriorityFrames),
+			NextStreamID:               t.t2.NextStreamID,
 		}
 	}
 	if t.t3 != nil {

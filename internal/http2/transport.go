@@ -145,6 +145,15 @@ type Transport struct {
 	HeaderPriority http2.PriorityParam
 	PriorityFrames []http2.PriorityFrame
 
+	// NextStreamID is the stream ID assigned to the first client-initiated
+	// stream on each new connection (default 1; client stream IDs are odd
+	// per RFC 9113). Some real-world clients use a different starting
+	// value — OkHttp, for example, starts at 3 — and the value is
+	// observable on the wire as part of the client's HTTP/2 fingerprint.
+	// Must be odd; even values are ignored. If PriorityFrames are also
+	// configured, the counter advances past the stream IDs they claim.
+	NextStreamID uint32
+
 	connPoolOnce  sync.Once
 	connPoolOrDef ClientConnPool // non-nil version of ConnPool
 }
@@ -224,6 +233,13 @@ type ClientConn struct {
 	streams         map[uint32]*clientStream // client-initiated
 	streamsReserved int                      // incr by ReserveNewRequest; decr on RoundTrip
 	nextStreamID    uint32
+	// initialStreamID is the value of nextStreamID right after the
+	// connection handshake, i.e. the stream ID of the first request stream
+	// on this connection. It records the starting point configured via
+	// Transport.NextStreamID and/or advanced by priority frames, so that
+	// "first stream" checks (singleUse, GOAWAY heuristics) keep working
+	// when the counter does not start at 1.
+	initialStreamID uint32
 	pendingRequests int                       // requests blocked and waiting to be sent because len(streams) == maxConcurrentStreams
 	pings           map[[8]byte]chan struct{} // in flight ping data to notification channel
 	br              *bufio.Reader
@@ -835,10 +851,37 @@ func (t *Transport) newClientConn(c net.Conn, singleUse bool) (*ClientConn, erro
 	}
 	cc.fr.WriteWindowUpdate(0, connFlow)
 
+	// Apply the configured initial stream ID (e.g. OkHttp starts its first
+	// request stream at 3 instead of 1).
+	//
+	// The guards:
+	//   - t.NextStreamID > 1: 0 means the option was never set (zero value)
+	//     and 1 equals the default already assigned above, so only values
+	//     beyond 1 need to override it.
+	//   - t.NextStreamID%2 == 1: client-initiated stream IDs must be odd
+	//     (RFC 9113 §5.1.1); even values are protocol violations and are
+	//     ignored defensively.
+	//   - t.NextStreamID <= math.MaxInt32: stream IDs are 31-bit
+	//     (RFC 9113 §5.1.1); larger values would make the connection
+	//     unable to take any request.
+	//
+	// This must run before the priority-frame loop below: priority frames
+	// claim their stream IDs and push the counter past each of them
+	// (e.g. Firefox claims streams 3..13, so the first request stream
+	// becomes 15), and that advancement must not be overwritten here.
+	if t.NextStreamID > 1 && t.NextStreamID%2 == 1 && t.NextStreamID <= math.MaxInt32 {
+		cc.nextStreamID = t.NextStreamID
+	}
+
 	for _, p := range t.PriorityFrames {
 		cc.fr.WritePriority(p.StreamID, p.PriorityParam)
 		cc.nextStreamID = p.StreamID + 2
 	}
+
+	// Record the handshake-time starting point of the stream ID counter,
+	// so that "first stream on this connection" checks keep working when
+	// it is not 1 (custom NextStreamID and/or priority frames above).
+	cc.initialStreamID = cc.nextStreamID
 
 	cc.inflow.init(int32(connFlow) + initialWindowSize)
 	cc.bw.Flush()
@@ -903,7 +946,7 @@ func (cc *ClientConn) setGoAway(f *GoAwayFrame) {
 			// without doing so. Either way, leave the stream alone for now.
 			continue
 		}
-		if streamID == 1 && cc.goAway.ErrCode != ErrCodeNo {
+		if streamID == cc.initialStreamID && cc.goAway.ErrCode != ErrCodeNo {
 			// Don't retry the first stream on a connection if we get a non-NO error.
 			// If the server is sending an error on a new connection,
 			// retrying the request on a new one probably isn't going to work.
@@ -986,7 +1029,7 @@ func (cc *ClientConn) idleState() clientConnIdleState {
 }
 
 func (cc *ClientConn) idleStateLocked() (st clientConnIdleState) {
-	if cc.singleUse && cc.nextStreamID > 1 {
+	if cc.singleUse && cc.nextStreamID > cc.initialStreamID {
 		return
 	}
 	var maxConcurrentOkay bool
