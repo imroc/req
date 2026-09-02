@@ -1,9 +1,35 @@
 package http3
 
 import (
+	"io"
 	"net/http"
 	"testing"
+
+	"github.com/imroc/req/v3/internal/dump"
+	"github.com/quic-go/qpack"
 )
+
+func TestParseHeadersRejectsUserinfoInAuthority(t *testing.T) {
+	fields := []qpack.HeaderField{
+		{Name: ":method", Value: "GET"},
+		{Name: ":scheme", Value: "https"},
+		{Name: ":authority", Value: "user@example.com"},
+		{Name: ":path", Value: "/"},
+	}
+	decode := func() (qpack.HeaderField, error) {
+		if len(fields) == 0 {
+			return qpack.HeaderField{}, io.EOF
+		}
+		field := fields[0]
+		fields = fields[1:]
+		return field, nil
+	}
+
+	_, err := parseHeaders(decode, true, 1<<20, nil, dump.Dumpers{})
+	if err == nil || err.Error() != "userinfo is not allowed in :authority" {
+		t.Fatalf("got error %v, want userinfo rejection", err)
+	}
+}
 
 func TestExtractAnnouncedTrailers(t *testing.T) {
 	tests := []struct {
