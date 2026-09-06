@@ -1,9 +1,11 @@
 package req
 
 import (
-	"github.com/imroc/req/v3/internal/charsets"
+	"bytes"
 	"io"
 	"strings"
+
+	"github.com/imroc/req/v3/internal/charsets"
 )
 
 var textContentTypes = []string{"text", "json", "xml", "html", "java"}
@@ -48,30 +50,20 @@ func (a *autoDecodeReadCloser) peekRead(p []byte) (n int, err error) {
 		return
 	}
 	a.detected = true
-	enc, name := charsets.FindEncoding(p)
+	enc, name := charsets.FindEncoding(p[:n])
 	if enc == nil {
 		return
 	}
 	if a.t.Debugf != nil {
 		a.t.Debugf("charset %s found in body's meta, auto-decode to utf-8", name)
 	}
-	dc := enc.NewDecoder()
-	a.decodeReader = dc.Reader(a.ReadCloser)
-	var pp []byte
-	pp, err = dc.Bytes(p[:n])
-	if err != nil {
-		return
-	}
-	if len(pp) > len(p) {
-		a.peek = make([]byte, len(pp)-len(p))
-		copy(a.peek, pp[len(p):])
-		copy(p, pp[:len(p)])
-		n = len(p)
-		return
-	}
-	copy(p, pp)
-	n = len(p)
-	return
+	// Replay the first chunk through the same decoder as the rest of the
+	// body. Decoding it with Decoder.Bytes treats the chunk as a complete
+	// input, so a multi-byte character split across this read is corrupted.
+	first := make([]byte, n)
+	copy(first, p[:n])
+	a.decodeReader = enc.NewDecoder().Reader(io.MultiReader(bytes.NewReader(first), a.ReadCloser))
+	return a.decodeReader.Read(p)
 }
 
 func (a *autoDecodeReadCloser) peekDrain(p []byte) (n int, err error) {
