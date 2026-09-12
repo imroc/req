@@ -827,19 +827,24 @@ var (
 	doubleCRLF = []byte("\r\n\r\n")
 )
 
-func seeUpcomingDoubleCRLF(r *bufio.Reader) bool {
+func seeUpcomingDoubleCRLF(r *bufio.Reader) error {
 	for peekSize := 4; ; peekSize++ {
 		// This loop stops when Peek returns an error,
 		// which it does when r's buffer has been filled.
 		buf, err := r.Peek(peekSize)
+		for i, b := range buf {
+			if b == '\n' && (i == 0 || buf[i-1] != '\r') {
+				return errors.New("http: invalid trailer")
+			}
+		}
 		if bytes.HasSuffix(buf, doubleCRLF) {
-			return true
+			return nil
 		}
 		if err != nil {
 			break
 		}
 	}
-	return false
+	return errors.New("http: suspiciously long trailer after chunked body")
 }
 
 var errTrailerEOF = errors.New("http: unexpected EOF reading trailer")
@@ -866,8 +871,8 @@ func (b *body) readTrailer() error {
 	// this bufio.textprotoReader. Instead, a hack: we iteratively Peek up
 	// to the bufio.textprotoReader's max size, looking for a double CRLF.
 	// This limits the trailer to the underlying buffer size, typically 4kB.
-	if !seeUpcomingDoubleCRLF(b.r) {
-		return errors.New("http: suspiciously long trailer after chunked body")
+	if err := seeUpcomingDoubleCRLF(b.r); err != nil {
+		return err
 	}
 
 	hdr, err := textproto.NewReader(b.r).ReadMIMEHeader()

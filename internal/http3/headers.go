@@ -139,6 +139,9 @@ func parseHeaders(decodeFn qpack.DecodeFunc, isRequest bool, sizeLimit int, head
 	if ds.ShouldDump() && len(hdr.Headers) > 0 {
 		ds.DumpResponseHeader([]byte("\r\n"))
 	}
+	if isRequest && (hdr.Scheme == "http" || hdr.Scheme == "https") && strings.Contains(hdr.Authority, "@") {
+		return header{}, errors.New("userinfo is not allowed in :authority")
+	}
 	hdr.ContentLength = -1
 	if len(contentLengthStr) > 0 {
 		// use ParseUint instead of ParseInt, so that parsing fails on negative values
