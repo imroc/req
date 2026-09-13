@@ -315,6 +315,14 @@ func (t *Transport) AddConn(ctx context.Context, addr string) error {
 }
 
 func (t *Transport) getClient(ctx context.Context, hostname string, onlyCached bool) (rtc *roundTripperWithCount, isReused bool, err error) {
+	// AddConn reaches here without going through roundTripOpt, so init has to
+	// run here as well. Outside the mutex, like roundTripOpt does it, because
+	// init opens a UDP socket.
+	t.initOnce.Do(func() { t.initErr = t.init() })
+	if t.initErr != nil {
+		return nil, false, t.initErr
+	}
+
 	t.mutex.Lock()
 	defer t.mutex.Unlock()
 	if t.closed {

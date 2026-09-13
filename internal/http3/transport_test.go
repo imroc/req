@@ -3,6 +3,7 @@ package http3
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -138,4 +139,40 @@ func TestNewClientConnAndRawClientConn(t *testing.T) {
 	}
 
 	t.Log("Successfully created ClientConn and RawClientConn")
+}
+
+// AddConn is the second way into getClient, beside roundTripOpt, and only
+// roundTripOpt ran init. A transport whose first use is AddConn therefore
+// dialed with a nil QUICConfig, a nil quic.Transport and a nil newClientConn,
+// and the dial runs in its own goroutine, so the nil transport took the
+// process down with it.
+func TestAddConnInitializesTheTransport(t *testing.T) {
+	dialed := make(chan *quic.Config, 1)
+	tr := &Transport{
+		Dial: func(ctx context.Context, addr string, tlsCfg *tls.Config, cfg *quic.Config) (*quic.Conn, error) {
+			dialed <- cfg
+			return nil, errors.New("this test does not dial")
+		},
+	}
+
+	if err := tr.AddConn(context.Background(), "127.0.0.1:443"); err != nil {
+		t.Fatalf("AddConn: %v", err)
+	}
+
+	var cfg *quic.Config
+	select {
+	case cfg = <-dialed:
+	case <-time.After(10 * time.Second):
+		t.Fatal("the dial never ran")
+	}
+
+	if cfg == nil {
+		t.Fatal("dialed with a nil quic.Config, so init did not run before AddConn dialed")
+	}
+	if cfg.MaxIncomingStreams != -1 {
+		t.Errorf("MaxIncomingStreams is %d, want -1", cfg.MaxIncomingStreams)
+	}
+	if len(cfg.Versions) != 1 {
+		t.Errorf("Versions is %v, want exactly one", cfg.Versions)
+	}
 }
