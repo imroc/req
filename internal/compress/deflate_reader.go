@@ -63,7 +63,7 @@ func (df *DeflateReader) Read(p []byte) (n int, err error) {
 
 func (df *DeflateReader) Close() error {
 	if df.dr != nil {
-		return df.dr.Close()
+		df.dr.Close()
 	}
 	return df.Body.Close()
 }

@@ -188,3 +188,29 @@ func TestLooksLikeZlibAgreesWithCompressZlib(t *testing.T) {
 		t.Fatal("compress/zlib accepted no header at all, the check proves nothing")
 	}
 }
+
+func TestDeflateReaderCloseClosesTheBody(t *testing.T) {
+	body := deflateData(t, "hello deflate world")
+	tracked := &closeTracker{ReadCloser: body}
+	dr := NewDeflateReader(tracked)
+
+	if _, err := io.ReadAll(dr); err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
+	if err := dr.Close(); err != nil {
+		t.Fatalf("Close failed: %v", err)
+	}
+	if !tracked.closed {
+		t.Fatal("the response body was never closed, so the connection is never released")
+	}
+}
+
+type closeTracker struct {
+	io.ReadCloser
+	closed bool
+}
+
+func (c *closeTracker) Close() error {
+	c.closed = true
+	return c.ReadCloser.Close()
+}
