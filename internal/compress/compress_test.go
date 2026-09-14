@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/flate"
 	"compress/gzip"
+	"compress/zlib"
 	"io"
 	"strings"
 	"testing"
@@ -122,5 +123,68 @@ func TestNewCompressReader(t *testing.T) {
 				t.Fatal("expected nil CompressReader")
 			}
 		})
+	}
+}
+
+func zlibData(t *testing.T, data string) io.ReadCloser {
+	t.Helper()
+	var buf bytes.Buffer
+	zw := zlib.NewWriter(&buf)
+	if _, err := zw.Write([]byte(data)); err != nil {
+		t.Fatal(err)
+	}
+	zw.Close()
+	return io.NopCloser(&buf)
+}
+
+// Content-Encoding: deflate is the zlib format of RFC 1950. Raw RFC 1951
+// deflate is the common variant. Both have to read.
+func TestDeflateReaderReadsBothVariants(t *testing.T) {
+	const original = "hello deflate world, long enough to compress"
+	tests := []struct {
+		name string
+		body func(*testing.T, string) io.ReadCloser
+	}{
+		{"zlib", zlibData},
+		{"raw", deflateData},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dr := NewDeflateReader(tt.body(t, original))
+			defer dr.Close()
+
+			out, err := io.ReadAll(dr)
+			if err != nil {
+				t.Fatalf("ReadAll failed: %v", err)
+			}
+			if string(out) != original {
+				t.Fatalf("got %q, want %q", string(out), original)
+			}
+		})
+	}
+}
+
+// The header check is compared against compress/zlib itself over every
+// possible two-byte header, so it cannot drift from the reference and no
+// header has to be worked out by hand. A zlib header naming a preset
+// dictionary is still a zlib header; the reader surfaces zlib's own error
+// for it instead of reading the body as raw deflate.
+func TestLooksLikeZlibAgreesWithCompressZlib(t *testing.T) {
+	var accepted int
+	for cmf := 0; cmf < 256; cmf++ {
+		for flg := 0; flg < 256; flg++ {
+			header := []byte{byte(cmf), byte(flg)}
+			_, err := zlib.NewReader(bytes.NewReader(append(header, make([]byte, 8)...)))
+			want := err == nil || err == zlib.ErrDictionary
+			if want {
+				accepted++
+			}
+			if got := looksLikeZlib(byte(cmf), byte(flg)); got != want {
+				t.Errorf("header %#02x %#02x: looksLikeZlib = %v, compress/zlib says %v", cmf, flg, got, want)
+			}
+		}
+	}
+	if accepted == 0 {
+		t.Fatal("compress/zlib accepted no header at all, the check proves nothing")
 	}
 }
