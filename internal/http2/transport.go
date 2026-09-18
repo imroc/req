@@ -3301,16 +3301,13 @@ func isConnectionCloseRequest(req *http.Request) bool {
 	return req.Close || httpguts.HeaderValuesContainsToken(req.Header["Connection"], "close")
 }
 
-// noDialH2RoundTripper is a RoundTripper which only tries to complete the request
+// NoDialH2RoundTripper is a RoundTripper which only tries to complete the request
 // if there's already has a cached connection to the host.
-// (The field is exported so it can be accessed via reflect from net/http; tested
-// by TestNoDialH2RoundTripperType)
-type noDialH2RoundTripper struct{ *Transport }
+type NoDialH2RoundTripper struct{ *Transport }
 
-func (rt noDialH2RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	res, err := rt.Transport.RoundTrip(req)
-	if IsNoCachedConnError(err) {
-		return nil, http.ErrSkipAltProtocol
-	}
-	return res, err
+// RoundTrip completes the request over an already cached connection only,
+// it never dials a new connection, and returns ErrNoCachedConn if no cached
+// connection is available.
+func (rt NoDialH2RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return rt.Transport.RoundTripOnlyCachedConn(req)
 }
