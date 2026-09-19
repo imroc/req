@@ -483,7 +483,8 @@ func (t *Transport) RoundTripOpt(req *http.Request, opt RoundTripOpt) (*http.Res
 		if err != nil {
 			return nil, err
 		}
-		traceGotConn(req, cc, true)
+		reused := !atomic.CompareAndSwapUint32(&cc.reused, 0, 1)
+		traceGotConn(req, cc, reused)
 		return cc.RoundTrip(req)
 	}
 	for retry := 0; ; retry++ {
