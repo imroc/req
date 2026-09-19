@@ -636,6 +636,11 @@ var allowedProtocols = map[string]bool{
 }
 
 func (t *Transport) handleAltSvc(req *http.Request, value string) {
+	// HTTP/3 runs over QUIC (UDP) and cannot go through a proxy, so the
+	// alt-svc advertisement is ignored when a proxy applies to the request.
+	if t.proxyUnsupportedError(req, "HTTP3") != nil {
+		return
+	}
 	addr := netutil.AuthorityKey(req.URL)
 	as := t.altSvcJar.GetAltSvc(addr)
 	if as != nil {
@@ -872,6 +877,11 @@ func (t *Transport) checkAltSvc(req *http.Request) (resp *http.Response, err err
 	if t.altSvcJar == nil {
 		return
 	}
+	// HTTP/3 runs over QUIC (UDP) and cannot go through a proxy, so the
+	// alt-svc upgrade is skipped when a proxy applies to the request.
+	if t.proxyUnsupportedError(req, "HTTP3") != nil {
+		return
+	}
 	addr := netutil.AuthorityKey(req.URL)
 	t.pendingAltSvcsMu.Lock()
 	pas, ok := t.pendingAltSvcs[addr]
@@ -960,9 +970,30 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 	if t.forceHttpVersion != "" {
 		switch t.forceHttpVersion {
 		case h3:
+			// HTTP/3 runs over QUIC (UDP) and cannot go through a proxy.
+			if scheme == "https" {
+				if err := t.proxyUnsupportedError(req, "HTTP3"); err != nil {
+					closeBody(req)
+					return nil, err
+				}
+			}
 			return t.t3.RoundTrip(req)
 		case h2:
-			return t.t2.RoundTrip(req)
+			if scheme != "https" {
+				// h2c (and schemes the HTTP/2 transport rejects) can only be
+				// served by the HTTP/2 transport, which dials the origin
+				// directly and cannot go through a proxy.
+				if scheme == "http" {
+					if err := t.proxyUnsupportedError(req, "H2C"); err != nil {
+						closeBody(req)
+						return nil, err
+					}
+				}
+				return t.t2.RoundTrip(req)
+			}
+			// For https requests, forced HTTP/2 goes through the standard
+			// flow below, which honors the configured proxy and enforces
+			// HTTP/2 during the TLS handshake.
 		}
 	}
 
@@ -978,7 +1009,7 @@ func (t *Transport) roundTrip(req *http.Request) (resp *http.Response, err error
 		if err != nil {
 			return nil, err
 		}
-		if t.t3 != nil {
+		if t.t3 != nil && t.proxyUnsupportedError(req, "HTTP3") == nil {
 			resp, err = t.t3.RoundTripOnlyCachedConn(req)
 			if err != http3.ErrNoCachedConn {
 				return resp, err
@@ -1304,6 +1335,23 @@ func (t *Transport) connectMethodForRequest(treq *transportRequest) (cm connectM
 	}
 	cm.onlyH1 = t.forceHttpVersion == h1 || requestRequiresHTTP1(treq.Request)
 	return cm, err
+}
+
+// proxyUnsupportedError returns an error if a proxy applies to the request,
+// since the named protocol dials the origin directly and cannot go through
+// a proxy, or nil if no proxy applies.
+func (t *Transport) proxyUnsupportedError(req *http.Request, protocol string) error {
+	if t.Proxy == nil {
+		return nil
+	}
+	proxyURL, err := t.Proxy(req)
+	if err != nil {
+		return err
+	}
+	if proxyURL != nil {
+		return fmt.Errorf("req: %s cannot be used with a proxy", protocol)
+	}
+	return nil
 }
 
 // proxyAuth returns the Proxy-Authorization header to set
@@ -2086,6 +2134,10 @@ func (t *Transport) customTlsHandshake(ctx context.Context, trace *httptrace.Cli
 		pconn.conn.Close()
 		return err
 	}
+	if pconn.t.forceHttpVersion == h2 && pconn.tlsState != nil && pconn.tlsState.NegotiatedProtocol != h2internal.NextProtoTLS {
+		pconn.conn.Close()
+		return newHttp2NotSupportedError(pconn.tlsState.NegotiatedProtocol)
+	}
 	return nil
 }
 
@@ -2308,7 +2360,7 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 			} else if !used {
 				go pconn.conn.Close()
 			}
-			return &persistConn{t: t, cacheKey: pconn.cacheKey, alt: t.t2}, nil
+			return &persistConn{t: t, cacheKey: pconn.cacheKey, alt: h2internal.NoDialH2RoundTripper{Transport: t.t2}}, nil
 		}
 	}
 
