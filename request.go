@@ -721,14 +721,28 @@ func (r *Request) shouldRetry(resp *Response, err error) bool {
 	return needRetry
 }
 
-func (r *Request) prepareRetry(resp *Response, err error) {
+func (r *Request) prepareRetry(resp *Response, err error) error {
+	ctx := r.Context()
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	r.RetryAttempt++
 	if l := len(r.retryOption.RetryHooks); l > 0 {
 		for i := l - 1; i >= 0; i-- {
 			r.retryOption.RetryHooks[i](resp, err)
 		}
 	}
-	time.Sleep(r.retryOption.GetRetryInterval(resp, r.RetryAttempt))
+	timer := time.NewTimer(r.retryOption.GetRetryInterval(resp, r.RetryAttempt))
+	defer timer.Stop()
+	ctx = r.Context()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 
 	if r.dumpBuffer != nil {
 		r.dumpBuffer.Reset()
@@ -741,6 +755,7 @@ func (r *Request) prepareRetry(resp *Response, err error) {
 		resp.result = nil
 		resp.error = nil
 	}
+	return nil
 }
 
 // tryRetry attempts retry after an error. Returns true if the request loop should continue.
@@ -754,7 +769,10 @@ func (r *Request) tryRetry(resp **Response, err error) bool {
 	if !r.shouldRetry(*resp, err) {
 		return false
 	}
-	r.prepareRetry(*resp, err)
+	if err := r.prepareRetry(*resp, err); err != nil {
+		(*resp).Err = err
+		return false
+	}
 	return true
 }
 

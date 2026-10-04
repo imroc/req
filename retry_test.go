@@ -2,11 +2,13 @@ package req
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io"
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -400,4 +402,169 @@ func TestGetRetryOptionInMiddlewareNoReportOnEventualSuccess(t *testing.T) {
 	tests.AssertEqual(t, http.StatusOK, resp.StatusCode)
 	tests.AssertEqual(t, 0, reportCount)
 	tests.AssertEqual(t, 2, resp.Request.RetryAttempt)
+}
+
+func TestRetryWaitStopsWithRequestContext(t *testing.T) {
+	for _, middleware := range []bool{false, true} {
+		for _, deadline := range []bool{false, true} {
+			name := "response"
+			if middleware {
+				name = "middleware"
+			}
+			if deadline {
+				name += "/deadline"
+			} else {
+				name += "/cancel"
+			}
+			t.Run(name, func(t *testing.T) {
+				var attempts atomic.Int32
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					attempts.Add(1)
+					w.WriteHeader(http.StatusServiceUnavailable)
+					_, _ = io.WriteString(w, "retry response")
+				}))
+				defer server.Close()
+				client := C()
+				if middleware {
+					client.OnBeforeRequest(func(c *Client, r *Request) error {
+						attempts.Add(1)
+						return errors.New("before request failed")
+					})
+				}
+				ctx, cancel := context.WithCancel(context.Background())
+				if deadline {
+					cancel()
+					ctx, cancel = context.WithTimeout(context.Background(), 200*time.Millisecond)
+				}
+				defer cancel()
+				waiting := make(chan struct{})
+				request := client.R().SetContext(ctx).SetRetryCount(1).
+					SetRetryCondition(func(resp *Response, err error) bool { return true }).
+					SetRetryInterval(func(resp *Response, attempt int) time.Duration {
+						close(waiting)
+						return time.Second
+					})
+				result := make(chan *Response, 1)
+				go func() { resp, _ := request.Get(server.URL); result <- resp }()
+				select {
+				case <-waiting:
+				case resp := <-result:
+					t.Fatalf("request ended before retry wait: %v", resp.Err)
+				case <-time.After(2 * time.Second):
+					t.Fatal("request did not reach retry wait")
+				}
+				if !deadline {
+					cancel()
+				}
+				<-ctx.Done()
+				var resp *Response
+				select {
+				case resp = <-result:
+				case <-time.After(500 * time.Millisecond):
+					t.Error("request stayed in retry wait after its context ended")
+					select {
+					case resp = <-result:
+					case <-time.After(2 * time.Second):
+						t.Fatal("request did not finish")
+					}
+				}
+				if !errors.Is(resp.Err, ctx.Err()) {
+					t.Errorf("got error %v, want %v", resp.Err, ctx.Err())
+				}
+				if got := attempts.Load(); got != 1 {
+					t.Errorf("got %d attempts, want 1", got)
+				}
+				if !middleware && resp.String() != "retry response" {
+					t.Errorf("lost retry response body: %q", resp.String())
+				}
+			})
+		}
+	}
+}
+
+func TestRetryHookCancelsRequestContext(t *testing.T) {
+	for _, replace := range []bool{false, true} {
+		for _, interval := range []time.Duration{0, time.Millisecond} {
+			name := "cancel/" + interval.String()
+			if replace {
+				name = "replace/" + interval.String()
+			}
+			t.Run(name, func(t *testing.T) {
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+				var attempts int
+				client := C().OnBeforeRequest(func(c *Client, r *Request) error {
+					attempts++
+					return errors.New("before request failed")
+				})
+				resp, err := client.R().SetContext(ctx).SetRetryCount(1).
+					SetRetryFixedInterval(interval).
+					SetRetryHook(func(resp *Response, err error) {
+						if replace {
+							ctx, cancel := context.WithCancel(context.Background())
+							cancel()
+							resp.Request.SetContext(ctx)
+						} else {
+							cancel()
+						}
+					}).Get("http://example.invalid")
+				if !errors.Is(err, context.Canceled) || !errors.Is(resp.Err, context.Canceled) {
+					t.Errorf("got errors %v and %v, want context.Canceled", err, resp.Err)
+				}
+				if attempts != 1 {
+					t.Errorf("got %d attempts, want 1", attempts)
+				}
+			})
+		}
+	}
+}
+
+func TestRetryWithExpiredRequestContext(t *testing.T) {
+	for _, middleware := range []bool{false, true} {
+		name := "transport"
+		if middleware {
+			name = "middleware"
+		}
+		t.Run(name, func(t *testing.T) {
+			ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
+			defer cancel()
+			client := C()
+			if middleware {
+				client.OnBeforeRequest(func(c *Client, r *Request) error {
+					return errors.New("before request failed")
+				})
+			}
+			hooks := 0
+			request := client.R().SetContext(ctx).SetRetryCount(1).
+				SetRetryFixedInterval(0).
+				SetRetryHook(func(resp *Response, err error) { hooks++ })
+			resp, err := request.Get("http://example.invalid")
+			if !errors.Is(err, context.DeadlineExceeded) || !errors.Is(resp.Err, context.DeadlineExceeded) {
+				t.Errorf("got errors %v and %v, want context.DeadlineExceeded", err, resp.Err)
+			}
+			if request.RetryAttempt != 0 || hooks != 0 {
+				t.Errorf("got %d retry attempts and %d hooks, want none", request.RetryAttempt, hooks)
+			}
+		})
+	}
+}
+
+func TestRetryAfterClientTimeout(t *testing.T) {
+	var attempts atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if attempts.Add(1) == 1 {
+			<-r.Context().Done()
+			return
+		}
+		_, _ = io.WriteString(w, "retried")
+	}))
+	defer server.Close()
+	resp, err := C().SetTimeout(100 * time.Millisecond).R().SetRetryCount(1).
+		SetRetryFixedInterval(0).Get(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.String() != "retried" || attempts.Load() != 2 || resp.Request.RetryAttempt != 1 {
+		t.Fatalf("got body %q, %d attempts, %d retries", resp.String(), attempts.Load(), resp.Request.RetryAttempt)
+	}
 }
