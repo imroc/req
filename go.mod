@@ -3,10 +3,10 @@ module github.com/imroc/req/v3
 go 1.25.0
 
 require (
-	github.com/andybalholm/brotli v1.2.4
 	github.com/google/go-querystring v1.2.0
 	github.com/icholy/digest v1.2.0
 	github.com/klauspost/compress v1.20.0
+	github.com/molecule-man/go-brrr v1.2.0
 	github.com/quic-go/qpack v0.6.0
 	github.com/quic-go/quic-go v0.61.0
 	github.com/refraction-networking/utls v1.8.2
@@ -15,6 +15,7 @@ require (
 )
 
 require (
+	github.com/andybalholm/brotli v1.2.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/xyproto/randomstring v1.2.0 // indirect
 	go.uber.org/mock v0.6.0 // indirect

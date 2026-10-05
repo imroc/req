@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/molecule-man/go-brrr"
 )
 
 func gzipData(t *testing.T, data string) io.ReadCloser {
@@ -96,6 +98,25 @@ func TestDeflateReader(t *testing.T) {
 	}
 	if string(out) != original {
 		t.Fatalf("got %q, want %q", string(out), original)
+	}
+}
+
+func TestBrotliReader(t *testing.T) {
+	original := []byte("hello brotli world")
+	compressed, err := brrr.Compress(original, 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	br := NewBrotliReader(io.NopCloser(bytes.NewReader(compressed)))
+	defer br.Close()
+
+	out, err := io.ReadAll(br)
+	if err != nil {
+		t.Fatalf("ReadAll failed: %v", err)
+	}
+	if string(out) != string(original) {
+		t.Fatalf("got %q, want %q", string(out), string(original))
 	}
 }
 
