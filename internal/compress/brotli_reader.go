@@ -3,7 +3,7 @@ package compress
 import (
 	"io"
 
-	"github.com/andybalholm/brotli"
+	"github.com/molecule-man/go-brrr"
 )
 
 type BrotliReader struct {
@@ -21,7 +21,7 @@ func (br *BrotliReader) Read(p []byte) (n int, err error) {
 		return 0, br.berr
 	}
 	if br.br == nil {
-		br.br = brotli.NewReader(br.Body)
+		br.br = brrr.NewReader(br.Body)
 	}
 	return br.br.Read(p)
 }
