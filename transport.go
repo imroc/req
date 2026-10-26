@@ -2054,37 +2054,47 @@ func newHttp2NotSupportedError(negotiatedProtocol string) error {
 }
 
 func (t *Transport) customTlsHandshake(ctx context.Context, trace *httptrace.ClientTrace, addr string, pconn *persistConn) error {
-	errc := make(chan error, 2)
-	var timer *time.Timer // for canceling TLS handshake
+	// Return the handshake result through a channel instead of updating
+	// pconn.conn concurrently with timeout cleanup.
 	if d := t.TLSHandshakeTimeout; d != 0 {
-		timer = time.AfterFunc(d, func() {
-			errc <- tlsHandshakeTimeoutError{}
-		})
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeoutCause(ctx, d, tlsHandshakeTimeoutError{})
+		defer cancel()
+	}
+	type handshakeResult struct {
+		conn  net.Conn
+		state *tls.ConnectionState
+		err   error
+	}
+	result := make(chan handshakeResult, 1)
+	rawConn := pconn.conn
+	if trace != nil && trace.TLSHandshakeStart != nil {
+		trace.TLSHandshakeStart()
 	}
 	go func() {
-		if trace != nil && trace.TLSHandshakeStart != nil {
-			trace.TLSHandshakeStart()
-		}
-		conn, tlsState, err := t.TLSHandshakeContext(ctx, addr, pconn.conn)
-		if err != nil {
-			if timer != nil {
-				timer.Stop()
-			}
-			if trace != nil && trace.TLSHandshakeDone != nil {
-				trace.TLSHandshakeDone(tls.ConnectionState{}, err)
-			}
-		} else {
-			pconn.conn = conn
-			pconn.tlsState = tlsState
-			if trace != nil && trace.TLSHandshakeDone != nil {
-				trace.TLSHandshakeDone(*tlsState, nil)
-			}
-		}
-		errc <- err
+		conn, state, err := t.TLSHandshakeContext(ctx, addr, rawConn)
+		result <- handshakeResult{conn, state, err}
 	}()
-	if err := <-errc; err != nil {
-		pconn.conn.Close()
-		return err
+	var res handshakeResult
+	select {
+	case res = <-result:
+	case <-ctx.Done():
+		res.err = context.Cause(ctx)
+	}
+	if res.err != nil && context.Cause(ctx) == (tlsHandshakeTimeoutError{}) {
+		res.err = tlsHandshakeTimeoutError{}
+	}
+	if res.err != nil {
+		rawConn.Close()
+		if trace != nil && trace.TLSHandshakeDone != nil {
+			trace.TLSHandshakeDone(tls.ConnectionState{}, res.err)
+		}
+		return res.err
+	}
+	pconn.conn = res.conn
+	pconn.tlsState = res.state
+	if trace != nil && trace.TLSHandshakeDone != nil {
+		trace.TLSHandshakeDone(*res.state, nil)
 	}
 	return nil
 }
@@ -3258,7 +3268,9 @@ func (pc *persistConn) writeRequest(r *http.Request, w io.Writer, usingProxy boo
 	if sort { // sort and write headers
 		header.SortKeyValues(kvs, r.Header[header.HeaderOderKey])
 		for _, kv := range kvs {
-			_writeHeader(kv.Key, kv.Values...)
+			if err = _writeHeader(kv.Key, kv.Values...); err != nil {
+				return err
+			}
 		}
 	}
 

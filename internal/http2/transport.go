@@ -649,40 +649,46 @@ func (t *Transport) dialTLSWithContext(ctx context.Context, network, addr string
 			return nil, err
 		}
 		trace := httptrace.ContextClientTrace(ctx)
-		errc := make(chan error, 2)
-		var timer *time.Timer // for canceling TLS handshake
+		// Return the handshake result through a channel so timeout cleanup
+		// only accesses the original connection.
 		if d := t.TLSHandshakeTimeout; d != 0 {
-			timer = time.AfterFunc(d, func() {
-				errc <- tlsHandshakeTimeoutError{}
-			})
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeoutCause(ctx, d, tlsHandshakeTimeoutError{})
+			defer cancel()
+		}
+		type handshakeResult struct {
+			conn  net.Conn
+			state *tls.ConnectionState
+			err   error
+		}
+		result := make(chan handshakeResult, 1)
+		if trace != nil && trace.TLSHandshakeStart != nil {
+			trace.TLSHandshakeStart()
 		}
 		go func() {
-			if trace != nil && trace.TLSHandshakeStart != nil {
-				trace.TLSHandshakeStart()
-			}
-			tlsCn, tlsState, err := t.TLSHandshakeContext(ctx, firstTLSHost, conn)
-			if err != nil {
-				if timer != nil {
-					timer.Stop()
-				}
-				if trace != nil && trace.TLSHandshakeDone != nil {
-					trace.TLSHandshakeDone(tls.ConnectionState{}, err)
-				}
-			} else {
-				conn = tlsCn
-				if trace != nil && trace.TLSHandshakeDone != nil {
-					trace.TLSHandshakeDone(*tlsState, nil)
-				}
-			}
-			errc <- err
+			tlsCn, state, err := t.TLSHandshakeContext(ctx, firstTLSHost, conn)
+			result <- handshakeResult{tlsCn, state, err}
 		}()
-		if err := <-errc; err != nil {
-			conn.Close()
-			return nil, err
-		} else {
-			tlsCn := conn.(reqtls.Conn)
-			return tlsCn, nil
+		var res handshakeResult
+		select {
+		case res = <-result:
+		case <-ctx.Done():
+			res.err = context.Cause(ctx)
 		}
+		if res.err != nil && context.Cause(ctx) == (tlsHandshakeTimeoutError{}) {
+			res.err = tlsHandshakeTimeoutError{}
+		}
+		if res.err != nil {
+			conn.Close()
+			if trace != nil && trace.TLSHandshakeDone != nil {
+				trace.TLSHandshakeDone(tls.ConnectionState{}, res.err)
+			}
+			return nil, res.err
+		}
+		if trace != nil && trace.TLSHandshakeDone != nil {
+			trace.TLSHandshakeDone(*res.state, nil)
+		}
+		return res.conn.(reqtls.Conn), nil
 	}
 
 	// Custom DialContext: dial TCP first, then perform TLS handshake so
