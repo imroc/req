@@ -11,20 +11,22 @@ type KeyValues struct {
 }
 
 type sorter struct {
-	order map[string]int
-	kvs   []KeyValues
+	order       map[string]int
+	defaultRank int
+	kvs         []KeyValues
 }
 
 func (s *sorter) Len() int      { return len(s.kvs) }
 func (s *sorter) Swap(i, j int) { s.kvs[i], s.kvs[j] = s.kvs[j], s.kvs[i] }
 func (s *sorter) Less(i, j int) bool {
+	iRank, jRank := s.defaultRank, s.defaultRank
 	if index, ok := s.order[textproto.CanonicalMIMEHeaderKey(s.kvs[i].Key)]; ok {
-		i = index
+		iRank = index
 	}
 	if index, ok := s.order[textproto.CanonicalMIMEHeaderKey(s.kvs[j].Key)]; ok {
-		j = index
+		jRank = index
 	}
-	return i < j
+	return iRank < jRank
 }
 
 func SortKeyValues(kvs []KeyValues, orderedKeys []string) {
@@ -33,8 +35,9 @@ func SortKeyValues(kvs []KeyValues, orderedKeys []string) {
 		order[textproto.CanonicalMIMEHeaderKey(key)] = i
 	}
 	s := &sorter{
-		order: order,
-		kvs:   kvs,
+		order:       order,
+		defaultRank: len(orderedKeys),
+		kvs:         kvs,
 	}
-	sort.Sort(s)
+	sort.Stable(s)
 }

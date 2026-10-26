@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"sync"
 )
 
 // Options controls the dump behavior.
@@ -120,6 +121,7 @@ func (ds Dumpers) DumpResponseHeader(p []byte) {
 type Dumper struct {
 	Options
 	ch chan *dumpTask
+	mu sync.Mutex // serializes synchronous writes to the output
 }
 
 type dumpTask struct {
@@ -160,6 +162,8 @@ func (d *Dumper) DumpTo(p []byte, output io.Writer) {
 		d.ch <- &dumpTask{Data: b, Output: output}
 		return
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	output.Write(p)
 }
 
