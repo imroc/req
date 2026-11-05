@@ -2593,6 +2593,15 @@ func foreachHeaderElement(v string, fn func(string)) {
 // is a StreamError of type ErrCodeProtocol. The returned error in that case
 // is the detail.
 //
+// From RFC 9113, Section 8.2.2.
+var connHeaders = []string{
+	"Connection",
+	"Keep-Alive",
+	"Proxy-Connection",
+	"Transfer-Encoding",
+	"Upgrade",
+}
+
 // As a special case, handleResponse may return (nil, nil) to skip the
 // frame (currently only used for 1xx responses).
 func (rl *clientConnReadLoop) handleResponse(cs *clientStream, f *MetaHeadersFrame) (*http.Response, error) {
@@ -2671,18 +2680,43 @@ func (rl *clientConnReadLoop) handleResponse(cs *clientStream, f *MetaHeadersFra
 		return nil, nil
 	}
 
+	// Delete various headers that might mess up framing for HTTP/1. This is
+	// not a problem for HTTP/2, but someone might use HTTP/2 transport as a
+	// reverse proxy which forwards the response to an HTTP/1 client. Our
+	// HTTP/1 client transport will properly reject improper headers such as
+	// multiple conflicting Content-Length headers, but other implementations
+	// might not.
+	//
+	// Connection-specific header fields must not appear in an HTTP/2 message,
+	// and any message containing them is malformed. RFC 9113, Section 8.2.2.
+	for _, k := range connHeaders {
+		delete(res.Header, k)
+	}
 	res.ContentLength = -1
-	if clens := res.Header["Content-Length"]; len(clens) == 1 {
-		if cl, err := strconv.ParseUint(clens[0], 10, 63); err == nil {
-			res.ContentLength = int64(cl)
-		} else {
-			// TODO: care? unlike http/1, it won't mess up our framing, so it's
-			// more safe smuggling-wise to ignore.
+	if clens, ok := res.Header["Content-Length"]; ok {
+		// Repeated Content-Length values may be collapsed into one only if
+		// they are identical per RFC 9110 Section 8.6.
+		// No need to trim whitespace, HTTP/2 header values must not have
+		// extraneous whitespace per RFC 9113 Section 8.2.1.
+		// Non-canonical headers are already rejected by our framer at this
+		// point.
+		conflicting := false
+		for _, clen := range clens[1:] {
+			if clen != clens[0] {
+				conflicting = true
+				break
+			}
 		}
-	} else if len(clens) > 1 {
-		// TODO: care? unlike http/1, it won't mess up our framing, so it's
-		// more safe smuggling-wise to ignore.
-	} else if f.StreamEnded() && !cs.isHead {
+		cl, err := strconv.ParseUint(clens[0], 10, 63)
+		if conflicting || err != nil {
+			delete(res.Header, "Content-Length")
+		} else {
+			res.Header["Content-Length"] = clens[:1]
+			res.ContentLength = int64(cl)
+		}
+	}
+
+	if res.ContentLength < 0 && f.StreamEnded() && !cs.isHead {
 		res.ContentLength = 0
 	}
 
