@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/imroc/req/v3/internal/testcert"
+	"github.com/imroc/req/v3/internal/transport"
 	"github.com/quic-go/quic-go"
 )
 
@@ -99,7 +100,7 @@ func TestNewClientConnAndRawClientConn(t *testing.T) {
 	}
 
 	tr := &Transport{
-		TLSClientConfig: clientTLSConfig,
+		Options: &transport.Options{TLSClientConfig: clientTLSConfig},
 		QUICConfig: &quic.Config{
 			MaxIdleTimeout: 5 * time.Second,
 		},

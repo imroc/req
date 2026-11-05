@@ -65,10 +65,10 @@ func (r *roundTripperWithCount) Close() error {
 
 // Transport implements the http.RoundTripper interface
 type Transport struct {
+	// Options carries the client's settings, TLSClientConfig among them. A
+	// field of the same name here would shadow it and HTTP/3 would ignore the
+	// client's TLS configuration.
 	*transport.Options
-	// TLSClientConfig specifies the TLS configuration to use with
-	// tls.Client. If nil, the default configuration is used.
-	TLSClientConfig *tls.Config
 
 	// QUICConfig is the quic.Config used for dialing new connections.
 	// If nil, reasonable default values will be used.
