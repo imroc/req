@@ -35,7 +35,7 @@ Full documentation is available on the official website: https://req.cool.
 
 **Install**
 
-You first need [Go](https://go.dev/) installed (version 1.24+ is required), then you can use the below Go command to install req:
+You first need [Go](https://go.dev/) installed (version 1.26+ is required), then you can use the below Go command to install req:
 
 ``` sh
 go get github.com/imroc/req/v3
@@ -493,8 +493,12 @@ func (c *GithubClient) GetUserProfile_Style2(ctx context.Context, username strin
 
 ## Go Version Compatibility Matrix
 
+The `master` branch requires Go 1.26 or newer to support quic-go v0.65.0.
+
 | Req Version | Go Version |
 | ----------- | ---------- |
+| master      | 1.26+      |
+| 3.61.0      | 1.25+      |
 | 3.53.0      | 1.24+      |
 | 3.51.0      | 1.23+      |
 | 3.43.0      | 1.21+      |

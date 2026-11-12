@@ -174,10 +174,6 @@ type settingsFrame struct {
 	Other           map[uint64]uint64 // all settings that we don't explicitly recognize
 }
 
-func pointer[T any](v T) *T {
-	return &v
-}
-
 func parseSettingsFrame(r *countingByteReader, l uint64, streamID quic.StreamID, qlogger qlogwriter.Recorder) (*settingsFrame, error) {
 	if l > 8*(1<<10) {
 		return nil, fmt.Errorf("unexpected size for SETTINGS frame: %d", l)
@@ -191,7 +187,11 @@ func parseSettingsFrame(r *countingByteReader, l uint64, streamID quic.StreamID,
 	}
 	frame := &settingsFrame{MaxFieldSectionSize: -1}
 	b := bytes.NewReader(buf)
-	settingsFrame := qlog.SettingsFrame{MaxFieldSectionSize: -1}
+	settingsFrame := qlog.SettingsFrame{
+		MaxFieldSectionSize: -1,
+		Datagram:            -1,
+		ExtendedConnect:     -1,
+	}
 	var readMaxFieldSectionSize, readDatagram, readExtendedConnect bool
 	for b.Len() > 0 {
 		id, err := quicvarint.Read(b)
@@ -221,7 +221,7 @@ func parseSettingsFrame(r *countingByteReader, l uint64, streamID quic.StreamID,
 			}
 			frame.ExtendedConnect = val == 1
 			if qlogger != nil {
-				settingsFrame.ExtendedConnect = pointer(frame.ExtendedConnect)
+				settingsFrame.ExtendedConnect = int64(val)
 			}
 		case settingDatagram:
 			if readDatagram {
@@ -233,7 +233,7 @@ func parseSettingsFrame(r *countingByteReader, l uint64, streamID quic.StreamID,
 			}
 			frame.Datagram = val == 1
 			if qlogger != nil {
-				settingsFrame.Datagram = pointer(frame.Datagram)
+				settingsFrame.Datagram = int64(val)
 			}
 		default:
 			if _, ok := frame.Other[id]; ok {

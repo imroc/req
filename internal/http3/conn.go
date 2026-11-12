@@ -74,7 +74,7 @@ func newConnection(
 	options *transport.Options,
 ) *Conn {
 	var qlogger qlogwriter.Recorder
-	if qlogTrace := quicConn.QlogTrace(); qlogTrace != nil && qlogTrace.SupportsSchemas(qlog.EventSchema) {
+	if qlogTrace := quicConn.QlogTrace(); qlogTrace != nil {
 		qlogger = qlogTrace.AddProducer()
 	}
 	c := &Conn{

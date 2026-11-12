@@ -1,6 +1,6 @@
 module github.com/imroc/req/v3
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/andybalholm/brotli v1.2.4
@@ -8,7 +8,7 @@ require (
 	github.com/icholy/digest v1.2.0
 	github.com/klauspost/compress v1.20.0
 	github.com/quic-go/qpack v0.6.0
-	github.com/quic-go/quic-go v0.61.0
+	github.com/quic-go/quic-go v0.65.0
 	github.com/refraction-networking/utls v1.8.2
 	golang.org/x/net v0.58.0
 	golang.org/x/text v0.41.0
