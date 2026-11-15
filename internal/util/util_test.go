@@ -11,6 +11,9 @@ func TestIsJSONType(t *testing.T) {
 		expected bool
 	}{
 		{"application/json", true},
+		{"Application/JSON", true},
+		{"APPLICATION/PROBLEM+JSON", true},
+		{`application/soap+xml; action="https://example.org/GetJSON"`, false},
 		{"application/json; charset=utf-8", true},
 		{"text/json", true},
 		{"application/xml", false},
@@ -30,6 +33,9 @@ func TestIsXMLType(t *testing.T) {
 		expected bool
 	}{
 		{"application/xml", true},
+		{"Application/XML", true},
+		{"APPLICATION/ATOM+XML; Charset=UTF-8", true},
+		{`application/ld+json; profile="https://example.org/XML"`, false},
 		{"text/xml; charset=utf-8", true},
 		{"application/json", false},
 		{"text/html", false},
