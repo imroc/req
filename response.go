@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/imroc/req/v3/internal/header"
@@ -255,9 +254,9 @@ func (r *Response) Unmarshal(v any) error {
 	}
 	v = util.GetPointer(v)
 	contentType := r.Header.Get("Content-Type")
-	if strings.Contains(contentType, "json") {
+	if util.IsJSONType(contentType) {
 		return r.UnmarshalJson(v)
-	} else if strings.Contains(contentType, "xml") {
+	} else if util.IsXMLType(contentType) {
 		return r.UnmarshalXml(v)
 	}
 	return r.UnmarshalJson(v)
