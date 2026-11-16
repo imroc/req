@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"net/http"
 	urlpkg "net/url"
 	"os"
 	"path/filepath"
@@ -158,13 +159,19 @@ func (pd *ParallelDownload) handleTask(t *downloadTask, ctx ...context.Context) 
 		pd.errCh <- err
 		return
 	}
-	err = pd.client.Get(pd.url).
+	resp := pd.client.Get(pd.url).
 		SetHeader("Range", fmt.Sprintf("bytes=%d-%d", t.rangeStart, t.rangeEnd)).
 		SetOutput(file).
-		Do(ctx...).Err
-
-	if err != nil {
-		pd.errCh <- err
+		Do(ctx...)
+	if resp.Err != nil {
+		pd.errCh <- resp.Err
+		return
+	}
+	// A server without range support sends the whole file (200), which is
+	// only the right content when there is a single segment.
+	wholeFile := resp.StatusCode == http.StatusOK && t.rangeStart == 0 && pd.lastIndex == 0
+	if resp.StatusCode != http.StatusPartialContent && !wholeFile {
+		pd.errCh <- fmt.Errorf("download segment %d-%d: unexpected status %s", t.rangeStart, t.rangeEnd, resp.Status)
 		return
 	}
 	t.tempFile = file
@@ -227,6 +234,9 @@ func (pd *ParallelDownload) Do(ctx ...context.Context) error {
 	resp := pd.client.Head(pd.url).Do(ctx...)
 	if resp.Err != nil {
 		return resp.Err
+	}
+	if resp.IsErrorState() {
+		return fmt.Errorf("bad status: %s", resp.Status)
 	}
 	if resp.ContentLength <= 0 {
 		return fmt.Errorf("bad content length: %d", resp.ContentLength)
