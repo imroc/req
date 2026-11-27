@@ -310,7 +310,7 @@ func authorityAddr(authority string) (addr string) {
 		port = "443"
 		host = authority
 	}
-	if a, err := idna.ToASCII(host); err == nil {
+	if a, err := idna.Lookup.ToASCII(host); err == nil {
 		host = a
 	}
 	// IPv6 address literal, without a port:

@@ -1928,11 +1928,17 @@ func (t *Transport) dialConnFor(w *wantConn) {
 	}
 
 	pc, err := t.dialConn(ctx, w.cm)
+	if err == nil && pc.alt != nil {
+		// A multiplexed connection can serve several requests: add it to the
+		// idle pool before delivering it, so a concurrent
+		// CloseIdleConnections cannot miss a connection that is about to be
+		// used.
+		t.putOrCloseIdleConn(pc)
+	}
 	delivered := w.tryDeliver(pc, err, time.Time{})
-	if err == nil && (!delivered || pc.alt != nil) {
-		// pconn was not passed to w,
-		// or it is HTTP/2 and can be shared.
-		// Add to the idle connection pool.
+	if err == nil && !delivered && pc.alt == nil {
+		// pconn was not passed to w and is not shareable: add it to the idle
+		// connection pool.
 		t.putOrCloseIdleConn(pc)
 	}
 	if err != nil {
