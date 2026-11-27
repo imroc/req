@@ -454,7 +454,7 @@ func authorityAddr(scheme string, authority string) (addr string) {
 			port = "80"
 		}
 	}
-	if a, err := idna.ToASCII(host); err == nil {
+	if a, err := idna.Lookup.ToASCII(host); err == nil {
 		host = a
 	}
 	// IPv6 address literal, without a port:

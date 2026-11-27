@@ -32,7 +32,7 @@ func AuthorityHostPort(scheme, authority string) (host, port string) {
 		}
 		host = authority
 	}
-	if a, err := idna.ToASCII(host); err == nil {
+	if a, err := idna.Lookup.ToASCII(host); err == nil {
 		host = a
 	}
 	return
